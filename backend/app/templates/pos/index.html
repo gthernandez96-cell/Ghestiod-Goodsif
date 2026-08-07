@@ -1,0 +1,813 @@
+{% set show_layout = false %}
+{% extends "base.html" %}
+
+{% block title %}Punto de Venta — POS Empresarial{% endblock %}
+
+{% block extra_css %}
+<style>
+  body { overflow: hidden; }
+
+  .pos-topbar {
+    height: 52px;
+    background: var(--surface-950);
+    border-bottom: 1px solid var(--glass-border);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+
+  .pos-category-tabs {
+    display: flex;
+    gap: 6px;
+    padding: 10px 16px;
+    overflow-x: auto;
+    flex-shrink: 0;
+    scrollbar-width: none;
+    border-bottom: 1px solid var(--glass-border);
+  }
+
+  .pos-category-tabs::-webkit-scrollbar { display: none; }
+
+  .cat-tab {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    border: 1px solid var(--glass-border);
+    background: var(--surface-800);
+    color: var(--surface-400);
+    cursor: pointer;
+    transition: all var(--transition);
+    white-space: nowrap;
+    font-family: inherit;
+  }
+
+  .cat-tab:hover, .cat-tab.active {
+    background: var(--primary-700);
+    border-color: var(--primary-500);
+    color: white;
+  }
+
+  /* Numpad */
+  .numpad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    padding: 12px;
+  }
+
+  .numpad-btn {
+    height: 48px;
+    border-radius: 10px;
+    background: var(--surface-800);
+    border: 1px solid var(--glass-border);
+    color: white;
+    font-size: 18px;
+    font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition);
+    font-family: inherit;
+  }
+
+  .numpad-btn:hover { background: var(--surface-700); transform: scale(0.97); }
+  .numpad-btn:active { transform: scale(0.93); }
+  .numpad-btn.del { color: var(--danger); }
+  .numpad-btn.confirm {
+    background: linear-gradient(135deg, var(--accent-600), var(--accent-500));
+    grid-column: span 3;
+    height: 52px;
+    font-size: 16px;
+    font-weight: 700;
+    box-shadow: 0 4px 16px rgba(5, 150, 105, 0.3);
+  }
+
+  .numpad-btn.confirm:hover {
+    box-shadow: 0 6px 24px rgba(5, 150, 105, 0.5);
+    transform: translateY(-1px);
+  }
+
+  /* Payment modal */
+  .payment-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.8);
+    backdrop-filter: blur(4px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .payment-card {
+    background: var(--surface-800);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--border-radius-xl);
+    width: 100%;
+    max-width: 520px;
+    animation: slideUp 0.3s ease;
+  }
+
+  .payment-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--glass-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .total-display {
+    background: var(--surface-900);
+    border-radius: var(--border-radius-lg);
+    padding: 20px;
+    margin: 16px 24px;
+    text-align: center;
+    border: 1px solid var(--glass-border);
+  }
+
+  .total-display .total-label { font-size: 12px; color: var(--surface-500); margin-bottom: 6px; }
+  .total-display .total-amount { font-size: 36px; font-weight: 800; color: white; }
+
+  .received-display {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(5, 150, 105, 0.04));
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    border-radius: var(--border-radius-lg);
+    padding: 16px 24px;
+    margin: 0 24px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .change-display {
+    border-radius: var(--border-radius-lg);
+    padding: 14px 24px;
+    margin: 0 24px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 16px;
+  }
+
+  .change-display.positive {
+    background: rgba(16, 185, 129, 0.08);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    color: var(--accent-400);
+  }
+
+  .change-display.negative {
+    background: rgba(239, 68, 68, 0.08);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    color: #f87171;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="posApp" x-data="posApp()" x-init="init()"
+  style="display:flex;flex-direction:column;height:100vh;overflow:hidden">
+
+  <!-- POS Topbar -->
+  <div class="pos-topbar">
+    <a href="/dashboard" class="btn btn-ghost btn-icon" title="Volver al dashboard">
+      <i class="ph ph-arrow-left"></i>
+    </a>
+
+    <div class="flex items-center gap-2">
+      <div class="logo-icon" style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--primary-600),var(--accent-500));display:flex;align-items:center;justify-content:center;font-size:16px;color:white">
+        <i class="ph ph-cash-register"></i>
+      </div>
+      <span style="font-weight:700;color:white;font-size:15px">Punto de Venta</span>
+    </div>
+
+    <!-- Caja info -->
+    <div class="badge badge-success" x-show="session.id">
+      <i class="ph ph-check-circle"></i>
+      <span x-text="'Caja: ' + session.number"></span>
+    </div>
+
+    <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
+      <!-- FEL status -->
+      <div class="badge" :class="online ? 'badge-success' : 'badge-warning'">
+        <i class="ph" :class="online ? 'ph-wifi-high' : 'ph-wifi-slash'"></i>
+        <span x-text="online ? 'FEL Online' : 'Offline'"></span>
+      </div>
+
+      <button class="btn btn-ghost btn-sm" @click="showCashierMenu = !showCashierMenu">
+        <i class="ph ph-user-circle"></i>
+        <span x-text="currentUser.full_name || 'Cajero'"></span>
+      </button>
+
+      <button class="btn btn-danger btn-sm" @click="confirmCloseSession()" x-show="session.id">
+        <i class="ph ph-door-open"></i> Cerrar Caja
+      </button>
+
+      <button class="btn btn-primary btn-sm" @click="showOpenSession = true" x-show="!session.id">
+        <i class="ph ph-cash-register"></i> Abrir Caja
+      </button>
+    </div>
+  </div>
+
+  <!-- POS Body -->
+  <div style="display:flex;flex:1;overflow:hidden">
+
+    <!-- LEFT: Productos -->
+    <div class="pos-products" style="flex:1;display:flex;flex-direction:column;padding:0">
+
+      <!-- Search -->
+      <div class="pos-search">
+        <div style="position:relative">
+          <i class="ph ph-magnifying-glass search-icon"></i>
+          <input
+            id="productSearch"
+            class="form-control"
+            style="padding-left:38px"
+            type="text"
+            placeholder="Buscar producto, código de barras..."
+            x-model="searchQuery"
+            @input.debounce.300ms="searchProducts()"
+            @keydown.enter="addFirstResult()"
+            autofocus
+          >
+        </div>
+      </div>
+
+      <!-- Category Tabs -->
+      <div class="pos-category-tabs">
+        <button class="cat-tab" :class="{ active: selectedCategory === '' }" @click="selectedCategory = ''; filterProducts()">
+          🏪 Todos
+        </button>
+        <template x-for="cat in categories" :key="cat.id">
+          <button class="cat-tab" :class="{ active: selectedCategory === cat.id }" @click="selectedCategory = cat.id; filterProducts()" x-text="cat.name"></button>
+        </template>
+      </div>
+
+      <!-- Product Grid -->
+      <div style="flex:1;overflow-y:auto;padding:12px">
+        <div class="product-grid">
+          <template x-for="product in filteredProducts" :key="product.id">
+            <div
+              class="product-tile"
+              @click="addToCart(product)"
+              :class="{ 'opacity-50': product.stock <= 0 }"
+            >
+              <div style="font-size:24px;margin-bottom:8px" x-text="product.emoji || '📦'"></div>
+              <div class="product-name" x-text="product.name"></div>
+              <div class="product-price" x-text="'Q ' + formatPrice(product.sale_price)"></div>
+              <div class="product-stock" :class="{ low: product.stock < 10, out: product.stock <= 0 }">
+                <span x-text="product.stock <= 0 ? '❌ Agotado' : 'Stock: ' + product.stock"></span>
+              </div>
+            </div>
+          </template>
+        </div>
+
+        <div class="text-center text-muted" style="padding:60px 20px" x-show="filteredProducts.length === 0">
+          <i class="ph ph-magnifying-glass" style="font-size:48px;opacity:0.3"></i>
+          <p style="margin-top:12px">No se encontraron productos</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Carrito -->
+    <div class="pos-cart" style="width:400px">
+
+      <!-- Cart Header -->
+      <div class="cart-header">
+        <div class="flex items-center gap-2">
+          <i class="ph ph-shopping-cart" style="color:var(--primary-400);font-size:18px"></i>
+          <span style="font-weight:700;color:white">Orden</span>
+          <span class="badge badge-primary" x-text="cartCount + ' items'"></span>
+        </div>
+        <div class="flex gap-2">
+          <!-- Cliente -->
+          <button class="btn btn-ghost btn-sm" @click="showCustomerModal = true">
+            <i class="ph ph-user-plus"></i>
+            <span x-text="customer.nit ? customer.name : 'CF'"></span>
+          </button>
+          <!-- Limpiar -->
+          <button class="btn btn-ghost btn-sm" @click="clearCart()" x-show="cart.length > 0">
+            <i class="ph ph-trash"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Cart Items -->
+      <div class="cart-items" style="flex:1;overflow-y:auto">
+        <template x-for="(item, idx) in cart" :key="item.product_id + '_' + idx">
+          <div class="cart-item">
+            <div>
+              <div class="cart-item-name" x-text="item.name"></div>
+              <div class="cart-item-controls">
+                <div class="qty-control">
+                  <button class="qty-btn" @click="decreaseQty(idx)">−</button>
+                  <input
+                    type="number"
+                    class="qty-value"
+                    :value="item.qty"
+                    @change="setQty(idx, $event.target.value)"
+                    min="0.01"
+                    step="1"
+                    style="border:none;background:var(--surface-800);color:white;width:50px;text-align:center;font-weight:700"
+                  >
+                  <button class="qty-btn" @click="increaseQty(idx)">+</button>
+                </div>
+                <span class="text-muted text-xs" x-text="'Q' + formatPrice(item.unit_price)"></span>
+                <button class="btn btn-ghost btn-sm btn-icon" style="color:var(--danger)" @click="removeItem(idx)">
+                  <i class="ph ph-x"></i>
+                </button>
+              </div>
+            </div>
+            <div>
+              <div class="cart-item-total" x-text="'Q ' + formatPrice(item.total)"></div>
+              <div class="cart-item-price text-muted text-xs" x-show="item.discount_pct > 0" x-text="item.discount_pct + '% desc.'"></div>
+            </div>
+          </div>
+        </template>
+
+        <div class="text-center text-muted" style="padding:60px 20px" x-show="cart.length === 0">
+          <i class="ph ph-shopping-cart" style="font-size:48px;opacity:0.2"></i>
+          <p style="margin-top:12px">Agrega productos a la orden</p>
+        </div>
+      </div>
+
+      <!-- Cart Summary -->
+      <div class="cart-summary">
+        <div class="cart-total-row">
+          <span>Subtotal:</span>
+          <span x-text="'Q ' + formatPrice(subtotal)"></span>
+        </div>
+        <div class="cart-total-row" x-show="totalDiscount > 0" style="color:var(--accent-400)">
+          <span>Descuento:</span>
+          <span x-text="'- Q ' + formatPrice(totalDiscount)"></span>
+        </div>
+        <div class="cart-total-row">
+          <span>IVA (12%):</span>
+          <span x-text="'Q ' + formatPrice(taxAmount)"></span>
+        </div>
+        <div class="cart-total-row grand">
+          <span>TOTAL</span>
+          <span class="amount" x-text="'Q ' + formatPrice(grandTotal)"></span>
+        </div>
+
+        <!-- Payment method selector -->
+        <div class="payment-methods" style="margin-top:12px">
+          <button class="pay-btn" :class="{ active: paymentMethod === 'cash' }" @click="paymentMethod = 'cash'">
+            <span class="pay-icon">💵</span> Efectivo
+          </button>
+          <button class="pay-btn" :class="{ active: paymentMethod === 'card' }" @click="paymentMethod = 'card'">
+            <span class="pay-icon">💳</span> Tarjeta
+          </button>
+          <button class="pay-btn" :class="{ active: paymentMethod === 'transfer' }" @click="paymentMethod = 'transfer'">
+            <span class="pay-icon">🏦</span> Transfer.
+          </button>
+        </div>
+
+        <!-- Cobrar button -->
+        <button
+          class="btn btn-success btn-full btn-xl"
+          @click="processPayment()"
+          :disabled="cart.length === 0 || processing"
+          style="margin-top:8px"
+        >
+          <span x-show="!processing">
+            <i class="ph ph-credit-card"></i> Cobrar Q <span x-text="formatPrice(grandTotal)"></span>
+          </span>
+          <span x-show="processing">Procesando...</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PAYMENT MODAL ===== -->
+  <div class="payment-modal" x-show="showPaymentModal" x-transition style="display:none">
+    <div class="payment-card">
+      <div class="payment-header">
+        <span style="font-size:18px;font-weight:700;color:white">
+          <i class="ph ph-currency-circle-dollar"></i> Procesar Pago
+        </span>
+        <button class="btn btn-ghost btn-icon" @click="showPaymentModal = false">
+          <i class="ph ph-x"></i>
+        </button>
+      </div>
+
+      <div class="total-display">
+        <div class="total-label">TOTAL A COBRAR</div>
+        <div class="total-amount" x-text="'Q ' + formatPrice(grandTotal)"></div>
+      </div>
+
+      <!-- Numpad -->
+      <div class="numpad">
+        <template x-for="n in ['7','8','9','4','5','6','1','2','3','00','0','⌫']">
+          <button class="numpad-btn" :class="{ del: n === '⌫' }" @click="numpadInput(n)" x-text="n"></button>
+        </template>
+        <div style="padding:0 12px 12px;grid-column:span 3">
+          <div style="background:var(--surface-900);border:1px solid var(--glass-border);border-radius:10px;padding:12px 16px;margin-bottom:8px">
+            <div style="font-size:11px;color:var(--surface-500);margin-bottom:4px">MONTO RECIBIDO</div>
+            <div style="font-size:24px;font-weight:800;color:white;font-family:'JetBrains Mono',monospace" x-text="'Q ' + formatPrice(receivedAmount)"></div>
+          </div>
+        </div>
+        <button class="numpad-btn confirm" @click="confirmPayment()">
+          <i class="ph ph-check-circle"></i> Confirmar Cobro
+        </button>
+      </div>
+
+      <div class="received-display">
+        <span style="color:var(--surface-400)">Recibido:</span>
+        <span style="color:white;font-weight:700" x-text="'Q ' + formatPrice(receivedAmount)"></span>
+      </div>
+
+      <div class="change-display" :class="change >= 0 ? 'positive' : 'negative'">
+        <span style="font-weight:600" x-text="change >= 0 ? 'CAMBIO:' : 'FALTA:'"></span>
+        <span style="font-weight:800;font-size:20px" x-text="'Q ' + formatPrice(Math.abs(change))"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== CUSTOMER MODAL ===== -->
+  <div class="modal-overlay" x-show="showCustomerModal" x-transition style="display:none">
+    <div class="modal" style="max-width:400px">
+      <div class="modal-header">
+        <span class="modal-title"><i class="ph ph-user"></i> Datos del Cliente</span>
+        <button class="btn btn-ghost btn-icon" @click="showCustomerModal = false"><i class="ph ph-x"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">NIT del Cliente</label>
+          <div class="flex gap-2">
+            <input class="form-control" type="text" placeholder="12345678 o CF" x-model="customer.nit" @keydown.enter="lookupCustomer()">
+            <button class="btn btn-primary" @click="lookupCustomer()"><i class="ph ph-magnifying-glass"></i></button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nombre</label>
+          <input class="form-control" type="text" placeholder="CONSUMIDOR FINAL" x-model="customer.name">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Correo (opcional, para FEL)</label>
+          <input class="form-control" type="email" placeholder="cliente@email.com" x-model="customer.email">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" @click="clearCustomer()">Limpiar (CF)</button>
+        <button class="btn btn-primary" @click="showCustomerModal = false">Aplicar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SUCCESS MODAL ===== -->
+  <div class="modal-overlay" x-show="showSuccessModal" x-transition style="display:none">
+    <div class="modal" style="max-width:420px;text-align:center">
+      <div class="modal-body" style="padding:40px">
+        <div style="width:72px;height:72px;border-radius:50%;background:rgba(16,185,129,0.15);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;border:2px solid var(--accent-500)">
+          <i class="ph ph-check-circle" style="font-size:36px;color:var(--accent-400)"></i>
+        </div>
+        <h2 style="font-size:20px;font-weight:700;color:white;margin-bottom:8px">¡Venta Completada!</h2>
+        <p class="text-muted" x-text="lastSale.number"></p>
+
+        <div style="background:var(--surface-900);border-radius:12px;padding:16px;margin:20px 0;border:1px solid var(--glass-border)">
+          <div class="cart-total-row">
+            <span>Total cobrado:</span>
+            <span class="text-white font-bold" x-text="'Q ' + formatPrice(lastSale.total)"></span>
+          </div>
+          <div class="cart-total-row">
+            <span>Recibido:</span>
+            <span class="text-white font-bold" x-text="'Q ' + formatPrice(lastSale.received)"></span>
+          </div>
+          <div class="cart-total-row grand" style="font-size:16px">
+            <span>Cambio:</span>
+            <span class="amount" x-text="'Q ' + formatPrice(lastSale.change)"></span>
+          </div>
+        </div>
+
+        <div class="badge" :class="lastSale.fel_status === 'certified' ? 'badge-success' : 'badge-warning'" style="margin-bottom:20px">
+          <i class="ph" :class="lastSale.fel_status === 'certified' ? 'ph-check' : 'ph-warning'"></i>
+          <span x-text="lastSale.fel_status === 'certified' ? 'FEL Certificada' : 'En Contingencia'"></span>
+        </div>
+
+        <div class="flex gap-2" style="justify-content:center;flex-wrap:wrap">
+          <button class="btn btn-ghost" @click="printReceipt()">
+            <i class="ph ph-printer"></i> Imprimir
+          </button>
+          <button class="btn btn-ghost" @click="sendEmail()">
+            <i class="ph ph-envelope"></i> Email
+          </button>
+          <button class="btn btn-primary" @click="newSale()">
+            <i class="ph ph-plus"></i> Nueva Venta
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function posApp() {
+  return {
+    // State
+    cart: [],
+    categories: [],
+    allProducts: [],
+    filteredProducts: [],
+    searchQuery: '',
+    selectedCategory: '',
+    paymentMethod: 'cash',
+    processing: false,
+    online: navigator.onLine,
+
+    // Session
+    session: {},
+    currentUser: JSON.parse(localStorage.getItem('user') || '{}'),
+
+    // Customer
+    customer: { nit: 'CF', name: 'CONSUMIDOR FINAL', email: '' },
+
+    // Payment modal
+    showPaymentModal: false,
+    receivedStr: '0',
+    showSuccessModal: false,
+    lastSale: {},
+
+    // Other modals
+    showCustomerModal: false,
+    showOpenSession: false,
+
+    // Computed
+    get cartCount() { return this.cart.reduce((s, i) => s + i.qty, 0); },
+    get subtotal() { return this.cart.reduce((s, i) => s + i.subtotal, 0); },
+    get taxAmount() { return this.cart.reduce((s, i) => s + i.tax_amount, 0); },
+    get totalDiscount() { return this.cart.reduce((s, i) => s + i.discount_amount, 0); },
+    get grandTotal() { return this.subtotal + this.taxAmount; },
+    get receivedAmount() { return parseFloat(this.receivedStr) || 0; },
+    get change() { return this.receivedAmount - this.grandTotal; },
+
+    formatPrice(v) {
+      return Number(v || 0).toFixed(2);
+    },
+
+    async init() {
+      window.addEventListener('online', () => this.online = true);
+      window.addEventListener('offline', () => this.online = false);
+
+      await this.loadCategories();
+      await this.loadProducts();
+      await this.loadSession();
+    },
+
+    async loadCategories() {
+      try {
+        const data = await API.get('/products/categories');
+        this.categories = data.items || [];
+      } catch(e) {
+        this.categories = [
+          { id: 'alimentos', name: '🛒 Alimentos' },
+          { id: 'bebidas', name: '🥤 Bebidas' },
+          { id: 'limpieza', name: '🧹 Limpieza' },
+          { id: 'farmacia', name: '💊 Farmacia' },
+          { id: 'ferreteria', name: '🔧 Ferretería' },
+        ];
+      }
+    },
+
+    async loadProducts() {
+      try {
+        const data = await API.get('/products/?page_size=200&is_published=true');
+        this.allProducts = data.items || [];
+      } catch(e) {
+        // Demo products
+        this.allProducts = [
+          { id: '1', name: 'Coca-Cola 600ml', sale_price: 7, stock: 45, tax_rate: 12, cost_price: 5, barcode: '7501035901074', emoji: '🥤' },
+          { id: '2', name: 'Arroz Integral 1kg', sale_price: 15, stock: 80, tax_rate: 0, cost_price: 11, emoji: '🌾' },
+          { id: '3', name: 'Leche Entera 1L', sale_price: 12, stock: 60, tax_rate: 0, cost_price: 9, emoji: '🥛' },
+          { id: '4', name: 'Pan Molde Grande', sale_price: 12, stock: 25, tax_rate: 0, cost_price: 8, emoji: '🍞' },
+          { id: '5', name: 'Aceite Vegetal 1L', sale_price: 25, stock: 40, tax_rate: 12, cost_price: 18, emoji: '🫙' },
+          { id: '6', name: 'Jabón Líquido 500ml', sale_price: 28, stock: 35, tax_rate: 12, cost_price: 20, emoji: '🧴' },
+          { id: '7', name: 'Papel Higiénico x4', sale_price: 18, stock: 100, tax_rate: 12, cost_price: 13, emoji: '🧻' },
+          { id: '8', name: 'Shampoo 400ml', sale_price: 42, stock: 28, tax_rate: 12, cost_price: 30, emoji: '🧴' },
+          { id: '9', name: 'Paracetamol 500mg', sale_price: 3.5, stock: 200, tax_rate: 0, cost_price: 2, emoji: '💊' },
+          { id: '10', name: 'Ibuprofeno 400mg', sale_price: 5, stock: 150, tax_rate: 0, cost_price: 3, emoji: '💊' },
+          { id: '11', name: 'Tornillo 1/2" x50', sale_price: 15, stock: 500, tax_rate: 12, cost_price: 10, emoji: '🔩' },
+          { id: '12', name: 'Pintura Blanca 1gal', sale_price: 85, stock: 20, tax_rate: 12, cost_price: 60, emoji: '🪣' },
+          { id: '13', name: 'Azúcar Blanca 1kg', sale_price: 8, stock: 120, tax_rate: 0, cost_price: 5.5, emoji: '🍬' },
+          { id: '14', name: 'Huevos x30', sale_price: 45, stock: 50, tax_rate: 0, cost_price: 35, emoji: '🥚' },
+          { id: '15', name: 'Agua Pura 5gal', sale_price: 15, stock: 80, tax_rate: 12, cost_price: 10, emoji: '💧' },
+          { id: '16', name: 'Frijol Negro 1lb', sale_price: 6, stock: 200, tax_rate: 0, cost_price: 4, emoji: '🫘' },
+        ];
+      }
+      this.filteredProducts = [...this.allProducts];
+    },
+
+    searchProducts() {
+      const q = this.searchQuery.toLowerCase();
+      let products = this.allProducts;
+
+      if (this.selectedCategory) {
+        products = products.filter(p => p.category_id === this.selectedCategory);
+      }
+
+      if (q) {
+        products = products.filter(p =>
+          p.name.toLowerCase().includes(q) ||
+          (p.barcode && p.barcode.includes(q)) ||
+          (p.internal_ref && p.internal_ref.toLowerCase().includes(q))
+        );
+      }
+
+      this.filteredProducts = products;
+    },
+
+    filterProducts() {
+      this.searchQuery = '';
+      this.searchProducts();
+    },
+
+    addToCart(product) {
+      if (product.stock <= 0) {
+        showToast('Sin stock disponible', 'error');
+        return;
+      }
+
+      const existing = this.cart.find(i => i.product_id === product.id);
+      if (existing) {
+        existing.qty += 1;
+        this.computeLine(existing);
+      } else {
+        const item = {
+          product_id: product.id,
+          name: product.name,
+          unit_price: product.sale_price,
+          cost_price: product.cost_price || 0,
+          qty: 1,
+          discount_pct: 0,
+          tax_rate: product.tax_rate || 12,
+          subtotal: 0, tax_amount: 0, discount_amount: 0, total: 0,
+        };
+        this.computeLine(item);
+        this.cart.push(item);
+      }
+    },
+
+    computeLine(item) {
+      const base = item.qty * item.unit_price;
+      item.discount_amount = base * (item.discount_pct / 100);
+      item.subtotal = base - item.discount_amount;
+      item.tax_amount = item.subtotal * (item.tax_rate / 100);
+      item.total = item.subtotal + item.tax_amount;
+    },
+
+    addFirstResult() {
+      if (this.filteredProducts.length > 0) {
+        this.addToCart(this.filteredProducts[0]);
+        this.searchQuery = '';
+        this.filteredProducts = [...this.allProducts];
+      }
+    },
+
+    increaseQty(idx) { this.cart[idx].qty += 1; this.computeLine(this.cart[idx]); },
+    decreaseQty(idx) {
+      if (this.cart[idx].qty <= 1) { this.removeItem(idx); return; }
+      this.cart[idx].qty -= 1;
+      this.computeLine(this.cart[idx]);
+    },
+    setQty(idx, val) {
+      const qty = parseFloat(val) || 0;
+      if (qty <= 0) { this.removeItem(idx); return; }
+      this.cart[idx].qty = qty;
+      this.computeLine(this.cart[idx]);
+    },
+    removeItem(idx) { this.cart.splice(idx, 1); },
+    clearCart() { this.cart = []; },
+
+    processPayment() {
+      if (this.cart.length === 0) return;
+      this.receivedStr = this.grandTotal.toFixed(2);
+      this.showPaymentModal = true;
+    },
+
+    numpadInput(n) {
+      if (n === '⌫') {
+        this.receivedStr = this.receivedStr.slice(0, -1) || '0';
+      } else {
+        if (this.receivedStr === '0' && n !== '.') {
+          this.receivedStr = n;
+        } else {
+          this.receivedStr += n;
+        }
+      }
+    },
+
+    async confirmPayment() {
+      if (this.receivedAmount < this.grandTotal) {
+        showToast('Monto insuficiente', 'error');
+        return;
+      }
+
+      this.processing = true;
+      this.showPaymentModal = false;
+
+      try {
+        const saleData = {
+          branch_id: localStorage.getItem('branch_id') || '00000000-0000-0000-0000-000000000001',
+          warehouse_id: localStorage.getItem('warehouse_id') || '00000000-0000-0000-0000-000000000001',
+          cashier_session_id: this.session.id || null,
+          customer_nit: this.customer.nit || 'CF',
+          customer_name: this.customer.name || 'CONSUMIDOR FINAL',
+          sale_type: 'pos',
+          generate_fel: true,
+          lines: this.cart.map(item => ({
+            product_id: item.product_id,
+            product_name: item.name,
+            qty: item.qty,
+            unit_price: item.unit_price,
+            cost_price: item.cost_price,
+            discount_pct: item.discount_pct,
+            tax_rate: item.tax_rate,
+          })),
+          payments: [{
+            payment_method: this.paymentMethod,
+            amount: this.receivedAmount,
+          }],
+        };
+
+        let result;
+        if (!this.online) {
+          // Guardar en localStorage para sincronizar después
+          result = this.saveOfflineSale(saleData);
+        } else {
+          result = await API.post('/sales/', saleData);
+        }
+
+        this.lastSale = {
+          number: result.number || 'POS-OFFLINE-' + Date.now(),
+          total: this.grandTotal,
+          received: this.receivedAmount,
+          change: this.change,
+          fel_status: result.fel_status || (this.online ? 'certified' : 'contingency'),
+        };
+
+        this.showSuccessModal = true;
+
+      } catch(e) {
+        showToast('Error al procesar venta: ' + (e.message || 'Error desconocido'), 'error');
+      } finally {
+        this.processing = false;
+      }
+    },
+
+    saveOfflineSale(saleData) {
+      const offlineSales = JSON.parse(localStorage.getItem('offline_sales') || '[]');
+      const sale = { ...saleData, id: 'offline_' + Date.now(), number: 'OFF-' + Date.now(), created_at: new Date().toISOString() };
+      offlineSales.push(sale);
+      localStorage.setItem('offline_sales', JSON.stringify(offlineSales));
+      showToast('Venta guardada en modo offline', 'warning');
+      return sale;
+    },
+
+    newSale() {
+      this.cart = [];
+      this.customer = { nit: 'CF', name: 'CONSUMIDOR FINAL', email: '' };
+      this.receivedStr = '0';
+      this.showSuccessModal = false;
+      document.getElementById('productSearch')?.focus();
+    },
+
+    printReceipt() { showToast('Imprimiendo recibo...', 'info'); },
+    sendEmail() { showToast('Enviando correo electrónico...', 'info'); },
+
+    async lookupCustomer() {
+      if (!this.customer.nit || this.customer.nit === 'CF') return;
+      try {
+        const data = await API.get('/partners/?nit=' + this.customer.nit + '&type=customer');
+        if (data.items && data.items.length > 0) {
+          const c = data.items[0];
+          this.customer.name = c.name;
+          this.customer.email = c.email || '';
+          showToast('Cliente encontrado: ' + c.name, 'success');
+        } else {
+          showToast('NIT no registrado, ingresa el nombre', 'info');
+        }
+      } catch(e) {}
+    },
+
+    clearCustomer() {
+      this.customer = { nit: 'CF', name: 'CONSUMIDOR FINAL', email: '' };
+    },
+
+    async loadSession() {
+      const savedSession = localStorage.getItem('cashier_session');
+      if (savedSession) {
+        this.session = JSON.parse(savedSession);
+      }
+    },
+  };
+}
+</script>
+{% endblock %}

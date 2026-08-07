@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}POS Empresarial{% endblock %}</title>
+  <meta name="description" content="{% block description %}Sistema de Punto de Venta Empresarial con FEL{% endblock %}">
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="/static/css/main.css">
+  {% block extra_css %}{% endblock %}
+
+  <!-- Iconos (Phosphor Icons) -->
+  <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js" defer></script>
+
+  <!-- HTMX -->
+  <script src="https://unpkg.com/htmx.org@2.0.3" defer></script>
+
+  <!-- Alpine.js -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+<body>
+  {% if show_layout %}
+  <div class="app-layout" x-data="appState()">
+
+    <!-- ===== SIDEBAR ===== -->
+    <aside class="sidebar" :class="{ 'collapsed': sidebarCollapsed }" id="sidebar">
+
+      <!-- Logo -->
+      <div class="sidebar-logo">
+        <div class="logo-icon">
+          <i class="ph ph-storefront"></i>
+        </div>
+        <div class="logo-text" x-show="!sidebarCollapsed">
+          POS Pro
+          <span>Sistema Empresarial</span>
+        </div>
+      </div>
+
+      <!-- Branch Selector -->
+      <div class="branch-selector" x-show="!sidebarCollapsed" @click="toggleBranchMenu()">
+        <div class="branch-name" x-text="currentBranch.name || 'Seleccionar Sucursal'"></div>
+        <div class="branch-label">Sucursal activa <i class="ph ph-caret-down"></i></div>
+      </div>
+
+      <!-- Nav -->
+      <nav class="sidebar-nav">
+        <!-- Principal -->
+        <div class="nav-section-label" x-show="!sidebarCollapsed">Principal</div>
+
+        <a href="/dashboard" class="nav-item" :class="{ active: currentPage === 'dashboard' }">
+          <span class="nav-icon"><i class="ph ph-chart-bar"></i></span>
+          <span x-show="!sidebarCollapsed">Dashboard</span>
+        </a>
+
+        <a href="/pos" class="nav-item" :class="{ active: currentPage === 'pos' }">
+          <span class="nav-icon"><i class="ph ph-cash-register"></i></span>
+          <span x-show="!sidebarCollapsed">Punto de Venta</span>
+        </a>
+
+        <!-- Inventario -->
+        <div class="nav-section-label" x-show="!sidebarCollapsed">Inventario</div>
+
+        <a href="/inventory" class="nav-item" :class="{ active: currentPage === 'inventory' }">
+          <span class="nav-icon"><i class="ph ph-package"></i></span>
+          <span x-show="!sidebarCollapsed">Productos</span>
+        </a>
+
+        <a href="/inventory?tab=stock" class="nav-item">
+          <span class="nav-icon"><i class="ph ph-warehouse"></i></span>
+          <span x-show="!sidebarCollapsed">
+            Stock
+            <template x-if="lowStockCount > 0">
+              <span class="nav-badge" x-text="lowStockCount"></span>
+            </template>
+          </span>
+        </a>
+
+        <a href="/transfers" class="nav-item" :class="{ active: currentPage === 'transfers' }">
+          <span class="nav-icon"><i class="ph ph-arrows-left-right"></i></span>
+          <span x-show="!sidebarCollapsed">Traslados</span>
+        </a>
+
+        <!-- Compras -->
+        <div class="nav-section-label" x-show="!sidebarCollapsed">Compras</div>
+
+        <a href="/purchases" class="nav-item" :class="{ active: currentPage === 'purchases' }">
+          <span class="nav-icon"><i class="ph ph-shopping-cart"></i></span>
+          <span x-show="!sidebarCollapsed">Órdenes de Compra</span>
+        </a>
+
+        <a href="/customers?type=supplier" class="nav-item">
+          <span class="nav-icon"><i class="ph ph-truck"></i></span>
+          <span x-show="!sidebarCollapsed">Proveedores</span>
+        </a>
+
+        <!-- CRM -->
+        <div class="nav-section-label" x-show="!sidebarCollapsed">Clientes</div>
+
+        <a href="/customers" class="nav-item" :class="{ active: currentPage === 'customers' }">
+          <span class="nav-icon"><i class="ph ph-users"></i></span>
+          <span x-show="!sidebarCollapsed">Clientes</span>
+        </a>
+
+        <!-- Reportes -->
+        <div class="nav-section-label" x-show="!sidebarCollapsed">Reportes</div>
+
+        <a href="/reports" class="nav-item" :class="{ active: currentPage === 'reports' }">
+          <span class="nav-icon"><i class="ph ph-file-text"></i></span>
+          <span x-show="!sidebarCollapsed">Reportes</span>
+        </a>
+
+        <!-- Config -->
+        <div class="nav-section-label" x-show="!sidebarCollapsed">Sistema</div>
+
+        <a href="/settings" class="nav-item" :class="{ active: currentPage === 'settings' }">
+          <span class="nav-icon"><i class="ph ph-gear"></i></span>
+          <span x-show="!sidebarCollapsed">Configuración</span>
+        </a>
+      </nav>
+
+      <!-- Footer de usuario -->
+      <div class="sidebar-footer">
+        <div class="user-card">
+          <div class="user-avatar" x-text="userInitials"></div>
+          <div class="user-info" x-show="!sidebarCollapsed">
+            <div class="user-name" x-text="currentUser.full_name || 'Usuario'"></div>
+            <div class="user-role" x-text="currentUser.role || 'Cajero'"></div>
+          </div>
+        </div>
+        <button class="btn btn-ghost btn-sm btn-full mt-2" x-show="!sidebarCollapsed" @click="logout()">
+          <i class="ph ph-sign-out"></i> Cerrar Sesión
+        </button>
+      </div>
+    </aside>
+
+    <!-- ===== MAIN CONTENT ===== -->
+    <div class="main-content" :class="{ expanded: sidebarCollapsed }">
+
+      <!-- Topbar -->
+      <header class="topbar">
+        <button class="btn btn-ghost btn-icon" @click="sidebarCollapsed = !sidebarCollapsed">
+          <i class="ph ph-list"></i>
+        </button>
+
+        <div class="topbar-search">
+          <i class="ph ph-magnifying-glass search-icon"></i>
+          <input type="text" placeholder="Buscar productos, ventas, clientes..." id="globalSearch">
+        </div>
+
+        <div class="topbar-actions">
+          <!-- Notificaciones -->
+          <button class="btn btn-ghost btn-icon" style="position:relative">
+            <i class="ph ph-bell"></i>
+            <span x-show="notifications > 0" style="position:absolute;top:4px;right:4px;width:8px;height:8px;background:var(--danger);border-radius:50%"></span>
+          </button>
+
+          <!-- Estado FEL -->
+          <div class="badge" :class="felOnline ? 'badge-success' : 'badge-warning'">
+            <i class="ph" :class="felOnline ? 'ph-wifi-high' : 'ph-wifi-slash'"></i>
+            <span x-text="felOnline ? 'FEL Online' : 'FEL Offline'"></span>
+          </div>
+
+          <!-- Caja activa -->
+          <div class="badge badge-primary" x-show="cashierSession">
+            <i class="ph ph-cash-register"></i>
+            <span>Caja Abierta</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Contenido de la página -->
+      <main class="page-content">
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+  </div>
+  {% else %}
+    {% block content %}{% endblock %}
+  {% endif %}
+
+  <!-- Toast container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- JS principal -->
+  <script src="/static/js/app.js"></script>
+  <script src="/static/js/api.js"></script>
+  {% block extra_js %}{% endblock %}
+
+  <script>
+    function appState() {
+      return {
+        sidebarCollapsed: false,
+        currentPage: window.location.pathname.replace('/', '') || 'dashboard',
+        currentUser: JSON.parse(localStorage.getItem('user') || '{}'),
+        currentBranch: JSON.parse(localStorage.getItem('branch') || '{}'),
+        notifications: 0,
+        lowStockCount: 0,
+        felOnline: navigator.onLine,
+        cashierSession: null,
+
+        get userInitials() {
+          const name = this.currentUser?.full_name || 'U';
+          return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0,2);
+        },
+
+        init() {
+          // Verificar autenticación
+          const token = localStorage.getItem('access_token');
+          if (!token && window.location.pathname !== '/login') {
+            window.location.href = '/login';
+            return;
+          }
+
+          // Escuchar estado de red
+          window.addEventListener('online', () => this.felOnline = true);
+          window.addEventListener('offline', () => this.felOnline = false);
+
+          // Cargar conteo de stock bajo
+          if (token) this.loadLowStockCount();
+        },
+
+        async loadLowStockCount() {
+          try {
+            const data = await API.get('/inventory/low-stock');
+            this.lowStockCount = data?.total || 0;
+          } catch(e) {}
+        },
+
+        toggleBranchMenu() {
+          // Abrir selector de sucursal
+        },
+
+        logout() {
+          localStorage.removeItem('access_token');
+          localStorage.removeItem('refresh_token');
+          localStorage.removeItem('user');
+          window.location.href = '/login';
+        }
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,52 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Entorno virtual
+venv/
+env/
+.venv/
+.env.local
+
+# Variables de entorno (NO subir al repo)
+.env
+
+# Base de datos local
+*.db
+*.sqlite3
+
+# Logs
+*.log
+logs/
+
+# Docker volumes
+postgres_data/
+redis_data/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Reportes / PDFs generados
+*.pdf
+*.xlsx
+media/
+uploads/
+
+# Alembic auto-generados (solo versiones manuales)
+alembic/versions/*.py
+
+# Coverage / Tests
+.coverage
+htmlcov/
+.pytest_cache/
