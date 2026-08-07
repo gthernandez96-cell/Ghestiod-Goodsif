@@ -1,8 +1,25 @@
 """Base model con campos comunes para todos los modelos."""
-from sqlalchemy import Column, DateTime, Boolean, String, func
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Column, DateTime, Boolean, String, func, JSON
+from sqlalchemy.dialects.postgresql import UUID, JSONB, ARRAY
+from sqlalchemy.ext.compiler import compiles
 import uuid
 from app.core.database import Base
+
+
+# ===== COMPILATION ADAPTERS FOR SQLITE (DESARROLLO LOCAL SIN POSTGRESQL) =====
+@compiles(JSONB, "sqlite")
+def compile_jsonb_sqlite(type_, compiler, **kw):
+    return "JSON"
+
+
+@compiles(UUID, "sqlite")
+def compile_uuid_sqlite(type_, compiler, **kw):
+    return "VARCHAR(36)"
+
+
+@compiles(ARRAY, "sqlite")
+def compile_array_sqlite(type_, compiler, **kw):
+    return "JSON"
 
 
 class TimestampMixin:

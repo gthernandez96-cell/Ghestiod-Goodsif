@@ -83,12 +83,15 @@ app.add_middleware(
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 # ===== STATIC FILES =====
-STATIC_DIR = "/app/static" if os.path.exists("/app/static") else "../../frontend/static"
+APP_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.abspath(os.path.join(APP_DIR, "../../"))
+
+STATIC_DIR = os.path.join(PROJECT_ROOT, "frontend/static")
 if os.path.exists(STATIC_DIR):
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 # ===== TEMPLATES =====
-TEMPLATES_DIR = "/app/app/templates" if os.path.exists("/app/app/templates") else "app/templates"
+TEMPLATES_DIR = os.path.join(APP_DIR, "templates")
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
 # ===== API ROUTERS (v1) =====

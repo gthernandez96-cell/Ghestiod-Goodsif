@@ -4,7 +4,7 @@ from sqlalchemy import (
     Enum as SAEnum, UniqueConstraint, Index
 )
 from sqlalchemy.dialects.postgresql import UUID, JSONB, ARRAY
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, backref
 import enum
 from app.models.base import BaseModel
 
@@ -38,7 +38,12 @@ class ProductCategory(BaseModel):
     cost_method = Column(String(20), default="average")  # average, fifo, lifo
 
     # Relationships
-    children = relationship("ProductCategory", backref="parent", lazy="selectin", foreign_keys=[parent_id])
+    children = relationship(
+        "ProductCategory",
+        backref=backref("parent", remote_side="ProductCategory.id"),
+        lazy="selectin",
+        foreign_keys=[parent_id]
+    )
     products = relationship("Product", back_populates="category")
 
     def __repr__(self):
@@ -116,7 +121,6 @@ class Product(BaseModel):
     suppliers = relationship("ProductSupplier", back_populates="product")
 
     __table_args__ = (
-        Index("ix_products_barcode", "barcode"),
         Index("ix_products_company_active", "company_id", "is_active"),
     )
 

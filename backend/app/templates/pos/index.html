@@ -169,8 +169,8 @@
 </style>
 {% endblock %}
 
-{% block content %}
-<div id="posApp" x-data="posApp()" x-init="init()"
+{% block content_raw %}
+<div id="posApp" x-data="posApp()"
   style="display:flex;flex-direction:column;height:100vh;overflow:hidden">
 
   <!-- POS Topbar -->
@@ -541,13 +541,13 @@ function posApp() {
     showOpenSession: false,
 
     // Computed
-    get cartCount() { return this.cart.reduce((s, i) => s + i.qty, 0); },
-    get subtotal() { return this.cart.reduce((s, i) => s + i.subtotal, 0); },
-    get taxAmount() { return this.cart.reduce((s, i) => s + i.tax_amount, 0); },
-    get totalDiscount() { return this.cart.reduce((s, i) => s + i.discount_amount, 0); },
-    get grandTotal() { return this.subtotal + this.taxAmount; },
+    get cartCount() { return this.cart.reduce((s, i) => s + (i.qty || 0), 0); },
+    get subtotal() { return this.cart.reduce((s, i) => s + (i.subtotal || 0), 0); },
+    get taxAmount() { return this.cart.reduce((s, i) => s + (i.tax_amount || 0), 0); },
+    get totalDiscount() { return this.cart.reduce((s, i) => s + (i.discount_amount || 0), 0); },
+    get grandTotal() { return this.cart.reduce((s, i) => s + (i.total || 0), 0); },
     get receivedAmount() { return parseFloat(this.receivedStr) || 0; },
-    get change() { return this.receivedAmount - this.grandTotal; },
+    get change() { return (parseFloat(this.receivedStr) || 0) - this.grandTotal; },
 
     formatPrice(v) {
       return Number(v || 0).toFixed(2);

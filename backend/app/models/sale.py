@@ -87,7 +87,6 @@ class SaleOrder(BaseModel):
     __table_args__ = (
         Index("ix_sale_orders_branch_date", "branch_id", "sale_date"),
         Index("ix_sale_orders_state", "state"),
-        Index("ix_sale_orders_fel_uuid", "fel_uuid"),
     )
 
     def __repr__(self):
