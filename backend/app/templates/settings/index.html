@@ -1,0 +1,59 @@
+{% set show_layout = true %}
+{% extends "base.html" %}
+
+{% block title %}Configuración del Sistema — POS Empresarial{% endblock %}
+
+{% block content %}
+<div x-data="settingsPage()" x-init="init()">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Configuración del Sistema</h1>
+      <p class="page-subtitle">Parámetros de la empresa, credenciales FEL y opciones del POS</p>
+    </div>
+  </div>
+
+  <div class="card mb-4">
+    <h3 class="font-bold text-white mb-3">🏢 Datos de la Empresa</h3>
+    <div class="grid grid-cols-2 gap-3">
+      <div>
+        <label class="form-label">Nombre Comercial</label>
+        <input type="text" class="form-control" value="Abarrotería y Comercio S.A.">
+      </div>
+      <div>
+        <label class="form-label">NIT Empresa</label>
+        <input type="text" class="form-control" value="12345678-9">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 class="font-bold text-white mb-3">🧾 Integración FEL Guatemala</h3>
+    <div class="grid grid-cols-2 gap-3">
+      <div>
+        <label class="form-label">Certificador FEL</label>
+        <select class="form-control">
+          <option value="infile">INFILE S.A.</option>
+          <option value="megaprint">Megaprint S.A.</option>
+          <option value="g4s">G4S Documenta</option>
+          <option value="demo" selected>Entorno de Pruebas (Demo)</option>
+        </select>
+      </div>
+      <div>
+        <label class="form-label">Llave de Firma electrónica</label>
+        <input type="password" class="form-control" value="••••••••••••••••">
+      </div>
+    </div>
+    <div class="mt-4">
+      <button class="btn btn-primary">Guardar Cambios</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  function settingsPage() {
+    return {
+      async init() {}
+    }
+  }
+</script>
+{% endblock %}

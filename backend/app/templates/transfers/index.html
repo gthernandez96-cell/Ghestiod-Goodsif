@@ -1,0 +1,81 @@
+{% set show_layout = true %}
+{% extends "base.html" %}
+
+{% block title %}Traslados de Inventario — POS Empresarial{% endblock %}
+
+{% block content %}
+<div x-data="transfersPage()" x-init="init()">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Traslados Internos</h1>
+      <p class="page-subtitle">Envío y recepción de stock entre sucursales y bodegas</p>
+    </div>
+    <div class="flex gap-2">
+      <button class="btn btn-primary" @click="showNewTransferModal = true">
+        <i class="ph ph-arrows-left-right"></i> Solicitar Traslado
+      </button>
+    </div>
+  </div>
+
+  <div class="card p-0" style="overflow:hidden">
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Documento</th>
+            <th>Origen</th>
+            <th>Destino</th>
+            <th>Fecha</th>
+            <th>Estado</th>
+            <th class="text-right">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="t in transfers" :key="t.id">
+            <tr>
+              <td class="font-bold text-white" x-text="t.number"></td>
+              <td x-text="t.source_warehouse_name || 'Bodega Origen'"></td>
+              <td x-text="t.dest_warehouse_name || 'Bodega Destino'"></td>
+              <td x-text="t.date || 'Hoy'"></td>
+              <td>
+                <span class="badge badge-warning" x-text="t.state || 'Pendiente'"></span>
+              </td>
+              <td class="text-right">
+                <button class="btn btn-ghost btn-sm btn-icon">
+                  <i class="ph ph-eye"></i>
+                </button>
+              </td>
+            </tr>
+          </template>
+          <tr x-show="transfers.length === 0">
+            <td colspan="6" class="text-center text-muted py-5">
+              <i class="ph ph-arrows-left-right" style="font-size:40px;opacity:0.3"></i>
+              <p class="mt-2">No se registran traslados pendientes</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  function transfersPage() {
+    return {
+      transfers: [],
+      showNewTransferModal: false,
+
+      async init() {
+        await this.loadTransfers();
+      },
+
+      async loadTransfers() {
+        try {
+          const res = await API.get('/transfers/');
+          this.transfers = res.items || res || [];
+        } catch(e) {}
+      }
+    }
+  }
+</script>
+{% endblock %}

@@ -1,0 +1,85 @@
+{% set show_layout = true %}
+{% extends "base.html" %}
+
+{% block title %}Compras y Proveedores — POS Empresarial{% endblock %}
+
+{% block content %}
+<div x-data="purchasesPage()" x-init="init()">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Órdenes de Compra</h1>
+      <p class="page-subtitle">Recepción de mercadería, control de costos y proveedores</p>
+    </div>
+    <div class="flex gap-2">
+      <button class="btn btn-primary" @click="showNewPurchaseModal = true">
+        <i class="ph ph-plus-circle"></i> Nueva Orden de Compra
+      </button>
+    </div>
+  </div>
+
+  <div class="card p-0" style="overflow:hidden">
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Número OC</th>
+            <th>Proveedor</th>
+            <th>Sucursal</th>
+            <th>Fecha Orden</th>
+            <th>Total</th>
+            <th>Estado</th>
+            <th class="text-right">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="po in purchases" :key="po.id">
+            <tr>
+              <td class="font-bold text-white" x-text="po.number"></td>
+              <td x-text="po.supplier_name || 'Proveedor General'"></td>
+              <td x-text="po.branch_name || 'Sucursal Principal'"></td>
+              <td x-text="po.date || 'Hoy'"></td>
+              <td class="font-bold text-success" x-text="'Q ' + formatPrice(po.total)"></td>
+              <td>
+                <span class="badge badge-primary" x-text="po.state || 'Borrador'"></span>
+              </td>
+              <td class="text-right">
+                <button class="btn btn-ghost btn-sm btn-icon">
+                  <i class="ph ph-eye"></i>
+                </button>
+              </td>
+            </tr>
+          </template>
+          <tr x-show="purchases.length === 0">
+            <td colspan="7" class="text-center text-muted py-5">
+              <i class="ph ph-shopping-cart" style="font-size:40px;opacity:0.3"></i>
+              <p class="mt-2">No hay órdenes de compra registradas</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  function purchasesPage() {
+    return {
+      purchases: [],
+      showNewPurchaseModal: false,
+
+      formatPrice(v) { return Number(v || 0).toFixed(2); },
+
+      async init() {
+        await this.loadPurchases();
+      },
+
+      async loadPurchases() {
+        try {
+          const res = await API.get('/purchases/');
+          this.purchases = res.items || res || [];
+        } catch(e) {}
+      }
+    }
+  }
+</script>
+{% endblock %}

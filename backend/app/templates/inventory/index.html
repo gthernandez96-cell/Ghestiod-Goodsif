@@ -1,0 +1,160 @@
+{% set show_layout = true %}
+{% extends "base.html" %}
+
+{% block title %}Inventario y Productos — POS Empresarial{% endblock %}
+
+{% block content %}
+<div x-data="inventoryPage()" x-init="init()">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Inventario y Productos</h1>
+      <p class="page-subtitle">Gestión de catálogo, existencias por bodega y Kardex de movimientos</p>
+    </div>
+    <div class="flex gap-2">
+      <button class="btn btn-secondary" @click="showCategoryModal = true">
+        <i class="ph ph-folder-plus"></i> Nueva Categoría
+      </button>
+      <button class="btn btn-primary" @click="showProductModal = true">
+        <i class="ph ph-plus-circle"></i> Nuevo Producto
+      </button>
+    </div>
+  </div>
+
+  <!-- Filters & Search -->
+  <div class="card mb-4">
+    <div class="flex gap-3 flex-wrap items-center">
+      <div style="flex:1;min-width:250px;position:relative">
+        <i class="ph ph-magnifying-glass search-icon" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted)"></i>
+        <input
+          type="text"
+          class="form-control"
+          style="padding-left:36px"
+          placeholder="Buscar por nombre, código interno o código de barras..."
+          x-model="search"
+          @input.debounce.300ms="loadProducts()"
+        >
+      </div>
+
+      <select class="form-control" style="width:200px" x-model="selectedCategory" @change="loadProducts()">
+        <option value="">Todas las categorías</option>
+        <template x-for="cat in categories" :key="cat.id">
+          <option :value="cat.id" x-text="cat.name"></option>
+        </template>
+      </select>
+
+      <button class="btn btn-ghost" @click="loadProducts()">
+        <i class="ph ph-arrows-clockwise"></i> Recargar
+      </button>
+    </div>
+  </div>
+
+  <!-- Table Card -->
+  <div class="card p-0" style="overflow:hidden">
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Producto</th>
+            <th>Código / EAN</th>
+            <th>Categoría</th>
+            <th>Precio Venta</th>
+            <th>Costo Avg</th>
+            <th>Stock Global</th>
+            <th>Estado</th>
+            <th class="text-right">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="product in products" :key="product.id">
+            <tr>
+              <td>
+                <div class="flex items-center gap-3">
+                  <div style="font-size:24px" x-text="product.emoji || '📦'"></div>
+                  <div>
+                    <div class="font-bold text-white" x-text="product.name"></div>
+                    <div class="text-xs text-muted" x-text="product.description || 'Sin descripción'"></div>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="badge" x-text="product.barcode || product.internal_ref || 'N/A'"></span>
+              </td>
+              <td>
+                <span class="text-muted" x-text="product.category_name || 'General'"></span>
+              </td>
+              <td>
+                <span class="font-bold text-success" x-text="'Q ' + formatPrice(product.sale_price)"></span>
+              </td>
+              <td>
+                <span class="text-muted" x-text="'Q ' + formatPrice(product.cost_price)"></span>
+              </td>
+              <td>
+                <span
+                  class="badge"
+                  :class="product.stock <= 0 ? 'badge-danger' : (product.stock < product.min_stock ? 'badge-warning' : 'badge-success')"
+                  x-text="product.stock + ' U'"
+                ></span>
+              </td>
+              <td>
+                <span class="badge" :class="product.is_active ? 'badge-success' : 'badge-danger'" x-text="product.is_active ? 'Activo' : 'Inactivo'"></span>
+              </td>
+              <td class="text-right">
+                <button class="btn btn-ghost btn-sm btn-icon" @click="editProduct(product)">
+                  <i class="ph ph-pencil"></i>
+                </button>
+              </td>
+            </tr>
+          </template>
+          <tr x-show="products.length === 0">
+            <td colspan="8" class="text-center text-muted py-5">
+              <i class="ph ph-package" style="font-size:40px;opacity:0.3"></i>
+              <p class="mt-2">No se encontraron productos registrados</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  function inventoryPage() {
+    return {
+      products: [],
+      categories: [],
+      search: '',
+      selectedCategory: '',
+      showProductModal: false,
+      showCategoryModal: false,
+
+      formatPrice(v) { return Number(v || 0).toFixed(2); },
+
+      async init() {
+        await this.loadCategories();
+        await this.loadProducts();
+      },
+
+      async loadCategories() {
+        try {
+          const res = await API.get('/products/categories');
+          this.categories = res || [];
+        } catch(e) {}
+      },
+
+      async loadProducts() {
+        try {
+          let url = `/products/?search=${encodeURIComponent(this.search)}`;
+          if (this.selectedCategory) url += `&category_id=${this.selectedCategory}`;
+          const res = await API.get(url);
+          this.products = res.items || res || [];
+        } catch(e) {}
+      },
+
+      editProduct(p) {
+        alert('Editar producto: ' + p.name);
+      }
+    }
+  }
+</script>
+{% endblock %}

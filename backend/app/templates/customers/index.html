@@ -1,0 +1,96 @@
+{% set show_layout = true %}
+{% extends "base.html" %}
+
+{% block title %}Clientes y Proveedores — POS Empresarial{% endblock %}
+
+{% block content %}
+<div x-data="partnersPage()" x-init="init()">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Directorio de Clientes</h1>
+      <p class="page-subtitle">Gestión de datos de facturación FEL, NIT y contactos</p>
+    </div>
+    <div class="flex gap-2">
+      <button class="btn btn-primary" @click="showModal = true">
+        <i class="ph ph-user-plus"></i> Nuevo Cliente
+      </button>
+    </div>
+  </div>
+
+  <div class="card mb-4">
+    <div class="flex gap-3 items-center">
+      <div style="flex:1;position:relative">
+        <i class="ph ph-magnifying-glass search-icon" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted)"></i>
+        <input
+          type="text"
+          class="form-control"
+          style="padding-left:36px"
+          placeholder="Buscar por NIT, nombre o teléfono..."
+          x-model="search"
+          @input.debounce.300ms="loadPartners()"
+        >
+      </div>
+    </div>
+  </div>
+
+  <div class="card p-0" style="overflow:hidden">
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Cliente / Razón Social</th>
+            <th>NIT</th>
+            <th>Teléfono</th>
+            <th>Correo</th>
+            <th>Dirección</th>
+            <th class="text-right">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="p in partners" :key="p.id">
+            <tr>
+              <td class="font-bold text-white" x-text="p.name"></td>
+              <td><span class="badge badge-primary" x-text="p.nit || 'CF'"></span></td>
+              <td x-text="p.phone || 'N/A'"></td>
+              <td x-text="p.email || 'N/A'"></td>
+              <td x-text="p.address || 'Ciudad'"></td>
+              <td class="text-right">
+                <button class="btn btn-ghost btn-sm btn-icon">
+                  <i class="ph ph-pencil"></i>
+                </button>
+              </td>
+            </tr>
+          </template>
+          <tr x-show="partners.length === 0">
+            <td colspan="6" class="text-center text-muted py-5">
+              <i class="ph ph-users" style="font-size:40px;opacity:0.3"></i>
+              <p class="mt-2">No hay clientes registrados</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  function partnersPage() {
+    return {
+      partners: [],
+      search: '',
+      showModal: false,
+
+      async init() {
+        await this.loadPartners();
+      },
+
+      async loadPartners() {
+        try {
+          const res = await API.get(`/partners/?search=${encodeURIComponent(this.search)}`);
+          this.partners = res.items || res || [];
+        } catch(e) {}
+      }
+    }
+  }
+</script>
+{% endblock %}

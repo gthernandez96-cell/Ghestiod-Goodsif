@@ -1,0 +1,58 @@
+{% set show_layout = true %}
+{% extends "base.html" %}
+
+{% block title %}Reportes y Análisis — POS Empresarial{% endblock %}
+
+{% block content %}
+<div x-data="reportsPage()" x-init="init()">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Reportes y Business Intelligence</h1>
+      <p class="page-subtitle">Ventas por producto, arqueos de caja y utilidad bruta</p>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-3 gap-4 mb-4">
+    <div class="card">
+      <div class="flex items-center gap-3">
+        <div style="font-size:32px">📊</div>
+        <div>
+          <h3 class="font-bold text-white">Ventas por Período</h3>
+          <p class="text-xs text-muted">Resumen consolidado de facturación</p>
+        </div>
+      </div>
+      <button class="btn btn-secondary btn-full mt-3 btn-sm">Ver Reporte</button>
+    </div>
+
+    <div class="card">
+      <div class="flex items-center gap-3">
+        <div style="font-size:32px">📦</div>
+        <div>
+          <h3 class="font-bold text-white">Rotación de Productos</h3>
+          <p class="text-xs text-muted">Productos más vendidos (Top 10)</p>
+        </div>
+      </div>
+      <button class="btn btn-secondary btn-full mt-3 btn-sm">Ver Reporte</button>
+    </div>
+
+    <div class="card">
+      <div class="flex items-center gap-3">
+        <div style="font-size:32px">🧾</div>
+        <div>
+          <h3 class="font-bold text-white">Reporte FEL SAT</h3>
+          <p class="text-xs text-muted">Libro de ventas para la SAT</p>
+        </div>
+      </div>
+      <button class="btn btn-secondary btn-full mt-3 btn-sm">Exportar Excel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  function reportsPage() {
+    return {
+      async init() {}
+    }
+  }
+</script>
+{% endblock %}
