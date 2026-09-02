@@ -1,0 +1,168 @@
+{% set show_layout = true %}
+{% extends "base.html" %}
+
+{% block title %}Fabricación y Recetas BOM — POS Empresarial{% endblock %}
+
+{% block content %}
+<div x-data="mfgPage()" x-init="init()">
+  
+  <!-- ===== ODOO CONTROL PANEL SUB-HEADER ===== -->
+  <div style="margin:-20px -24px 20px -24px; padding:10px 24px; background:#ffffff; border-bottom:1px solid #e2e8f0; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+    <div style="display:flex; align-items:center; gap:12px;">
+      <button class="btn btn-primary" style="background:#714B67; color:#ffffff; font-weight:700; border-radius:4px; padding:6px 16px; border:none;" @click="openNewMOModal()">
+        Nuevo
+      </button>
+      <div style="font-size:15px; font-weight:700; color:#334155; display:flex; align-items:center; gap:6px;">
+        <span>Fabricación / Órdenes de Producción & Recetas (BOM)</span>
+        <i class="ph ph-gear" style="font-size:14px; color:#64748b;"></i>
+      </div>
+    </div>
+
+    <!-- ODOO SEARCH BAR -->
+    <div style="position:relative; display:flex; align-items:center; width:380px; max-width:100%;">
+      <i class="ph ph-magnifying-glass" style="position:absolute; left:12px; color:#714B67 !important; font-size:18px !important; font-weight:800 !important; pointer-events:none; z-index:10;"></i>
+      <input type="text" placeholder="Buscar orden (e.g. WH/MO/0001)..." style="width:100% !important; background-color:#ffffff !important; background:#ffffff !important; border:2px solid #714B67 !important; border-radius:8px !important; padding:8px 34px 8px 38px !important; font-size:13.5px !important; font-weight:600 !important; color:#1e293b !important; box-shadow:0 2px 8px rgba(113,75,103,0.12) !important; outline:none !important;" x-model="search">
+    </div>
+
+  </div>
+
+  <!-- PRODUCTION ORDERS TABLE -->
+  <div class="card p-0" style="overflow:hidden; background:#ffffff; border:1px solid #e2e8f0; border-radius:8px;">
+    <div class="table-responsive">
+      <table class="table" style="width:100%; border-collapse:collapse;">
+        <thead>
+          <tr style="border-bottom:2px solid #e2e8f0; background:#ffffff;">
+            <th style="padding:12px 16px; text-align:left; color:#475569; font-size:11px; text-transform:uppercase; font-weight:700;">Orden de Producción</th>
+            <th style="padding:12px 16px; text-align:left; color:#475569; font-size:11px; text-transform:uppercase; font-weight:700;">Producto Terminado</th>
+            <th style="padding:12px 16px; text-align:center; color:#475569; font-size:11px; text-transform:uppercase; font-weight:700;">Lote Producido</th>
+            <th style="padding:12px 16px; text-align:left; color:#475569; font-size:11px; text-transform:uppercase; font-weight:700;">Fecha Programada</th>
+            <th style="padding:12px 16px; text-align:left; color:#475569; font-size:11px; text-transform:uppercase; font-weight:700;">Estado Odoo</th>
+            <th style="padding:12px 16px; text-align:right; color:#475569; font-size:11px; text-transform:uppercase; font-weight:700;">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="mo in filteredOrders" :key="mo.id">
+            <tr style="border-bottom:1px solid #f1f5f9;">
+              <td style="padding:12px 16px; font-weight:700; color:#714B67;" x-text="mo.number"></td>
+              <td style="padding:12px 16px; font-weight:700; color:#1e293b;" x-text="mo.product_name"></td>
+              <td style="padding:12px 16px; text-align:center; font-weight:700; color:#0d9488;" x-text="mo.quantity + ' Unidades'"></td>
+              <td style="padding:12px 16px; color:#64748b;" x-text="mo.date"></td>
+              <td style="padding:12px 16px;">
+                <span
+                  style="font-size:11px; font-weight:700; padding:3px 10px; border-radius:12px;"
+                  :class="mo.state === 'done' ? 'bg-emerald-100 text-emerald-800' : 'bg-purple-100 text-purple-800'"
+                  x-text="mo.state === 'done' ? '✓ Producido / Listo' : '⚙ En Horno / Proceso'"
+                ></span>
+              </td>
+              <td style="padding:12px 16px; text-align:right;">
+                <button class="btn btn-sm" style="background:#0d9488; color:#ffffff;" x-show="mo.state !== 'done'" @click="completeMO(mo)">
+                  Completar Horneado
+                </button>
+              </td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- MODAL NUEVA ORDEN DE PRODUCCIÓN -->
+  <div class="modal-backdrop" x-show="showNewMOModal" style="display:none" x-cloak>
+    <div class="modal" style="max-width:650px; background:#ffffff; border-radius:8px; padding:20px; box-shadow:0 10px 25px rgba(0,0,0,0.15);">
+      <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:12px; margin-bottom:16px;">
+        <h3 class="modal-title" style="font-size:16px; font-weight:700; color:#1e293b;">Nueva Orden de Producción / Empacado</h3>
+        <button class="modal-close" style="border:none; background:none; font-size:20px; cursor:pointer;" @click="showNewMOModal = false">&times;</button>
+      </div>
+      <div class="modal-body space-y-4">
+        <div>
+          <label class="form-label" style="font-weight:600; font-size:12px; color:#475569;">Producto Elaborado / Empacado a Producir *</label>
+          <select class="form-control" style="width:100%; padding:8px 12px; margin-top:4px;" x-model="moForm.product_name">
+            <option value="Bandeja de Verduras Mixtas x4">Bandeja de Verduras Mixtas x4 (Preparación Interna)</option>
+            <option value="Bandeja de Frutas Picadas">Bandeja de Frutas Picadas x500g (Elaboración Local)</option>
+            <option value="Paquete de Frijol Rojo 2lb">Paquete de Frijol Rojo Empacado 2lb (Fraccionamiento)</option>
+            <option value="Combo Supermercado Desayuno">Combo Supermercado Desayuno (Kit Promocional)</option>
+          </select>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px;">
+          <div>
+            <label class="form-label" style="font-weight:600; font-size:12px; color:#475569;">Cantidad a Elaborar (Unidades)</label>
+            <input type="number" min="1" class="form-control" style="width:100%; padding:8px 12px; margin-top:4px;" x-model="moForm.quantity">
+          </div>
+          <div>
+            <label class="form-label" style="font-weight:600; font-size:12px; color:#475569;">Responsable de Producción</label>
+            <input type="text" class="form-control" style="width:100%; padding:8px 12px; margin-top:4px;" value="Encargado de Producción Gustavo" readonly style="background:#f8fafc;">
+          </div>
+        </div>
+
+        <div style="margin-top:16px; background:#f8fafc; border:1px solid #e2e8f0; padding:12px; border-radius:6px;">
+          <div style="font-size:12px; font-weight:700; color:#334155; margin-bottom:6px;">Receta / Insumos Requeridos (BOM):</div>
+          <div style="font-size:11.5px; color:#64748b; display:flex; flex-direction:column; gap:4px;">
+            <div>• Materia Prima (a Granel): 2.50 lb</div>
+            <div>• Bandejas y Film de Empaque: 1.00 Pz</div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px; border-top:1px solid #e2e8f0; padding-top:12px;">
+        <button class="btn btn-secondary" @click="showNewMOModal = false">Cancelar</button>
+        <button class="btn btn-primary" style="background:#714B67; color:#ffffff;" @click="saveMO()">Iniciar Producción</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function mfgPage() {
+    return {
+      search: '',
+      showNewMOModal: false,
+      moForm: { product_name: 'Apple Pie', quantity: 24 },
+      orders: [],
+
+      get filteredOrders() {
+        if (!this.search) return this.orders;
+        const q = this.search.toLowerCase();
+        return this.orders.filter(o => o.number.toLowerCase().includes(q) || o.product_name.toLowerCase().includes(q));
+      },
+
+      async init() {
+        await this.loadOrders();
+      },
+
+      async loadOrders() {
+        try {
+          this.orders = await API.get('/mfg/orders');
+        } catch (e) {
+          showToast('Error al cargar órdenes de producción: ' + e.message, 'error');
+        }
+      },
+
+      openNewMOModal() {
+        this.moForm = { product_name: 'Apple Pie', quantity: 24 };
+        this.showNewMOModal = true;
+      },
+
+      async saveMO() {
+        try {
+          const newMO = await API.post('/mfg/orders', this.moForm);
+          this.orders.unshift(newMO);
+          this.showNewMOModal = false;
+          showToast(`Producción de ${this.moForm.product_name} iniciada`, 'success');
+        } catch (e) {
+          showToast('Error al iniciar producción: ' + e.message, 'error');
+        }
+      },
+
+      async completeMO(mo) {
+        try {
+          const res = await API.post(`/mfg/orders/${mo.id}/complete`);
+          mo.state = 'done';
+          showToast(res.message, 'success');
+        } catch (e) {
+          showToast('Error al completar producción: ' + e.message, 'error');
+        }
+      }
+    }
+  }
+</script>
+{% endblock %}

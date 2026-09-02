@@ -1,6 +1,11 @@
-"""Servicio FEL — Factura Electrónica en Línea Guatemala.
-Interfaz genérica que puede conectarse a INFILE, Megaprint, G4S/Digifact.
-"""
+import sys
+import os
+
+_current_dir = os.path.dirname(os.path.abspath(__file__))
+_backend_dir = os.path.abspath(os.path.join(_current_dir, "../../"))
+if _backend_dir not in sys.path:
+    sys.path.insert(0, _backend_dir)
+
 import httpx
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
@@ -9,10 +14,13 @@ from typing import Optional
 from uuid import UUID
 import json
 import logging
+from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from app.core.config import settings
 from app.models.fel import FELDocument, FELSequence, DTEType, FELStatus
 from app.models.sale import SaleOrder
+from app.models.company import Branch, Company
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +42,10 @@ class FELService:
 
     async def generate_dte(self, sale: SaleOrder) -> FELDocument:
         """Generar y certificar un DTE para una venta."""
+        if sale.branch_id:
+            res = await self.db.execute(select(Branch).options(selectinload(Branch.company)).where(Branch.id == sale.branch_id))
+            sale.branch = res.scalar_one_or_none()
+
         # Construir el XML del DTE
         xml_content = self._build_xml(sale)
 
@@ -59,10 +71,10 @@ class FELService:
             sale_id=sale.id,
             dte_type=DTEType.INVOICE,
             status=status,
-            issuer_nit=sale.branch.company.nit if sale.branch and sale.branch.company else "",
-            issuer_name=sale.branch.company.name if sale.branch and sale.branch.company else "",
-            establishment_code=sale.branch.fel_establishment_code,
-            issuer_address=sale.branch.fel_address,
+            issuer_nit=sale.branch.company.nit if (sale.branch and sale.branch.company) else "",
+            issuer_name=sale.branch.company.name if (sale.branch and sale.branch.company) else "",
+            establishment_code=sale.branch.fel_establishment_code if sale.branch else "1",
+            issuer_address=sale.branch.fel_address if sale.branch else "",
             receiver_nit=sale.customer_nit or "CF",
             receiver_name=sale.customer_name or "CONSUMIDOR FINAL",
             receiver_address=sale.customer_address or "",
@@ -113,16 +125,16 @@ class FELService:
         # Emisor
         emisor = ET.SubElement(datos, "dte:Emisor")
         emisor.set("AfiliacionIVA", "GEN")  # GEN o PEQ
-        emisor.set("CodigoEstablecimiento", sale.branch.fel_establishment_code or "1")
-        emisor.set("CorreoEmisor", sale.branch.email or "")
-        emisor.set("NITEmisor", sale.branch.company.nit if sale.branch and sale.branch.company else "")
-        emisor.set("NombreComercial", sale.branch.name or "")
-        emisor.set("NombreEmisor", sale.branch.company.name if sale.branch and sale.branch.company else "")
+        emisor.set("CodigoEstablecimiento", (sale.branch.fel_establishment_code if sale.branch else None) or "1")
+        emisor.set("CorreoEmisor", (sale.branch.email if sale.branch else None) or "")
+        emisor.set("NITEmisor", sale.branch.company.nit if (sale.branch and sale.branch.company) else "")
+        emisor.set("NombreComercial", (sale.branch.name if sale.branch else None) or "")
+        emisor.set("NombreEmisor", sale.branch.company.name if (sale.branch and sale.branch.company) else "")
 
         direccion_emisor = ET.SubElement(emisor, "dte:DireccionEmisor")
-        ET.SubElement(direccion_emisor, "dte:Direccion").text = sale.branch.address or "Ciudad"
+        ET.SubElement(direccion_emisor, "dte:Direccion").text = (sale.branch.address if sale.branch else None) or "Ciudad"
         ET.SubElement(direccion_emisor, "dte:CodigoPostal").text = "01001"
-        ET.SubElement(direccion_emisor, "dte:Municipio").text = sale.branch.city or "Guatemala"
+        ET.SubElement(direccion_emisor, "dte:Municipio").text = (sale.branch.city if sale.branch else None) or "Guatemala"
         ET.SubElement(direccion_emisor, "dte:Departamento").text = "Guatemala"
         ET.SubElement(direccion_emisor, "dte:Pais").text = "GT"
 

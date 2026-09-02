@@ -1,0 +1,740 @@
+{% set show_layout = true %}
+{% extends "base.html" %}
+
+{% block title %}Usuarios y Roles Predeterminados — POS Empresarial{% endblock %}
+
+{% block extra_css %}
+<style>
+  :root {
+    --odoo-purple: #714B67;
+    --odoo-purple-light: #f4eff3;
+    --odoo-teal: #00A09D;
+  }
+
+  .user-kpi-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 14px 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .user-kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.06);
+  }
+
+  .user-tab-pill {
+    padding: 7px 16px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    color: #475569;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .user-tab-pill:hover {
+    background: #f1f5f9;
+    color: #1e293b;
+  }
+  .user-tab-pill.active {
+    background: var(--odoo-purple);
+    color: #ffffff;
+    border-color: var(--odoo-purple);
+    box-shadow: 0 2px 8px rgba(113, 75, 103, 0.25);
+  }
+
+  .role-matrix-card {
+    background: #ffffff;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    transition: all 0.2s ease;
+  }
+  .role-matrix-card:hover {
+    border-color: var(--odoo-purple);
+    box-shadow: 0 8px 24px rgba(113,75,103,0.12);
+    transform: translateY(-2px);
+  }
+
+  .role-select-box {
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 12px;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .role-select-box:hover {
+    border-color: #cbd5e1;
+    background: #f8fafc;
+  }
+  .role-select-box.selected {
+    border-color: var(--odoo-purple);
+    background: var(--odoo-purple-light);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div x-data="usersAndRolesModule()" x-init="init()">
+  
+  <!-- ===== 1. TOP HEADER & SEARCH BAR ===== -->
+  <div style="margin:-20px -24px 20px -24px; padding:12px 24px; background:#ffffff; border-bottom:1px solid #e2e8f0; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px; box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+    
+    <!-- Left: Action & Title -->
+    <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+      <button 
+        type="button"
+        class="btn btn-primary"
+        style="background:var(--odoo-purple); color:#ffffff; font-weight:800; border-radius:8px; padding:7px 18px; border:none; box-shadow:0 2px 8px rgba(113,75,103,0.25); display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px;"
+        @click="openCreateUserModal()"
+      >
+        <i class="ph ph-user-plus" style="font-weight:800;"></i> + Nuevo Usuario
+      </button>
+
+      <div style="font-size:15px; font-weight:800; color:#1e293b; display:flex; align-items:center; gap:6px; margin-left:4px;">
+        <span style="color:#64748b; font-weight:600;">Configuración /</span>
+        <span>Control de Usuarios & Roles Predeterminados</span>
+      </div>
+    </div>
+
+    <!-- Center: Search Input -->
+    <div style="position:relative; display:flex; align-items:center; width:320px; max-width:100%;">
+      <i class="ph ph-magnifying-glass" style="position:absolute; left:12px; color:var(--odoo-purple); font-size:16px; font-weight:800; pointer-events:none;"></i>
+      <input 
+        type="text" 
+        placeholder="Buscar por nombre, usuario o email..." 
+        style="width:100%; padding:7px 30px 7px 36px; border:1.5px solid #cbd5e1; border-radius:8px; font-size:13px; font-weight:600; color:#1e293b; outline:none;"
+        x-model="search"
+        @input.debounce.250ms="loadUsers()"
+      >
+      <i class="ph ph-x-circle" style="position:absolute; right:10px; color:#94a3b8; font-size:16px; cursor:pointer;" x-show="search" @click="search = ''; loadUsers()"></i>
+    </div>
+
+  </div>
+
+  <!-- ===== 2. NAVIGATION TABS & COLLAPSIBLE SUMMARY (A LA DERECHA) ===== -->
+  <div style="position:relative; display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; margin-bottom:20px;">
+    
+    <!-- Left Navigation Tabs & Role Quick Filters -->
+    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+      <button class="user-tab-pill" :class="activeView === 'users' ? 'active' : ''" @click="activeView = 'users'">
+        <i class="ph ph-users-three"></i> 1. Directorio de Colaboradores
+      </button>
+      <button class="user-tab-pill" :class="activeView === 'matrix' ? 'active' : ''" @click="activeView = 'matrix'">
+        <i class="ph ph-shield-check"></i> 2. Matriz de Roles y Permisos
+      </button>
+
+      <!-- Role Filter Pills (solo cuando está en pestaña usuarios) -->
+      <template x-if="activeView === 'users'">
+        <div style="display:flex; align-items:center; gap:6px; margin-left:8px; flex-wrap:wrap;">
+          <span style="font-size:11px; font-weight:800; color:#94a3b8; margin-right:2px;">ROL:</span>
+          <button 
+            type="button" 
+            class="user-tab-pill" 
+            style="font-size:11px; padding:4px 10px;" 
+            :style="selectedRoleFilter === 'all' ? 'background:#1e293b; color:#ffffff; border-color:#1e293b;' : ''"
+            @click="selectedRoleFilter = 'all'; loadUsers()"
+          >
+            Todos
+          </button>
+          <template x-for="r in predefinedRoles" :key="r.code">
+            <button 
+              type="button" 
+              class="user-tab-pill" 
+              style="font-size:11px; padding:4px 10px;"
+              :style="selectedRoleFilter === r.code ? ('background:' + r.badge_color + '; color:#ffffff; border-color:' + r.badge_color + ';') : ''"
+              @click="selectedRoleFilter = r.code; loadUsers()"
+              x-text="r.name"
+            ></button>
+          </template>
+        </div>
+      </template>
+    </div>
+
+    <!-- Right Controls: Resumen Button (al par derecho) -->
+    <div style="margin-left:auto; display:flex; align-items:center; gap:10px; position:relative;">
+      <button
+        type="button"
+        @click="showKpis = !showKpis"
+        style="
+          display:inline-flex; align-items:center; gap:7px;
+          padding:6px 16px;
+          background:linear-gradient(135deg, #714B67 0%, #9b6b8f 100%);
+          border:none; border-radius:20px;
+          font-size:12px; font-weight:800; color:#ffffff;
+          cursor:pointer; transition:all 0.22s cubic-bezier(0.4,0,0.2,1);
+          box-shadow:0 2px 10px rgba(113,75,103,0.3);
+          letter-spacing:0.3px; white-space:nowrap;
+        "
+        onmouseover="this.style.boxShadow='0 4px 16px rgba(113,75,103,0.5)'; this.style.transform='translateY(-1px)'"
+        onmouseout="this.style.boxShadow='0 2px 10px rgba(113,75,103,0.3)'; this.style.transform='translateY(0)'"
+      >
+        <i class="ph ph-chart-bar" style="font-size:15px;"></i>
+        <span x-text="showKpis ? 'Ocultar resumen' : 'Resumen'"></span>
+        <i
+          class="ph ph-caret-down"
+          style="font-size:12px; transition:transform 0.25s ease;"
+          :style="showKpis ? 'transform:rotate(180deg)' : 'transform:rotate(0deg)'"
+        ></i>
+      </button>
+
+      <!-- Floating Popover Dropdown Panel (alineado a la derecha) -->
+      <div
+        x-show="showKpis"
+        @click.outside="showKpis = false"
+        x-transition:enter="transition ease-out duration-200"
+        x-transition:enter-start="opacity-0 scale-95"
+        x-transition:enter-end="opacity-100 scale-100"
+        x-transition:leave="transition ease-in duration-150"
+        x-transition:leave-start="opacity-100 scale-100"
+        x-transition:leave-end="opacity-0 scale-95"
+        style="
+          position:absolute; top:calc(100% + 8px); right:0; z-index:999;
+          background:#ffffff; border:1.5px solid #e2e8f0; border-radius:14px;
+          box-shadow:0 14px 45px -8px rgba(0,0,0,0.18), 0 4px 16px -4px rgba(0,0,0,0.08);
+          padding:12px; display:grid; grid-template-columns:repeat(2, 1fr); gap:10px;
+          width:520px; max-width:95vw;
+        "
+        x-cloak
+      >
+        <!-- Card 1: Total Usuarios -->
+        <div class="user-kpi-card" style="margin:0; border-left:4px solid #714B67;">
+          <div>
+            <div style="font-size:10.5px; font-weight:800; color:#714B67; text-transform:uppercase; letter-spacing:0.5px;">Colaboradores</div>
+            <div style="font-size:22px; font-weight:900; color:#1e293b; margin-top:2px;" x-text="kpis.total_users || 0">0</div>
+            <div style="font-size:11px; color:#15803d; font-weight:700;" x-text="(kpis.active_users || 0) + ' activos con acceso'"></div>
+          </div>
+          <div style="width:38px; height:38px; border-radius:10px; background:#f4eff3; color:#714B67; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;">
+            <i class="ph ph-users-three"></i>
+          </div>
+        </div>
+
+        <!-- Card 2: Cajeros POS -->
+        <div class="user-kpi-card" style="margin:0; border-left:4px solid #10b981;">
+          <div>
+            <div style="font-size:10.5px; font-weight:800; color:#047857; text-transform:uppercase; letter-spacing:0.5px;">Cajeros POS</div>
+            <div style="font-size:22px; font-weight:900; color:#059669; margin-top:2px;" x-text="kpis.cashiers_count || 0">0</div>
+            <div style="font-size:11px; color:#64748b;">Operadores en cajas</div>
+          </div>
+          <div style="width:38px; height:38px; border-radius:10px; background:#dcfce7; color:#15803d; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;">
+            <i class="ph ph-shopping-cart"></i>
+          </div>
+        </div>
+
+        <!-- Card 3: Administradores -->
+        <div class="user-kpi-card" style="margin:0; border-left:4px solid #8b5cf6;">
+          <div>
+            <div style="font-size:10.5px; font-weight:800; color:#6d28d9; text-transform:uppercase; letter-spacing:0.5px;">Super Admins</div>
+            <div style="font-size:22px; font-weight:900; color:#7c3aed; margin-top:2px;" x-text="kpis.admins_count || 0">0</div>
+            <div style="font-size:11px; color:#64748b;">Control maestro total</div>
+          </div>
+          <div style="width:38px; height:38px; border-radius:10px; background:#ede9fe; color:#6d28d9; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;">
+            <i class="ph ph-crown"></i>
+          </div>
+        </div>
+
+        <!-- Card 4: Gerentes & Otros -->
+        <div class="user-kpi-card" style="margin:0; border-left:4px solid #0284c7;">
+          <div>
+            <div style="font-size:10.5px; font-weight:800; color:#0369a1; text-transform:uppercase; letter-spacing:0.5px;">Gerentes & Especiales</div>
+            <div style="font-size:22px; font-weight:900; color:#0284c7; margin-top:2px;" x-text="(kpis.managers_count || 0) + (kpis.accountants_count || 0) + (kpis.inventory_count || 0)">0</div>
+            <div style="font-size:11px; color:#64748b;">Supervisores y finanzas</div>
+          </div>
+          <div style="width:38px; height:38px; border-radius:10px; background:#e0f2fe; color:#0369a1; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;">
+            <i class="ph ph-shield-check"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ==================== PESTAÑA 1: DIRECTORIO DE USUARIOS ==================== -->
+  <div x-show="activeView === 'users'">
+    
+    <!-- Users Data Table -->
+    <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:14px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,0.03);">
+      <div style="overflow-x:auto;">
+        <table style="width:100%; border-collapse:collapse; font-size:13px;">
+          <thead>
+            <tr style="background:#f8fafc; border-bottom:2px solid #e2e8f0;">
+              <th style="padding:12px 18px; text-align:left; font-size:11px; font-weight:800; text-transform:uppercase; color:#475569;">Colaborador</th>
+              <th style="padding:12px 18px; text-align:left; font-size:11px; font-weight:800; text-transform:uppercase; color:#475569;">Usuario / Email</th>
+              <th style="padding:12px 18px; text-align:left; font-size:11px; font-weight:800; text-transform:uppercase; color:#475569;">Rol Predeterminado</th>
+              <th style="padding:12px 18px; text-align:left; font-size:11px; font-weight:800; text-transform:uppercase; color:#475569;">Sucursal Asignada</th>
+              <th style="padding:12px 18px; text-align:center; font-size:11px; font-weight:800; text-transform:uppercase; color:#475569;">PIN Supervisor</th>
+              <th style="padding:12px 18px; text-align:center; font-size:11px; font-weight:800; text-transform:uppercase; color:#475569;">Estado</th>
+              <th style="padding:12px 18px; text-align:right; font-size:11px; font-weight:800; text-transform:uppercase; color:#475569;">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="u in users" :key="u.id">
+              <tr style="border-bottom:1px solid #f1f5f9; transition:background 0.15s;" onmouseover="this.style.background='#fdfaff'" onmouseout="this.style.background='#ffffff'">
+                
+                <!-- Colaborador -->
+                <td style="padding:12px 18px;">
+                  <div style="display:flex; align-items:center; gap:12px;">
+                    <div 
+                      style="width:38px; height:38px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:15px; flex-shrink:0;"
+                      :style="'background:' + u.role_badge_bg + '; color:' + u.role_badge_color + ';'"
+                      x-text="u.full_name ? u.full_name.charAt(0).toUpperCase() : 'U'"
+                    ></div>
+                    <div>
+                      <div style="font-weight:800; color:#1e293b; font-size:13.5px;" x-text="u.full_name"></div>
+                      <div style="font-size:11px; color:#94a3b8;" x-text="'Registrado: ' + u.created_at"></div>
+                    </div>
+                  </div>
+                </td>
+
+                <!-- Usuario / Email -->
+                <td style="padding:12px 18px;">
+                  <div style="font-family:monospace; font-weight:800; color:var(--odoo-purple); font-size:13px;" x-text="'@' + u.username"></div>
+                  <div style="font-size:11.5px; color:#64748b;" x-text="u.email"></div>
+                </td>
+
+                <!-- Rol -->
+                <td style="padding:12px 18px;">
+                  <span 
+                    style="display:inline-flex; align-items:center; gap:5px; font-size:11.5px; font-weight:800; padding:4px 12px; border-radius:12px;"
+                    :style="'background:' + u.role_badge_bg + '; color:' + u.role_badge_color + ';'"
+                  >
+                    <i :class="'ph ' + u.role_icon"></i>
+                    <span x-text="u.role_name"></span>
+                  </span>
+                </td>
+
+                <!-- Sucursal -->
+                <td style="padding:12px 18px;">
+                  <div style="display:flex; align-items:center; gap:6px; font-weight:700; color:#334155; font-size:12.5px;">
+                    <i class="ph ph-storefront" style="color:var(--odoo-purple);"></i>
+                    <span x-text="u.branch_name"></span>
+                  </div>
+                </td>
+
+                <!-- PIN Supervisor -->
+                <td style="padding:12px 18px; text-align:center;">
+                  <template x-if="u.has_supervisor_pin">
+                    <span style="font-family:monospace; font-weight:800; background:#f1f5f9; padding:3px 8px; border-radius:6px; font-size:12px; color:#475569;">
+                      <i class="ph ph-lock-key" style="color:#059669;"></i> ••••
+                    </span>
+                  </template>
+                  <template x-if="!u.has_supervisor_pin">
+                    <span style="font-size:11px; color:#94a3b8;">Sin PIN</span>
+                  </template>
+                </td>
+
+                <!-- Estado -->
+                <td style="padding:12px 18px; text-align:center;">
+                  <button
+                    type="button"
+                    class="btn btn-sm"
+                    :style="u.is_active ? 'background:#dcfce7; color:#15803d; border:1px solid #86efac;' : 'background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5;'"
+                    style="font-size:11px; font-weight:800; border-radius:6px; padding:3px 10px; cursor:pointer;"
+                    @click="toggleUserActive(u)"
+                    :title="u.is_active ? 'Haga clic para suspender acceso' : 'Haga clic para activar acceso'"
+                    x-text="u.is_active ? '✓ Activo' : '✕ Suspendido'"
+                  ></button>
+                </td>
+
+                <!-- Acciones -->
+                <td style="padding:12px 18px; text-align:right;">
+                  <div style="display:flex; justify-content:flex-end; gap:6px;">
+                    <button 
+                      type="button" 
+                      class="btn btn-secondary btn-sm" 
+                      style="font-size:11.5px; font-weight:700; border:1px solid #cbd5e1; background:#ffffff; border-radius:6px; padding:4px 8px; cursor:pointer;"
+                      @click="openEditUserModal(u)"
+                      title="Editar usuario y permisos"
+                    >
+                      <i class="ph ph-pencil-simple" style="color:var(--odoo-purple);"></i> Editar
+                    </button>
+                    <button 
+                      type="button" 
+                      class="btn btn-secondary btn-sm" 
+                      style="font-size:11.5px; font-weight:700; border:1px solid #cbd5e1; background:#ffffff; border-radius:6px; padding:4px 8px; cursor:pointer;"
+                      @click="openResetPasswordModal(u)"
+                      title="Cambiar contraseña"
+                    >
+                      <i class="ph ph-key" style="color:#d97706;"></i> Contraseña
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </template>
+
+            <tr x-show="users.length === 0">
+              <td colspan="7" style="text-align:center; padding:50px 20px; color:#64748b;">
+                <i class="ph ph-users-three" style="font-size:44px; color:#cbd5e1;"></i>
+                <p style="margin-top:10px; font-weight:800; font-size:15px; color:#1e293b;">No se encontraron usuarios colaboradores</p>
+                <p style="font-size:12.5px; color:#64748b; margin-top:4px;">Crea el primer usuario con el botón "+ Nuevo Usuario".</p>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ==================== PESTAÑA 2: MATRIZ DE ROLES Y PERMISOS ==================== -->
+  <div x-show="activeView === 'matrix'">
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:18px;">
+      
+      <template x-for="r in predefinedRoles" :key="r.code">
+        <div class="role-matrix-card" :style="'border-top:4px solid ' + r.badge_color + ';'">
+          <!-- Header del Rol -->
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+            <div>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <i :class="'ph ' + r.icon" style="font-size:22px;" :style="'color:' + r.badge_color + ';'"></i>
+                <h3 style="margin:0; font-size:16px; font-weight:900; color:#1e293b;" x-text="r.name"></h3>
+              </div>
+              <div style="font-size:11px; font-family:monospace; color:#64748b; font-weight:700; margin-top:2px;" x-text="'Código: ' + r.code"></div>
+            </div>
+            <span 
+              style="font-size:10.5px; font-weight:800; padding:3px 8px; border-radius:8px;"
+              :style="'background:' + r.badge_bg + '; color:' + r.badge_color + ';'"
+              x-text="'Rol Predeterminado'"
+            ></span>
+          </div>
+
+          <p style="font-size:12px; color:#64748b; line-height:1.45; margin-bottom:16px;" x-text="r.description"></p>
+
+          <!-- Lista de Permisos por Módulo -->
+          <div style="border-top:1px solid #f1f5f9; padding-top:12px;">
+            <div style="font-size:11px; font-weight:800; color:#475569; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">Capacidades y Accesos:</div>
+            <div style="display:flex; flex-direction:column; gap:6px;">
+              <template x-for="p in r.permissions" :key="p.module">
+                <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:6px 10px; font-size:11.5px;">
+                  <span style="font-weight:800; color:#1e293b;" x-text="p.module + ': '"></span>
+                  <span style="color:#64748b;" x-text="p.actions"></span>
+                </div>
+              </template>
+            </div>
+          </div>
+        </div>
+      </template>
+
+    </div>
+  </div>
+
+  <!-- ===== MODAL: CREAR / EDITAR USUARIO ===== -->
+  <div class="modal-backdrop" x-show="showUserModal" style="display:none;" x-cloak>
+    <div class="modal" style="max-width:580px; background:#ffffff; border-radius:14px; padding:24px; box-shadow:0 20px 40px rgba(0,0,0,0.2);">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:14px; margin-bottom:18px;">
+        <div>
+          <h3 style="margin:0; font-size:17px; font-weight:900; color:#1e293b;" x-text="isEditingUser ? 'Editar Colaborador' : 'Crear Nuevo Usuario Colaborador'"></h3>
+          <div style="font-size:12px; color:#64748b; margin-top:2px;">Configura credenciales, rol y permisos en el sistema</div>
+        </div>
+        <button style="border:none; background:none; font-size:22px; cursor:pointer; color:#94a3b8;" @click="showUserModal = false">&times;</button>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:14px; max-height:70vh; overflow-y:auto; padding-right:4px;">
+        
+        <!-- Nombre Completo -->
+        <div>
+          <label style="font-size:11px; font-weight:800; color:#475569; text-transform:uppercase;">Nombre Completo del Colaborador *</label>
+          <input type="text" class="form-control" style="width:100%; padding:8px 12px; border:1.5px solid #cbd5e1; border-radius:8px; font-weight:600;" placeholder="Ej: Carlos Estuardo Méndez" x-model="userForm.full_name">
+        </div>
+
+        <!-- Usuario & Email -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div>
+            <label style="font-size:11px; font-weight:800; color:#475569; text-transform:uppercase;">Nombre de Usuario *</label>
+            <input type="text" class="form-control" style="width:100%; padding:8px 12px; border:1.5px solid #cbd5e1; border-radius:8px; font-family:monospace; font-weight:700;" placeholder="cmendez" x-model="userForm.username" :disabled="isEditingUser">
+          </div>
+          <div>
+            <label style="font-size:11px; font-weight:800; color:#475569; text-transform:uppercase;">Correo Electrónico *</label>
+            <input type="email" class="form-control" style="width:100%; padding:8px 12px; border:1.5px solid #cbd5e1; border-radius:8px;" placeholder="carlos@empresa.com" x-model="userForm.email">
+          </div>
+        </div>
+
+        <!-- Contraseña (solo al crear) -->
+        <template x-if="!isEditingUser">
+          <div>
+            <label style="font-size:11px; font-weight:800; color:#475569; text-transform:uppercase;">Contraseña de Acceso *</label>
+            <input type="password" class="form-control" style="width:100%; padding:8px 12px; border:1.5px solid #cbd5e1; border-radius:8px;" placeholder="••••••••" x-model="userForm.password">
+          </div>
+        </template>
+
+        <!-- SELECCIÓN DE ROL PREDETERMINADO -->
+        <div>
+          <label style="font-size:11px; font-weight:800; color:#475569; text-transform:uppercase; margin-bottom:6px; display:block;">Rol Predeterminado en el Sistema *</label>
+          <div style="display:grid; grid-template-columns:1fr; gap:8px;">
+            <template x-for="r in predefinedRoles" :key="r.code">
+              <div 
+                class="role-select-box"
+                :class="userForm.role_code === r.code ? 'selected' : ''"
+                @click="userForm.role_code = r.code"
+              >
+                <div 
+                  style="width:36px; height:36px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;"
+                  :style="'background:' + r.badge_bg + '; color:' + r.badge_color + ';'"
+                >
+                  <i :class="'ph ' + r.icon"></i>
+                </div>
+                <div style="flex:1;">
+                  <div style="font-weight:800; font-size:13px; color:#1e293b;" x-text="r.name"></div>
+                  <div style="font-size:11px; color:#64748b;" x-text="r.description"></div>
+                </div>
+                <div style="font-size:18px; color:var(--odoo-purple);" x-show="userForm.role_code === r.code">
+                  <i class="ph ph-check-circle" style="font-weight:900;"></i>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <!-- Sucursal & PIN Supervisor -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div>
+            <label style="font-size:11px; font-weight:800; color:#475569; text-transform:uppercase;">Sucursal Asignada</label>
+            <select class="form-control" style="width:100%; padding:8px 12px; border:1.5px solid #cbd5e1; border-radius:8px; font-weight:700;" x-model="userForm.current_branch_id">
+              <option value="">Sucursal Central (Principal)</option>
+              <template x-for="b in branches" :key="b.id">
+                <option :value="b.id" x-text="b.name"></option>
+              </template>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:11px; font-weight:800; color:#475569; text-transform:uppercase;">PIN de Supervisor (Opcional)</label>
+            <input type="password" maxlength="6" class="form-control" style="width:100%; padding:8px 12px; border:1.5px solid #cbd5e1; border-radius:8px; font-family:monospace; font-weight:800;" placeholder="4-6 dígitos" x-model="userForm.supervisor_pin">
+          </div>
+        </div>
+
+      </div>
+
+      <div style="margin-top:20px; display:flex; justify-content:flex-end; gap:10px; border-top:1px solid #e2e8f0; padding-top:14px;">
+        <button type="button" class="btn btn-secondary" @click="showUserModal = false">Cancelar</button>
+        <button type="button" class="btn btn-primary" style="background:var(--odoo-purple); color:#ffffff; font-weight:800;" @click="saveUserForm()" x-text="isEditingUser ? 'Guardar Cambios' : 'Crear Colaborador'"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MODAL: RESTABLECER CONTRASEÑA ===== -->
+  <div class="modal-backdrop" x-show="showPasswordModal" style="display:none;" x-cloak>
+    <div class="modal" style="max-width:440px; background:#ffffff; border-radius:14px; padding:24px; box-shadow:0 20px 40px rgba(0,0,0,0.2);">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:12px; margin-bottom:16px;">
+        <h3 style="margin:0; font-size:16px; font-weight:800; color:#1e293b;">Restablecer Contraseña</h3>
+        <button style="border:none; background:none; font-size:22px; cursor:pointer; color:#94a3b8;" @click="showPasswordModal = false">&times;</button>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div style="font-size:13px; color:#475569;">
+          Colaborador: <strong style="color:var(--odoo-purple);" x-text="selectedUser ? selectedUser.full_name : ''"></strong>
+        </div>
+        <div>
+          <label style="font-size:11px; font-weight:800; color:#475569; text-transform:uppercase;">Nueva Contraseña *</label>
+          <input type="password" class="form-control" style="width:100%; padding:8px 12px; border:1.5px solid #cbd5e1; border-radius:8px;" placeholder="Mínimo 4 caracteres" x-model="newPasswordInput">
+        </div>
+      </div>
+
+      <div style="margin-top:20px; display:flex; justify-content:flex-end; gap:10px; border-top:1px solid #e2e8f0; padding-top:14px;">
+        <button type="button" class="btn btn-secondary" @click="showPasswordModal = false">Cancelar</button>
+        <button type="button" class="btn btn-primary" style="background:#d97706; color:#ffffff; font-weight:800; border:none;" @click="submitResetPassword()">Actualizar Contraseña</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function usersAndRolesModule() {
+    return {
+      activeView: 'users',
+      showKpis: false,
+      search: '',
+      selectedRoleFilter: 'all',
+      users: [],
+      branches: [],
+      predefinedRoles: [],
+      kpis: {
+        total_users: 0,
+        active_users: 0,
+        cashiers_count: 0,
+        admins_count: 0,
+        managers_count: 0,
+        inventory_count: 0,
+        accountants_count: 0
+      },
+
+      showUserModal: false,
+      isEditingUser: false,
+      editingUserId: null,
+      userForm: {
+        full_name: '',
+        username: '',
+        email: '',
+        password: '',
+        role_code: 'cashier',
+        current_branch_id: '',
+        supervisor_pin: '',
+        phone: ''
+      },
+
+      showPasswordModal: false,
+      selectedUser: null,
+      newPasswordInput: '',
+
+      async init() {
+        await Promise.all([
+          this.loadRoles(),
+          this.loadBranches(),
+          this.loadKPIs(),
+          this.loadUsers()
+        ]);
+      },
+
+      async loadRoles() {
+        try {
+          const res = await API.get('/roles');
+          this.predefinedRoles = res || [];
+        } catch(e) {
+          console.error(e);
+        }
+      },
+
+      async loadBranches() {
+        try {
+          const res = await API.get('/branches');
+          this.branches = res || [];
+        } catch(e) {
+          console.error(e);
+        }
+      },
+
+      async loadKPIs() {
+        try {
+          const res = await API.get('/users/kpis');
+          if (res) this.kpis = res;
+        } catch(e) {
+          console.error(e);
+        }
+      },
+
+      async loadUsers() {
+        try {
+          let url = `/users?search=${encodeURIComponent(this.search)}`;
+          if (this.selectedRoleFilter && this.selectedRoleFilter !== 'all') {
+            url += `&role=${this.selectedRoleFilter}`;
+          }
+          const res = await API.get(url);
+          this.users = res || [];
+        } catch(e) {
+          console.error(e);
+        }
+      },
+
+      openCreateUserModal() {
+        this.isEditingUser = false;
+        this.editingUserId = null;
+        this.userForm = {
+          full_name: '',
+          username: '',
+          email: '',
+          password: '',
+          role_code: 'cashier',
+          current_branch_id: this.branches.length > 0 ? this.branches[0].id : '',
+          supervisor_pin: '',
+          phone: ''
+        };
+        this.showUserModal = true;
+      },
+
+      openEditUserModal(u) {
+        this.isEditingUser = true;
+        this.editingUserId = u.id;
+        this.userForm = {
+          full_name: u.full_name,
+          username: u.username,
+          email: u.email,
+          password: '',
+          role_code: u.role_code || 'cashier',
+          current_branch_id: u.current_branch_id || '',
+          supervisor_pin: '',
+          phone: u.phone || ''
+        };
+        this.showUserModal = true;
+      },
+
+      async saveUserForm() {
+        if (!this.userForm.full_name || !this.userForm.email) {
+          return alert('Por favor ingresa nombre y correo electrónico.');
+        }
+
+        if (!this.isEditingUser && (!this.userForm.username || !this.userForm.password)) {
+          return alert('Usuario y contraseña son obligatorios.');
+        }
+
+        try {
+          if (this.isEditingUser) {
+            await API.put(`/users/${this.editingUserId}`, {
+              full_name: this.userForm.full_name,
+              email: this.userForm.email,
+              role_code: this.userForm.role_code,
+              current_branch_id: this.userForm.current_branch_id,
+              supervisor_pin: this.userForm.supervisor_pin,
+              phone: this.userForm.phone
+            });
+            alert('¡Usuario actualizado exitosamente!');
+          } else {
+            await API.post('/users', this.userForm);
+            alert('¡Usuario colaborador creado exitosamente!');
+          }
+
+          this.showUserModal = false;
+          await this.loadKPIs();
+          await this.loadUsers();
+        } catch(e) {
+          alert('Error: ' + (e.message || e));
+        }
+      },
+
+      async toggleUserActive(u) {
+        try {
+          const res = await API.post(`/users/${u.id}/toggle-status`);
+          u.is_active = res.is_active;
+          await this.loadKPIs();
+        } catch(e) {
+          alert('Error al cambiar estado: ' + (e.message || e));
+        }
+      },
+
+      openResetPasswordModal(u) {
+        this.selectedUser = u;
+        this.newPasswordInput = '';
+        this.showPasswordModal = true;
+      },
+
+      async submitResetPassword() {
+        if (!this.newPasswordInput || this.newPasswordInput.length < 4) {
+          return alert('La nueva contraseña debe tener al menos 4 caracteres.');
+        }
+
+        try {
+          await API.post(`/users/${this.selectedUser.id}/reset-password`, {
+            new_password: this.newPasswordInput
+          });
+          alert('¡Contraseña restablecida exitosamente!');
+          this.showPasswordModal = false;
+        } catch(e) {
+          alert('Error: ' + (e.message || e));
+        }
+      }
+    }
+  }
+</script>
+{% endblock %}

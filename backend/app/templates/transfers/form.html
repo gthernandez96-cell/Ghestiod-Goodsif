@@ -1,0 +1,568 @@
+{% set show_layout = true %}
+{% extends "base.html" %}
+
+{% block title %}{{ 'Nuevo Traslado de Inventario' if transfer_id == 'new' else 'Traslado de Inventario — POS Empresarial' }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .tr-status-step {
+    padding: 6px 14px;
+    font-size: 11.5px;
+    font-weight: 800;
+    border-radius: 20px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #f1f5f9;
+    color: #64748b;
+    border: 1px solid #cbd5e1;
+  }
+  .tr-status-step.active {
+    background: #714B67;
+    color: #ffffff;
+    border-color: #714B67;
+    box-shadow: 0 2px 6px rgba(113, 75, 103, 0.25);
+  }
+  .tr-status-step.completed {
+    background: #dcfce7;
+    color: #15803d;
+    border-color: #86efac;
+  }
+
+  .form-label-tr {
+    font-size: 11.5px;
+    font-weight: 800;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: block;
+    margin-bottom: 5px;
+  }
+  .form-control-tr {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 13.5px;
+    color: #1e293b;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    background: #ffffff;
+  }
+  .form-control-tr:focus {
+    border-color: #714B67;
+    box-shadow: 0 0 0 3px rgba(113, 75, 103, 0.15);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div x-data="transferFormPage('{{ transfer_id }}')" x-init="init()">
+  
+  <!-- ===== TOP ACTION BAR ===== -->
+  <div style="margin:-20px -24px 24px -24px; padding:14px 24px; background:#ffffff; border-bottom:1px solid #e2e8f0; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+    
+    <!-- Left: Breadcrumb & Title -->
+    <div style="display:flex; align-items:center; gap:12px;">
+      <a href="/transfers" style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; padding:7px 14px; border-radius:8px; font-weight:700; font-size:12.5px; text-decoration:none; display:flex; align-items:center; gap:6px;">
+        <i class="ph ph-arrow-left"></i> Volver a Traslados
+      </a>
+      <div style="font-size:16px; font-weight:800; color:#1e293b; display:flex; align-items:center; gap:8px;">
+        <span style="color:#64748b;">Traslados /</span>
+        <span x-text="transferId === 'new' ? 'Nuevo Traslado de Mercadería' : (trData.number || 'Detalle de Traslado')"></span>
+      </div>
+    </div>
+
+    <!-- Center: Status Pipeline Steps -->
+    <div style="display:flex; align-items:center; gap:8px;">
+      <div class="tr-status-step" :class="trData.state === 'draft' || transferId === 'new' || trData.state === 'confirmed' ? 'active' : 'completed'">
+        <i class="ph ph-file-text"></i> 1. Solicitud
+      </div>
+      <i class="ph ph-caret-right" style="color:#94a3b8; font-size:12px;"></i>
+      <div class="tr-status-step" :class="trData.state === 'sent' || trData.state === 'in_transit' ? 'active' : (trData.state === 'received' ? 'completed' : '')">
+        <i class="ph ph-truck"></i> 2. En Tránsito
+      </div>
+      <i class="ph ph-caret-right" style="color:#94a3b8; font-size:12px;"></i>
+      <div class="tr-status-step" :class="trData.state === 'received' ? 'completed active' : ''">
+        <i class="ph ph-check-circle"></i> 3. Recibido en Destino
+      </div>
+    </div>
+
+    <!-- Right: Actions -->
+    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+      <template x-if="transferId !== 'new'">
+        <div style="display:flex; gap:8px;">
+          <!-- Despachar / Enviar de Bodega -->
+          <button 
+            type="button" 
+            class="btn btn-secondary" 
+            style="background:#fef3c7; color:#92400e; border:1px solid #fde68a; font-weight:800; border-radius:8px; padding:8px 16px; font-size:12.5px; display:flex; align-items:center; gap:6px; cursor:pointer;"
+            x-show="trData.state === 'confirmed' || trData.state === 'draft'"
+            @click="sendGoods()"
+          >
+            <i class="ph ph-truck" style="font-size:16px;"></i> Despachar de Origen
+          </button>
+
+          <!-- Confirmar Recepción -->
+          <button 
+            type="button" 
+            class="btn btn-secondary" 
+            style="background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; font-weight:800; border-radius:8px; padding:8px 16px; font-size:12.5px; display:flex; align-items:center; gap:6px; cursor:pointer;"
+            x-show="trData.state !== 'received'"
+            @click="receiveGoods()"
+          >
+            <i class="ph ph-check-square-offset" style="font-size:16px;"></i> Confirmar Recepción en Destino
+          </button>
+
+          <!-- Imprimir Guía de Remisión -->
+          <button 
+            type="button" 
+            class="btn btn-secondary" 
+            style="background:#f8fafc; color:#334155; border:1px solid #cbd5e1; font-weight:700; border-radius:8px; padding:8px 14px; font-size:12.5px; display:flex; align-items:center; gap:6px; cursor:pointer;"
+            @click="printTransferSlip()"
+          >
+            <i class="ph ph-printer" style="font-size:16px; color:#64748b;"></i> Imprimir Guía (PDF)
+          </button>
+        </div>
+      </template>
+
+      <!-- Save / Create Button -->
+      <button 
+        type="button" 
+        class="btn btn-primary" 
+        style="background:#714B67; color:#ffffff; font-weight:800; border-radius:8px; padding:8px 24px; border:none; box-shadow:0 3px 10px rgba(113,75,103,0.3); display:flex; align-items:center; gap:6px; cursor:pointer;" 
+        @click="saveTransfer()"
+        :disabled="isSaving"
+        x-show="transferId === 'new'"
+      >
+        <i class="ph ph-floppy-disk" style="font-weight:800;"></i>
+        <span x-text="isSaving ? 'Guardando...' : 'Crear Traslado'"></span>
+      </button>
+    </div>
+
+  </div>
+
+  <!-- ===== MAIN DOCUMENT CARD ===== -->
+  <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:16px; padding:26px 30px; box-shadow:0 1px 4px rgba(0,0,0,0.03); margin-bottom:24px;">
+    
+    <!-- Top Row: Document Reference & Status Badge -->
+    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #f1f5f9; padding-bottom:16px; margin-bottom:20px;">
+      <div>
+        <div style="font-size:12px; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.5px;">Documento de Traslado Interno</div>
+        <div style="font-size:22px; font-weight:900; color:#0f172a; margin-top:2px;" x-text="transferId === 'new' ? 'Nueva Solicitud de Traslado' : trData.number"></div>
+      </div>
+
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span 
+          style="font-size:12px; font-weight:800; padding:4px 14px; border-radius:16px;"
+          :class="trData.state === 'received' ? 'bg-emerald-100 text-emerald-800' : (trData.state === 'sent' ? 'bg-amber-100 text-amber-800' : 'bg-purple-100 text-purple-800')"
+          x-text="trData.state === 'received' ? '✓ Recibido en Destino' : (trData.state === 'sent' ? '🚚 En Tránsito' : '📄 Solicitud / Confirmada')"
+          x-show="transferId !== 'new'"
+        ></span>
+      </div>
+    </div>
+
+    <!-- Origin & Destination Grid -->
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-bottom:26px;">
+      
+      <!-- Box 1: Bodega Origen -->
+      <div style="background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:12px; padding:18px;">
+        <div style="font-size:12px; font-weight:800; color:#c2410c; text-transform:uppercase; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
+          <i class="ph ph-arrow-up-right"></i> BODEGA DE ORIGEN (EMISORA) *
+        </div>
+
+        <template x-if="transferId === 'new'">
+          <div>
+            <select class="form-control-tr" style="font-weight:700;" x-model="form.origin_warehouse_id">
+              <option value="">Selecciona bodega de salida...</option>
+              <template x-for="w in warehouses" :key="'orig_' + w.id">
+                <option :value="w.id" x-text="w.name + ' (' + w.branch_name + ')'"></option>
+              </template>
+            </select>
+          </div>
+        </template>
+        <template x-if="transferId !== 'new'">
+          <div>
+            <div style="font-size:15px; font-weight:800; color:#1e293b;" x-text="trData.origin_warehouse_name"></div>
+            <div style="font-size:12px; color:#64748b; margin-top:2px;" x-text="trData.origin_branch_name"></div>
+            <div style="font-size:11.5px; color:#64748b; margin-top:4px;" x-show="trData.send_date" x-text="'Despachado: ' + trData.send_date"></div>
+          </div>
+        </template>
+      </div>
+
+      <!-- Box 2: Bodega Destino -->
+      <div style="background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:12px; padding:18px;">
+        <div style="font-size:12px; font-weight:800; color:#047857; text-transform:uppercase; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
+          <i class="ph ph-arrow-down-left"></i> BODEGA DE DESTINO (RECEPTORA) *
+        </div>
+
+        <template x-if="transferId === 'new'">
+          <div>
+            <select class="form-control-tr" style="font-weight:700;" x-model="form.dest_warehouse_id">
+              <option value="">Selecciona bodega receptora...</option>
+              <template x-for="w in warehouses" :key="'dest_' + w.id">
+                <option :value="w.id" x-text="w.name + ' (' + w.branch_name + ')'"></option>
+              </template>
+            </select>
+          </div>
+        </template>
+        <template x-if="transferId !== 'new'">
+          <div>
+            <div style="font-size:15px; font-weight:800; color:#1e293b;" x-text="trData.dest_warehouse_name"></div>
+            <div style="font-size:12px; color:#64748b; margin-top:2px;" x-text="trData.dest_branch_name"></div>
+            <div style="font-size:11.5px; color:#64748b; margin-top:4px;" x-show="trData.receive_date" x-text="'Recibido: ' + trData.receive_date"></div>
+          </div>
+        </template>
+      </div>
+
+    </div>
+
+    <!-- ===== PRODUCTS TABLE ===== -->
+    <div style="margin-top:20px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <div style="font-size:14px; font-weight:800; color:#1e293b; display:flex; align-items:center; gap:6px;">
+          <i class="ph ph-package" style="color:#714B67; font-size:18px;"></i> Artículos a Transferir
+        </div>
+
+        <template x-if="transferId === 'new'">
+          <button 
+            type="button" 
+            class="btn btn-secondary" 
+            style="background:#f1f5f9; color:#714B67; border:1px solid #cbd5e1; font-weight:800; border-radius:8px; padding:6px 14px; font-size:12px; cursor:pointer; display:flex; align-items:center; gap:6px;"
+            @click="addLine()"
+          >
+            <i class="ph ph-plus-circle"></i> + Agregar Producto
+          </button>
+        </template>
+      </div>
+
+      <div style="overflow-x:auto; border:1px solid #e2e8f0; border-radius:12px;">
+        <table class="table" style="width:100%; border-collapse:collapse;">
+          <thead>
+            <tr style="background:#f8fafc; border-bottom:2px solid #e2e8f0;">
+              <th style="padding:12px 16px; text-align:left; color:#475569; font-size:11px; text-transform:uppercase; font-weight:800;">Producto</th>
+              <th style="padding:12px 16px; text-align:center; color:#475569; font-size:11px; text-transform:uppercase; font-weight:800; width:150px;">Cant. Solicitada</th>
+              <th style="padding:12px 16px; text-align:center; color:#475569; font-size:11px; text-transform:uppercase; font-weight:800; width:150px;" x-show="transferId !== 'new'">Cant. Despachada</th>
+              <th style="padding:12px 16px; text-align:center; color:#475569; font-size:11px; text-transform:uppercase; font-weight:800; width:150px;" x-show="transferId !== 'new'">Cant. Recibida</th>
+              <th style="padding:12px 16px; text-align:center; width:60px;" x-show="transferId === 'new'"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Editable Lines for New Transfer -->
+            <template x-if="transferId === 'new'">
+              <template x-for="(line, idx) in form.lines" :key="idx">
+                <tr style="border-bottom:1px solid #f1f5f9;">
+                  <td style="padding:10px 16px;">
+                    <select 
+                      class="form-control-tr" 
+                      style="font-weight:700;" 
+                      x-model="line.product_id" 
+                      @change="onProductSelect(line)"
+                    >
+                      <option value="">Selecciona un producto...</option>
+                      <template x-for="p in catalogProducts" :key="p.id">
+                        <option :value="p.id" x-text="p.name + ' (SKU: ' + (p.internal_ref || 'N/A') + ')'"></option>
+                      </template>
+                    </select>
+                  </td>
+                  <td style="padding:10px 16px; text-align:center;">
+                    <input 
+                      type="number" 
+                      min="1" 
+                      step="1" 
+                      class="form-control-tr" 
+                      style="text-align:center; font-weight:800; width:120px; margin:0 auto;" 
+                      x-model.number="line.qty"
+                    >
+                  </td>
+                  <td style="padding:10px 16px; text-align:center;">
+                    <button 
+                      type="button" 
+                      style="background:none; border:none; color:#dc2626; font-size:18px; cursor:pointer;" 
+                      @click="removeLine(idx)"
+                      x-show="form.lines.length > 1"
+                      title="Eliminar fila"
+                    >
+                      <i class="ph ph-trash"></i>
+                    </button>
+                  </td>
+                </tr>
+              </template>
+            </template>
+
+            <!-- Readonly Lines for Existing Transfer -->
+            <template x-if="transferId !== 'new'">
+              <template x-for="line in trData.lines" :key="line.id">
+                <tr style="border-bottom:1px solid #f1f5f9;">
+                  <td style="padding:12px 16px; font-weight:700; color:#1e293b;" x-text="line.product_name"></td>
+                  <td style="padding:12px 16px; text-align:center; font-weight:800; color:#475569;" x-text="line.qty_requested + ' unid.'"></td>
+                  <td style="padding:12px 16px; text-align:center; font-weight:800; color:#c2410c;" x-text="line.qty_sent + ' unid.'"></td>
+                  <td style="padding:12px 16px; text-align:center;">
+                    <span 
+                      style="font-weight:900; font-size:12px; padding:2px 8px; border-radius:6px;"
+                      :style="line.qty_received >= line.qty_requested ? 'background:#dcfce7; color:#15803d;' : 'background:#ffedd5; color:#c2410c;'"
+                      x-text="line.qty_received + ' unid.'"
+                    ></span>
+                  </td>
+                </tr>
+              </template>
+            </template>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Notes Area -->
+    <div style="margin-top:20px;">
+      <label class="form-label-tr">OBSERVACIONES / MOTIVO DEL TRASLADO</label>
+      <template x-if="transferId === 'new'">
+        <textarea 
+          class="form-control-tr" 
+          rows="3" 
+          placeholder="Ej: Reabastecimiento de mostrador, traslado de stock por alta demanda..."
+          x-model="form.notes"
+        ></textarea>
+      </template>
+      <template x-if="transferId !== 'new'">
+        <div style="padding:10px 14px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; font-size:13px; color:#475569;" x-text="trData.notes || 'Sin observaciones.'"></div>
+      </template>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+  function transferFormPage(transferId) {
+    return {
+      transferId: transferId,
+      isSaving: false,
+      warehouses: [],
+      catalogProducts: [],
+      trData: {
+        id: null,
+        number: '',
+        origin_warehouse_name: '',
+        origin_branch_name: '',
+        dest_warehouse_name: '',
+        dest_branch_name: '',
+        state: 'draft',
+        request_date: '',
+        send_date: null,
+        receive_date: null,
+        notes: '',
+        lines: []
+      },
+      form: {
+        origin_warehouse_id: '',
+        dest_warehouse_id: '',
+        notes: '',
+        lines: [
+          { product_id: '', product_name: '', qty: 1 }
+        ]
+      },
+
+      async init() {
+        await this.loadWarehouses();
+        await this.loadProducts();
+
+        if (this.transferId !== 'new') {
+          await this.loadTransferData();
+        }
+      },
+
+      async loadWarehouses() {
+        try {
+          const res = await API.get('/branches/warehouses');
+          this.warehouses = res || [];
+          if (this.warehouses.length >= 2 && this.transferId === 'new') {
+            this.form.origin_warehouse_id = this.warehouses[0].id;
+            this.form.dest_warehouse_id = this.warehouses[1].id;
+          }
+        } catch(e) {}
+      },
+
+      async loadProducts() {
+        try {
+          const res = await API.get('/products/?limit=200');
+          this.catalogProducts = res.items || res || [];
+        } catch(e) {}
+      },
+
+      async loadTransferData() {
+        try {
+          const res = await API.get(`/transfers/${this.transferId}`);
+          if (res) {
+            this.trData = res;
+            this.form.notes = res.notes || '';
+          }
+        } catch(e) {
+          alert('Error al cargar traslado: ' + (e.message || e));
+        }
+      },
+
+      onProductSelect(line) {
+        const prod = this.catalogProducts.find(p => p.id === line.product_id);
+        if (prod) {
+          line.product_name = prod.name;
+        }
+      },
+
+      addLine() {
+        this.form.lines.push({ product_id: '', product_name: '', qty: 1 });
+      },
+
+      removeLine(idx) {
+        this.form.lines.splice(idx, 1);
+      },
+
+      async saveTransfer() {
+        if (!this.form.origin_warehouse_id || !this.form.dest_warehouse_id) {
+          return alert('Debes seleccionar la bodega de origen y la bodega de destino.');
+        }
+
+        if (this.form.origin_warehouse_id === this.form.dest_warehouse_id) {
+          return alert('La bodega de origen y destino deben ser diferentes.');
+        }
+
+        const validLines = this.form.lines.filter(l => l.product_id && (Number(l.qty) || 0) > 0);
+        if (validLines.length === 0) {
+          return alert('Debes agregar al menos un producto a transferir con cantidad mayor a 0.');
+        }
+
+        this.isSaving = true;
+        try {
+          const payload = {
+            origin_warehouse_id: this.form.origin_warehouse_id,
+            dest_warehouse_id: this.form.dest_warehouse_id,
+            notes: this.form.notes,
+            lines: validLines.map(l => ({
+              product_id: l.product_id,
+              product_name: l.product_name || 'Producto',
+              qty: Number(l.qty)
+            }))
+          };
+
+          const res = await API.post('/transfers/', payload);
+          alert('¡Traslado creado exitosamente!');
+          window.location.href = `/transfers/${res.id}`;
+        } catch(e) {
+          alert('Error al crear traslado: ' + (e.message || e));
+        } finally {
+          this.isSaving = false;
+        }
+      },
+
+      async sendGoods() {
+        if (!confirm('¿Confirmas el despacho de mercadería? Se registrará la salida física en la bodega de origen.')) {
+          return;
+        }
+
+        try {
+          await API.post(`/transfers/${this.transferId}/send`, {});
+          alert('¡Mercadería despachada y en tránsito!');
+          await this.loadTransferData();
+        } catch(e) {
+          alert('Error al despachar: ' + (e.message || e));
+        }
+      },
+
+      async receiveGoods() {
+        if (!confirm('¿Confirmas la recepción física de la mercadería en la bodega de destino? Se incrementará el stock en destino.')) {
+          return;
+        }
+
+        try {
+          await API.post(`/transfers/${this.transferId}/receive`, {});
+          alert('¡Mercadería recibida en destino exitosamente!');
+          await this.loadTransferData();
+        } catch(e) {
+          alert('Error al recibir traslado: ' + (e.message || e));
+        }
+      },
+
+      printTransferSlip() {
+        const w = window.open('', '_blank');
+        let linesHtml = '';
+        (this.trData.lines || []).forEach(l => {
+          linesHtml += `
+            <tr>
+              <td style="padding:8px; border-bottom:1px solid #ddd;">${l.product_name}</td>
+              <td style="padding:8px; border-bottom:1px solid #ddd; text-align:center;">${l.qty_requested}</td>
+              <td style="padding:8px; border-bottom:1px solid #ddd; text-align:center;">${l.qty_sent || l.qty_requested}</td>
+              <td style="padding:8px; border-bottom:1px solid #ddd; text-align:center;">${l.qty_received}</td>
+            </tr>
+          `;
+        });
+
+        const html = `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Guía de Traslado — ${this.trData.number}</title>
+            <style>
+              body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 40px; color: #1e293b; }
+              .header { display: flex; justify-content: space-between; border-bottom: 2px solid #714B67; padding-bottom: 20px; margin-bottom: 20px; }
+              table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+              th { background: #f8fafc; padding: 10px 8px; text-align: left; font-size: 11px; text-transform: uppercase; border-bottom: 2px solid #cbd5e1; }
+            </style>
+          </head>
+          <body onload="window.print()">
+            <div class="header">
+              <div>
+                <h2 style="margin:0; color:#714B67;">POS EMPRESARIAL GT</h2>
+                <div style="font-size:12px; color:#64748b; margin-top:4px;">Guatemala, C.A.</div>
+              </div>
+              <div style="text-align:right;">
+                <h3 style="margin:0;">GUÍA DE TRASLADO INTERNO</h3>
+                <div style="font-weight:bold; font-size:16px; color:#714B67;">${this.trData.number}</div>
+                <div style="font-size:12px; color:#64748b;">Fecha: ${this.trData.request_date || ''}</div>
+              </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; background:#f8fafc; padding:15px; border-radius:8px;">
+              <div>
+                <strong>BODEGA ORIGEN (SALIDA):</strong><br>
+                ${this.trData.origin_warehouse_name}<br>
+                <small>${this.trData.origin_branch_name}</small>
+              </div>
+              <div>
+                <strong>BODEGA DESTINO (ENTRADA):</strong><br>
+                ${this.trData.dest_warehouse_name}<br>
+                <small>${this.trData.dest_branch_name}</small>
+              </div>
+            </div>
+
+            <table>
+              <thead>
+                <tr>
+                  <th>Producto</th>
+                  <th style="text-align:center;">Cant. Solicitada</th>
+                  <th style="text-align:center;">Cant. Despachada</th>
+                  <th style="text-align:center;">Cant. Recibida</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${linesHtml}
+              </tbody>
+            </table>
+
+            <div style="margin-top:20px; font-size:12px; color:#475569;">
+              <strong>Observaciones:</strong> ${this.trData.notes || 'Ninguna'}
+            </div>
+
+            <div style="margin-top:70px; display:flex; justify-content:space-around; text-align:center;">
+              <div style="border-top:1px solid #94a3b8; width:180px; padding-top:6px; font-size:11px;">Entregado por (Origen)</div>
+              <div style="border-top:1px solid #94a3b8; width:180px; padding-top:6px; font-size:11px;">Transportista / Piloto</div>
+              <div style="border-top:1px solid #94a3b8; width:180px; padding-top:6px; font-size:11px;">Recibido por (Destino)</div>
+            </div>
+          </body>
+          </html>
+        `;
+        w.document.write(html);
+        w.document.close();
+      }
+    }
+  }
+</script>
+{% endblock %}

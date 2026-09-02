@@ -1,0 +1,153 @@
+{% set show_layout = true %}
+{% extends "base.html" %}
+
+{% block title %}Bitácora de Auditoría y Seguridad — POS Empresarial{% endblock %}
+
+{% block content %}
+<div x-data="auditPage()" x-init="init()">
+  
+  <!-- ===== ODOO CONTROL PANEL SUB-HEADER ===== -->
+  <div style="margin:-20px -24px 20px -24px; padding:10px 24px; background:#ffffff; border-bottom:1px solid #e2e8f0; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+    <div style="display:flex; align-items:center; gap:12px;">
+      <div style="font-size:15px; font-weight:700; color:#334155; display:flex; align-items:center; gap:6px;">
+        <span>Seguridad / Bitácora de Auditoría y Registro de Actividad</span>
+        <i class="ph ph-gear" style="font-size:14px; color:#64748b;"></i>
+      </div>
+    </div>
+
+    <!-- Right: ODOO SEARCH BAR & Resumen Dropdown -->
+    <div style="display:flex; align-items:center; gap:10px; position:relative;">
+      <div style="position:relative; display:flex; align-items:center; width:340px; max-width:100%;">
+        <i class="ph ph-magnifying-glass" style="position:absolute; left:12px; color:#714B67 !important; font-size:18px !important; font-weight:800 !important; pointer-events:none; z-index:10;"></i>
+        <input type="text" placeholder="Buscar por usuario, acción o IP..." style="width:100% !important; background-color:#ffffff !important; background:#ffffff !important; border:2px solid #714B67 !important; border-radius:8px !important; padding:8px 34px 8px 38px !important; font-size:13.5px !important; font-weight:600 !important; color:#1e293b !important; box-shadow:0 2px 8px rgba(113,75,103,0.12) !important; outline:none !important;" x-model="search">
+      </div>
+
+      <!-- Botón Píldora Resumen -->
+      <button
+        type="button"
+        @click="showKpis = !showKpis"
+        style="
+          display:inline-flex; align-items:center; gap:7px;
+          padding:6px 14px;
+          background:linear-gradient(135deg, #714B67 0%, #9b6b8f 100%);
+          border:none; border-radius:20px;
+          font-size:11.5px; font-weight:800; color:#ffffff;
+          cursor:pointer; transition:all 0.22s cubic-bezier(0.4,0,0.2,1);
+          box-shadow:0 2px 10px rgba(113,75,103,0.3);
+          letter-spacing:0.3px; white-space:nowrap;
+        "
+        onmouseover="this.style.boxShadow='0 4px 16px rgba(113,75,103,0.5)'; this.style.transform='translateY(-1px)'"
+        onmouseout="this.style.boxShadow='0 2px 10px rgba(113,75,103,0.3)'; this.style.transform='translateY(0)'"
+      >
+        <i class="ph ph-chart-bar" style="font-size:15px;"></i>
+        <span x-text="showKpis ? 'Ocultar resumen' : 'Resumen'"></span>
+        <i
+          class="ph ph-caret-down"
+          style="font-size:12px; transition:transform 0.25s ease;"
+          :style="showKpis ? 'transform:rotate(180deg)' : 'transform:rotate(0deg)'"
+        ></i>
+      </button>
+
+      <!-- Floating Popover Dropdown Panel (alineado a la derecha) -->
+      <div
+        x-show="showKpis"
+        @click.outside="showKpis = false"
+        x-transition:enter="transition ease-out duration-200"
+        x-transition:enter-start="opacity-0 scale-95"
+        x-transition:enter-end="opacity-100 scale-100"
+        x-transition:leave="transition ease-in duration-150"
+        x-transition:leave-start="opacity-100 scale-100"
+        x-transition:leave-end="opacity-0 scale-95"
+        style="
+          position:absolute; top:calc(100% + 8px); right:0; z-index:999;
+          background:#ffffff; border:1.5px solid #e2e8f0; border-radius:14px;
+          box-shadow:0 12px 40px -8px rgba(0,0,0,0.15), 0 4px 14px -4px rgba(0,0,0,0.08);
+          padding:14px; display:grid; grid-template-columns:repeat(3, 1fr);
+          gap:10px; width:720px; max-width:90vw;
+        "
+        x-cloak
+      >
+        <div style="background:#ffffff; border:1px solid #e2e8f0; border-left:4px solid #714B67; border-radius:10px; padding:12px 14px;">
+          <div style="font-size:10.5px; font-weight:800; color:#714B67; text-transform:uppercase;">Eventos Hoy</div>
+          <div style="font-size:20px; font-weight:800; color:#1e293b; margin-top:2px;">128 Acciones</div>
+          <div style="font-size:10.5px; color:#10b981; margin-top:4px; font-weight:600;">✓ Sin incidencias</div>
+        </div>
+
+        <div style="background:#ffffff; border:1px solid #e2e8f0; border-left:4px solid #0d9488; border-radius:10px; padding:12px 14px;">
+          <div style="font-size:10.5px; font-weight:800; color:#0f766e; text-transform:uppercase;">Modificaciones</div>
+          <div style="font-size:20px; font-weight:800; color:#0d9488; margin-top:2px;">14 Cambios</div>
+          <div style="font-size:10.5px; color:#64748b; margin-top:4px;">Precios y Stock</div>
+        </div>
+
+        <div style="background:#ffffff; border:1px solid #e2e8f0; border-left:4px solid #6366f1; border-radius:10px; padding:12px 14px;">
+          <div style="font-size:10.5px; font-weight:800; color:#4f46e5; text-transform:uppercase;">Sesiones Activas</div>
+          <div style="font-size:20px; font-weight:800; color:#6366f1; margin-top:2px;">3 Usuarios</div>
+          <div style="font-size:10.5px; color:#64748b; margin-top:4px;">Principal & POS</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- AUDIT LOGS TABLE -->
+  <div class="card p-0" style="overflow:hidden; background:#ffffff; border:1px solid #e2e8f0; border-radius:8px;">
+    <div class="table-responsive">
+      <table class="table" style="width:100%; border-collapse:collapse;">
+        <thead>
+          <tr style="border-bottom:2px solid #e2e8f0; background:#ffffff;">
+            <th style="padding:12px 16px; text-align:left; color:#475569; font-size:11px; text-transform:uppercase; font-weight:700;">Fecha / Hora</th>
+            <th style="padding:12px 16px; text-align:left; color:#475569; font-size:11px; text-transform:uppercase; font-weight:700;">Usuario</th>
+            <th style="padding:12px 16px; text-align:left; color:#475569; font-size:11px; text-transform:uppercase; font-weight:700;">Módulo</th>
+            <th style="padding:12px 16px; text-align:left; color:#475569; font-size:11px; text-transform:uppercase; font-weight:700;">Acción Realizada</th>
+            <th style="padding:12px 16px; text-align:left; color:#475569; font-size:11px; text-transform:uppercase; font-weight:700;">Dirección IP</th>
+            <th style="padding:12px 16px; text-align:left; color:#475569; font-size:11px; text-transform:uppercase; font-weight:700;">Estado Audit</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="log in filteredLogs" :key="log.id">
+            <tr style="border-bottom:1px solid #f1f5f9;">
+              <td style="padding:12px 16px; color:#64748b; font-size:12px;" x-text="log.timestamp"></td>
+              <td style="padding:12px 16px; font-weight:700; color:#714B67;" x-text="log.user"></td>
+              <td style="padding:12px 16px;"><span class="badge badge-primary" x-text="log.module"></span></td>
+              <td style="padding:12px 16px; color:#1e293b; font-weight:600;" x-text="log.action"></td>
+              <td style="padding:12px 16px; color:#64748b; font-family:monospace;" x-text="log.ip"></td>
+              <td style="padding:12px 16px;">
+                <span style="font-size:11px; font-weight:700; padding:3px 10px; border-radius:12px; background:#dcfce7; color:#166534;">✓ Válido</span>
+              </td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function auditPage() {
+    return {
+      search: '',
+      showKpis: false,
+      logs: [],
+
+      get filteredLogs() {
+        if (!this.search) return this.logs;
+        const q = this.search.toLowerCase();
+        return this.logs.filter(l => l.user.toLowerCase().includes(q) || l.action.toLowerCase().includes(q) || l.module.toLowerCase().includes(q));
+      },
+
+      async init() {
+        await this.loadLogs();
+      },
+
+      async loadLogs() {
+        try {
+          this.logs = await API.get('/audit/logs');
+        } catch (e) {
+          showToast('Error al cargar la bitácora de auditoría: ' + e.message, 'error');
+        }
+      }
+    }
+  }
+</script>
+{% endblock %}

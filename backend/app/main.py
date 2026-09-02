@@ -1,4 +1,13 @@
-"""Aplicación principal FastAPI — POS Empresarial."""
+import sys
+import os
+
+# Auto-resolución de PYTHONPATH y env vars cuando el usuario ejecuta directamente app/main.py en el IDE
+_current_dir = os.path.dirname(os.path.abspath(__file__))
+_backend_dir = os.path.abspath(os.path.join(_current_dir, "../"))
+if _backend_dir not in sys.path:
+    sys.path.insert(0, _backend_dir)
+
+
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
@@ -7,7 +16,6 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, JSONResponse
 from contextlib import asynccontextmanager
 import logging
-import os
 
 from app.core.config import settings
 from app.core.database import check_db_connection
@@ -16,7 +24,8 @@ from app.core.redis import get_redis
 # Importar todos los routers de la API
 from app.api.v1 import (
     auth, branches, products, inventory, partners,
-    cashier, sales, purchases, transfers, fel, reports, dashboard
+    cashier, sales, purchases, transfers, fel, reports, dashboard,
+    hr, mfg, accounting, audit, ap, ar, quotes, delivery, users
 )
 
 # Importar router de páginas HTML
@@ -73,6 +82,9 @@ app = FastAPI(
 )
 
 # ===== MIDDLEWARE =====
+from app.core.audit_middleware import AuditLogMiddleware
+
+app.add_middleware(AuditLogMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.ALLOWED_ORIGINS,
@@ -108,6 +120,17 @@ app.include_router(transfers.router, prefix=api_prefix, tags=["Traslados"])
 app.include_router(fel.router, prefix=api_prefix, tags=["FEL"])
 app.include_router(reports.router, prefix=api_prefix, tags=["Reportes"])
 app.include_router(dashboard.router, prefix=api_prefix, tags=["Dashboard"])
+
+# Nuevos Módulos Odoo
+app.include_router(hr.router, prefix=api_prefix, tags=["Recursos Humanos"])
+app.include_router(mfg.router, prefix=api_prefix, tags=["Fabricación"])
+app.include_router(accounting.router, prefix=api_prefix, tags=["Contabilidad"])
+app.include_router(audit.router, prefix=api_prefix, tags=["Auditoría"])
+app.include_router(ap.router, prefix=api_prefix, tags=["Cuentas por Pagar"])
+app.include_router(ar.router, prefix=api_prefix, tags=["Cuentas por Cobrar"])
+app.include_router(quotes.router, prefix=api_prefix, tags=["Cotizaciones"])
+app.include_router(delivery.router, prefix=api_prefix, tags=["Entregas"])
+app.include_router(users.router, prefix=api_prefix, tags=["Usuarios & Roles"])
 
 # ===== PAGE ROUTERS (HTML) =====
 app.include_router(pages.router, tags=["Páginas"])
@@ -155,6 +178,7 @@ async def websocket_endpoint(websocket: WebSocket, branch_id: str):
 
 # ===== HEALTH CHECK =====
 @app.get("/health", tags=["Sistema"])
+@app.get("/api/v1/health", tags=["Sistema"])
 async def health_check():
     db_ok = await check_db_connection()
     try:
@@ -180,3 +204,9 @@ async def api_info():
         "version": settings.APP_VERSION,
         "environment": settings.ENVIRONMENT,
     }
+
+
+if __name__ == "__main__":
+    import uvicorn
+    print("🚀 Iniciando POS Empresarial en http://localhost:8000 ...")
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)

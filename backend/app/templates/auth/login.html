@@ -3,320 +3,900 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Iniciar Sesión — POS Empresarial</title>
-  <meta name="description" content="Sistema de Punto de Venta Empresarial — Iniciar sesión">
-  <link rel="stylesheet" href="/static/css/main.css">
+  <title>POS Empresarial — Iniciar Sesión</title>
+  <meta name="description" content="Sistema de Gestión y Punto de Venta Empresarial Multi-Sucursal para Guatemala">
+  
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
   <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      /* Paleta Clara & Fresca con acentos Odoo Enterprise */
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --primary-gradient: linear-gradient(135deg, #3b82f6 0%, #2563eb 50%, #714B67 100%);
+      
+      --odoo-purple: #714B67;
+      --odoo-teal: #017e84;
+      
+      --canvas-bg: linear-gradient(135deg, #3b82f6 0%, #2563eb 40%, #4338ca 70%, #6366f1 100%);
+      
+      --ink: #1e293b;
+      --ink-muted: #64748b;
+      --ink-faint: #94a3b8;
+      
+      --border: #e2e8f0;
+      --border-focus: #3b82f6;
+      
+      --success: #10b981;
+      --danger: #ef4444;
+      --danger-bg: #fef2f2;
+      
+      --radius-card: 26px;
+      --radius-input: 10px;
+    }
+
     body {
-      background: var(--surface-950);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--canvas-bg);
+      min-height: 100vh;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      min-height: 100vh;
-      padding: 20px;
+      padding: 30px 16px;
+      position: relative;
+      overflow-x: hidden;
     }
 
-    .login-bg {
+    /* Ambient Background Glow */
+    .bg-shape {
       position: fixed;
-      inset: 0;
-      overflow: hidden;
+      pointer-events: none;
       z-index: 0;
+      opacity: 0.25;
     }
-
-    .login-bg .blob {
-      position: absolute;
+    .shape-1 {
+      top: -10%;
+      left: -5%;
+      width: 550px;
+      height: 550px;
       border-radius: 50%;
-      filter: blur(80px);
-      opacity: 0.12;
-      animation: blobFloat 8s ease-in-out infinite;
+      background: radial-gradient(circle, #60a5fa 0%, transparent 70%);
+      filter: blur(70px);
+    }
+    .shape-2 {
+      bottom: -10%;
+      right: -5%;
+      width: 600px;
+      height: 600px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #a78bfa 0%, transparent 70%);
+      filter: blur(90px);
     }
 
-    .blob-1 {
-      width: 500px; height: 500px;
-      background: var(--primary-600);
-      top: -150px; left: -100px;
-      animation-delay: 0s;
-    }
-
-    .blob-2 {
-      width: 400px; height: 400px;
-      background: var(--accent-500);
-      bottom: -100px; right: -80px;
-      animation-delay: 3s;
-    }
-
-    .blob-3 {
-      width: 300px; height: 300px;
-      background: #8b5cf6;
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      animation-delay: 1.5s;
-    }
-
-    @keyframes blobFloat {
-      0%, 100% { transform: translate(0, 0) scale(1); }
-      50% { transform: translate(20px, -20px) scale(1.05); }
-    }
-
-    .login-container {
+    /* Main Floating Container Card */
+    .login-wrapper {
       position: relative;
       z-index: 1;
       width: 100%;
-      max-width: 420px;
+      max-width: 940px;
+      background: #ffffff;
+      border-radius: var(--radius-card);
+      box-shadow: 0 25px 60px -10px rgba(15, 23, 42, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.2);
+      display: flex;
+      overflow: hidden;
+      min-height: 560px;
     }
 
-    .login-card {
-      background: var(--glass-bg);
-      backdrop-filter: blur(20px);
-      border: 1px solid var(--glass-border);
-      border-radius: var(--border-radius-xl);
-      padding: 40px;
-      box-shadow: var(--glass-shadow), 0 0 60px rgba(37, 99, 235, 0.08);
-    }
-
-    .login-logo {
-      text-align: center;
-      margin-bottom: 32px;
-    }
-
-    .login-logo .logo-icon {
-      width: 64px; height: 64px;
-      border-radius: 18px;
-      background: linear-gradient(135deg, var(--primary-600), var(--accent-500));
-      display: flex; align-items: center; justify-content: center;
-      margin: 0 auto 16px;
-      font-size: 30px;
-      color: white;
-      box-shadow: 0 0 40px rgba(37, 99, 235, 0.4);
-    }
-
-    .login-logo h1 {
-      font-size: 22px;
-      font-weight: 800;
-      color: white;
-      margin-bottom: 6px;
-    }
-
-    .login-logo p {
-      color: var(--surface-500);
-      font-size: 13px;
-    }
-
-    .input-wrapper {
+    /* =========================================
+       LEFT SIDE: LOGIN FORM (Clean White)
+       ========================================= */
+    .form-panel {
+      flex: 1.15;
+      padding: 48px 50px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background: #ffffff;
       position: relative;
+      z-index: 2;
     }
 
-    .input-wrapper .input-icon {
-      position: absolute;
-      left: 14px; top: 50%;
-      transform: translateY(-50%);
-      color: var(--surface-500);
-      font-size: 18px;
+    .brand-top {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 28px;
     }
 
-    .input-wrapper input {
-      padding-left: 44px;
-    }
-
-    .btn-login {
-      width: 100%;
-      padding: 14px;
-      font-size: 15px;
-      font-weight: 700;
-      background: linear-gradient(135deg, var(--primary-600), var(--primary-700));
-      color: white;
-      border: none;
+    .brand-logo-icon {
+      width: 38px;
+      height: 38px;
+      background: linear-gradient(135deg, #3b82f6 0%, #714B67 100%);
       border-radius: 10px;
-      cursor: pointer;
-      transition: all var(--transition);
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 10px;
+      color: #ffffff;
+      font-size: 20px;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
+
+    .brand-logo-text {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 19px;
+      font-weight: 800;
+      color: #1e293b;
+      letter-spacing: -0.3px;
+    }
+
+    .brand-logo-text span {
+      color: #3b82f6;
+    }
+
+    .welcome-eyebrow {
+      font-size: 14px;
+      color: var(--ink-muted);
+      font-weight: 500;
+      margin-bottom: 2px;
+    }
+
+    .welcome-title {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 30px;
+      font-weight: 900;
+      color: #0f172a;
+      letter-spacing: -0.8px;
+      margin-bottom: 28px;
+    }
+
+    /* Form Fields */
+    .input-group {
+      margin-bottom: 18px;
+    }
+
+    .input-label {
+      display: block;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: #475569;
+      margin-bottom: 6px;
+    }
+
+    .input-box {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .field-input {
+      width: 100%;
+      height: 48px;
+      padding: 0 16px;
+      border: 1.5px solid #cbd5e1;
+      border-radius: var(--radius-input);
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--ink);
+      background: #ffffff;
+      outline: none;
+      transition: all 0.2s ease;
       font-family: inherit;
-      margin-top: 8px;
-      box-shadow: 0 4px 20px rgba(37, 99, 235, 0.3);
     }
 
-    .btn-login:hover {
+    .field-input::placeholder {
+      color: #94a3b8;
+    }
+
+    .field-input:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3.5px rgba(59, 130, 246, 0.15);
+    }
+
+    .eye-btn {
+      position: absolute;
+      right: 14px;
+      background: none;
+      border: none;
+      color: #94a3b8;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      padding: 4px;
+      transition: color 0.15s;
+    }
+
+    .eye-btn:hover {
+      color: #3b82f6;
+    }
+
+    /* Meta Row (Remember & Forgot) */
+    .meta-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      font-size: 13px;
+    }
+
+    .check-label {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      color: #64748b;
+      cursor: pointer;
+      user-select: none;
+      font-weight: 500;
+    }
+
+    .check-label input {
+      accent-color: #3b82f6;
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+    }
+
+    .forgot-link {
+      color: #3b82f6;
+      text-decoration: none;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .forgot-link:hover {
+      text-decoration: underline;
+    }
+
+    /* Submit Button (Matching reference) */
+    .btn-login {
+      width: 100%;
+      height: 50px;
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      color: #ffffff;
+      border: none;
+      border-radius: var(--radius-input);
+      font-family: 'Montserrat', sans-serif;
+      font-size: 14.5px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 8px 20px rgba(37, 99, 235, 0.35);
+    }
+
+    .btn-login:hover:not(:disabled) {
       transform: translateY(-2px);
-      box-shadow: 0 8px 32px rgba(37, 99, 235, 0.5);
+      box-shadow: 0 12px 26px rgba(37, 99, 235, 0.45);
+      background: linear-gradient(135deg, #60a5fa 0%, #2563eb 100%);
     }
-
-    .btn-login:active { transform: scale(0.98); }
 
     .btn-login:disabled {
-      opacity: 0.6;
+      opacity: 0.65;
       cursor: not-allowed;
-      transform: none;
     }
 
-    .error-message {
-      background: rgba(239, 68, 68, 0.08);
-      border: 1px solid rgba(239, 68, 68, 0.2);
+    /* Error Alert */
+    .alert-error {
+      background: var(--danger-bg);
+      border: 1px solid #fecaca;
+      color: var(--danger);
       border-radius: 8px;
-      padding: 12px 14px;
-      color: #f87171;
+      padding: 10px 14px;
       font-size: 13px;
-      margin-top: 12px;
+      font-weight: 600;
       display: flex;
       align-items: center;
       gap: 8px;
+      margin-bottom: 16px;
     }
 
-    .demo-creds {
-      margin-top: 20px;
-      padding: 14px;
-      background: rgba(59, 130, 246, 0.06);
-      border: 1px solid rgba(59, 130, 246, 0.15);
-      border-radius: 10px;
+    /* Demo Quick Switch Pills */
+    .demo-bar {
+      margin-top: 22px;
+      padding-top: 14px;
+      border-top: 1px solid #f1f5f9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .demo-pill {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 5px 10px;
       font-size: 12px;
-      color: var(--surface-400);
-      text-align: center;
+      font-weight: 600;
+      color: #64748b;
+      cursor: pointer;
+      transition: all 0.15s;
     }
 
-    .demo-creds strong { color: var(--primary-300); }
+    .demo-pill:hover {
+      background: #ffffff;
+      border-color: #3b82f6;
+      color: #3b82f6;
+    }
+
+    .demo-pill.active {
+      background: #eff6ff;
+      border-color: #93c5fd;
+      color: #2563eb;
+    }
+
+    .form-footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      font-size: 12px;
+      color: #94a3b8;
+      margin-top: 18px;
+    }
+
+    .form-footer-links a {
+      color: #94a3b8;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .form-footer-links a:hover {
+      color: #3b82f6;
+    }
+
+    /* =========================================
+       RIGHT SIDE: CURVED INFO PANEL (Bright Blue & Odoo Accent)
+       ========================================= */
+    .info-panel {
+      flex: 1;
+      background: linear-gradient(150deg, #3b82f6 0%, #2563eb 45%, #1d4ed8 100%);
+      position: relative;
+      overflow: hidden;
+      padding: 48px 44px;
+      color: #ffffff;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    /* Dynamic S-Curve Divider (Exact to reference) */
+    .curve-bg {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: -1px;
+      width: 75px;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .info-content {
+      position: relative;
+      z-index: 2;
+    }
+
+    .info-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(8px);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 11.5px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      margin-bottom: 22px;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .info-title {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 25px;
+      font-weight: 800;
+      margin-bottom: 12px;
+      letter-spacing: -0.4px;
+      line-height: 1.25;
+    }
+
+    .info-desc {
+      font-size: 13.5px;
+      line-height: 1.6;
+      color: rgba(255, 255, 255, 0.9);
+      margin-bottom: 26px;
+    }
+
+    .features-heading {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 14px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #ffffff;
+      margin-bottom: 14px;
+    }
+
+    .features-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .feature-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 13px;
+      line-height: 1.45;
+      color: rgba(255, 255, 255, 0.92);
+    }
+
+    .feature-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ffffff;
+      flex-shrink: 0;
+      margin-top: 6px;
+      box-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
+    }
+
+    /* Bottom Graphic / Illustration Card */
+    .illustration-box {
+      position: relative;
+      z-index: 2;
+      margin-top: 24px;
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      border-radius: 16px;
+      padding: 14px 18px;
+      backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .illustration-icon {
+      width: 44px;
+      height: 44px;
+      background: rgba(255, 255, 255, 0.22);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      color: #ffffff;
+      flex-shrink: 0;
+    }
+
+    .illustration-text h4 {
+      font-size: 13px;
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    .illustration-text p {
+      font-size: 11.5px;
+      color: rgba(255, 255, 255, 0.8);
+      margin-top: 2px;
+    }
+
+    /* Modal Forgot Password */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(5px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+      padding: 16px;
+    }
+
+    .modal-card {
+      background: #ffffff;
+      border-radius: 20px;
+      max-width: 380px;
+      width: 100%;
+      padding: 30px;
+      position: relative;
+      box-shadow: 0 25px 50px rgba(0,0,0,0.25);
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: #f1f5f9;
+      border: none;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: #64748b;
+      font-size: 16px;
+    }
+
+    .modal-close:hover {
+      background: #fee2e2;
+      color: #dc2626;
+    }
+
+    .spin {
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    [x-cloak] { display: none !important; }
+
+    /* Responsive */
+    @media (max-width: 860px) {
+      .login-wrapper {
+        flex-direction: column;
+        max-width: 460px;
+      }
+      .info-panel {
+        display: none;
+      }
+      .form-panel {
+        padding: 38px 28px;
+      }
+    }
   </style>
 </head>
 <body>
-  <div class="login-bg">
-    <div class="blob blob-1"></div>
-    <div class="blob blob-2"></div>
-    <div class="blob blob-3"></div>
+
+  <!-- Ambient Backdrop -->
+  <div class="bg-shape shape-1"></div>
+  <div class="bg-shape shape-2"></div>
+
+  <!-- Main Card Container with Curved Split -->
+  <div class="login-wrapper" x-data="loginApp()" x-init="init()">
+
+    <!-- =========================================
+         LEFT SIDE: CLEAN LOGIN FORM
+         ========================================= -->
+    <div class="form-panel">
+      
+      <div>
+        <!-- Brand Header -->
+        <div class="brand-top">
+          <div class="brand-logo-icon">
+            <i class="ph-bold ph-storefront"></i>
+          </div>
+          <div class="brand-logo-text">POS <span>Empresarial</span></div>
+        </div>
+
+        <div class="welcome-eyebrow">Bienvenido a</div>
+        <h1 class="welcome-title">POS Empresarial</h1>
+
+        <!-- Error Alert -->
+        <div class="alert-error" x-show="errorMessage" x-cloak x-transition>
+          <i class="ph-bold ph-warning-circle" style="font-size:17px; flex-shrink:0;"></i>
+          <span x-text="errorMessage"></span>
+        </div>
+
+        <!-- LOGIN FORM -->
+        <form @submit.prevent="submitLogin()">
+          
+          <!-- Username / Email -->
+          <div class="input-group">
+            <label class="input-label" for="username">Usuario o Correo Electrónico</label>
+            <div class="input-box">
+              <input 
+                id="username"
+                type="text" 
+                class="field-input" 
+                placeholder="ej. admin@empresa.com"
+                x-model="username"
+                autocomplete="username"
+                required
+                :disabled="isLoading"
+              >
+            </div>
+          </div>
+
+          <!-- Password -->
+          <div class="input-group">
+            <label class="input-label" for="password">Contraseña</label>
+            <div class="input-box">
+              <input 
+                id="password"
+                :type="showPassword ? 'text' : 'password'" 
+                class="field-input" 
+                placeholder="••••••••"
+                x-model="password"
+                autocomplete="current-password"
+                required
+                :disabled="isLoading"
+                style="padding-right:38px;"
+              >
+              <button type="button" class="eye-btn" @click="showPassword = !showPassword" tabindex="-1">
+                <i class="ph-bold" :class="showPassword ? 'ph-eye-slash' : 'ph-eye'"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Row: Remember & Forgot -->
+          <div class="meta-row">
+            <label class="check-label">
+              <input type="checkbox" x-model="rememberMe">
+              <span>Recordar sesión</span>
+            </label>
+            <span class="forgot-link" @click="showForgot = true">¿Olvidaste tu contraseña?</span>
+          </div>
+
+          <!-- Submit Button -->
+          <button type="submit" class="btn-login" :disabled="isLoading">
+            <template x-if="!isLoading">
+              <span>INGRESAR AL SISTEMA</span>
+            </template>
+            <template x-if="isLoading">
+              <span style="display:flex; align-items:center; gap:8px;">
+                <svg class="spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                </svg>
+                INICIANDO SESIÓN...
+              </span>
+            </template>
+          </button>
+
+        </form>
+
+        <!-- Quick Demo Credentials -->
+        <div class="demo-bar">
+          <span style="font-size:11px; font-weight:700; color:#94a3b8; text-transform:uppercase; margin-right:4px;">Demo:</span>
+          <button 
+            type="button" 
+            class="demo-pill" 
+            :class="{ 'active': activeRole === 'admin' }"
+            @click="setRole('admin', 'admin@empresa.com', 'Admin2024!')"
+          >👑 Admin</button>
+          <button 
+            type="button" 
+            class="demo-pill" 
+            :class="{ 'active': activeRole === 'cajero' }"
+            @click="setRole('cajero', 'cajero@empresa.com', 'Admin2024!')"
+          >💵 Cajero</button>
+          <button 
+            type="button" 
+            class="demo-pill" 
+            :class="{ 'active': activeRole === 'bodega' }"
+            @click="setRole('bodega', 'bodega@empresa.com', 'Admin2024!')"
+          >📦 Bodega</button>
+        </div>
+
+      </div>
+
+      <!-- Links at bottom -->
+      <div class="form-footer-links">
+        <a href="#">Preguntas Frecuentes</a>
+        <span>•</span>
+        <a href="#">Módulos</a>
+        <span>•</span>
+        <a href="#">Soporte Técnico</a>
+      </div>
+
+    </div>
+
+    <!-- =========================================
+         RIGHT SIDE: CURVED INFO PANEL (Bright Blue & Enterprise)
+         ========================================= -->
+    <div class="info-panel">
+      
+      <!-- SVG S-Curve for the curved junction (Exact match to reference) -->
+      <svg class="curve-bg" viewBox="0 0 100 500" preserveAspectRatio="none">
+        <path d="M0,0 C60,180 80,320 0,500 L0,0 Z" fill="#ffffff"></path>
+      </svg>
+
+      <div class="info-content">
+        <div class="info-badge">
+          <span>🇬🇹</span> Certificación SAT FEL Guatemala
+        </div>
+
+        <h2 class="info-title">Plataforma Empresarial Integrada</h2>
+        <p class="info-desc">
+          Gestión completa de Punto de Venta, facturación electrónica certificada, inventario multi-sucursal, cuentas por cobrar y pagar.
+        </p>
+
+        <h3 class="features-heading">Capacidades del Sistema</h3>
+        <ul class="features-list">
+          <li class="feature-item">
+            <div class="feature-dot"></div>
+            <span>Facturación Electrónica SAT FEL en tiempo real</span>
+          </li>
+          <li class="feature-item">
+            <div class="feature-dot"></div>
+            <span>Punto de Venta (POS) multi-sucursal y control de turnos</span>
+          </li>
+          <li class="feature-item">
+            <div class="feature-dot"></div>
+            <span>Control de inventarios con Kardex valorado y traslados</span>
+          </li>
+          <li class="feature-item">
+            <div class="feature-dot"></div>
+            <span>Cuentas por cobrar (AR), Cuentas por pagar (AP) y cotizaciones</span>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Decorative Card at Bottom of Right Panel -->
+      <div class="illustration-box">
+        <div class="illustration-icon">
+          <i class="ph-bold ph-storefront"></i>
+        </div>
+        <div class="illustration-text">
+          <h4>Multi-Sucursal en Tiempo Real</h4>
+          <p>Consolidación automática de ventas y reportes contables.</p>
+        </div>
+      </div>
+
+    </div>
+
   </div>
 
-  <div class="login-container" x-data="loginPage()">
-    <div class="login-card">
-      <div class="login-logo">
-        <div class="logo-icon">
-          <i class="ph ph-storefront"></i>
-        </div>
-        <h1>POS Empresarial</h1>
-        <p>Sistema Punto de Venta Multi-Sucursal</p>
+  <!-- MODAL: FORGOT PASSWORD -->
+  <div class="modal-overlay" x-show="showForgot" style="display:none;" x-cloak x-transition>
+    <div class="modal-card">
+      <button type="button" class="modal-close" @click="showForgot = false">
+        <i class="ph-bold ph-x"></i>
+      </button>
+
+      <div style="text-align:center; margin-bottom:18px;">
+        <h3 style="font-family:'Montserrat', sans-serif; font-size:18px; font-weight:800; color:#1e293b;">Recuperar Contraseña</h3>
+        <p style="font-size:13px; color:#64748b; margin-top:4px;">Ingresa tu correo para recibir las instrucciones de acceso.</p>
       </div>
 
-      <form @submit.prevent="doLogin()">
-        <div class="form-group">
-          <label class="form-label" for="username">Usuario o Correo</label>
-          <div class="input-wrapper">
-            <i class="ph ph-user input-icon"></i>
-            <input
-              id="username"
-              class="form-control"
-              type="text"
-              placeholder="admin@empresa.com"
-              x-model="username"
-              autocomplete="username"
-              required
-            >
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="password">Contraseña</label>
-          <div class="input-wrapper">
-            <i class="ph ph-lock input-icon"></i>
-            <input
-              id="password"
-              class="form-control"
-              :type="showPassword ? 'text' : 'password'"
-              placeholder="••••••••"
-              x-model="password"
-              autocomplete="current-password"
-              required
-              style="padding-right: 44px"
-            >
-            <button
-              type="button"
-              style="position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--surface-500);cursor:pointer;font-size:18px;padding:0"
-              @click="showPassword = !showPassword"
-            >
-              <i class="ph" :class="showPassword ? 'ph-eye-slash' : 'ph-eye'"></i>
-            </button>
-          </div>
-        </div>
-
-        <div class="error-message" x-show="errorMsg" x-transition>
-          <i class="ph ph-warning-circle"></i>
-          <span x-text="errorMsg"></span>
-        </div>
-
-        <button class="btn-login" type="submit" :disabled="loading">
-          <span x-show="!loading"><i class="ph ph-sign-in"></i> Ingresar</span>
-          <span x-show="loading">
-            <svg class="spinner" style="width:18px;height:18px" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" stroke-dasharray="40" stroke-dashoffset="10" style="animation:spin 0.7s linear infinite"></circle>
-            </svg>
-            Ingresando...
-          </span>
-        </button>
-      </form>
-
-      <div class="demo-creds">
-        <strong>Demo:</strong> admin@empresa.com / Admin2024!
+      <div class="input-group">
+        <label class="input-label">Correo Electrónico</label>
+        <input type="email" class="field-input" placeholder="usuario@empresa.com" x-model="forgotEmail">
       </div>
+
+      <button type="button" class="btn-login" style="margin-top:12px;" @click="sendForgot()" :disabled="isSendingForgot">
+        <span x-show="!isSendingForgot">ENVIAR INSTRUCCIONES</span>
+        <span x-show="isSendingForgot" style="display:flex; align-items:center; justify-content:center; gap:8px;">
+          <svg class="spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+          </svg>
+          ENVIANDO...
+        </span>
+      </button>
     </div>
   </div>
 
-  <style>
-    @keyframes spin { to { transform: rotate(360deg); } }
-  </style>
-
+  <!-- JAVASCRIPT LOGIC -->
   <script>
-    function loginPage() {
+    function loginApp() {
       return {
-        username: '',
+        username: localStorage.getItem('saved_username') || 'admin@empresa.com',
         password: '',
         showPassword: false,
-        loading: false,
-        errorMsg: '',
+        rememberMe: true,
+        isLoading: false,
+        errorMessage: '',
+        activeRole: 'admin',
 
-        async doLogin() {
-          this.loading = true;
-          this.errorMsg = '';
+        showForgot: false,
+        forgotEmail: '',
+        isSendingForgot: false,
+
+        init() {
+          const saved = localStorage.getItem('saved_username');
+          if (saved) {
+            this.username = saved;
+          }
+        },
+
+        setRole(roleKey, email, pwd) {
+          this.activeRole = roleKey;
+          this.username = email;
+          this.password = pwd;
+          this.errorMessage = '';
+        },
+
+        async submitLogin() {
+          if (!this.username || !this.password) return;
+
+          this.isLoading = true;
+          this.errorMessage = '';
 
           try {
             const formData = new URLSearchParams();
-            formData.append('username', this.username);
+            formData.append('username', this.username.trim());
             formData.append('password', this.password);
 
-            const resp = await fetch('/api/v1/auth/login', {
+            const response = await fetch('/api/v1/auth/login', {
               method: 'POST',
               headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
               body: formData,
             });
 
-            if (!resp.ok) {
-              const err = await resp.json();
-              this.errorMsg = err.detail || 'Credenciales incorrectas';
+            if (!response.ok) {
+              const err = await response.json().catch(() => ({}));
+              this.errorMessage = err.detail || 'Usuario o contraseña incorrectos.';
+              this.isLoading = false;
               return;
             }
 
-            const data = await resp.json();
+            const data = await response.json();
+            
+            // Guardar sesión
             localStorage.setItem('access_token', data.access_token);
             localStorage.setItem('refresh_token', data.refresh_token);
             localStorage.setItem('user', JSON.stringify(data.user));
 
-            // Cargar info de la sucursal actual
-            if (data.user.current_branch_id) {
-              localStorage.setItem('branch', JSON.stringify({
-                id: data.user.current_branch_id,
-                name: 'Cargando...',
-              }));
+            document.cookie = `access_token=${data.access_token}; path=/; max-age=86400; SameSite=Lax`;
+
+            if (this.rememberMe && this.username) {
+              localStorage.setItem('saved_username', this.username.trim());
+            } else {
+              localStorage.removeItem('saved_username');
             }
 
-            window.location.href = '/dashboard';
+            const roleCodes = data.user?.role_codes || [];
+            if (roleCodes.includes('cashier') && !roleCodes.includes('admin')) {
+              window.location.href = '/pos';
+            } else {
+              window.location.href = '/dashboard';
+            }
 
-          } catch (e) {
-            this.errorMsg = 'Error de conexión. Intenta nuevamente.';
+          } catch (error) {
+            this.errorMessage = 'No se pudo conectar con el servidor.';
+            this.isLoading = false;
+          }
+        },
+
+        async sendForgot() {
+          if (!this.forgotEmail) {
+            alert('Ingresa tu correo electrónico');
+            return;
+          }
+          this.isSendingForgot = true;
+          try {
+            const res = await fetch('/api/v1/auth/forgot-password', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email: this.forgotEmail.trim() })
+            });
+            const data = await res.json();
+            alert(data.message || 'Solicitud enviada');
+            this.showForgot = false;
+            this.forgotEmail = '';
+          } catch(e) {
+            alert('Error: ' + e.message);
           } finally {
-            this.loading = false;
+            this.isSendingForgot = false;
           }
         }
-      }
+      };
     }
   </script>
+
 </body>
 </html>

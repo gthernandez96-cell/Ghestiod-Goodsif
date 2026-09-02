@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Ticket de Venta #{{ sale.number }}</title>
+  <style>
+    @page {
+      size: 80mm auto;
+      margin: 0;
+    }
+    body {
+      width: 78mm;
+      margin: 0 auto;
+      padding: 4mm 2mm;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 12px;
+      color: #000;
+      background: #fff;
+    }
+    .text-center { text-align: center; }
+    .text-right { text-align: right; }
+    .font-bold { font-weight: bold; }
+    .uppercase { text-transform: uppercase; }
+
+    .header-logo {
+      font-size: 18px;
+      font-weight: 900;
+      margin-bottom: 2px;
+    }
+    .divider {
+      border-top: 1px dashed #000;
+      margin: 6px 0;
+    }
+    .divider-double {
+      border-top: 2px double #000;
+      margin: 6px 0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+    }
+    th, td {
+      padding: 2px 0;
+      vertical-align: top;
+    }
+    .qr-container {
+      margin-top: 8px;
+      text-align: center;
+    }
+    .qr-container img {
+      width: 100px;
+      height: 100px;
+    }
+    @media print {
+      body { width: 100%; padding: 0; }
+      .no-print { display: none; }
+    }
+  </style>
+</head>
+<body onload="window.print()">
+  <div class="no-print text-center" style="margin-bottom: 10px; background: #eee; padding: 6px;">
+    <button onclick="window.print()" style="padding: 6px 16px; font-weight: bold; cursor: pointer;">🖨️ Imprimir Ticket (80mm)</button>
+    <button onclick="window.close()" style="padding: 6px 16px; margin-left: 8px; cursor: pointer;">Cerrar</button>
+  </div>
+
+  <!-- Encabezado de Empresa -->
+  <div class="text-center">
+    <div class="header-logo">{{ company.name or 'POS EMPRESARIAL' }}</div>
+    <div>NIT: {{ company.nit or '12345678-9' }}</div>
+    <div>{{ branch.name or 'Sucursal Principal' }}</div>
+    <div>{{ branch.address or 'Guatemala' }}</div>
+    {% if branch.phone %}<div>TEL: {{ branch.phone }}</div>{% endif %}
+  </div>
+
+  <div class="divider-double"></div>
+
+  <!-- Datos del DTE / Factura -->
+  <div class="text-center font-bold uppercase">
+    DOCUMENTO TRIBUTARIO ELECTRÓNICO (DTE)
+  </div>
+  <div class="text-center">FACTURA ELECTRÓNICA</div>
+  
+  <div class="divider"></div>
+
+  <!-- Detalle del Ticket -->
+  <div>
+    <div><b>TICKET #:</b> {{ sale.number }}</div>
+    <div><b>FECHA:</b> {{ sale.sale_date.strftime('%d/%m/%Y %H:%M:%S') if sale.sale_date else 'N/A' }}</div>
+    <div><b>CLIENTE:</b> {{ sale.customer_name or 'CONSUMIDOR FINAL' }}</div>
+    <div><b>NIT:</b> {{ sale.customer_nit or 'CF' }}</div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- Tabla de Ítems -->
+  <table>
+    <thead>
+      <tr>
+        <th style="text-align:left">CANT/DESCRIPCION</th>
+        <th style="text-align:right">P.UNIT</th>
+        <th style="text-align:right">TOTAL</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for line in sale.lines %}
+      <tr>
+        <td colspan="3" class="font-bold">{{ line.product_name }}</td>
+      </tr>
+      <tr>
+        <td style="padding-left: 8px;">{{ "%.2f"|format(line.qty) }} x Q{{ "%.2f"|format(line.unit_price) }}</td>
+        <td class="text-right">Q{{ "%.2f"|format(line.unit_price) }}</td>
+        <td class="text-right font-bold">Q{{ "%.2f"|format(line.total) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="divider"></div>
+
+  <!-- Totales -->
+  <table>
+    <tr>
+      <td>SUBTOTAL:</td>
+      <td class="text-right">Q{{ "%.2f"|format(sale.subtotal or (sale.total / 1.12)) }}</td>
+    </tr>
+    <tr>
+      <td>IVA (12% INCLUIDO):</td>
+      <td class="text-right">Q{{ "%.2f"|format(sale.tax_amount or (sale.total - (sale.total / 1.12))) }}</td>
+    </tr>
+    {% if sale.discount_amount and sale.discount_amount > 0 %}
+    <tr>
+      <td>DESCUENTO:</td>
+      <td class="text-right">-Q{{ "%.2f"|format(sale.discount_amount) }}</td>
+    </tr>
+    {% endif %}
+    <tr class="font-bold" style="font-size: 14px;">
+      <td>TOTAL A PAGAR:</td>
+      <td class="text-right">Q{{ "%.2f"|format(sale.total) }}</td>
+    </tr>
+  </table>
+
+  <!-- Pagos -->
+  {% if sale.payments %}
+  <div class="divider"></div>
+  <div class="font-bold">FORMA DE PAGO:</div>
+  {% for p in sale.payments %}
+  <div style="display:flex; justify-content:space-between">
+    <span>{{ p.payment_method.value|upper if hasattr(p.payment_method, 'value') else p.payment_method|upper }}:</span>
+    <span>Q{{ "%.2f"|format(p.amount) }}</span>
+  </div>
+  {% endfor %}
+  {% endif %}
+
+  <!-- Certificación FEL Guatemala -->
+  <div class="divider-double"></div>
+  <div class="text-center font-bold" style="font-size: 10px;">DATOS DE CERTIFICACIÓN FEL</div>
+  <div style="font-size: 10px;">
+    <div><b>NUM. AUTORIZACIÓN:</b> {{ fel.authorization_number if fel else 'DEMO-AUTH-123456789' }}</div>
+    <div><b>SERIE:</b> {{ fel.series if fel else 'A1B2C3D4' }}</div>
+    <div><b>NÚMERO DTE:</b> {{ fel.number if fel else '000012345' }}</div>
+    <div><b>FECHA CERT:</b> {{ fel.certified_at.strftime('%d/%m/%Y %H:%M') if (fel and fel.certified_at) else '08/08/2026' }}</div>
+  </div>
+
+  <!-- Código QR SAT -->
+  <div class="qr-container">
+    <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={{ (fel.uuid if fel else sale.number)|urlencode }}" alt="QR SAT FEL">
+  </div>
+
+  <div class="divider"></div>
+  <div class="text-center font-bold" style="margin-top: 6px;">
+    ¡GRACIAS POR SU COMPRA!
+  </div>
+  <div class="text-center" style="font-size: 10px;">SUJETO A PAGOS TRIMESTRALES ISR</div>
+</body>
+</html>

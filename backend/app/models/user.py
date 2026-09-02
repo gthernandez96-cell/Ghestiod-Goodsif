@@ -13,6 +13,7 @@ user_roles = Table(
     Base.metadata,
     Column("user_id", UUID(as_uuid=True), ForeignKey("users.id"), primary_key=True),
     Column("role_id", UUID(as_uuid=True), ForeignKey("roles.id"), primary_key=True),
+    extend_existing=True,
 )
 
 # Tabla de asociación usuario-sucursales
@@ -21,6 +22,7 @@ user_branches = Table(
     Base.metadata,
     Column("user_id", UUID(as_uuid=True), ForeignKey("users.id"), primary_key=True),
     Column("branch_id", UUID(as_uuid=True), ForeignKey("branches.id"), primary_key=True),
+    extend_existing=True,
 )
 
 
@@ -28,9 +30,10 @@ class Permission(BaseModel):
     """Permiso granular del sistema."""
     __tablename__ = "permissions"
 
-    code = Column(String(100), unique=True, nullable=False)  # ej: "inventory.view"
+    company_id = Column(UUID(as_uuid=True), ForeignKey("companies.id"), nullable=False)
     name = Column(String(200), nullable=False)
-    module = Column(String(50), nullable=False)  # ej: "inventory"
+    code = Column(String(100), nullable=False)
+    module = Column(String(100), nullable=False)
     description = Column(Text)
 
     # Relationships
@@ -43,6 +46,7 @@ role_permissions = Table(
     Base.metadata,
     Column("role_id", UUID(as_uuid=True), ForeignKey("roles.id"), primary_key=True),
     Column("permission_id", UUID(as_uuid=True), ForeignKey("permissions.id"), primary_key=True),
+    extend_existing=True,
 )
 
 

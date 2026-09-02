@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Catálogo Digital & Menú Online</title>
+  
+  <!-- Phosphor Icons & Fonts -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+
+  <style>
+    :root {
+      --primary: #714B67;
+      --primary-dark: #583950;
+      --accent: #00A09D;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text-main: #0f172a;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text-main);
+      padding-bottom: 90px;
+    }
+
+    .catalog-header {
+      background: #ffffff;
+      border-bottom: 1px solid #e2e8f0;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      padding: 12px 16px;
+    }
+
+    .prod-card {
+      background: #ffffff;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+      transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .prod-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--primary);
+      box-shadow: 0 8px 20px rgba(113, 75, 103, 0.1);
+    }
+
+    .floating-cart-bar {
+      position: fixed;
+      bottom: 16px;
+      left: 16px;
+      right: 16px;
+      max-width: 500px;
+      margin: 0 auto;
+      background: #1e293b;
+      color: #ffffff;
+      padding: 12px 20px;
+      border-radius: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+      z-index: 99;
+      cursor: pointer;
+      animation: bounceIn 0.3s ease;
+    }
+
+    @keyframes bounceIn {
+      from { transform: translateY(100px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+  </style>
+</head>
+<body x-data="catalogApp()" x-init="init()">
+
+  <!-- ===== TOP HEADER ===== -->
+  <header class="catalog-header">
+    <div style="max-width:900px; margin:0 auto; display:flex; justify-content:space-between; align-items:center;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div style="width:40px; height:40px; border-radius:10px; background:#f4eff3; color:var(--primary); display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:900;">
+          <i class="ph ph-storefront"></i>
+        </div>
+        <div>
+          <h1 style="font-size:16px; font-weight:900; color:#1e293b; line-height:1.2;" x-text="company.trade_name || company.name || 'Catálogo Digital'"></h1>
+          <div style="font-size:11.5px; color:#16a34a; font-weight:700;">🟢 Abierto • Pedidos por WhatsApp</div>
+        </div>
+      </div>
+
+      <button 
+        type="button" 
+        style="background:#f1f5f9; border:1px solid #cbd5e1; border-radius:8px; padding:6px 12px; font-size:12px; font-weight:800; color:#475569; display:flex; align-items:center; gap:6px; cursor:pointer;"
+        @click="showQRModal = true"
+      >
+        <i class="ph ph-qr-code" style="font-size:16px;"></i> Código QR
+      </button>
+    </div>
+  </header>
+
+  <!-- ===== SEARCH & CATEGORY BAR ===== -->
+  <div style="max-width:900px; margin:16px auto; padding:0 16px;">
+    <div style="position:relative; margin-bottom:12px;">
+      <i class="ph ph-magnifying-glass" style="position:absolute; left:14px; top:12px; font-size:18px; color:var(--primary);"></i>
+      <input 
+        type="text" 
+        placeholder="Buscar productos en el catálogo..." 
+        style="width:100%; padding:10px 14px 10px 42px; border:1.5px solid #cbd5e1; border-radius:12px; font-size:14px; font-weight:600; outline:none; background:#ffffff;"
+        x-model="search"
+        @input="filterProducts()"
+      >
+    </div>
+  </div>
+
+  <!-- ===== PRODUCTS GRID ===== -->
+  <main style="max-width:900px; margin:0 auto; padding:0 16px;">
+    <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:14px;">
+      <template x-for="p in filteredProducts" :key="p.id">
+        <div class="prod-card">
+          <!-- Product image / placeholder -->
+          <div style="height:120px; border-radius:10px; background:#faf5ff; display:flex; align-items:center; justify-content:center; overflow:hidden; margin-bottom:10px;">
+            <template x-if="p.image_url">
+              <img :src="p.image_url" style="width:100%; height:100%; object-fit:cover;">
+            </template>
+            <template x-if="!p.image_url">
+              <i class="ph ph-package" style="font-size:44px; color:#d8b4fe;"></i>
+            </template>
+          </div>
+
+          <!-- Info -->
+          <div>
+            <div style="font-size:13.5px; font-weight:800; color:#1e293b; line-height:1.3; margin-bottom:4px;" x-text="p.name"></div>
+            <div style="font-size:11px; color:#64748b; margin-bottom:10px;" x-text="p.category_name || 'General'"></div>
+          </div>
+
+          <!-- Price and Add Button -->
+          <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid #f1f5f9; padding-top:8px;">
+            <div style="font-size:16px; font-weight:900; color:#059669;" x-text="'Q ' + Number(p.sale_price).toFixed(2)"></div>
+            <button 
+              type="button" 
+              style="background:var(--primary); color:#ffffff; border:none; border-radius:8px; padding:6px 12px; font-size:12px; font-weight:800; cursor:pointer; display:flex; align-items:center; gap:4px;"
+              @click="addToCart(p)"
+            >
+              <i class="ph ph-plus-bold"></i> Agregar
+            </button>
+          </div>
+        </div>
+      </template>
+    </div>
+  </main>
+
+  <!-- ===== FLOATING SHOPPING CART BAR ===== -->
+  <div class="floating-cart-bar" x-show="cart.length > 0" @click="showCartDrawer = true" x-cloak>
+    <div style="display:flex; align-items:center; gap:10px;">
+      <div style="background:var(--primary); width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:13px;" x-text="getCartItemCount()"></div>
+      <div>
+        <div style="font-size:13.5px; font-weight:800;">Ver Carrito de Pedido</div>
+        <div style="font-size:11px; color:#cbd5e1;" x-text="cart.length + ' producto(s) añadidos'"></div>
+      </div>
+    </div>
+    <div style="display:flex; align-items:center; gap:6px;">
+      <span style="font-size:16px; font-weight:900; color:#4ade80;" x-text="'Q ' + Number(getCartTotal()).toFixed(2)"></span>
+      <i class="ph ph-arrow-right-bold"></i>
+    </div>
+  </div>
+
+  <!-- ===== CART & WHATSAPP CHECKOUT MODAL ===== -->
+  <div style="position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:100; display:flex; justify-content:center; align-items:flex-end;" x-show="showCartDrawer" style="display:none;" x-cloak>
+    <div style="background:#ffffff; width:100%; max-width:540px; border-radius:20px 20px 0 0; padding:24px; max-height:85vh; overflow-y:auto;">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:12px; margin-bottom:16px;">
+        <h3 style="margin:0; font-size:17px; font-weight:900; color:#1e293b;">Tu Carrito de Compras</h3>
+        <button style="border:none; background:none; font-size:24px; cursor:pointer; color:#94a3b8;" @click="showCartDrawer = false">&times;</button>
+      </div>
+
+      <!-- Items List -->
+      <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:16px;">
+        <template x-for="item in cart" :key="item.id">
+          <div style="display:flex; justify-content:space-between; align-items:center; background:#f8fafc; padding:8px 12px; border-radius:10px;">
+            <div style="flex:1;">
+              <div style="font-weight:800; font-size:13px; color:#1e293b;" x-text="item.name"></div>
+              <div style="font-size:12px; color:#059669; font-weight:700;" x-text="'Q ' + Number(item.sale_price).toFixed(2) + ' c/u'"></div>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <button style="width:26px; height:26px; border-radius:6px; border:1px solid #cbd5e1; background:#fff; font-weight:900;" @click="decreaseQty(item)">-</button>
+              <span style="font-weight:800; font-size:13px;" x-text="item.qty"></span>
+              <button style="width:26px; height:26px; border-radius:6px; border:1px solid #cbd5e1; background:#fff; font-weight:900;" @click="item.qty++">+</button>
+            </div>
+          </div>
+        </template>
+      </div>
+
+      <!-- Customer details -->
+      <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:16px;">
+        <div>
+          <label style="font-size:11px; font-weight:800; color:#475569;">TU NOMBRE COMPLETO *</label>
+          <input type="text" placeholder="Ej: Mario Gómez" style="width:100%; padding:8px 12px; border:1px solid #cbd5e1; border-radius:8px; font-weight:600;" x-model="customerName">
+        </div>
+        <div>
+          <label style="font-size:11px; font-weight:800; color:#475569;">DIRECCIÓN DE ENTREGA O RECOLECCIÓN</label>
+          <input type="text" placeholder="Ej: Zona 10 o Recojo en tienda" style="width:100%; padding:8px 12px; border:1px solid #cbd5e1; border-radius:8px;" x-model="customerAddress">
+        </div>
+      </div>
+
+      <!-- Total & WhatsApp Button -->
+      <div style="border-top:1px solid #e2e8f0; padding-top:14px; margin-top:10px;">
+        <div style="display:flex; justify-content:space-between; font-size:16px; font-weight:900; margin-bottom:14px;">
+          <span>Total del Pedido:</span>
+          <span style="color:#059669; font-size:20px;" x-text="'Q ' + Number(getCartTotal()).toFixed(2)"></span>
+        </div>
+
+        <button 
+          type="button" 
+          style="width:100%; background:#25D366; color:#ffffff; font-weight:900; font-size:15px; padding:12px; border-radius:12px; border:none; display:flex; align-items:center; justify-content:center; gap:8px; cursor:pointer; box-shadow:0 4px 12px rgba(37,211,102,0.3);"
+          @click="sendWhatsAppOrder()"
+        >
+          <i class="ph ph-whatsapp-logo" style="font-size:22px;"></i> Confirmar Pedido por WhatsApp
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== QR CODE MODAL ===== -->
+  <div style="position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:100; display:flex; justify-content:center; align-items:center; padding:16px;" x-show="showQRModal" style="display:none;" x-cloak>
+    <div style="background:#ffffff; border-radius:16px; padding:24px; max-width:380px; width:100%; text-align:center;">
+      <h3 style="margin:0 0 6px 0; font-size:16px; font-weight:900;">Menú & Catálogo Digital QR</h3>
+      <p style="font-size:12px; color:#64748b; margin-bottom:16px;">Coloca este código QR en tus mesas o mostrador para que tus clientes vean tus productos.</p>
+
+      <div style="background:#faf5ff; border:2px dashed var(--primary); border-radius:12px; padding:16px; display:inline-block; margin-bottom:16px;">
+        <img :src="'https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=' + encodeURIComponent(window.location.href)" style="width:180px; height:180px;">
+      </div>
+
+      <div style="display:flex; gap:8px;">
+        <button type="button" style="flex:1; padding:8px; border:1px solid #cbd5e1; border-radius:8px; background:#fff; font-weight:700; font-size:12px;" @click="showQRModal = false">Cerrar</button>
+        <button type="button" style="flex:1; padding:8px; border:none; border-radius:8px; background:var(--primary); color:#fff; font-weight:800; font-size:12px;" @click="window.print()">Imprimir QR</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function catalogApp() {
+      return {
+        company: {},
+        products: [],
+        filteredProducts: [],
+        search: '',
+        cart: [],
+        showCartDrawer: false,
+        showQRModal: false,
+        customerName: '',
+        customerAddress: '',
+
+        async init() {
+          try {
+            const [comp, prods] = await Promise.all([
+              fetch('/api/v1/companies/current').then(r => r.json()).catch(() => ({})),
+              fetch('/api/v1/products/?limit=100').then(r => r.json()).catch(() => ({ items: [] }))
+            ]);
+            this.company = comp || {};
+            this.products = prods.items || prods || [];
+            this.filteredProducts = [...this.products];
+          } catch(e) {}
+        },
+
+        filterProducts() {
+          const q = this.search.toLowerCase().trim();
+          if (!q) {
+            this.filteredProducts = [...this.products];
+            return;
+          }
+          this.filteredProducts = this.products.filter(p => p.name && p.name.toLowerCase().includes(q));
+        },
+
+        addToCart(product) {
+          const item = this.cart.find(i => i.id === product.id);
+          if (item) {
+            item.qty++;
+          } else {
+            this.cart.push({ ...product, qty: 1 });
+          }
+        },
+
+        decreaseQty(item) {
+          item.qty--;
+          if (item.qty <= 0) {
+            this.cart = this.cart.filter(i => i.id !== item.id);
+            if (this.cart.length === 0) this.showCartDrawer = false;
+          }
+        },
+
+        getCartItemCount() {
+          return this.cart.reduce((acc, i) => acc + i.qty, 0);
+        },
+
+        getCartTotal() {
+          return this.cart.reduce((acc, i) => acc + (i.qty * Number(i.sale_price || 0)), 0);
+        },
+
+        sendWhatsAppOrder() {
+          if (!this.customerName) return alert('Por favor ingresa tu nombre.');
+          
+          let text = `¡Hola! Quisiera realizar el siguiente pedido desde el catálogo online:%0A%0A`;
+          text += `👤 *Cliente:* ${this.customerName}%0A`;
+          if (this.customerAddress) text += `📍 *Dirección:* ${this.customerAddress}%0A`;
+          text += `%0A🛍️ *Detalle del Pedido:*%0A`;
+
+          this.cart.forEach(item => {
+            text += `• ${item.qty}x ${item.name} - Q ${(item.qty * Number(item.sale_price)).toFixed(2)}%0A`;
+          });
+
+          text += `%0A💰 *TOTAL: Q ${this.getCartTotal().toFixed(2)}*`;
+
+          const phone = this.company.phone ? this.company.phone.replace(/[^0-9]/g, '') : '50222000000';
+          window.open(`https://wa.me/${phone}?text=${text}`, '_blank');
+        }
+      }
+    }
+  </script>
+</body>
+</html>

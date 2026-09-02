@@ -1,0 +1,1384 @@
+{% set show_layout = true %}
+{% extends "base.html" %}
+
+{% block title %}{{ 'Nueva Orden de Compra' if purchase_id == 'new' else 'Orden de Compra — POS Empresarial' }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .po-status-step {
+    padding: 6px 14px;
+    font-size: 11.5px;
+    font-weight: 800;
+    border-radius: 20px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #f1f5f9;
+    color: #64748b;
+    border: 1px solid #cbd5e1;
+  }
+  .po-status-step.active {
+    background: #714B67;
+    color: #ffffff;
+    border-color: #714B67;
+    box-shadow: 0 2px 6px rgba(113, 75, 103, 0.25);
+  }
+  .po-status-step.completed {
+    background: #dcfce7;
+    color: #15803d;
+    border-color: #86efac;
+  }
+
+  .form-label-po {
+    font-size: 10.5px;
+    font-weight: 800;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    display: block;
+    margin-bottom: 4px;
+  }
+  .form-control-po {
+    width: 100%;
+    height: 36px;
+    padding: 5px 10px;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #1e293b;
+    outline: none;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    background: #ffffff;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  }
+  .form-control-po:focus {
+    border-color: #714B67;
+    box-shadow: 0 0 0 3px rgba(113, 75, 103, 0.14), 0 1px 3px rgba(0, 0, 0, 0.05);
+  }
+
+  /* =============================================
+     EXECUTIVE LUXURY SUPPLIER SELECTOR
+  ============================================= */
+  .luxury-supplier-wrapper {
+    position: relative;
+    user-select: none;
+  }
+  .luxury-supplier-btn {
+    width: 100%;
+    min-height: 36px;
+    background: #ffffff;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 5px 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+    text-align: left;
+  }
+  .luxury-supplier-btn:hover {
+    border-color: #714B67;
+    background: #faf8f9;
+    box-shadow: 0 2px 8px rgba(113, 75, 103, 0.08);
+  }
+  .luxury-supplier-btn.is-active,
+  .luxury-supplier-btn:focus {
+    outline: none;
+    border-color: #714B67;
+    background: #ffffff;
+    box-shadow: 0 0 0 3.5px rgba(113, 75, 103, 0.15), 0 2px 6px rgba(0, 0, 0, 0.04);
+  }
+  .luxury-supplier-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    background: linear-gradient(135deg, #f4eff3 0%, #ecdfe9 100%);
+    color: #714B67;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+    border: 1px solid rgba(113, 75, 103, 0.15);
+  }
+  .luxury-nit-badge {
+    font-size: 11px;
+    font-weight: 800;
+    padding: 2px 8px;
+    border-radius: 6px;
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+    letter-spacing: 0.3px;
+    display: inline-block;
+  }
+  .luxury-supplier-popover {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    background: #ffffff;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 12px;
+    box-shadow: 0 16px 36px -6px rgba(15, 23, 42, 0.14), 0 4px 12px -2px rgba(15, 23, 42, 0.06);
+    z-index: 9999;
+    padding: 10px;
+    animation: luxuryPopoverIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @keyframes luxuryPopoverIn {
+    from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .luxury-supplier-search {
+    width: 100%;
+    height: 38px;
+    padding: 6px 12px 6px 36px;
+    background: #f8fafc;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #1e293b;
+    outline: none;
+    transition: all 0.15s ease;
+  }
+  .luxury-supplier-search:focus {
+    background: #ffffff;
+    border-color: #714B67;
+    box-shadow: 0 0 0 2.5px rgba(113, 75, 103, 0.15);
+  }
+  .luxury-supplier-item {
+    padding: 9px 12px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    border: 1px solid transparent;
+  }
+  .luxury-supplier-item:hover {
+    background: #faf8f9;
+    border-color: #f0e6ee;
+  }
+  .luxury-supplier-item.is-selected {
+    background: #f4eff3;
+    border-color: #e5d7e3;
+  }
+  .luxury-contact-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 7px;
+    font-size: 11.5px;
+    font-weight: 700;
+    color: #475569;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div x-data="purchaseFormPage('{{ purchase_id }}')" x-init="init()">
+  
+  <!-- ===== TOP ACTION BAR ===== -->
+  <div style="margin:-20px -24px 24px -24px; padding:14px 24px; background:#ffffff; border-bottom:1px solid #e2e8f0; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+    
+    <!-- Left: Breadcrumb & Title -->
+    <div style="display:flex; align-items:center; gap:12px;">
+      <a href="/purchases" style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; padding:7px 14px; border-radius:8px; font-weight:700; font-size:12.5px; text-decoration:none; display:flex; align-items:center; gap:6px;">
+        <i class="ph ph-arrow-left"></i> Volver a Compras
+      </a>
+      <div style="font-size:16px; font-weight:800; color:#1e293b; display:flex; align-items:center; gap:8px;">
+        <span style="color:#64748b;">Compras /</span>
+        <span x-text="purchaseId === 'new' ? 'Nueva Orden de Compra' : (poData.number || 'Detalle de Compra')"></span>
+      </div>
+    </div>
+
+    <!-- Center: Status Pipeline Steps -->
+    <div style="display:flex; align-items:center; gap:8px;">
+      <div class="po-status-step" :class="poData.state === 'draft' || purchaseId === 'new' ? 'active' : 'completed'">
+        <i class="ph ph-file-text"></i> 1. Solicitud (RFQ)
+      </div>
+      <i class="ph ph-caret-right" style="color:#94a3b8; font-size:12px;"></i>
+      <div class="po-status-step" :class="poData.state === 'confirmed' ? 'active' : (poData.state === 'received' ? 'completed' : '')">
+        <i class="ph ph-check-circle"></i> 2. Confirmada
+      </div>
+      <i class="ph ph-caret-right" style="color:#94a3b8; font-size:12px;"></i>
+      <div class="po-status-step" :class="poData.state === 'received' ? 'completed active' : ''">
+        <i class="ph ph-warehouse"></i> 3. Mercadería Recibida
+      </div>
+    </div>
+
+    <!-- Right: Actions -->
+    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+      <template x-if="purchaseId !== 'new'">
+        <div style="display:flex; gap:8px;">
+          <!-- Recibir Mercadería Button -->
+          <button 
+            type="button" 
+            class="btn btn-secondary" 
+            style="background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; font-weight:800; border-radius:8px; padding:8px 16px; font-size:12.5px; display:flex; align-items:center; gap:6px; cursor:pointer;"
+            x-show="poData.state !== 'received'"
+            @click="receiveAllGoods()"
+          >
+            <i class="ph ph-check-square-offset" style="font-size:16px;"></i> Recibir en Bodega
+          </button>
+
+          <!-- Factura CxP Cuentas por Pagar -->
+          <button 
+            type="button" 
+            class="btn btn-secondary" 
+            style="background:#f4eff3; color:#714B67; border:1px solid rgba(113,75,103,0.3); font-weight:800; border-radius:8px; padding:8px 14px; font-size:12.5px; display:flex; align-items:center; gap:6px; cursor:pointer;"
+            @click="createSupplierBillFromPO()"
+            title="Registrar factura en Cuentas por Pagar"
+          >
+            <i class="ph ph-receipt" style="font-size:16px;"></i> Factura CxP
+          </button>
+
+          <!-- Imprimir PDF -->
+          <button 
+            type="button" 
+            class="btn btn-secondary" 
+            style="background:#f8fafc; color:#334155; border:1px solid #cbd5e1; font-weight:700; border-radius:8px; padding:8px 14px; font-size:12.5px; display:flex; align-items:center; gap:6px; cursor:pointer;"
+            @click="printPurchaseOrder()"
+          >
+            <i class="ph ph-printer" style="font-size:16px; color:#64748b;"></i> Imprimir PDF
+          </button>
+
+          <!-- WhatsApp Proveedor -->
+          <button 
+            type="button" 
+            class="btn btn-secondary" 
+            style="background:#ecfdf5; color:#047857; border:1px solid #a7f3d0; font-weight:700; border-radius:8px; padding:8px 14px; font-size:12.5px; display:flex; align-items:center; gap:6px; cursor:pointer;"
+            x-show="selectedSupplierPhone"
+            @click="sendWhatsAppToSupplier()"
+          >
+            <i class="ph ph-whatsapp-logo" style="font-size:16px; color:#10b981;"></i> WhatsApp
+          </button>
+        </div>
+      </template>
+
+      <!-- Save / Create Button -->
+      <button 
+        type="button" 
+        class="btn btn-primary" 
+        style="background:#714B67; color:#ffffff; font-weight:800; border-radius:8px; padding:8px 24px; border:none; box-shadow:0 3px 10px rgba(113,75,103,0.3); display:flex; align-items:center; gap:6px; cursor:pointer;" 
+        @click="savePurchaseOrder()"
+        :disabled="isSaving"
+        x-show="purchaseId === 'new'"
+      >
+        <i class="ph ph-floppy-disk" style="font-weight:800;"></i>
+        <span x-text="isSaving ? 'Guardando...' : 'Crear Orden de Compra'"></span>
+      </button>
+    </div>
+
+  </div>
+
+  <!-- ===== MAIN ORDER DOCUMENT CARD ===== -->
+  <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:14px; padding:16px 22px; box-shadow:0 1px 4px rgba(0,0,0,0.03); margin-bottom:16px;">
+    
+    <!-- Top Row: Document Reference & Status Badge -->
+    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #f1f5f9; padding-bottom:10px; margin-bottom:14px;">
+      <div>
+        <div style="font-size:10.5px; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.5px;">Documento de Adquisición</div>
+        <div style="font-size:18px; font-weight:900; color:#0f172a; margin-top:1px;" x-text="purchaseId === 'new' ? 'Nueva Orden de Compra' : poData.number"></div>
+      </div>
+
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span 
+          style="font-size:12px; font-weight:800; padding:4px 14px; border-radius:16px;"
+          :class="poData.state === 'received' ? 'bg-emerald-100 text-emerald-800' : 'bg-purple-100 text-purple-800'"
+          x-text="poData.state === 'received' ? '✓ Mercadería Recibida' : '📄 Orden Confirmada'"
+          x-show="purchaseId !== 'new'"
+        ></span>
+      </div>
+    </div>
+
+      <!-- Provider & General Data Grid -->
+    <div style="display:grid; grid-template-columns:2fr 1fr 1fr 1fr 1.2fr; gap:12px; margin-bottom:16px; align-items:start;">
+      
+      <!-- 1. Supplier Selector (Luxury Custom Component) -->
+      <div>
+        <label class="form-label-po" style="display:flex; justify-content:space-between; align-items:center;">
+          <span>PROVEEDOR *</span>
+          <span style="font-size:11px; font-weight:700; color:#714B67; text-transform:none;" x-show="suppliers.length > 0">
+            <i class="ph ph-check-circle"></i> <span x-text="suppliers.length + ' disponibles'"></span>
+          </span>
+        </label>
+
+        <!-- New PO: Luxury Custom Dropdown -->
+        <template x-if="purchaseId === 'new'">
+          <div class="luxury-supplier-wrapper" @click.outside="supplierDropdownOpen = false">
+            
+            <!-- Trigger Button -->
+            <button
+              type="button"
+              class="luxury-supplier-btn"
+              :class="{'is-active': supplierDropdownOpen}"
+              @click="supplierDropdownOpen = !supplierDropdownOpen; if(supplierDropdownOpen) $nextTick(() => $refs.supplierSearchInput?.focus())"
+            >
+              <div style="display:flex; align-items:center; gap:10px; min-width:0; overflow:hidden;">
+                <div class="luxury-supplier-avatar">
+                  <i class="ph ph-buildings"></i>
+                </div>
+                <div style="display:flex; flex-direction:column; min-width:0;">
+                  <template x-if="selectedSupplier">
+                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:nowrap;">
+                      <span style="font-weight:800; font-size:13.5px; color:#1e293b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" x-text="selectedSupplier.name"></span>
+                      <span class="luxury-nit-badge" x-show="selectedSupplier.nit" x-text="'NIT: ' + selectedSupplier.nit"></span>
+                    </div>
+                  </template>
+                  <template x-if="!selectedSupplier">
+                    <span style="color:#94a3b8; font-weight:600; font-size:13.5px;">Selecciona o busca un proveedor...</span>
+                  </template>
+                </div>
+              </div>
+
+              <!-- Chevron indicator -->
+              <i 
+                class="ph ph-caret-down" 
+                style="color:#714B67; font-size:15px; font-weight:800; transition:transform 0.2s ease;"
+                :style="supplierDropdownOpen ? 'transform: rotate(180deg);' : ''"
+              ></i>
+            </button>
+
+            <!-- Popover Menu -->
+            <div class="luxury-supplier-popover" x-show="supplierDropdownOpen" x-transition.origin.top>
+              
+              <!-- Search Bar -->
+              <div style="position:relative; margin-bottom:8px;">
+                <i class="ph ph-magnifying-glass" style="position:absolute; left:11px; top:11px; color:#714B67; font-size:15px; font-weight:800; pointer-events:none;"></i>
+                <input
+                  type="text"
+                  class="luxury-supplier-search"
+                  placeholder="Buscar por nombre o NIT..."
+                  x-model="supplierSearch"
+                  x-ref="supplierSearchInput"
+                  @keydown.escape="supplierDropdownOpen = false"
+                >
+                <i 
+                  class="ph ph-x-circle" 
+                  style="position:absolute; right:10px; top:11px; color:#94a3b8; font-size:16px; cursor:pointer;" 
+                  x-show="supplierSearch.length > 0" 
+                  @click="supplierSearch = ''; $refs.supplierSearchInput.focus()"
+                ></i>
+              </div>
+
+              <!-- List of Suppliers -->
+              <div style="max-height:220px; overflow-y:auto; display:flex; flex-direction:column; gap:4px; padding-right:2px;">
+                <template x-for="s in filteredSuppliers" :key="s.id">
+                  <div 
+                    class="luxury-supplier-item"
+                    :class="{'is-selected': form.supplier_id === s.id}"
+                    @click="selectSupplier(s)"
+                  >
+                    <div style="display:flex; align-items:center; gap:10px; min-width:0;">
+                      <div class="luxury-supplier-avatar" style="width:26px; height:26px; font-size:13px;">
+                        <i class="ph ph-buildings"></i>
+                      </div>
+                      <div style="min-width:0;">
+                        <div style="font-weight:800; font-size:13px; color:#1e293b;" x-text="s.name"></div>
+                        <div style="font-size:11px; color:#64748b; margin-top:1px;" x-show="s.phone || s.email">
+                          <span x-text="s.phone ? '📞 ' + s.phone : ''"></span>
+                          <span x-show="s.phone && s.email"> &bull; </span>
+                          <span x-text="s.email ? '✉️ ' + s.email : ''"></span>
+                        </div>
+                      </div>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:6px;">
+                      <span class="luxury-nit-badge" x-show="s.nit" x-text="'NIT: ' + s.nit"></span>
+                      <i class="ph ph-check" style="color:#714B67; font-weight:800; font-size:14px;" x-show="form.supplier_id === s.id"></i>
+                    </div>
+                  </div>
+                </template>
+
+                <div x-show="filteredSuppliers.length === 0" style="padding:18px 12px; text-align:center; color:#94a3b8; font-size:12.5px;">
+                  <i class="ph ph-buildings" style="font-size:24px; color:#cbd5e1; margin-bottom:4px; display:block;"></i>
+                  No se encontraron proveedores que coincidan
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+        </template>
+
+        <!-- View Existing PO: Elegant Badge Container -->
+        <template x-if="purchaseId !== 'new'">
+          <div style="padding:10px 14px; background:#faf8f9; border:1.5px solid #e2e8f0; border-radius:10px; display:flex; align-items:center; justify-content:space-between; gap:12px;">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <div class="luxury-supplier-avatar">
+                <i class="ph ph-buildings"></i>
+              </div>
+              <div>
+                <div style="font-weight:800; color:#1e293b; font-size:13.5px;" x-text="poData.supplier_name"></div>
+                <div style="font-size:11.5px; color:#64748b; margin-top:2px;" x-show="poData.supplier_nit">
+                  <span x-text="'NIT: ' + poData.supplier_nit"></span>
+                </div>
+              </div>
+            </div>
+            <span class="luxury-nit-badge" style="background:#714B67; color:#ffffff; border-color:#714B67;">Proveedor Registrado</span>
+          </div>
+        </template>
+
+        <!-- Contact chips — hidden in compact mode -->
+        <div style="display:none" x-show="selectedSupplier">
+          <template x-if="selectedSupplier?.phone || selectedSupplier?.mobile">
+            <span class="luxury-contact-chip">
+              <i class="ph ph-phone" style="color:#714B67;"></i>
+              <span x-text="selectedSupplier.phone || selectedSupplier.mobile"></span>
+            </span>
+          </template>
+          <template x-if="selectedSupplier?.email">
+            <span class="luxury-contact-chip">
+              <i class="ph ph-envelope-simple" style="color:#714B67;"></i>
+              <span x-text="selectedSupplier.email"></span>
+            </span>
+          </template>
+        </div>
+      </div>
+
+      <!-- 2. Fecha de Pedido -->
+      <div>
+        <label class="form-label-po">FECHA DEL PEDIDO *</label>
+        <template x-if="purchaseId === 'new'">
+          <div style="position:relative;">
+            <i class="ph ph-calendar-blank" style="position:absolute; left:10px; top:10px; color:#714B67; font-size:14px; pointer-events:none;"></i>
+            <input 
+              type="date" 
+              class="form-control-po" 
+              style="padding-left:30px; font-weight:700;" 
+              x-model="form.order_date"
+            >
+          </div>
+        </template>
+        <template x-if="purchaseId !== 'new'">
+          <div style="height:36px; padding:6px 10px; background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:8px; color:#334155; font-weight:700; font-size:12.5px; display:flex; align-items:center; gap:6px;">
+            <i class="ph ph-calendar-blank" style="color:#714B67; font-size:14px;"></i>
+            <span x-text="poData.order_date || 'Hoy'"></span>
+          </div>
+        </template>
+      </div>
+
+      <!-- 3. Fecha Estimada de Recepción -->
+      <div>
+        <label class="form-label-po">FECHA ESTIMADA DE RECEPCIÓN</label>
+        <template x-if="purchaseId === 'new'">
+          <div style="position:relative;">
+            <i class="ph ph-truck" style="position:absolute; left:10px; top:10px; color:#714B67; font-size:14px; pointer-events:none;"></i>
+            <input 
+              type="date" 
+              class="form-control-po" 
+              style="padding-left:30px; font-weight:700;" 
+              x-model="form.expected_date"
+            >
+          </div>
+        </template>
+        <template x-if="purchaseId !== 'new'">
+          <div style="height:36px; padding:6px 10px; background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:8px; color:#334155; font-weight:700; font-size:12.5px; display:flex; align-items:center; gap:6px;">
+            <i class="ph ph-truck" style="color:#714B67; font-size:14px;"></i>
+            <span x-text="poData.expected_date || 'Estándar'"></span>
+          </div>
+        </template>
+      </div>
+
+      <!-- 4. Bodega de Ingreso / Destino -->
+      <div>
+        <label class="form-label-po">BODEGA DE INGRESO *</label>
+        <template x-if="purchaseId === 'new'">
+          <div style="position:relative;">
+            <i class="ph ph-warehouse" style="position:absolute; left:10px; top:10px; color:#714B67; font-size:14px; pointer-events:none;"></i>
+            <select 
+              class="form-control-po" 
+              style="padding-left:30px; padding-right:28px; appearance:none; font-weight:700; cursor:pointer;" 
+              x-model="form.warehouse_id"
+            >
+              <template x-for="w in warehouses" :key="w.id">
+                <option :value="w.id" x-text="w.name + (w.code ? ' (' + w.code + ')' : '')"></option>
+              </template>
+            </select>
+            <i class="ph ph-caret-down" style="position:absolute; right:10px; top:11px; color:#714B67; font-size:13px; font-weight:800; pointer-events:none;"></i>
+          </div>
+        </template>
+        <template x-if="purchaseId !== 'new'">
+          <div style="height:36px; padding:6px 10px; background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:8px; color:#334155; font-weight:700; font-size:12.5px; display:flex; align-items:center; gap:6px;">
+            <i class="ph ph-warehouse" style="color:#714B67; font-size:14px;"></i>
+            <span x-text="poData.warehouse_name || 'Bodega Principal'"></span>
+          </div>
+        </template>
+      </div>
+
+      <!-- 5. Términos de Pago -->
+      <div>
+        <label class="form-label-po" style="display:flex; justify-content:space-between; align-items:center; gap:6px; flex-wrap:nowrap; overflow:hidden;">
+          <span style="white-space:nowrap;">CONDICIÓN DE PAGO *</span>
+          <span style="font-size:10.5px; font-weight:700; color:#714B67; text-transform:none; white-space:nowrap; flex-shrink:0;" x-show="selectedSupplier && selectedSupplier.payment_days > 0">
+            <i class="ph ph-clock"></i> <span x-text="'Default: ' + selectedSupplier.payment_days + 'd'"></span>
+          </span>
+        </label>
+        
+        <template x-if="purchaseId === 'new'">
+          <div>
+            <div style="position:relative;">
+              <i class="ph ph-credit-card" style="position:absolute; left:10px; top:10px; color:#714B67; font-size:14px; pointer-events:none;"></i>
+              <select 
+                class="form-control-po" 
+                style="padding-left:30px; padding-right:28px; appearance:none; cursor:pointer; font-weight:700;" 
+                x-model="form.payment_terms"
+              >
+                <option value="contado">Contado (0 dias)</option>
+                <option value="credito_15">Credito 15 dias</option>
+                <option value="credito_30">Credito 30 dias</option>
+                <option value="credito_45">Credito 45 dias</option>
+                <option value="credito_60">Credito 60 dias</option>
+                <option value="credito_90">Credito 90 dias</option>
+                <option value="credito_custom">Personalizado...</option>
+              </select>
+              <i class="ph ph-caret-down" style="position:absolute; right:10px; top:11px; color:#714B67; font-size:13px; font-weight:800; pointer-events:none;"></i>
+            </div>
+
+            <!-- Custom Days Input if selected -->
+            <div style="margin-top:6px; display:flex; align-items:center; gap:6px;" x-show="form.payment_terms === 'credito_custom'">
+              <div style="position:relative; flex:1;">
+                <input 
+                  type="number" 
+                  min="1" 
+                  max="365" 
+                  class="form-control-po" 
+                  placeholder="Dias de credito" 
+                  x-model.number="customCreditDays"
+                >
+              </div>
+              <span style="font-size:11.5px; font-weight:700; color:#64748b;">dias</span>
+            </div>
+
+            <!-- Due date indicator -->
+            <div style="margin-top:4px; font-size:11px; font-weight:700;">
+              <template x-if="form.payment_terms === 'contado'">
+                <span style="color:#15803d;"><i class="ph ph-check-circle"></i> Sin plazo de credito</span>
+              </template>
+              <template x-if="form.payment_terms !== 'contado'">
+                <span style="color:#714B67;"><i class="ph ph-calendar-check"></i> <span x-text="'Vence: ' + calculatedDueDate"></span></span>
+              </template>
+            </div>
+          </div>
+        </template>
+        
+        <template x-if="purchaseId !== 'new'">
+          <div style="height:36px; padding:6px 10px; background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:8px; color:#334155; font-weight:700; font-size:12.5px; display:flex; align-items:center; gap:6px;">
+            <i class="ph ph-credit-card" style="color:#714B67; font-size:14px;"></i>
+            <span x-text="formatPaymentTermName(form.payment_terms)"></span>
+          </div>
+        </template>
+      </div>
+
+    </div>
+
+    <!-- ===== PRODUCTS SECTION ===== -->
+    <!-- ===== PRODUCTS SECTION ===== -->
+    <div style="margin-top:14px;">
+      
+      <!-- Section Title Header -->
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <div style="font-size:12.5px; font-weight:800; color:#1e293b; display:flex; align-items:center; gap:5px;">
+          <i class="ph ph-package" style="color:#714B67; font-size:15px;"></i> Líneas de Productos a Ingresar
+        </div>
+        <div style="font-size:11px; color:#64748b; font-weight:700;" x-text="form.lines.length + ' producto(s) en la orden'"></div>
+      </div>
+
+      <!-- Products Table -->
+      <div style="overflow-x:auto; border:1px solid #e2e8f0; border-radius:10px;">
+        <table class="table" style="width:100%; border-collapse:collapse;">
+          <thead>
+            <tr style="background:#f8fafc; border-bottom:1.5px solid #e2e8f0;">
+              <th style="padding:7px 12px; text-align:left; color:#475569; font-size:10px; text-transform:uppercase; font-weight:800;">Producto</th>
+              <th style="padding:7px 12px; text-align:center; color:#475569; font-size:10px; text-transform:uppercase; font-weight:800; width:110px;">Cant. Pedida</th>
+              <th style="padding:7px 12px; text-align:center; color:#475569; font-size:10px; text-transform:uppercase; font-weight:800; width:110px;" x-show="purchaseId !== 'new'">Cant. Recibida</th>
+              <th style="padding:7px 12px; text-align:right; color:#475569; font-size:10px; text-transform:uppercase; font-weight:800; width:130px;">Costo Unit. (Q)</th>
+              <th style="padding:7px 12px; text-align:right; color:#475569; font-size:10px; text-transform:uppercase; font-weight:800; width:120px;">Subtotal (Q)</th>
+              <th style="padding:7px 12px; text-align:center; width:50px;" x-show="purchaseId === 'new'"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Editable Lines for New Purchase -->
+            <template x-if="purchaseId === 'new'">
+              <template x-for="(line, idx) in form.lines" :key="idx">
+                <tr style="border-bottom:1px solid #f1f5f9;">
+                  <td style="padding:6px 12px;">
+                    <select 
+                      class="form-control-po" 
+                      style="font-weight:700;" 
+                      x-model="line.product_id" 
+                      @change="onProductSelect(line)"
+                    >
+                      <option value="">Selecciona un producto...</option>
+                      <template x-for="p in catalogProducts" :key="p.id">
+                        <option :value="p.id" x-text="(p.supplier_id === form.supplier_id ? '⭐ ' : '') + p.name + ' (SKU: ' + (p.internal_ref || 'N/A') + ')'"></option>
+                      </template>
+                    </select>
+                  </td>
+                  <td style="padding:5px 10px; text-align:center;">
+                    <input 
+                      type="number" 
+                      min="1" 
+                      step="1" 
+                      class="form-control-po" 
+                      style="text-align:center; font-weight:800;" 
+                      x-model.number="line.qty" 
+                      @input="calculateTotals()"
+                    >
+                  </td>
+                  <td style="padding:5px 10px; text-align:right;">
+                    <input 
+                      type="number" 
+                      step="0.01" 
+                      class="form-control-po" 
+                      style="text-align:right; font-weight:800;" 
+                      x-model.number="line.unit_price" 
+                      @input="calculateTotals()"
+                    >
+                  </td>
+                  <td style="padding:5px 10px; text-align:right; font-weight:900; color:#0f172a; font-size:13px;" x-text="'Q ' + Number((line.qty || 0) * (line.unit_price || 0)).toFixed(2)">
+                  </td>
+                  <td style="padding:5px 10px; text-align:center;">
+                    <button 
+                      type="button" 
+                      style="background:none; border:none; color:#dc2626; font-size:16px; cursor:pointer;" 
+                      @click="removeLine(idx)"
+                      x-show="form.lines.length > 1"
+                      title="Eliminar linea"
+                    >
+                      <i class="ph ph-trash"></i>
+                    </button>
+                  </td>
+                </tr>
+              </template>
+            </template>
+
+            <!-- Readonly Lines for Existing Purchase -->
+            <template x-if="purchaseId !== 'new'">
+              <template x-for="line in poData.lines" :key="line.id">
+                <tr style="border-bottom:1px solid #f1f5f9;">
+                  <td style="padding:7px 10px; font-weight:700; color:#1e293b; font-size:12.5px;" x-text="line.product_name"></td>
+                  <td style="padding:7px 10px; text-align:center; font-weight:800; color:#475569; font-size:12.5px;" x-text="line.qty_ordered + ' unid.'"></td>
+                  <td style="padding:7px 10px; text-align:center;">
+                    <span 
+                      style="font-weight:900; font-size:11px; padding:2px 7px; border-radius:5px;"
+                      :style="line.qty_received >= line.qty_ordered ? 'background:#dcfce7; color:#15803d;' : 'background:#ffedd5; color:#c2410c;'"
+                      x-text="line.qty_received + ' unid.'"
+                    ></span>
+                  </td>
+                  <td style="padding:7px 10px; text-align:right; font-weight:700; color:#475569; font-size:12.5px;" x-text="'Q ' + Number(line.unit_price || 0).toFixed(2)"></td>
+                  <td style="padding:7px 10px; text-align:right; font-weight:900; color:#0f172a; font-size:12.5px;" x-text="'Q ' + Number(line.subtotal || line.total || 0).toFixed(2)"></td>
+                </tr>
+              </template>
+            </template>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Live Catalog Search Bar — BELOW the lines table, only in new PO -->
+      <template x-if="purchaseId === 'new'">
+        <div style="position:relative; margin-top:8px;">
+          <div style="position:relative; display:flex; align-items:center;">
+            <i class="ph ph-magnifying-glass" style="position:absolute; left:12px; color:#714B67; font-size:15px; pointer-events:none;"></i>
+            <input 
+              type="text" 
+              class="form-control-po" 
+              style="padding-left:34px; border-style:dashed; border-color:#c4adbe;" 
+              placeholder="Buscar y agregar mas productos por Nombre, Codigo o SKU..."
+              x-model="productSearchTerm"
+              @focus="showProductSearchResults = true"
+              @input="showProductSearchResults = true"
+              @click.outside="showProductSearchResults = false"
+            >
+            <i 
+              class="ph ph-x-circle" 
+              style="position:absolute; right:12px; color:#94a3b8; font-size:15px; cursor:pointer;" 
+              x-show="productSearchTerm.length > 0" 
+              @click="productSearchTerm = ''; showProductSearchResults = false"
+            ></i>
+          </div>
+
+          <!-- Search Results Dropdown -->
+          <div 
+            class="luxury-supplier-popover" 
+            style="max-height:260px; overflow-y:auto; margin-top:4px;" 
+            x-show="showProductSearchResults && filteredCatalogProducts.length > 0"
+            x-transition
+          >
+            <template x-for="p in filteredCatalogProducts" :key="p.id">
+              <div 
+                class="luxury-supplier-item" 
+                style="padding:10px 14px;"
+                @click="addProductFromSearch(p)"
+              >
+                <div style="display:flex; align-items:center; gap:12px; min-width:0;">
+                  <div style="width:32px; height:32px; border-radius:8px; background:#f4eff3; color:#714B67; display:flex; align-items:center; justify-content:center; font-size:16px;">
+                    <i class="ph ph-package"></i>
+                  </div>
+                  <div style="min-width:0;">
+                    <div style="font-weight:800; font-size:13.5px; color:#1e293b;" x-text="p.name"></div>
+                    <div style="font-size:11.5px; color:#64748b; display:flex; gap:8px; margin-top:2px;">
+                      <span x-show="p.internal_ref" x-text="'SKU: ' + p.internal_ref"></span>
+                      <span x-show="p.barcode" x-text="'Barras: ' + p.barcode"></span>
+                      <span x-text="'Stock: ' + (p.stock || 0)"></span>
+                    </div>
+                  </div>
+                </div>
+                <div style="text-align:right; flex-shrink:0;">
+                  <div style="font-weight:900; color:#714B67; font-size:14px;" x-text="'Q ' + Number(p.cost_price || 0).toFixed(2)"></div>
+                  <div style="font-size:11px; color:#15803d; font-weight:700;">+ Agregar</div>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+      </template>
+
+      <!-- + Agregar producto button — below the search bar -->
+      <template x-if="purchaseId === 'new'">
+        <div style="margin-top:10px; display:flex; justify-content:flex-start;">
+          <button 
+            type="button" 
+            style="background:none; color:#714B67; border:none; font-weight:800; font-size:13px; cursor:pointer; display:flex; align-items:center; gap:6px; padding:6px 4px; opacity:0.8; transition:opacity 0.2s;"
+            onmouseover="this.style.opacity='1'"
+            onmouseout="this.style.opacity='0.8'"
+            @click="addLine()"
+          >
+            <i class="ph ph-plus-circle" style="font-size:16px;"></i> Agregar línea manualmente
+          </button>
+        </div>
+      </template>
+
+    </div><!-- end products section -->
+
+    <!-- ===== TOTALS & FINANCIAL SUMMARY ===== -->
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-top:14px; flex-wrap:wrap; gap:14px;">
+      
+      <!-- Notes & Terms -->
+      <div style="flex:1; min-width:240px;">
+        <label class="form-label-po">OBSERVACIONES</label>
+        <template x-if="purchaseId === 'new'">
+          <textarea 
+            class="form-control-po" 
+            rows="2" 
+            style="height:auto; font-size:12px;"
+            placeholder="Instrucciones de entrega o notas para el transportista..."
+            x-model="form.notes"
+          ></textarea>
+        </template>
+        <template x-if="purchaseId !== 'new'">
+          <div style="padding:7px 10px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; font-size:12px; color:#475569;" x-text="poData.notes || 'Sin observaciones adicionales.'"></div>
+        </template>
+      </div>
+
+      <!-- Financial Totals Box -->
+      <div style="width:300px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px 16px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; font-size:12px;">
+          <span style="color:#64748b; font-weight:700;">Subtotal Neto:</span>
+          <span style="font-weight:800; color:#334155;" x-text="'Q ' + calculatedSubtotal.toFixed(2)"></span>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; font-size:12px;">
+          <span style="color:#64748b; font-weight:700;">IVA (12%):</span>
+          <span style="font-weight:800; color:#334155;" x-text="'Q ' + calculatedTax.toFixed(2)"></span>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; padding-top:8px; border-top:1.5px solid #e2e8f0; font-size:14px;">
+          <span style="font-weight:900; color:#714B67;">TOTAL COMPRA:</span>
+          <span style="font-size:18px; font-weight:900; color:#0f172a;" x-text="'Q ' + calculatedTotal.toFixed(2)"></span>
+        </div>
+      </div>
+
+    </div><!-- end totals -->
+
+  </div><!-- end main card -->
+
+  <!-- ===== MODAL DE RECEPCIÓN DE MERCADERÍA EN BODEGA ===== -->
+  <div 
+    style="position:fixed; inset:0; background:rgba(15,23,42,0.6); z-index:99999; display:flex; align-items:center; justify-content:center; padding:20px; backdrop-filter:blur(4px);"
+    x-show="showReceiveModal"
+    x-transition
+  >
+    <div 
+      style="background:#ffffff; border-radius:16px; width:520px; max-width:100%; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25); overflow:hidden;"
+      @click.outside="showReceiveModal = false"
+    >
+      <!-- Modal Header -->
+      <div style="padding:18px 24px; background:#faf8f9; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div style="width:36px; height:36px; border-radius:10px; background:#dcfce7; color:#15803d; display:flex; align-items:center; justify-content:center; font-size:18px;">
+            <i class="ph ph-truck"></i>
+          </div>
+          <div>
+            <div style="font-weight:900; font-size:16px; color:#1e293b;">Recepción de Mercadería en Bodega</div>
+            <div style="font-size:12px; color:#64748b;" x-text="'Orden: ' + poData.number"></div>
+          </div>
+        </div>
+        <i class="ph ph-x" style="font-size:20px; color:#94a3b8; cursor:pointer;" @click="showReceiveModal = false"></i>
+      </div>
+
+      <!-- Modal Body -->
+      <div style="padding:22px 24px; display:flex; flex-direction:column; gap:16px;">
+        <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:12px 16px; font-size:12.5px; color:#166534; display:flex; align-items:center; gap:8px;">
+          <i class="ph ph-info" style="font-size:18px; flex-shrink:0;"></i>
+          <span>Ingresa los datos de la factura fiscal entregada por el transportista/proveedor para registrar el ingreso a Kardex.</span>
+        </div>
+
+        <!-- FACTURA / REF PROVEEDOR -->
+        <div>
+          <label class="form-label-po">NO. DE FACTURA / REF. PROVEEDOR (FEL) *</label>
+          <div style="position:relative;">
+            <i class="ph ph-receipt" style="position:absolute; left:12px; top:13px; color:#714B67; font-size:16px; pointer-events:none;"></i>
+            <input 
+              type="text" 
+              class="form-control-po" 
+              style="padding-left:36px; font-weight:700;" 
+              placeholder="Ej: Serie A - No. 12849 / FEL SAT" 
+              x-model="receiveForm.supplier_ref"
+            >
+          </div>
+        </div>
+
+        <!-- FECHA DE RECEPCIÓN -->
+        <div>
+          <label class="form-label-po">FECHA DE RECEPCIÓN *</label>
+          <div style="position:relative;">
+            <i class="ph ph-calendar-check" style="position:absolute; left:12px; top:13px; color:#714B67; font-size:16px; pointer-events:none;"></i>
+            <input 
+              type="date" 
+              class="form-control-po" 
+              style="padding-left:36px; font-weight:700;" 
+              x-model="receiveForm.received_date"
+            >
+          </div>
+        </div>
+
+        <!-- BODEGA DESTINO RECEPTORA -->
+        <div>
+          <label class="form-label-po">BODEGA RECEPTORA</label>
+          <div style="padding:10px 14px; background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:10px; color:#334155; font-weight:700; font-size:13.5px; display:flex; align-items:center; gap:8px;">
+            <i class="ph ph-warehouse" style="color:#714B67; font-size:16px;"></i>
+            <span x-text="poData.warehouse_name || 'Bodega Principal'"></span>
+          </div>
+        </div>
+
+        <!-- OBSERVACIONES -->
+        <div>
+          <label class="form-label-po">OBSERVACIONES DE RECEPCIÓN</label>
+          <input 
+            type="text" 
+            class="form-control-po" 
+            placeholder="Ej: Recibido en perfecto estado..." 
+            x-model="receiveForm.notes"
+          >
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div style="padding:14px 24px; background:#f8fafc; border-top:1px solid #e2e8f0; display:flex; justify-content:flex-end; gap:10px;">
+        <button type="button" class="btn btn-secondary" style="border-radius:8px; padding:9px 18px; font-weight:700;" @click="showReceiveModal = false">Cancelar</button>
+        <button type="button" class="btn btn-primary" style="background:#15803d; color:#ffffff; border:none; border-radius:8px; padding:9px 22px; font-weight:800; display:flex; align-items:center; gap:6px; cursor:pointer;" @click="confirmReceiveGoods()">
+          <i class="ph ph-check-circle"></i> Confirmar Ingreso a Bodega
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function purchaseFormPage(purchaseId) {
+    return {
+      purchaseId: purchaseId,
+      isSaving: false,
+      suppliers: [],
+      supplierDropdownOpen: false,
+      supplierSearch: '',
+      catalogProducts: [],
+      productSearchTerm: '',
+      showProductSearchResults: false,
+      warehouses: [],
+      showReceiveModal: false,
+      receiveForm: {
+        supplier_ref: '',
+        received_date: new Date().toISOString().split('T')[0],
+        notes: ''
+      },
+      poData: {
+        id: null,
+        number: '',
+        supplier_name: '',
+        supplier_nit: '',
+        supplier_phone: '',
+        warehouse_name: '',
+        state: 'draft',
+        subtotal: 0,
+        tax_amount: 0,
+        total: 0,
+        order_date: '',
+        expected_date: '',
+        received_date: '',
+        notes: '',
+        supplier_ref: '',
+        lines: []
+      },
+      form: {
+        supplier_id: '',
+        order_date: new Date().toISOString().split('T')[0],
+        expected_date: (function() {
+          const d = new Date();
+          d.setDate(d.getDate() + 3);
+          return d.toISOString().split('T')[0];
+        })(),
+        warehouse_id: '',
+        notes: '',
+        payment_terms: 'contado',
+        lines: [
+          { product_id: '', product_name: '', qty: 1, unit_price: 0, tax_rate: 12.0 }
+        ]
+      },
+
+      customCreditDays: 30,
+      calculatedSubtotal: 0,
+      calculatedTax: 0,
+      calculatedTotal: 0,
+
+      get selectedSupplier() {
+        if (!this.form.supplier_id) return null;
+        return this.suppliers.find(x => x.id === this.form.supplier_id) || null;
+      },
+
+      get calculatedDueDate() {
+        if (!this.form.payment_terms || this.form.payment_terms === 'contado') {
+          return 'Inmediato (Contado)';
+        }
+        let days = 0;
+        if (this.form.payment_terms.startsWith('credito_') && this.form.payment_terms !== 'credito_custom') {
+          days = parseInt(this.form.payment_terms.replace('credito_', ''), 10) || 0;
+        } else if (this.form.payment_terms === 'credito_custom') {
+          days = parseInt(this.customCreditDays, 10) || 0;
+        }
+        if (days <= 0) return 'Inmediato (Contado)';
+        const d = new Date();
+        d.setDate(d.getDate() + days);
+        const options = { day: '2-digit', month: 'short', year: 'numeric' };
+        return `${d.toLocaleDateString('es-GT', options)} (${days} días)`;
+      },
+
+      formatPaymentTermName(term) {
+        if (!term || term === 'contado') return '💵 Contado Inmediato (0 días)';
+        if (term === 'credito_15') return '⏳ Crédito 15 días';
+        if (term === 'credito_30') return '⏳ Crédito 30 días';
+        if (term === 'credito_45') return '⏳ Crédito 45 días';
+        if (term === 'credito_60') return '⏳ Crédito 60 días';
+        if (term === 'credito_90') return '⏳ Crédito 90 días';
+        if (term.startsWith('credito_')) {
+          const num = term.replace('credito_', '');
+          return `⏳ Crédito ${num} días`;
+        }
+        return term;
+      },
+
+      get filteredSuppliers() {
+        if (!this.supplierSearch || !this.supplierSearch.trim()) {
+          return this.suppliers;
+        }
+        const q = this.supplierSearch.toLowerCase().trim();
+        return this.suppliers.filter(s => 
+          (s.name && s.name.toLowerCase().includes(q)) ||
+          (s.nit && s.nit.toLowerCase().includes(q)) ||
+          (s.phone && s.phone.toLowerCase().includes(q))
+        );
+      },
+
+      get filteredCatalogProducts() {
+        if (!this.productSearchTerm || !this.productSearchTerm.trim()) {
+          return this.catalogProducts.slice(0, 10);
+        }
+        const q = this.productSearchTerm.toLowerCase().trim();
+        return this.catalogProducts.filter(p => 
+          (p.name && p.name.toLowerCase().includes(q)) ||
+          (p.internal_ref && p.internal_ref.toLowerCase().includes(q)) ||
+          (p.barcode && p.barcode.toLowerCase().includes(q))
+        ).slice(0, 15);
+      },
+
+      addProductFromSearch(p) {
+        // Verificar si la primera línea está vacía para reemplazarla
+        if (this.form.lines.length === 1 && !this.form.lines[0].product_id) {
+          this.form.lines[0] = {
+            product_id: p.id,
+            product_name: p.name,
+            qty: 1,
+            unit_price: Number(p.cost_price || 0),
+            tax_rate: Number(p.tax_rate || 12.0)
+          };
+        } else {
+          // Verificar si ya existe en las líneas
+          const existing = this.form.lines.find(l => l.product_id === p.id);
+          if (existing) {
+            existing.qty = (Number(existing.qty) || 0) + 1;
+          } else {
+            this.form.lines.push({
+              product_id: p.id,
+              product_name: p.name,
+              qty: 1,
+              unit_price: Number(p.cost_price || 0),
+              tax_rate: Number(p.tax_rate || 12.0)
+            });
+          }
+        }
+        this.productSearchTerm = '';
+        this.showProductSearchResults = false;
+        this.calculateTotals();
+      },
+
+      selectSupplier(s) {
+        this.form.supplier_id = s.id;
+        this.supplierDropdownOpen = false;
+        this.supplierSearch = '';
+        this.onSupplierChange();
+      },
+
+      get selectedSupplierInfo() {
+        if (!this.form.supplier_id) return '';
+        const s = this.suppliers.find(x => x.id === this.form.supplier_id);
+        if (!s) return '';
+        return `Tel: ${s.phone || s.mobile || 'N/A'} | Email: ${s.email || 'N/A'}`;
+      },
+
+      get selectedSupplierPhone() {
+        return this.poData.supplier_phone || '';
+      },
+
+      async init() {
+        await this.loadSuppliers();
+        await this.loadProducts();
+        await this.loadWarehouses();
+
+        if (this.purchaseId !== 'new') {
+          await this.loadPurchaseData();
+        } else {
+          this.calculateTotals();
+        }
+      },
+
+      async loadSuppliers() {
+        try {
+          const res = await API.get('/partners/?partner_type=supplier');
+          this.suppliers = res.items || res || [];
+        } catch(e) {}
+      },
+
+      async loadProducts() {
+        try {
+          const res = await API.get('/products/?limit=200');
+          this.catalogProducts = res.items || res || [];
+        } catch(e) {}
+      },
+
+      async loadWarehouses() {
+        try {
+          const res = await API.get('/branches/warehouses');
+          this.warehouses = res.items || res || [];
+          if (this.warehouses.length > 0 && !this.form.warehouse_id) {
+            this.form.warehouse_id = this.warehouses[0].id;
+          }
+        } catch(e) {
+          this.warehouses = [{ id: '', name: 'Bodega Principal', code: 'BOD-001' }];
+        }
+      },
+
+      async loadPurchaseData() {
+        try {
+          const res = await API.get(`/purchases/${this.purchaseId}`);
+          if (res) {
+            this.poData = res;
+            this.form.notes = res.notes || '';
+            this.form.payment_terms = res.payment_terms || 'contado';
+            this.calculatedSubtotal = res.subtotal || 0;
+            this.calculatedTax = res.tax_amount || 0;
+            this.calculatedTotal = res.total || 0;
+          }
+        } catch(e) {
+          alert('Error al cargar orden de compra: ' + (e.message || e));
+        }
+      },
+
+      onSupplierChange() {
+        if (!this.form.supplier_id) return;
+
+        // Auto-establecer condición de pago según los días de crédito predeterminados del proveedor
+        const s = this.suppliers.find(x => x.id === this.form.supplier_id);
+        if (s) {
+          const pDays = Number(s.payment_days || 0);
+          if (pDays > 0) {
+            if ([15, 30, 45, 60, 90].includes(pDays)) {
+              this.form.payment_terms = `credito_${pDays}`;
+            } else {
+              this.form.payment_terms = 'credito_custom';
+              this.customCreditDays = pDays;
+            }
+          } else {
+            this.form.payment_terms = 'contado';
+          }
+        }
+
+        // Filtrar productos asociados a este proveedor
+        const supplierProducts = this.catalogProducts.filter(p => p.supplier_id === this.form.supplier_id);
+
+        if (supplierProducts.length > 0) {
+          // Pre-poblar automáticamente todas las líneas con los productos de este proveedor
+          this.form.lines = supplierProducts.map(p => ({
+            product_id: p.id,
+            product_name: p.name,
+            qty: 1,
+            unit_price: Number(p.cost_price || 0),
+            tax_rate: Number(p.tax_rate || 12.0)
+          }));
+        } else {
+          // Si no tiene productos asignados, asegurar al menos 1 línea vacía
+          if (this.form.lines.length === 0) {
+            this.addLine();
+          }
+        }
+        this.calculateTotals();
+      },
+
+      onProductSelect(line) {
+        const prod = this.catalogProducts.find(p => p.id === line.product_id);
+        if (prod) {
+          line.product_name = prod.name;
+          line.unit_price = Number(prod.cost_price || 0);
+          line.tax_rate = Number(prod.tax_rate || 12.0);
+        }
+        this.calculateTotals();
+      },
+
+      addLine() {
+        this.form.lines.push({ product_id: '', product_name: '', qty: 1, unit_price: 0, tax_rate: 12.0 });
+        this.calculateTotals();
+      },
+
+      removeLine(idx) {
+        this.form.lines.splice(idx, 1);
+        this.calculateTotals();
+      },
+
+      calculateTotals() {
+        if (this.purchaseId !== 'new') return;
+
+        let sub = 0;
+        let tax = 0;
+        this.form.lines.forEach(l => {
+          const lSub = (Number(l.qty) || 0) * (Number(l.unit_price) || 0);
+          const lTax = lSub * ((Number(l.tax_rate) || 12) / 100);
+          sub += lSub;
+          tax += lTax;
+        });
+
+        this.calculatedSubtotal = sub;
+        this.calculatedTax = tax;
+        this.calculatedTotal = sub + tax;
+      },
+
+      async savePurchaseOrder() {
+        if (!this.form.supplier_id) {
+          return alert('Por favor selecciona un proveedor.');
+        }
+
+        const validLines = this.form.lines.filter(l => l.product_id && (Number(l.qty) || 0) > 0);
+        if (validLines.length === 0) {
+          return alert('Debes agregar al menos un producto con cantidad mayor a 0.');
+        }
+
+        this.isSaving = true;
+        try {
+          let terms = this.form.payment_terms;
+          if (terms === 'credito_custom') {
+            terms = `credito_${this.customCreditDays || 30}`;
+          }
+
+          const payload = {
+            supplier_id: this.form.supplier_id,
+            warehouse_id: this.form.warehouse_id || null,
+            order_date: this.form.order_date || null,
+            expected_date: this.form.expected_date || null,
+            notes: this.form.notes,
+            payment_terms: terms,
+            lines: validLines.map(l => ({
+              product_id: l.product_id,
+              product_name: l.product_name || 'Producto',
+              qty: Number(l.qty),
+              unit_price: Number(l.unit_price),
+              tax_rate: Number(l.tax_rate || 12.0)
+            }))
+          };
+
+          const res = await API.post('/purchases/', payload);
+          alert('¡Orden de compra creada exitosamente!');
+          window.location.href = `/purchases/${res.id}`;
+        } catch(e) {
+          alert('Error al crear orden de compra: ' + (e.message || e));
+        } finally {
+          this.isSaving = false;
+        }
+      },
+
+      receiveAllGoods() {
+        this.receiveForm.supplier_ref = this.poData.supplier_ref || '';
+        this.receiveForm.received_date = new Date().toISOString().split('T')[0];
+        this.receiveForm.notes = '';
+        this.showReceiveModal = true;
+      },
+
+      async confirmReceiveGoods() {
+        if (!this.receiveForm.supplier_ref || !this.receiveForm.supplier_ref.trim()) {
+          return alert('Por favor ingresa el No. de Factura / Ref. del proveedor.');
+        }
+
+        try {
+          await API.post(`/purchases/${this.purchaseId}/receive`, {
+            supplier_ref: this.receiveForm.supplier_ref.trim(),
+            received_date: this.receiveForm.received_date,
+            notes: this.receiveForm.notes
+          });
+          this.showReceiveModal = false;
+          alert('¡Mercadería recibida con éxito! Stock e inventario Kardex actualizados.');
+          await this.loadPurchaseData();
+        } catch(e) {
+          alert('Error al recibir mercadería: ' + (e.message || e));
+        }
+      },
+
+      async createSupplierBillFromPO() {
+        if (!confirm(`¿Deseas generar la Factura de Cuentas por Pagar (AP) para la orden ${this.poData.number}?`)) return;
+        try {
+          const res = await API.post(`/purchases/${this.purchaseId}/create-bill`, {});
+          if (res) {
+            if (res.status === 'already_exists') {
+              alert(res.message);
+            } else {
+              if (confirm(`¡Factura ${res.number} generada en Cuentas por Pagar!\nTotal: Q ${Number(res.total).toFixed(2)}\nVence: ${res.due_date}\n\n¿Deseas ir al módulo de Cuentas por Pagar (AP) ahora?`)) {
+                window.location.href = '/ap';
+              }
+            }
+          }
+        } catch(e) {
+          alert('Error al generar factura CxP: ' + (e.message || e));
+        }
+      },
+
+      printPurchaseOrder() {
+        const w = window.open('', '_blank');
+        let linesHtml = '';
+        (this.poData.lines || []).forEach(l => {
+          linesHtml += `
+            <tr>
+              <td style="padding:8px; border-bottom:1px solid #ddd;">${l.product_name}</td>
+              <td style="padding:8px; border-bottom:1px solid #ddd; text-align:center;">${l.qty_ordered}</td>
+              <td style="padding:8px; border-bottom:1px solid #ddd; text-align:right;">Q ${Number(l.unit_price).toFixed(2)}</td>
+              <td style="padding:8px; border-bottom:1px solid #ddd; text-align:right;">Q ${Number(l.subtotal || l.total).toFixed(2)}</td>
+            </tr>
+          `;
+        });
+
+        const html = `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Orden de Compra — ${this.poData.number}</title>
+            <style>
+              body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 40px; color: #1e293b; }
+              .header { display: flex; justify-content: space-between; border-bottom: 2px solid #714B67; padding-bottom: 20px; margin-bottom: 20px; }
+              table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+              th { background: #f8fafc; padding: 10px 8px; text-align: left; font-size: 11px; text-transform: uppercase; border-bottom: 2px solid #cbd5e1; }
+            </style>
+          </head>
+          <body onload="window.print()">
+            <div class="header">
+              <div>
+                <h2 style="margin:0; color:#714B67;">POS EMPRESARIAL GT</h2>
+                <div style="font-size:12px; color:#64748b; margin-top:4px;">Guatemala, C.A.</div>
+              </div>
+              <div style="text-align:right;">
+                <h3 style="margin:0;">ORDEN DE COMPRA</h3>
+                <div style="font-weight:bold; font-size:16px; color:#714B67;">${this.poData.number}</div>
+                <div style="font-size:12px; color:#64748b;">Fecha: ${this.poData.order_date || ''}</div>
+              </div>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; background:#f8fafc; padding:15px; border-radius:8px;">
+              <div>
+                <strong>PROVEEDOR:</strong><br>
+                ${this.poData.supplier_name}<br>
+                NIT: ${this.poData.supplier_nit || 'C/F'}<br>
+                Tel: ${this.poData.supplier_phone || 'N/A'}
+              </div>
+              <div style="text-align:right;">
+                <strong>ESTADO:</strong><br>
+                ${this.poData.state === 'received' ? 'Mercadería Recibida' : 'Orden Confirmada'}
+              </div>
+            </div>
+
+            <table>
+              <thead>
+                <tr>
+                  <th>Descripción del Producto</th>
+                  <th style="text-align:center;">Cantidad</th>
+                  <th style="text-align:right;">Costo Unit.</th>
+                  <th style="text-align:right;">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${linesHtml}
+              </tbody>
+            </table>
+
+            <div style="display:flex; justify-content:flex-end; margin-top:30px;">
+              <div style="width:280px;">
+                <div style="display:flex; justify-content:space-between; padding:4px 0;">
+                  <span>Subtotal:</span>
+                  <strong>Q ${Number(this.poData.subtotal || 0).toFixed(2)}</strong>
+                </div>
+                <div style="display:flex; justify-content:space-between; padding:4px 0;">
+                  <span>IVA (12%):</span>
+                  <strong>Q ${Number(this.poData.tax_amount || 0).toFixed(2)}</strong>
+                </div>
+                <div style="display:flex; justify-content:space-between; padding:8px 0; border-top:2px solid #714B67; font-size:16px; color:#714B67;">
+                  <strong>TOTAL:</strong>
+                  <strong>Q ${Number(this.poData.total || 0).toFixed(2)}</strong>
+                </div>
+              </div>
+            </div>
+
+            <div style="margin-top:60px; display:flex; justify-content:space-around; text-align:center;">
+              <div style="border-top:1px solid #94a3b8; width:200px; padding-top:6px; font-size:12px;">Firma Autorizada</div>
+              <div style="border-top:1px solid #94a3b8; width:200px; padding-top:6px; font-size:12px;">Recibido Conforme Bodega</div>
+            </div>
+          </body>
+          </html>
+        `;
+        w.document.write(html);
+        w.document.close();
+      },
+
+      sendWhatsAppToSupplier() {
+        if (!this.selectedSupplierPhone) return alert('El proveedor no tiene un teléfono registrado.');
+        const phone = this.selectedSupplierPhone.replace(/[^0-9]/g, '');
+        const msg = encodeURIComponent(`Hola! Te comparto la Orden de Compra ${this.poData.number} por un total de Q ${Number(this.poData.total || 0).toFixed(2)}.`);
+        window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
+      }
+    }
+  }
+</script>
+{% endblock %}

@@ -24,7 +24,6 @@ const API = {
     const resp = await fetch(url, opts);
 
     if (resp.status === 401) {
-      // Intentar refresh token
       const refreshed = await this._refreshToken();
       if (refreshed) {
         opts.headers = this._getHeaders();
@@ -33,6 +32,7 @@ const API = {
         return retry.json();
       } else {
         localStorage.clear();
+        document.cookie = "access_token=; path=/; max-age=0; SameSite=Lax";
         window.location.href = '/login';
         return;
       }
@@ -59,6 +59,7 @@ const API = {
       if (!resp.ok) return false;
       const data = await resp.json();
       localStorage.setItem('access_token', data.access_token);
+      document.cookie = `access_token=${data.access_token}; path=/; max-age=86400; SameSite=Lax`;
       return true;
     } catch { return false; }
   },
@@ -105,7 +106,10 @@ function formatMoney(value, currency = 'GTQ') {
  * Offline sync
  */
 async function syncOfflineSales() {
-  const offlineSales = JSON.parse(localStorage.getItem('offline_sales') || '[]');
+  // If we are on the POS screen, let the POS page's specific UI-aware syncing logic handle it
+  if (window.location.pathname.includes('/pos')) return;
+
+  const offlineSales = JSON.parse(localStorage.getItem('pos_offline_sales') || '[]');
   if (offlineSales.length === 0 || !navigator.onLine) return;
 
   let synced = 0;
@@ -120,7 +124,7 @@ async function syncOfflineSales() {
     }
   }
 
-  localStorage.setItem('offline_sales', JSON.stringify(remaining));
+  localStorage.setItem('pos_offline_sales', JSON.stringify(remaining));
 
   if (synced > 0) {
     showToast(`${synced} venta(s) sincronizada(s) con el servidor`, 'success');

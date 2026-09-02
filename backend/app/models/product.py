@@ -92,6 +92,9 @@ class Product(BaseModel):
     sale_price = Column(Numeric(18, 4), nullable=False, default=0)
     cost_price = Column(Numeric(18, 4), default=0)
     min_price = Column(Numeric(18, 4), default=0)  # Precio mínimo de venta
+    wholesale_price = Column(Numeric(18, 4), default=0)  # Precio de venta mayorista
+    wholesale_uom_id = Column(UUID(as_uuid=True), ForeignKey("units_of_measure.id"), nullable=True)  # Unidad mayorista (paquete, caja, etc)
+    wholesale_ratio = Column(Numeric(18, 4), default=1.0)  # Cantidad de unidades base que contiene (ej: 12 por paquete)
 
     # Impuestos
     tax_rate = Column(Numeric(5, 2), default=12.00)
@@ -109,12 +112,15 @@ class Product(BaseModel):
     can_be_purchased = Column(Boolean, default=True)
 
     # Metadata extra
+    supplier_id = Column(UUID(as_uuid=True), ForeignKey("partners.id"), nullable=True)
     attributes = Column(JSONB, default=dict)  # Atributos flexibles
 
     # Relationships
     category = relationship("ProductCategory", back_populates="products")
+    supplier = relationship("Partner", foreign_keys=[supplier_id], lazy="selectin")
     uom = relationship("UnitOfMeasure", foreign_keys=[uom_id])
     uom_purchase = relationship("UnitOfMeasure", foreign_keys=[uom_purchase_id])
+    wholesale_uom = relationship("UnitOfMeasure", foreign_keys=[wholesale_uom_id])
     variants = relationship("ProductVariant", back_populates="product", lazy="selectin")
     price_lists = relationship("ProductPrice", back_populates="product")
     stock_lots = relationship("StockLot", back_populates="product")

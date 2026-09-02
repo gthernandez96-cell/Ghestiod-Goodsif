@@ -1,0 +1,161 @@
+{% set show_layout = true %}
+{% extends "base.html" %}
+
+{% block title %}Facturación y Notas de Crédito FEL — POS Empresarial{% endblock %}
+
+{% block content %}
+<div x-data="invoicingPage()" x-init="init()">
+  
+  <!-- ===== ODOO CONTROL PANEL SUB-HEADER ===== -->
+  <div style="margin:-20px -24px 20px -24px; padding:10px 24px; background:#ffffff; border-bottom:1px solid #e2e8f0; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+    <div style="display:flex; align-items:center; gap:12px;">
+      <button class="btn btn-primary" style="background:#714B67; color:#ffffff; font-weight:700; border-radius:4px; padding:6px 16px; border:none;" @click="openCreditNoteModal()">
+        + Nota de Crédito
+      </button>
+      <div style="font-size:15px; font-weight:700; color:#334155; display:flex; align-items:center; gap:6px;">
+        <span>Facturación / Facturas Electrónicas & Notas de Crédito SAT (FEL)</span>
+        <i class="ph ph-gear" style="font-size:14px; color:#64748b;"></i>
+      </div>
+    </div>
+
+    <!-- ODOO SEARCH BAR -->
+    <div style="position:relative; display:flex; align-items:center; width:380px; max-width:100%;">
+      <i class="ph ph-magnifying-glass" style="position:absolute; left:12px; color:#714B67 !important; font-size:18px !important; font-weight:800 !important; pointer-events:none; z-index:10;"></i>
+      <input type="text" placeholder="Buscar por DTE, NIT o Cliente..." style="width:100% !important; background-color:#ffffff !important; background:#ffffff !important; border:2px solid #714B67 !important; border-radius:8px !important; padding:8px 34px 8px 38px !important; font-size:13.5px !important; font-weight:600 !important; color:#1e293b !important; box-shadow:0 2px 8px rgba(113,75,103,0.12) !important; outline:none !important;" x-model="search">
+    </div>
+
+  </div>
+
+  <!-- SUMMARY CARDS -->
+  <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:20px; margin-bottom:24px;">
+    <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+      <div style="font-size:12px; font-weight:700; color:#64748b; text-transform:uppercase;">Facturas Certificadas (DTE)</div>
+      <div style="font-size:24px; font-weight:800; color:#0d9488; margin-top:4px;">142 DTEs</div>
+      <div style="font-size:11.5px; color:#10b981; margin-top:8px; font-weight:600;">✓ 100% Válidos en la SAT</div>
+    </div>
+
+    <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+      <div style="font-size:12px; font-weight:700; color:#64748b; text-transform:uppercase;">Notas de Crédito Emitidas</div>
+      <div style="font-size:24px; font-weight:800; color:#714B67; margin-top:4px;">3 DTEs (Q 340.00)</div>
+      <div style="font-size:11.5px; color:#64748b; margin-top:8px;">Devolución de mercadería</div>
+    </div>
+
+    <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+      <div style="font-size:12px; font-weight:700; color:#64748b; text-transform:uppercase;">Impuesto Débito IVA (12%)</div>
+      <div style="font-size:24px; font-weight:800; color:#6366f1; margin-top:4px;">Q 1,782.00</div>
+      <div style="font-size:11.5px; color:#64748b; margin-top:8px;">Libro de Ventas SAT</div>
+    </div>
+  </div>
+
+  <!-- INVOICES & CREDIT NOTES TABLE -->
+  <div class="card p-0" style="overflow:hidden; background:#ffffff; border:1px solid #e2e8f0; border-radius:8px;">
+    <div class="table-responsive">
+      <table class="table" style="width:100%; border-collapse:collapse;">
+        <thead>
+          <tr style="border-bottom:2px solid #e2e8f0; background:#ffffff;">
+            <th style="padding:12px 16px; text-align:left; color:#475569; font-size:11px; text-transform:uppercase; font-weight:700;">Tipo DTE</th>
+            <th style="padding:12px 16px; text-align:left; color:#475569; font-size:11px; text-transform:uppercase; font-weight:700;">Número / UUID SAT</th>
+            <th style="padding:12px 16px; text-align:left; color:#475569; font-size:11px; text-transform:uppercase; font-weight:700;">Cliente / NIT</th>
+            <th style="padding:12px 16px; text-align:left; color:#475569; font-size:11px; text-transform:uppercase; font-weight:700;">Fecha Emisión</th>
+            <th style="padding:12px 16px; text-align:right; color:#475569; font-size:11px; text-transform:uppercase; font-weight:700;">Total (Q)</th>
+            <th style="padding:12px 16px; text-align:left; color:#475569; font-size:11px; text-transform:uppercase; font-weight:700;">Estado Odoo</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="doc in filteredDocs" :key="doc.id">
+            <tr style="border-bottom:1px solid #f1f5f9;">
+              <td style="padding:12px 16px;">
+                <span style="font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:4px;" :class="doc.doc_type === 'NCRE' ? 'bg-purple-100 text-purple-800' : 'bg-emerald-100 text-emerald-800'" x-text="doc.doc_type === 'NCRE' ? 'Nota de Crédito' : 'Facturación FEL'"></span>
+              </td>
+              <td style="padding:12px 16px; font-weight:700; color:#714B67;" x-text="doc.uuid"></td>
+              <td style="padding:12px 16px; color:#1e293b;" x-text="doc.customer + ' (' + doc.nit + ')'"></td>
+              <td style="padding:12px 16px; color:#64748b;" x-text="doc.date"></td>
+              <td style="padding:12px 16px; text-align:right; font-weight:700; color:#0d9488;" x-text="'Q ' + Number(doc.total).toFixed(2)"></td>
+              <td style="padding:12px 16px;">
+                <span style="font-size:11px; font-weight:700; padding:3px 10px; border-radius:12px; background:#dcfce7; color:#166534;">✓ Certificado SAT</span>
+              </td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- MODAL NUEVA NOTA DE CRÉDITO -->
+  <div class="modal-backdrop" x-show="showCNModal" style="display:none" x-cloak>
+    <div class="modal" style="max-width:600px; background:#ffffff; border-radius:8px; padding:20px; box-shadow:0 10px 25px rgba(0,0,0,0.15);">
+      <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:12px; margin-bottom:16px;">
+        <h3 class="modal-title" style="font-size:16px; font-weight:700; color:#1e293b;">Emitir Nota de Crédito FEL (Devolución)</h3>
+        <button class="modal-close" style="border:none; background:none; font-size:20px; cursor:pointer;" @click="showCNModal = false">&times;</button>
+      </div>
+      <div class="modal-body space-y-4">
+        <div>
+          <label class="form-label" style="font-weight:600; font-size:12px; color:#475569;">UUID de Factura de Origen *</label>
+          <input type="text" class="form-control" style="width:100%; padding:8px 12px; margin-top:4px;" x-model="cnForm.origin_uuid" placeholder="e.g. DTE-9A8B7C-1234">
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px;">
+          <div>
+            <label class="form-label" style="font-weight:600; font-size:12px; color:#475569;">Monto de Devolución (Q)</label>
+            <input type="number" step="0.01" class="form-control" style="width:100%; padding:8px 12px; margin-top:4px;" x-model="cnForm.amount">
+          </div>
+          <div>
+            <label class="form-label" style="font-weight:600; font-size:12px; color:#475569;">Motivo de Devolución</label>
+            <select class="form-control" style="width:100%; padding:8px 12px; margin-top:4px;" x-model="cnForm.reason">
+              <option value="Devolución de producto">Devolución de producto</option>
+              <option value="Descuento concedido">Descuento concedido</option>
+              <option value="Anulación de factura">Anulación de factura</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px; border-top:1px solid #e2e8f0; padding-top:12px;">
+        <button class="btn btn-secondary" @click="showCNModal = false">Cancelar</button>
+        <button class="btn btn-primary" style="background:#714B67; color:#ffffff;" @click="saveCreditNote()">Emitir Nota de Crédito</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function invoicingPage() {
+    return {
+      search: '',
+      showCNModal: false,
+      cnForm: { origin_uuid: '', amount: 0, reason: 'Devolución de producto' },
+      docs: [
+        { id: 1, doc_type: 'FACT', uuid: 'DTE-9A8B7C-1234', customer: 'Consumidor Final', nit: 'CF', date: '2026-08-08', total: 120.00 },
+        { id: 2, doc_type: 'FACT', uuid: 'DTE-4D5E6F-5678', customer: 'Comercial La Bendición', nit: '1234567-8', date: '2026-08-08', total: 450.00 },
+        { id: 3, doc_type: 'NCRE', uuid: 'NCRE-112233-9988', customer: 'Comercial La Bendición', nit: '1234567-8', date: '2026-08-08', total: 150.00 }
+      ],
+
+      get filteredDocs() {
+        if (!this.search) return this.docs;
+        const q = this.search.toLowerCase();
+        return this.docs.filter(d => d.uuid.toLowerCase().includes(q) || d.customer.toLowerCase().includes(q) || d.nit.toLowerCase().includes(q));
+      },
+
+      init() {},
+
+      openCreditNoteModal() {
+        this.showCNModal = true;
+      },
+
+      saveCreditNote() {
+        if (!this.cnForm.origin_uuid) return alert('El UUID de origen es requerido');
+        const nextId = this.docs.length + 1;
+        this.docs.unshift({
+          id: nextId,
+          doc_type: 'NCRE',
+          uuid: 'NCRE-' + Math.floor(100000 + Math.random() * 900000),
+          customer: 'Cliente Registrado',
+          nit: 'CF',
+          date: 'Hoy',
+          total: Number(this.cnForm.amount || 0)
+        });
+        this.showCNModal = false;
+      }
+    }
+  }
+</script>
+{% endblock %}

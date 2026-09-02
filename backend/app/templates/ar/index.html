@@ -1,0 +1,1347 @@
+{% set show_layout = true %}
+{% extends "base.html" %}
+
+{% block title %}Cuentas por Cobrar & Control de Créditos — POS Empresarial{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* =============================================
+     EXECUTIVE AR & CREDIT MANAGEMENT STYLES
+     Exact match with Customers & Inventory modules
+     ============================================= */
+  .ar-kpi-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 16px 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .ar-kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.06);
+  }
+
+  .odoo-ar-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    transition: all 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+    position: relative;
+    cursor: pointer;
+    min-height: 140px;
+  }
+  .odoo-ar-card:hover {
+    transform: translateY(-3px);
+    border-color: #714B67;
+    box-shadow: 0 10px 24px rgba(113, 75, 103, 0.12);
+  }
+
+  .odoo-search-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 380px;
+    max-width: 100%;
+  }
+  .odoo-search-input {
+    width: 100%;
+    background: #ffffff !important;
+    border: 1.5px solid #cbd5e1 !important;
+    border-radius: 8px !important;
+    padding: 8px 34px 8px 38px !important;
+    font-size: 13.5px !important;
+    font-weight: 600 !important;
+    color: #1e293b !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+    transition: all 0.2s ease !important;
+    outline: none !important;
+  }
+  .odoo-search-input:focus {
+    border-color: #714B67 !important;
+    box-shadow: 0 0 0 3px rgba(113, 75, 103, 0.15) !important;
+  }
+
+  .filter-pill {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12.5px;
+    font-weight: 700;
+    cursor: pointer;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    color: #475569;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .filter-pill:hover {
+    background: #f1f5f9;
+    color: #1e293b;
+  }
+  .filter-pill.active {
+    background: #714B67;
+    color: #ffffff;
+    border-color: #714B67;
+    box-shadow: 0 2px 8px rgba(113, 75, 103, 0.25);
+  }
+
+  .view-switcher-btn {
+    padding: 7px 12px;
+    border: none;
+    cursor: pointer;
+    font-size: 15px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    background: #ffffff;
+    color: #64748b;
+  }
+  .view-switcher-btn.active {
+    background: #714B67 !important;
+    color: #ffffff !important;
+  }
+
+  /* Table Style matching CRM / Inventory */
+  .crm-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .crm-table th {
+    background: #f8fafc;
+    color: #475569;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 12px 16px;
+    border-bottom: 2px solid #e2e8f0;
+    text-align: left;
+  }
+  .crm-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid #f1f5f9;
+    color: #1e293b;
+    vertical-align: middle;
+  }
+  .crm-table tr:hover td {
+    background: #fdfaff;
+  }
+
+  /* Thermal Receipt Printable Area */
+  .receipt-thermal-paper {
+    width: 320px;
+    margin: 0 auto;
+    background: #ffffff;
+    border: 1px dashed #cbd5e1;
+    border-radius: 6px;
+    padding: 16px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 12px;
+    color: #0f172a;
+    line-height: 1.4;
+  }
+
+  @media print {
+    body * {
+      visibility: hidden;
+    }
+    #printableReceipt, #printableReceipt * {
+      visibility: visible;
+    }
+    #printableReceipt {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      border: none !important;
+      padding: 0 !important;
+      margin: 0 !important;
+    }
+    #printableStatement, #printableStatement * {
+      visibility: visible;
+    }
+    #printableStatement {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      padding: 15px;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div x-data="arApp()" x-init="init()">
+  
+  <!-- ===== 1. TOP HEADER BAR (Exact match with other modules) ===== -->
+  <div style="margin:-20px -24px 20px -24px; padding:14px 24px; background:#ffffff; border-bottom:1px solid #e2e8f0; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+    
+    <!-- Left: Actions & Title -->
+    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+      <button 
+        type="button"
+        @click="openNewInvoiceModal()" 
+        class="btn btn-primary" 
+        style="background:#714B67; color:#ffffff; font-weight:800; border-radius:8px; padding:8px 18px; border:none; box-shadow:0 2px 8px rgba(113,75,103,0.25); display:flex; align-items:center; gap:6px; cursor:pointer;"
+      >
+        <i class="ph ph-plus" style="font-weight:800;"></i> Nueva CxC
+      </button>
+
+      <a 
+        href="/api/v1/ar/export" 
+        class="btn btn-secondary" 
+        style="background:#ffffff; color:#334155; border:1px solid #cbd5e1; font-weight:700; border-radius:8px; padding:7px 14px; font-size:12.5px; display:flex; align-items:center; gap:6px; cursor:pointer; text-decoration:none;" 
+        download
+      >
+        <i class="ph ph-file-arrow-down" style="font-size:16px; color:#0d9488;"></i> Exportar Excel / CSV
+      </a>
+
+      <div style="font-size:15px; font-weight:800; color:#1e293b; display:flex; align-items:center; gap:8px; margin-left:4px;">
+        <span>Cuentas por Cobrar & Créditos</span>
+      </div>
+    </div>
+
+    <!-- Center: Search Input -->
+    <div class="odoo-search-container">
+      <i class="ph ph-magnifying-glass" style="position:absolute; left:12px; color:#714B67; font-size:17px; font-weight:800; pointer-events:none;"></i>
+      <input
+        type="text"
+        class="odoo-search-input"
+        placeholder="Buscar por cliente, NIT o documento..."
+        x-model="searchQuery"
+        @input.debounce.250ms="loadInvoices()"
+      >
+      <i class="ph ph-x-circle" style="position:absolute; right:12px; color:#94a3b8; font-size:17px; cursor:pointer;" x-show="searchQuery.length > 0" @click="searchQuery = ''; loadInvoices()"></i>
+    </div>
+
+    <!-- Right: View Switcher -->
+    <div style="display:flex; align-items:center; gap:10px;">
+      <div style="display:flex; border:1px solid #cbd5e1; border-radius:8px; overflow:hidden; background:#ffffff; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+        <button
+          class="view-switcher-btn"
+          :class="viewMode === 'kanban' ? 'active' : ''"
+          @click="viewMode = 'kanban'"
+          title="Vista Tarjetas"
+        >
+          <i class="ph ph-squares-four"></i>
+        </button>
+        <button
+          class="view-switcher-btn"
+          :class="viewMode === 'list' ? 'active' : ''"
+          @click="viewMode = 'list'"
+          title="Vista Tabla"
+          style="border-left:1px solid #cbd5e1;"
+        >
+          <i class="ph ph-list-bullets"></i>
+        </button>
+        <button
+          class="view-switcher-btn"
+          :class="viewMode === 'aging' ? 'active' : ''"
+          @click="viewMode = 'aging'"
+          title="Antigüedad de Saldos"
+          style="border-left:1px solid #cbd5e1;"
+        >
+          <i class="ph ph-chart-bar"></i>
+        </button>
+        <button
+          class="view-switcher-btn"
+          :class="viewMode === 'statements' ? 'active' : ''"
+          @click="viewMode = 'statements'"
+          title="Estados de Cuenta"
+          style="border-left:1px solid #cbd5e1;"
+        >
+          <i class="ph ph-users"></i>
+        </button>
+      </div>
+
+      <button 
+        type="button" 
+        @click="loadAllData()" 
+        class="btn btn-secondary" 
+        style="background:#ffffff; border:1px solid #cbd5e1; border-radius:8px; padding:7px 10px; color:#64748b; cursor:pointer;"
+        title="Actualizar"
+      >
+        <i class="ph ph-arrows-clockwise text-base" :class="loading ? 'animate-spin' : ''"></i>
+      </button>
+    </div>
+
+  </div>
+
+
+  <!-- ===== 2. SEGMENTATION & FILTER PILLS ===== -->
+  <div style="position:relative; display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:20px;">
+
+    <!-- Filter Pills -->
+    <span style="font-size:12px; font-weight:800; color:#64748b;">FILTRAR:</span>
+    <button class="filter-pill" :class="filterStatus === 'all' ? 'active' : ''" @click="filterStatus = 'all'; loadInvoices()">
+      <span>Todas</span>
+      <span style="background:rgba(0,0,0,0.08); padding:1px 6px; border-radius:10px; font-size:11px;" x-text="invoices.length"></span>
+    </button>
+    <button class="filter-pill" :class="filterStatus === 'open' ? 'active' : ''" @click="filterStatus = 'open'; loadInvoices()">
+      <span>Pendientes</span>
+    </button>
+    <button class="filter-pill" :class="filterStatus === 'overdue' ? 'active' : ''" @click="filterStatus = 'overdue'; loadInvoices()" style="color:#dc2626;">
+      <span>⚠️ En Mora</span>
+    </button>
+    <button class="filter-pill" :class="filterStatus === 'due_soon' ? 'active' : ''" @click="filterStatus = 'due_soon'; loadInvoices()" style="color:#d97706;">
+      <span>⏳ Por Vencer</span>
+    </button>
+    <button class="filter-pill" :class="filterStatus === 'paid' ? 'active' : ''" @click="filterStatus = 'paid'; loadInvoices()">
+      <span>🟢 Pagadas</span>
+    </button>
+
+    <!-- Right Controls: Resumen Button -->
+    <div style="margin-left:auto; display:flex; align-items:center; gap:10px; position:relative;">
+      <!-- KPI Toggle Button exactly like Inventory/Customers -->
+      <button
+        type="button"
+        @click="showKpis = !showKpis"
+        style="
+          display:inline-flex; align-items:center; gap:7px;
+          padding:6px 14px;
+          background:linear-gradient(135deg, #714B67 0%, #9b6b8f 100%);
+          border:none; border-radius:20px;
+          font-size:11.5px; font-weight:800; color:#ffffff;
+          cursor:pointer; transition:all 0.22s cubic-bezier(0.4,0,0.2,1);
+          box-shadow:0 2px 10px rgba(113,75,103,0.3);
+          letter-spacing:0.3px; white-space:nowrap;
+        "
+      >
+        <i class="ph ph-chart-bar" style="font-size:15px;"></i>
+        <span x-text="showKpis ? 'Ocultar resumen' : 'Resumen de Cartera'"></span>
+        <i
+          class="ph ph-caret-down"
+          style="font-size:12px; transition:transform 0.25s ease;"
+          :style="showKpis ? 'transform:rotate(180deg)' : 'transform:rotate(0deg)'"
+        ></i>
+      </button>
+
+      <!-- KPI Floating Panel Dropdown -->
+      <div
+        x-show="showKpis"
+        @click.outside="showKpis = false"
+        x-transition
+        style="
+          position:absolute; top:calc(100% + 8px); right:0; z-index:50;
+          background:#ffffff; border:1px solid #e2e8f0; border-radius:14px;
+          box-shadow:0 12px 32px rgba(0,0,0,0.12); padding:16px;
+          display:grid; grid-template-columns:repeat(2, minmax(180px, 1fr)); gap:12px; width:440px;
+        "
+        x-cloak
+      >
+        <div class="ar-kpi-card" style="padding:12px 14px;">
+          <div>
+            <div style="font-size:10px; font-weight:800; color:#64748b; text-transform:uppercase;">Cartera Total</div>
+            <div style="font-size:16px; font-weight:900; color:#714B67; margin-top:2px;" x-text="formatMoney(kpis.total_receivable)"></div>
+          </div>
+          <div style="width:36px; height:36px; border-radius:8px; background:#f4eff3; color:#714B67; display:flex; align-items:center; justify-content:center; font-size:18px;">
+            <i class="ph ph-wallet"></i>
+          </div>
+        </div>
+
+        <div class="ar-kpi-card" style="padding:12px 14px;">
+          <div>
+            <div style="font-size:10px; font-weight:800; color:#b45309; text-transform:uppercase;">Por Vencer (7d)</div>
+            <div style="font-size:16px; font-weight:900; color:#b45309; margin-top:2px;" x-text="(kpis.due_soon_count || 0) + ' facturas'"></div>
+          </div>
+          <div style="width:36px; height:36px; border-radius:8px; background:#fef3c7; color:#b45309; display:flex; align-items:center; justify-content:center; font-size:18px;">
+            <i class="ph ph-clock-countdown"></i>
+          </div>
+        </div>
+
+        <div class="ar-kpi-card" style="padding:12px 14px;">
+          <div>
+            <div style="font-size:10px; font-weight:800; color:#be123c; text-transform:uppercase;">En Mora</div>
+            <div style="font-size:16px; font-weight:900; color:#be123c; margin-top:2px;" x-text="formatMoney(kpis.overdue_amount)"></div>
+          </div>
+          <div style="width:36px; height:36px; border-radius:8px; background:#ffe4e6; color:#be123c; display:flex; align-items:center; justify-content:center; font-size:18px;">
+            <i class="ph ph-warning-circle"></i>
+          </div>
+        </div>
+
+        <div class="ar-kpi-card" style="padding:12px 14px;">
+          <div>
+            <div style="font-size:10px; font-weight:800; color:#047857; text-transform:uppercase;">Cobrado Mes</div>
+            <div style="font-size:16px; font-weight:900; color:#047857; margin-top:2px;" x-text="formatMoney(kpis.collected_this_month)"></div>
+          </div>
+          <div style="width:36px; height:36px; border-radius:8px; background:#d1fae5; color:#047857; display:flex; align-items:center; justify-content:center; font-size:18px;">
+            <i class="ph ph-check-circle"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+
+  <!-- ===== 3. VISTA 1: TARJETAS DE CLIENTES CON CRÉDITO (KANBAN) ===== -->
+  <div x-show="viewMode === 'kanban'" x-cloak>
+    <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(310px, 1fr)); gap:16px;">
+      <template x-for="inv in invoices" :key="inv.customer_id || inv.id">
+        <div class="odoo-ar-card" @click="openDetailModal(inv.customer_id || inv.id)">
+          <div>
+            <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:8px;">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <div style="width:40px; height:40px; border-radius:8px; background:#f4eff3; color:#714B67; font-weight:900; font-size:16px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                  <i class="ph ph-user"></i>
+                </div>
+                <div>
+                  <div style="font-weight:900; font-size:14.5px; color:#1e293b;" x-text="inv.customer_name"></div>
+                  <div style="font-size:11.5px; color:#64748b;" x-text="'NIT: ' + inv.customer_nit + (inv.customer_phone ? ' • ' + inv.customer_phone : '')"></div>
+                </div>
+              </div>
+              <span 
+                style="padding:3px 8px; border-radius:12px; font-size:10.5px; font-weight:800; text-transform:uppercase; flex-shrink:0;"
+                :style="inv.balance <= 0 ? 'background:#dcfce7; color:#166534;' : (inv.status === 'overdue' ? 'background:#fee2e2; color:#991b1b;' : (inv.status === 'due_soon' ? 'background:#fef3c7; color:#92400e;' : 'background:#e0f2fe; color:#0369a1;'))"
+                x-text="inv.balance <= 0 ? 'AL DÍA' : (inv.status === 'overdue' ? 'EN MORA' : (inv.status === 'due_soon' ? 'POR VENCER' : 'AL DÍA'))"
+              ></span>
+            </div>
+
+            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:8px 10px; margin-top:10px; font-size:11.5px; color:#475569;">
+              <div style="display:flex; justify-content:space-between; margin-bottom:3px;">
+                <span>1er Crédito Otorgado:</span>
+                <strong style="color:#1e293b;" x-text="inv.first_credit_date || inv.issue_date"></strong>
+              </div>
+              <div style="display:flex; justify-content:space-between; margin-bottom:3px;">
+                <span>Plazo de Crédito:</span>
+                <strong style="color:#714B67;" x-text="inv.payment_days + ' días'"></strong>
+              </div>
+              <div style="display:flex; justify-content:space-between;">
+                <span>Fecha Límite:</span>
+                <strong :style="inv.status === 'overdue' ? 'color:#dc2626;' : 'color:#1e293b;'" x-text="inv.due_date"></strong>
+              </div>
+            </div>
+          </div>
+
+          <div style="border-top:1px solid #f1f5f9; padding-top:10px; margin-top:10px; display:flex; align-items:center; justify-content:space-between;">
+            <div>
+              <div style="font-size:10px; font-weight:800; color:#64748b; text-transform:uppercase;">Límite Crédito</div>
+              <div style="font-size:12.5px; font-weight:700; color:#334155;" x-text="formatMoney(inv.credit_limit)"></div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:10px; font-weight:800; color:#64748b; text-transform:uppercase;">Saldo Deudor</div>
+              <div style="font-size:16px; font-weight:900;" :style="inv.balance > 0 ? 'color:#dc2626;' : 'color:#16a34a;'" x-text="formatMoney(inv.balance)"></div>
+            </div>
+          </div>
+
+          <!-- Bottom Action Button -->
+          <div style="margin-top:10px;" x-show="inv.balance > 0" @click.stop>
+            <button 
+              type="button" 
+              @click="openPaymentModal(inv)"
+              style="width:100%; background:#059669; hover:background:#047857; color:#ffffff; font-size:12px; font-weight:800; padding:7px; border-radius:6px; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;"
+            >
+              <i class="ph ph-hand-coins" style="font-size:15px;"></i> Registrar Abono
+            </button>
+          </div>
+        </div>
+      </template>
+    </div>
+  </div>
+
+
+  <!-- ===== 4. VISTA 2: TABLA UNIFICADA POR CLIENTE ===== -->
+  <div x-show="viewMode === 'list'" x-cloak>
+    <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+      <div style="overflow-x:auto;">
+        <table class="crm-table">
+          <thead>
+            <tr>
+              <th>Cliente / Razón Social</th>
+              <th>1er Crédito</th>
+              <th>Plazo</th>
+              <th>Fecha Límite Pago</th>
+              <th style="text-align:right;">Límite Crédito</th>
+              <th style="text-align:right;">Saldo Deudor (Total)</th>
+              <th style="text-align:center;">Estado</th>
+              <th style="text-align:center;">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-if="invoices.length === 0">
+              <tr>
+                <td colspan="8" style="text-align:center; padding:32px; color:#94a3b8;">
+                  No hay clientes con saldo deudor o cuentas por cobrar para mostrar.
+                </td>
+              </tr>
+            </template>
+            <template x-for="inv in invoices" :key="inv.customer_id || inv.id">
+              <tr>
+                <td>
+                  <div style="font-weight:800; color:#1e293b;" x-text="inv.customer_name"></div>
+                  <div style="font-size:11px; color:#64748b;" x-text="'NIT: ' + inv.customer_nit + (inv.customer_phone ? ' • Tel: ' + inv.customer_phone : '')"></div>
+                </td>
+                <td style="color:#64748b; font-size:12px; font-weight:700;" x-text="inv.first_credit_date || inv.issue_date"></td>
+                <td style="font-size:12px; color:#714B67; font-weight:700;" x-text="inv.payment_days + ' días'"></td>
+                <td>
+                  <div style="font-size:12px; font-weight:800;" :style="inv.status === 'overdue' ? 'color:#dc2626;' : 'color:#334155;'" x-text="inv.due_date"></div>
+                  <template x-if="inv.status === 'overdue'">
+                    <span style="font-size:10px; font-weight:800; color:#dc2626;" x-text="'Mora: ' + Math.abs(inv.days_diff) + ' días'"></span>
+                  </template>
+                  <template x-if="inv.status === 'due_soon'">
+                    <span style="font-size:10px; font-weight:800; color:#d97706;" x-text="'Faltan: ' + inv.days_diff + ' días'"></span>
+                  </template>
+                </td>
+                <td style="text-align:right; font-weight:700; color:#64748b;" x-text="formatMoney(inv.credit_limit)"></td>
+                <td style="text-align:right; font-weight:900; font-size:13.5px;" :style="inv.balance > 0 ? 'color:#dc2626;' : 'color:#16a34a;'" x-text="formatMoney(inv.balance)"></td>
+                <td style="text-align:center;">
+                  <span 
+                    style="padding:3px 10px; border-radius:12px; font-size:11px; font-weight:800;"
+                    :style="inv.balance <= 0 ? 'background:#dcfce7; color:#166534;' : (inv.status === 'overdue' ? 'background:#fee2e2; color:#991b1b;' : (inv.status === 'due_soon' ? 'background:#fef3c7; color:#92400e;' : 'background:#e0f2fe; color:#0369a1;'))"
+                    x-text="inv.balance <= 0 ? 'AL DÍA' : (inv.status === 'overdue' ? 'EN MORA' : (inv.status === 'due_soon' ? 'POR VENCER' : 'AL DÍA'))"
+                  ></span>
+                </td>
+                <td style="text-align:center;">
+                  <div style="display:inline-flex; align-items:center; gap:6px;">
+                    <button 
+                      type="button" 
+                      x-show="inv.balance > 0"
+                      @click="openPaymentModal(inv)" 
+                      style="background:#059669; color:#ffffff; font-size:11.5px; font-weight:800; padding:4px 10px; border-radius:6px; border:none; cursor:pointer;"
+                    >
+                      Abonar
+                    </button>
+                    <button 
+                      type="button" 
+                      @click="openDetailModal(inv.customer_id || inv.id)" 
+                      style="background:#f1f5f9; color:#475569; font-size:11.5px; font-weight:700; padding:4px 8px; border-radius:6px; border:1px solid #cbd5e1; cursor:pointer;"
+                      title="Ver Extracto / Facturas"
+                    >
+                      <i class="ph ph-eye"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ===== 5. VISTA 3: ANTIGÜEDAD DE SALDOS ===== -->
+  <div x-show="viewMode === 'aging'" x-cloak>
+    <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+      <div style="overflow-x:auto;">
+        <table class="crm-table">
+          <thead>
+            <tr>
+              <th>Cliente</th>
+              <th style="text-align:right;">Límite Crédito</th>
+              <th style="text-align:right;">No Vencido</th>
+              <th style="text-align:right;">1 a 30 Días</th>
+              <th style="text-align:right;">31 a 60 Días</th>
+              <th style="text-align:right;">61 a 90 Días</th>
+              <th style="text-align:right;">+90 Días</th>
+              <th style="text-align:right; font-weight:900;">Total Deuda</th>
+              <th style="text-align:center;">Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-if="!agingData.customers || agingData.customers.length === 0">
+              <tr>
+                <td colspan="9" style="text-align:center; padding:32px; color:#94a3b8;">
+                  No hay cuentas pendientes por cobrar registradas.
+                </td>
+              </tr>
+            </template>
+            <template x-for="c in agingData.customers" :key="c.customer_id">
+              <tr>
+                <td>
+                  <div style="font-weight:800; color:#1e293b;" x-text="c.customer_name"></div>
+                  <div style="font-size:11px; color:#64748b;" x-text="'NIT: ' + c.customer_nit"></div>
+                </td>
+                <td style="text-align:right; color:#64748b;" x-text="formatMoney(c.credit_limit)"></td>
+                <td style="text-align:right; font-weight:700; color:#16a34a;" x-text="formatMoney(c.current)"></td>
+                <td style="text-align:right; font-weight:700; color:#d97706;" x-text="formatMoney(c.range_1_30)"></td>
+                <td style="text-align:right; font-weight:700; color:#ea580c;" x-text="formatMoney(c.range_31_60)"></td>
+                <td style="text-align:right; font-weight:700; color:#dc2626;" x-text="formatMoney(c.range_61_90)"></td>
+                <td style="text-align:right; font-weight:900; color:#991b1b;" x-text="formatMoney(c.range_90_plus)"></td>
+                <td style="text-align:right; font-weight:900; color:#714B67;" x-text="formatMoney(c.total)"></td>
+                <td style="text-align:center;">
+                  <button 
+                    type="button" 
+                    @click="viewCustomerStatement(c.customer_id)" 
+                    style="background:#f4eff3; color:#714B67; font-weight:800; font-size:11.5px; padding:4px 10px; border-radius:6px; border:1px solid #e2d3df; cursor:pointer;"
+                  >
+                    Ver Estado
+                  </button>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+          <tfoot style="background:#f8fafc; border-top:2px solid #e2e8f0; font-weight:800;">
+            <tr>
+              <td>Totales:</td>
+              <td></td>
+              <td style="text-align:right; color:#16a34a;" x-text="formatMoney(agingData.summary?.current)"></td>
+              <td style="text-align:right; color:#d97706;" x-text="formatMoney(agingData.summary?.range_1_30)"></td>
+              <td style="text-align:right; color:#ea580c;" x-text="formatMoney(agingData.summary?.range_31_60)"></td>
+              <td style="text-align:right; color:#dc2626;" x-text="formatMoney(agingData.summary?.range_61_90)"></td>
+              <td style="text-align:right; color:#991b1b;" x-text="formatMoney(agingData.summary?.range_90_plus)"></td>
+              <td style="text-align:right; color:#714B67;" x-text="formatMoney(agingData.summary?.total)"></td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ===== 6. VISTA 4: ESTADOS DE CUENTA ===== -->
+  <div x-show="viewMode === 'statements'" x-cloak>
+    <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; padding:16px; margin-bottom:16px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px;">
+      <div style="width:100%; max-width:400px;">
+        <label style="display:block; font-size:12px; font-weight:800; color:#475569; margin-bottom:4px;">Seleccionar Cliente:</label>
+        <select 
+          x-model="selectedCustomerId" 
+          @change="loadCustomerStatement()" 
+          style="width:100%; padding:8px 12px; font-size:13px; font-weight:600; border:1.5px solid #cbd5e1; border-radius:8px; outline:none;"
+        >
+          <option value="">-- Seleccionar cliente para ver estado de cuenta --</option>
+          <template x-for="c in customersLookupList" :key="c.id">
+            <option :value="c.id" x-text="c.name + ' (NIT: ' + c.nit + ' - Deuda: ' + formatMoney(c.balance) + ')'"></option>
+          </template>
+        </select>
+      </div>
+
+      <template x-if="statementData.customer">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <button type="button" @click="printStatement()" style="background:#ffffff; border:1px solid #cbd5e1; padding:8px 14px; border-radius:8px; font-size:12.5px; font-weight:700; color:#334155; cursor:pointer;">
+            <i class="ph ph-printer"></i> Imprimir
+          </button>
+          <a :href="'/api/v1/ar/customers/' + statementData.customer.id + '/export'" style="background:#059669; color:#ffffff; padding:8px 14px; border-radius:8px; font-size:12.5px; font-weight:800; text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
+            <i class="ph ph-file-csv"></i> Exportar CSV
+          </a>
+        </div>
+      </template>
+    </div>
+
+    <!-- Statement View Area -->
+    <template x-if="statementData.customer">
+      <div id="printableStatement" style="display:flex; flex-direction:column; gap:16px;">
+        <!-- Header Info -->
+        <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; padding:18px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px;">
+          <div>
+            <div style="font-size:18px; font-weight:900; color:#1e293b;" x-text="statementData.customer.name"></div>
+            <div style="font-size:12.5px; color:#64748b; margin-top:3px; display:flex; gap:12px;">
+              <span x-text="'NIT: ' + statementData.customer.nit"></span>
+              <span x-show="statementData.customer.phone" x-text="'Tel: ' + statementData.customer.phone"></span>
+              <span x-text="'Plazo: ' + statementData.customer.payment_days + ' días'"></span>
+            </div>
+          </div>
+
+          <div style="display:flex; gap:12px;">
+            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:10px 14px; text-align:right;">
+              <div style="font-size:10.5px; font-weight:800; color:#64748b; text-transform:uppercase;">Límite Crédito</div>
+              <div style="font-size:14px; font-weight:900; color:#1e293b;" x-text="formatMoney(statementData.customer.credit_limit)"></div>
+            </div>
+            <div style="background:#fee2e2; border:1px solid #fca5a5; border-radius:8px; padding:10px 14px; text-align:right;">
+              <div style="font-size:10.5px; font-weight:800; color:#991b1b; text-transform:uppercase;">Deuda Actual</div>
+              <div style="font-size:14px; font-weight:900; color:#dc2626;" x-text="formatMoney(statementData.customer.total_debt)"></div>
+            </div>
+            <div style="background:#dcfce7; border:1px solid #86efac; border-radius:8px; padding:10px 14px; text-align:right;">
+              <div style="font-size:10.5px; font-weight:800; color:#166534; text-transform:uppercase;">Disponible</div>
+              <div style="font-size:14px; font-weight:900; color:#16a34a;" x-text="formatMoney(statementData.customer.available_credit)"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2 Columns: Invoices & Payments -->
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:16px;">
+          <!-- Invoices -->
+          <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; padding:16px;">
+            <div style="font-size:13px; font-weight:800; color:#1e293b; margin-bottom:12px;">Facturas a Crédito</div>
+            <table class="crm-table">
+              <thead>
+                <tr>
+                  <th>No. Factura</th>
+                  <th>Vencimiento</th>
+                  <th style="text-align:right;">Total</th>
+                  <th style="text-align:right;">Saldo</th>
+                  <th style="text-align:center;">Acción</th>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-for="inv in statementData.invoices" :key="inv.id">
+                  <tr>
+                    <td style="font-weight:800; font-family:monospace; color:#714B67;" x-text="inv.number"></td>
+                    <td style="color:#64748b;" x-text="inv.due_date"></td>
+                    <td style="text-align:right;" x-text="formatMoney(inv.total)"></td>
+                    <td style="text-align:right; font-weight:800; color:#dc2626;" x-text="formatMoney(inv.balance)"></td>
+                    <td style="text-align:center;">
+                      <button 
+                        type="button" 
+                        x-show="inv.balance > 0"
+                        @click="openPaymentModal(inv)" 
+                        style="background:#059669; color:#ffffff; font-size:11px; font-weight:800; padding:3px 8px; border-radius:6px; border:none; cursor:pointer;"
+                      >
+                        Abonar
+                      </button>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Payments -->
+          <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; padding:16px;">
+            <div style="font-size:13px; font-weight:800; color:#1e293b; margin-bottom:12px;">Historial de Abonos / Pagos</div>
+            <table class="crm-table">
+              <thead>
+                <tr>
+                  <th>Recibo</th>
+                  <th>Fecha</th>
+                  <th>Método</th>
+                  <th style="text-align:right;">Monto</th>
+                  <th style="text-align:center;">Ticket</th>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-if="!statementData.payments || statementData.payments.length === 0">
+                  <tr><td colspan="5" style="text-align:center; padding:16px; color:#94a3b8;">Sin abonos registrados.</td></tr>
+                </template>
+                <template x-for="p in statementData.payments" :key="p.id">
+                  <tr>
+                    <td style="font-weight:800; font-family:monospace;" x-text="p.receipt_number"></td>
+                    <td style="color:#64748b;" x-text="p.payment_date"></td>
+                    <td style="text-transform:uppercase; font-size:11px;" x-text="p.method"></td>
+                    <td style="text-align:right; font-weight:800; color:#059669;" x-text="formatMoney(p.amount)"></td>
+                    <td style="text-align:center;">
+                      <button 
+                        type="button" 
+                        @click="openReceiptModal(p.id)" 
+                        style="background:#f1f5f9; color:#475569; font-size:11px; font-weight:700; padding:3px 6px; border-radius:4px; border:1px solid #cbd5e1; cursor:pointer;"
+                      >
+                        <i class="ph ph-receipt"></i>
+                      </button>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </template>
+  </div>
+
+
+  <!-- ===== MODAL: REGISTRAR ABONO ===== -->
+  <div x-show="showPaymentModal" style="position:fixed; inset:0; background:rgba(15,23,42,0.6); z-index:1000; display:flex; align-items:center; justify-content:center; padding:16px;" x-cloak>
+    <div style="background:#ffffff; border-radius:12px; width:100%; max-width:520px; overflow:hidden; box-shadow:0 20px 25px -5px rgba(0,0,0,0.1);" @click.outside="showPaymentModal = false">
+      <div style="padding:14px 20px; background:#f8fafc; border-bottom:1px solid #e2e8f0; display:flex; align-items:center; justify-content:space-between;">
+        <div style="font-weight:800; font-size:14px; color:#1e293b;">Registrar Abono a Cuenta</div>
+        <button type="button" @click="showPaymentModal = false" style="background:none; border:none; font-size:18px; color:#94a3b8; cursor:pointer;">
+          <i class="ph ph-x"></i>
+        </button>
+      </div>
+
+      <form @submit.prevent="submitPayment()" style="padding:20px; display:flex; flex-direction:column; gap:14px;">
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-weight:800; font-size:13px; color:#1e293b;" x-text="selectedInvoice?.customer_name"></div>
+            <div style="font-size:11.5px; color:#64748b;" x-text="'Documento: ' + selectedInvoice?.number"></div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:10px; font-weight:800; color:#94a3b8; text-transform:uppercase;">Saldo Pendiente</div>
+            <div style="font-size:16px; font-weight:900; color:#dc2626;" x-text="formatMoney(selectedInvoice?.balance)"></div>
+          </div>
+        </div>
+
+        <div>
+          <label style="display:block; font-size:12px; font-weight:800; color:#334155; margin-bottom:4px;">Monto a Abonar (Q):</label>
+          <input 
+            type="number" 
+            step="0.01" 
+            x-model="paymentForm.amount" 
+            :max="selectedInvoice?.balance"
+            required
+            style="width:100%; padding:10px 12px; font-size:16px; font-weight:900; border:1.5px solid #cbd5e1; border-radius:8px; outline:none;"
+          >
+          <div style="display:flex; justify-content:space-between; font-size:11px; font-weight:700; color:#64748b; margin-top:4px;">
+            <span>Nuevo Saldo:</span>
+            <span style="color:#059669;" x-text="formatMoney(Math.max(0, (selectedInvoice?.balance || 0) - (paymentForm.amount || 0)))"></span>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div>
+            <label style="display:block; font-size:12px; font-weight:800; color:#334155; margin-bottom:4px;">Forma de Pago:</label>
+            <select x-model="paymentForm.payment_method" style="width:100%; padding:8px 10px; font-size:12.5px; font-weight:600; border:1.5px solid #cbd5e1; border-radius:8px;">
+              <option value="cash">💵 Efectivo</option>
+              <option value="transfer">🏦 Transferencia</option>
+              <option value="card">💳 Tarjeta</option>
+              <option value="check">📑 Cheque</option>
+            </select>
+          </div>
+          <div>
+            <label style="display:block; font-size:12px; font-weight:800; color:#334155; margin-bottom:4px;">Referencia:</label>
+            <input type="text" x-model="paymentForm.reference" placeholder="No. Boleta / Transf" style="width:100%; padding:8px 10px; font-size:12.5px; border:1.5px solid #cbd5e1; border-radius:8px;">
+          </div>
+        </div>
+
+        <div>
+          <label style="display:block; font-size:12px; font-weight:800; color:#334155; margin-bottom:4px;">Notas:</label>
+          <textarea x-model="paymentForm.notes" rows="2" placeholder="Observaciones..." style="width:100%; padding:8px 10px; font-size:12.5px; border:1.5px solid #cbd5e1; border-radius:8px;"></textarea>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:8px; padding-top:12px; border-top:1px solid #e2e8f0;">
+          <button type="button" @click="showPaymentModal = false" style="background:#f1f5f9; border:none; padding:8px 16px; border-radius:8px; font-weight:700; font-size:12px; color:#475569; cursor:pointer;">Cancelar</button>
+          <button type="submit" style="background:#059669; color:#ffffff; border:none; padding:8px 18px; border-radius:8px; font-weight:800; font-size:12px; cursor:pointer;">Confirmar Abono</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ===== MODAL: NUEVA CUENTA POR COBRAR ===== -->
+  <div x-show="showNewInvoiceModal" style="position:fixed; inset:0; background:rgba(15,23,42,0.6); z-index:1000; display:flex; align-items:center; justify-content:center; padding:16px;" x-cloak>
+    <div style="background:#ffffff; border-radius:12px; width:100%; max-width:540px; overflow:hidden; box-shadow:0 20px 25px -5px rgba(0,0,0,0.1);" @click.outside="showNewInvoiceModal = false">
+      <div style="padding:14px 20px; background:#f8fafc; border-bottom:1px solid #e2e8f0; display:flex; align-items:center; justify-content:space-between;">
+        <div style="font-weight:800; font-size:14px; color:#1e293b;">Registrar Nueva Cuenta por Cobrar</div>
+        <button type="button" @click="showNewInvoiceModal = false" style="background:none; border:none; font-size:18px; color:#94a3b8; cursor:pointer;">
+          <i class="ph ph-x"></i>
+        </button>
+      </div>
+
+      <form @submit.prevent="submitNewInvoice()" style="padding:20px; display:flex; flex-direction:column; gap:12px;">
+        <div>
+          <label style="display:block; font-size:12px; font-weight:800; color:#334155; margin-bottom:4px;">Seleccionar Cliente Registrado:</label>
+          <select 
+            x-model="selectedNewCustomer" 
+            @change="onSelectNewCustomerChange()"
+            style="width:100%; padding:8px 10px; font-size:12.5px; border:1.5px solid #cbd5e1; border-radius:8px; margin-bottom:6px;"
+          >
+            <option value="">-- Buscar en clientes existentes --</option>
+            <template x-for="c in customersLookupList" :key="c.id">
+              <option :value="JSON.stringify(c)" x-text="c.name + ' (NIT: ' + c.nit + ')'"></option>
+            </template>
+          </select>
+          <input 
+            type="text" 
+            x-model="newInvoiceForm.customer_name" 
+            required 
+            placeholder="Nombre del cliente o empresa" 
+            style="width:100%; padding:8px 10px; font-size:12.5px; border:1.5px solid #cbd5e1; border-radius:8px;"
+          >
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div>
+            <label style="display:block; font-size:12px; font-weight:800; color:#334155; margin-bottom:4px;">NIT:</label>
+            <input type="text" x-model="newInvoiceForm.customer_nit" placeholder="CF o NIT" style="width:100%; padding:8px 10px; font-size:12.5px; border:1.5px solid #cbd5e1; border-radius:8px;">
+          </div>
+          <div>
+            <label style="display:block; font-size:12px; font-weight:800; color:#334155; margin-bottom:4px;">No. Factura / Documento:</label>
+            <input type="text" x-model="newInvoiceForm.number" required placeholder="FAC-1002" style="width:100%; padding:8px 10px; font-size:12.5px; font-family:monospace; border:1.5px solid #cbd5e1; border-radius:8px;">
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div>
+            <label style="display:block; font-size:12px; font-weight:800; color:#334155; margin-bottom:4px;">Monto Total (Q):</label>
+            <input type="number" step="0.01" x-model="newInvoiceForm.total" required placeholder="0.00" style="width:100%; padding:8px 10px; font-size:14px; font-weight:800; border:1.5px solid #cbd5e1; border-radius:8px;">
+          </div>
+          <div>
+            <label style="display:block; font-size:12px; font-weight:800; color:#334155; margin-bottom:4px;">Plazo de Crédito:</label>
+            <select x-model="newInvoiceForm.credit_days" style="width:100%; padding:8px 10px; font-size:12.5px; border:1.5px solid #cbd5e1; border-radius:8px;">
+              <option value="15">15 Días</option>
+              <option value="30">30 Días</option>
+              <option value="45">45 Días</option>
+              <option value="60">60 Días</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label style="display:block; font-size:12px; font-weight:800; color:#334155; margin-bottom:4px;">Notas:</label>
+          <textarea x-model="newInvoiceForm.notes" rows="2" placeholder="Observaciones..." style="width:100%; padding:8px 10px; font-size:12.5px; border:1.5px solid #cbd5e1; border-radius:8px;"></textarea>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:8px; padding-top:12px; border-top:1px solid #e2e8f0;">
+          <button type="button" @click="showNewInvoiceModal = false" style="background:#f1f5f9; border:none; padding:8px 16px; border-radius:8px; font-weight:700; font-size:12px; color:#475569; cursor:pointer;">Cancelar</button>
+          <button type="submit" style="background:#714B67; color:#ffffff; border:none; padding:8px 18px; border-radius:8px; font-weight:800; font-size:12px; cursor:pointer;">Guardar Cuenta</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ===== MODAL: RECIBO DE PAGO TÉRMICO ===== -->
+  <div x-show="showReceiptModal" style="position:fixed; inset:0; background:rgba(15,23,42,0.6); z-index:1000; display:flex; align-items:center; justify-content:center; padding:16px;" x-cloak>
+    <div style="background:#ffffff; border-radius:12px; width:100%; max-width:400px; overflow:hidden; box-shadow:0 20px 25px -5px rgba(0,0,0,0.1);" @click.outside="showReceiptModal = false">
+      <div style="padding:14px 18px; background:#f8fafc; border-bottom:1px solid #e2e8f0; display:flex; align-items:center; justify-content:space-between;">
+        <div style="font-weight:800; font-size:13px; color:#1e293b;">Comprobante de Abono</div>
+        <button type="button" @click="showReceiptModal = false" style="background:none; border:none; font-size:18px; color:#94a3b8; cursor:pointer;">
+          <i class="ph ph-x"></i>
+        </button>
+      </div>
+
+      <div style="padding:16px; display:flex; flex-direction:column; gap:12px;">
+        <div id="printableReceipt" class="receipt-thermal-paper">
+          <div style="text-align:center; border-bottom:1px dashed #cbd5e1; padding-bottom:8px; margin-bottom:8px;">
+            <div style="font-weight:bold; font-size:13px;" x-text="receiptData.company?.name || 'POS EMPRESARIAL'"></div>
+            <div style="font-size:11px;" x-text="'NIT: ' + (receiptData.company?.nit || 'CF')"></div>
+            <div style="font-size:11px;" x-text="receiptData.company?.address || 'Guatemala'"></div>
+            <div style="font-size:12px; font-weight:bold; margin-top:5px;">*** RECIBO DE ABONO ***</div>
+            <div style="font-size:11px;" x-text="'No. ' + receiptData.receipt_number"></div>
+            <div style="font-size:11px;" x-text="'Fecha: ' + receiptData.payment_date"></div>
+          </div>
+
+          <div style="border-bottom:1px dashed #cbd5e1; padding-bottom:6px; margin-bottom:6px; font-size:11px;">
+            <div><strong>Cliente:</strong> <span x-text="receiptData.customer?.name"></span></div>
+            <div><strong>NIT:</strong> <span x-text="receiptData.customer?.nit"></span></div>
+            <div><strong>Documento:</strong> <span x-text="receiptData.invoice?.number"></span></div>
+          </div>
+
+          <div style="border-bottom:1px dashed #cbd5e1; padding-bottom:6px; margin-bottom:6px; font-size:11px;">
+            <div style="display:flex; justify-content:space-between;">
+              <span>Total Factura:</span>
+              <span x-text="formatMoney(receiptData.invoice?.total)"></span>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-weight:bold; margin-top:2px;">
+              <span>ABONO:</span>
+              <span x-text="formatMoney(receiptData.amount_paid)"></span>
+            </div>
+            <div style="display:flex; justify-content:space-between; margin-top:2px;">
+              <span>Saldo Restante:</span>
+              <span x-text="formatMoney(receiptData.invoice?.current_balance)"></span>
+            </div>
+          </div>
+
+          <div style="font-size:11px;">
+            <div><strong>Pago:</strong> <span x-text="receiptData.payment_method?.toUpperCase()"></span></div>
+            <div x-show="receiptData.reference"><strong>Ref:</strong> <span x-text="receiptData.reference"></span></div>
+          </div>
+        </div>
+
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:6px; padding-top:10px; border-top:1px solid #e2e8f0;">
+          <button 
+            type="button" 
+            @click="shareReceiptWhatsApp()" 
+            style="background:#22c55e; color:#ffffff; font-size:12px; font-weight:800; padding:6px 12px; border-radius:6px; border:none; cursor:pointer; display:inline-flex; align-items:center; gap:5px;"
+          >
+            <i class="ph ph-whatsapp-logo text-base"></i> WhatsApp
+          </button>
+          <div style="display:flex; gap:6px;">
+            <button 
+              type="button" 
+              @click="printReceipt()" 
+              style="background:#714B67; color:#ffffff; font-size:12px; font-weight:800; padding:6px 14px; border-radius:6px; border:none; cursor:pointer; display:inline-flex; align-items:center; gap:5px;"
+            >
+              <i class="ph ph-printer"></i> Imprimir
+            </button>
+            <button 
+              type="button" 
+              @click="showReceiptModal = false" 
+              style="background:#f1f5f9; color:#475569; font-size:12px; font-weight:700; padding:6px 10px; border-radius:6px; border:none; cursor:pointer;"
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ===== MODAL: DETALLE DE CUENTA ===== -->
+  <div x-show="showDetailModal" style="position:fixed; inset:0; background:rgba(15,23,42,0.6); z-index:1000; display:flex; align-items:center; justify-content:center; padding:16px;" x-cloak>
+    <div style="background:#ffffff; border-radius:12px; width:100%; max-width:580px; overflow:hidden; box-shadow:0 20px 25px -5px rgba(0,0,0,0.1);" @click.outside="showDetailModal = false">
+      <div style="padding:14px 20px; background:#f8fafc; border-bottom:1px solid #e2e8f0; display:flex; align-items:center; justify-content:space-between;">
+        <div style="font-weight:800; font-size:14px; color:#1e293b;">Detalle de Cuenta por Cobrar</div>
+        <button type="button" @click="showDetailModal = false" style="background:none; border:none; font-size:18px; color:#94a3b8; cursor:pointer;">
+          <i class="ph ph-x"></i>
+        </button>
+      </div>
+
+      <div style="padding:20px; display:flex; flex-direction:column; gap:14px;">
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px; display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div>
+            <div style="font-size:10px; font-weight:800; color:#94a3b8; text-transform:uppercase;">Cliente</div>
+            <div style="font-weight:800; font-size:13px; color:#1e293b;" x-text="detailData.customer_name"></div>
+            <div style="font-size:11.5px; color:#64748b;" x-text="'NIT: ' + detailData.customer_nit"></div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:10px; font-weight:800; color:#94a3b8; text-transform:uppercase;">Documento</div>
+            <div style="font-weight:800; font-size:13px; font-family:monospace; color:#714B67;" x-text="detailData.number"></div>
+            <div style="font-size:11.5px; color:#64748b;" x-text="'Vence: ' + detailData.due_date"></div>
+          </div>
+        </div>
+
+        <div style="background:#fdf4ff; border:1px solid #f0abfc; border-radius:8px; padding:10px 14px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <span style="font-size:12px; color:#475569;">Total Facturado:</span>
+            <strong style="color:#1e293b; margin-left:4px;" x-text="formatMoney(detailData.total)"></strong>
+          </div>
+          <div>
+            <span style="font-size:12px; color:#475569;">Saldo Pendiente:</span>
+            <strong style="color:#dc2626; font-size:15px; margin-left:4px;" x-text="formatMoney(detailData.balance)"></strong>
+          </div>
+        </div>
+
+        <!-- Ventas / Facturas a Crédito -->
+        <div x-show="detailData.credits && detailData.credits.length > 0">
+          <div style="font-size:12px; font-weight:800; color:#334155; margin-bottom:6px;">Ventas a Crédito Registradas:</div>
+          <table class="crm-table">
+            <thead>
+              <tr>
+                <th>Documento</th>
+                <th>Fecha</th>
+                <th style="text-align:right;">Monto</th>
+                <th style="text-align:right;">Saldo</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="c in detailData.credits" :key="c.id">
+                <tr>
+                  <td style="font-family:monospace; font-weight:800; color:#714B67;" x-text="c.number"></td>
+                  <td style="color:#64748b; font-size:11.5px;" x-text="c.date"></td>
+                  <td style="text-align:right; font-weight:700;" x-text="formatMoney(c.total)"></td>
+                  <td style="text-align:right; font-weight:800; color:#dc2626;" x-text="formatMoney(c.balance)"></td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+
+        <div>
+          <div style="font-size:12px; font-weight:800; color:#334155; margin-bottom:6px;">Historial de Abonos / Pagos:</div>
+          <table class="crm-table">
+            <thead>
+              <tr>
+                <th>Recibo</th>
+                <th>Fecha</th>
+                <th>Método</th>
+                <th style="text-align:right;">Monto</th>
+                <th style="text-align:center;">Ticket</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-if="!detailData.payments || detailData.payments.length === 0">
+                <tr><td colspan="5" style="text-align:center; padding:12px; color:#94a3b8;">Sin abonos registrados.</td></tr>
+              </template>
+              <template x-for="pmt in detailData.payments" :key="pmt.id">
+                <tr>
+                  <td style="font-family:monospace; font-weight:800;" x-text="pmt.receipt_number"></td>
+                  <td style="color:#64748b;" x-text="pmt.date"></td>
+                  <td style="text-transform:uppercase; font-size:11px;" x-text="pmt.method"></td>
+                  <td style="text-align:right; font-weight:800; color:#059669;" x-text="formatMoney(pmt.amount)"></td>
+                  <td style="text-align:center;">
+                    <button 
+                      type="button" 
+                      @click="openReceiptModal(pmt.id)" 
+                      style="background:#f1f5f9; border:1px solid #cbd5e1; padding:2px 6px; border-radius:4px; cursor:pointer;"
+                    >
+                      <i class="ph ph-printer"></i>
+                    </button>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; margin-top:6px;">
+          <button type="button" @click="showDetailModal = false" style="background:#334155; color:#ffffff; padding:7px 16px; border-radius:8px; font-size:12px; font-weight:700; border:none; cursor:pointer;">
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function arApp() {
+  return {
+    loading: false,
+    viewMode: 'kanban', // 'kanban', 'list', 'aging', 'statements'
+    filterStatus: 'all',
+    searchQuery: '',
+    showKpis: false,
+
+    kpis: {},
+    invoices: [],
+    agingData: {},
+    statementData: {},
+    customersLookupList: [],
+    selectedCustomerId: '',
+    selectedNewCustomer: '',
+
+    showPaymentModal: false,
+    showNewInvoiceModal: false,
+    showDetailModal: false,
+    showReceiptModal: false,
+
+    selectedInvoice: null,
+    detailData: {},
+    receiptData: {},
+
+    paymentForm: {
+      amount: 0,
+      payment_method: 'cash',
+      reference: '',
+      notes: ''
+    },
+
+    newInvoiceForm: {
+      customer_id: null,
+      customer_name: '',
+      customer_nit: 'CF',
+      number: '',
+      total: '',
+      credit_days: 30,
+      notes: ''
+    },
+
+    async authFetch(url, options = {}) {
+      const token = localStorage.getItem('access_token');
+      const headers = {
+        ...(token ? { 'Authorization': 'Bearer ' + token } : {}),
+        ...(options.headers || {})
+      };
+      return fetch(url, { ...options, headers });
+    },
+
+    async init() {
+      await this.loadAllData();
+    },
+
+    async loadAllData() {
+      this.loading = true;
+      try {
+        await Promise.all([
+          this.loadKpis(),
+          this.loadInvoices(),
+          this.loadAging(),
+          this.loadCustomersLookup()
+        ]);
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async loadKpis() {
+      try {
+        const res = await this.authFetch('/api/v1/ar/kpis');
+        if (res.ok) this.kpis = await res.json();
+      } catch (e) {
+        console.error("Error loading AR KPIs:", e);
+      }
+    },
+
+    async loadInvoices() {
+      try {
+        let url = `/api/v1/ar/invoices?status=${this.filterStatus}`;
+        if (this.searchQuery) url += `&search=${encodeURIComponent(this.searchQuery)}`;
+        const res = await this.authFetch(url);
+        if (res.ok) this.invoices = await res.json();
+      } catch (e) {
+        console.error("Error loading AR invoices:", e);
+      }
+    },
+
+    async loadAging() {
+      try {
+        const res = await this.authFetch('/api/v1/ar/aging');
+        if (res.ok) this.agingData = await res.json();
+      } catch (e) {
+        console.error("Error loading AR aging report:", e);
+      }
+    },
+
+    async loadCustomersLookup() {
+      try {
+        const res = await this.authFetch('/api/v1/ar/customers-lookup');
+        if (res.ok) {
+          const data = await res.json();
+          this.customersLookupList = data.items || [];
+        }
+      } catch (e) {
+        console.error("Error loading customers lookup:", e);
+      }
+    },
+
+    async loadCustomerStatement() {
+      if (!this.selectedCustomerId) {
+        this.statementData = {};
+        return;
+      }
+      try {
+        const res = await this.authFetch(`/api/v1/ar/customers/${this.selectedCustomerId}/statement`);
+        if (res.ok) this.statementData = await res.json();
+      } catch (e) {
+        console.error("Error loading customer statement:", e);
+      }
+    },
+
+    viewCustomerStatement(customerId) {
+      this.selectedCustomerId = customerId;
+      this.viewMode = 'statements';
+      this.loadCustomerStatement();
+    },
+
+    openPaymentModal(inv) {
+      this.selectedInvoice = inv;
+      this.paymentForm = {
+        amount: inv.balance,
+        payment_method: 'cash',
+        reference: '',
+        notes: ''
+      };
+      this.showPaymentModal = true;
+    },
+
+    async submitPayment() {
+      if (!this.selectedInvoice) return;
+      try {
+        const targetId = this.selectedInvoice.customer_id || this.selectedInvoice.id;
+        const res = await this.authFetch(`/api/v1/ar/invoices/${targetId}/payments`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(this.paymentForm)
+        });
+        if (res.ok) {
+          const result = await res.json();
+          this.showPaymentModal = false;
+          await this.loadAllData();
+          if (this.selectedCustomerId) await this.loadCustomerStatement();
+          
+          if (result.payment_id) {
+            await this.openReceiptModal(result.payment_id);
+          }
+        } else {
+          const err = await res.json();
+          alert("Error: " + (err.detail || "No se pudo registrar el abono"));
+        }
+      } catch (e) {
+        alert("Error de conexión al registrar abono");
+      }
+    },
+
+    openNewInvoiceModal() {
+      this.selectedNewCustomer = '';
+      this.newInvoiceForm = {
+        customer_id: null,
+        customer_name: '',
+        customer_nit: 'CF',
+        number: `CXC-${Date.now().toString().slice(-6)}`,
+        total: '',
+        credit_days: 30,
+        notes: ''
+      };
+      this.showNewInvoiceModal = true;
+    },
+
+    onSelectNewCustomerChange() {
+      if (!this.selectedNewCustomer) return;
+      try {
+        const cust = JSON.parse(this.selectedNewCustomer);
+        this.newInvoiceForm.customer_id = cust.id;
+        this.newInvoiceForm.customer_name = cust.name;
+        this.newInvoiceForm.customer_nit = cust.nit || 'CF';
+        this.newInvoiceForm.credit_days = cust.payment_days || 30;
+      } catch(e) {}
+    },
+
+    async submitNewInvoice() {
+      try {
+        const res = await this.authFetch('/api/v1/ar/invoices', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(this.newInvoiceForm)
+        });
+        if (res.ok) {
+          this.showNewInvoiceModal = false;
+          await this.loadAllData();
+          alert("¡Cuenta por cobrar creada correctamente!");
+        } else {
+          const err = await res.json();
+          alert("Error: " + (err.detail || "No se pudo crear la cuenta"));
+        }
+      } catch (e) {
+        alert("Error de conexión");
+      }
+    },
+
+    async openDetailModal(invoiceId) {
+      try {
+        const res = await this.authFetch(`/api/v1/ar/invoices/${invoiceId}`);
+        if (res.ok) {
+          this.detailData = await res.json();
+          this.showDetailModal = true;
+        }
+      } catch (e) {
+        alert("Error al cargar detalle");
+      }
+    },
+
+    async openReceiptModal(paymentId) {
+      try {
+        const res = await this.authFetch(`/api/v1/ar/payments/${paymentId}/receipt`);
+        if (res.ok) {
+          this.receiptData = await res.json();
+          this.showReceiptModal = true;
+        }
+      } catch (e) {
+        console.error("Error cargando comprobante:", e);
+      }
+    },
+
+    printReceipt() {
+      window.print();
+    },
+
+    printStatement() {
+      window.print();
+    },
+
+    shareReceiptWhatsApp() {
+      if (!this.receiptData || !this.receiptData.receipt_number) return;
+      const cName = this.receiptData.customer?.name || "Estimado Cliente";
+      const rNum = this.receiptData.receipt_number;
+      const docNum = this.receiptData.invoice?.number || "";
+      const amt = this.formatMoney(this.receiptData.amount_paid);
+      const bal = this.formatMoney(this.receiptData.invoice?.current_balance);
+      const comp = this.receiptData.company?.name || "POS Empresarial";
+
+      const text = `*COMPROBANTE DE ABONO - ${comp}*\n\n` +
+                   `Hola *${cName}*, confirmamos la recepción de tu pago.\n\n` +
+                   `🧾 *Recibo No.:* ${rNum}\n` +
+                   `📄 *Documento:* ${docNum}\n` +
+                   `💵 *Monto Abonado:* ${amt}\n` +
+                   `💰 *Nuevo Saldo:* ${bal}\n` +
+                   `📅 *Fecha:* ${this.receiptData.payment_date}\n\n` +
+                   `¡Gracias por tu pago puntual!`;
+
+      const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+      window.open(url, '_blank');
+    },
+
+    formatMoney(val) {
+      const num = Number(val) || 0;
+      return `Q ${num.toLocaleString('es-GT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+  };
+}
+</script>
+{% endblock %}

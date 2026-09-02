@@ -1,0 +1,881 @@
+{% set show_layout = true %}
+{% extends "base.html" %}
+
+{% block title %}Contabilidad General & Finanzas ERP — POS Empresarial{% endblock %}
+
+{% block extra_css %}
+<style>
+  :root {
+    --odoo-purple: #714B67;
+    --odoo-purple-light: #f4eff3;
+    --odoo-teal: #00A09D;
+  }
+
+  .acc-kpi-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 16px 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .acc-kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.06);
+  }
+
+  .acc-tab-btn {
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 12.5px;
+    font-weight: 800;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .acc-tab-btn:hover {
+    background: #f1f5f9;
+    color: #1e293b;
+  }
+  .acc-tab-btn.active {
+    background: var(--odoo-purple);
+    color: #ffffff;
+    border-color: var(--odoo-purple);
+    box-shadow: 0 2px 6px rgba(113, 75, 103, 0.25);
+  }
+
+  .acc-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .acc-table th {
+    background: #f8fafc;
+    color: #475569;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 12px 16px;
+    border-bottom: 2px solid #e2e8f0;
+    text-align: left;
+  }
+  .acc-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid #f1f5f9;
+    color: #1e293b;
+    vertical-align: middle;
+  }
+  .acc-table tr:hover td {
+    background: #fdfaff;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div x-data="accountingERPModule()" x-init="init()">
+  
+  <!-- ===== TOP ODOO 17 CONTROL PANEL SUB-HEADER ===== -->
+  <div style="margin:-20px -24px 20px -24px; padding:12px 24px; background:#ffffff; border-bottom:1px solid #e2e8f0; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px; box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+    
+    <!-- Left: Action Buttons -->
+    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+      <button 
+        class="btn btn-primary" 
+        style="background:var(--odoo-purple); color:#ffffff; font-weight:800; border-radius:8px; padding:7px 18px; border:none; box-shadow:0 2px 8px rgba(113,75,103,0.25); display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px;"
+        @click="openNewEntryModal()"
+      >
+        <i class="ph ph-plus" style="font-weight:800;"></i> Nuevo Asiento Manual
+      </button>
+
+      <button 
+        class="btn btn-secondary" 
+        style="background:#f8fafc; color:#334155; font-weight:700; border-radius:8px; padding:7px 14px; border:1px solid #cbd5e1; display:flex; align-items:center; gap:6px; cursor:pointer; font-size:12.5px;"
+        @click="openNewAccountModal()"
+      >
+        <i class="ph ph-tree-structure"></i> + Nueva Cuenta
+      </button>
+
+      <div style="font-size:15px; font-weight:800; color:#1e293b; display:flex; align-items:center; gap:6px; margin-left:4px;">
+        <span style="color:#64748b; font-weight:600;">Contabilidad /</span>
+        <span>Finanzas & Libro Mayor</span>
+      </div>
+    </div>
+
+    <!-- Center/Right: Universal Export & Search -->
+    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+      <div style="position:relative; display:flex; align-items:center; width:260px;">
+        <i class="ph ph-magnifying-glass" style="position:absolute; left:10px; color:var(--odoo-purple); font-size:15px; font-weight:800; pointer-events:none;"></i>
+        <input 
+          type="text" 
+          placeholder="Buscar cuenta o asiento..." 
+          style="width:100%; padding:6px 28px 6px 32px; border:1.5px solid #cbd5e1; border-radius:8px; font-size:12.5px; font-weight:600; color:#1e293b; outline:none;"
+          x-model="search"
+          @input.debounce.250ms="onSearchChange()"
+        >
+        <i class="ph ph-x-circle" style="position:absolute; right:8px; color:#94a3b8; font-size:15px; cursor:pointer;" x-show="search" @click="search = ''; onSearchChange()"></i>
+      </div>
+
+      <button 
+        type="button" 
+        class="btn btn-secondary" 
+        style="background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; font-weight:800; border-radius:8px; padding:6px 12px; font-size:12px; display:flex; align-items:center; gap:5px; cursor:pointer;"
+        @click="exportCurrentViewCSV()"
+        title="Descargar en Excel / CSV"
+      >
+        <i class="ph ph-file-csv"></i> Exportar CSV
+      </button>
+
+      <button 
+        type="button" 
+        class="btn btn-secondary" 
+        style="background:#f8fafc; color:#334155; border:1px solid #cbd5e1; font-weight:700; border-radius:8px; padding:6px 12px; font-size:12px; display:flex; align-items:center; gap:5px; cursor:pointer;"
+        @click="window.print()"
+        title="Imprimir balance o diario"
+      >
+        <i class="ph ph-printer"></i> Imprimir
+      </button>
+    </div>
+
+  </div>
+
+  <!-- ===== 2. VIEW SWITCHER TABS & FLOATING KPI POPOVER ===== -->
+  <div style="position:relative; display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:20px;">
+    <button class="acc-tab-btn" :class="activeTab === 'entries' ? 'active' : ''" @click="activeTab = 'entries'">
+      <i class="ph ph-book-open"></i> 1. Libro Diario & Asientos
+    </button>
+    <button class="acc-tab-btn" :class="activeTab === 'accounts' ? 'active' : ''" @click="activeTab = 'accounts'">
+      <i class="ph ph-tree-structure"></i> 2. Catálogo de Cuentas (Nomenclatura)
+    </button>
+    <button class="acc-tab-btn" :class="activeTab === 'trial' ? 'active' : ''" @click="activeTab = 'trial'">
+      <i class="ph ph-scales"></i> 3. Balance de Comprobación (Trial Balance)
+    </button>
+    <button class="acc-tab-btn" :class="activeTab === 'pnl' ? 'active' : ''" @click="activeTab = 'pnl'">
+      <i class="ph ph-chart-line"></i> 4. Estado de Resultados (P&L)
+    </button>
+
+    <!-- Right Controls: Resumen Button (al par derecho) -->
+    <div style="margin-left:auto; display:flex; align-items:center; gap:10px; position:relative;">
+      <button
+        type="button"
+        @click="showKpis = !showKpis"
+        style="
+          display:inline-flex; align-items:center; gap:7px;
+          padding:6px 16px;
+          background:linear-gradient(135deg, #714B67 0%, #9b6b8f 100%);
+          border:none; border-radius:20px;
+          font-size:12px; font-weight:800; color:#ffffff;
+          cursor:pointer; transition:all 0.22s cubic-bezier(0.4,0,0.2,1);
+          box-shadow:0 2px 10px rgba(113,75,103,0.3);
+          letter-spacing:0.3px; white-space:nowrap;
+        "
+        onmouseover="this.style.boxShadow='0 4px 16px rgba(113,75,103,0.5)'; this.style.transform='translateY(-1px)'"
+        onmouseout="this.style.boxShadow='0 2px 10px rgba(113,75,103,0.3)'; this.style.transform='translateY(0)'"
+      >
+        <i class="ph ph-chart-bar" style="font-size:15px;"></i>
+        <span x-text="showKpis ? 'Ocultar resumen' : 'Resumen'"></span>
+        <i
+          class="ph ph-caret-down"
+          style="font-size:12px; transition:transform 0.25s ease;"
+          :style="showKpis ? 'transform:rotate(180deg)' : 'transform:rotate(0deg)'"
+        ></i>
+      </button>
+
+      <!-- Floating Popover Dropdown Panel (Exacto a Inventarios, alineado a la derecha) -->
+      <div
+        x-show="showKpis"
+        @click.outside="showKpis = false"
+        x-transition:enter="transition ease-out duration-200"
+        x-transition:enter-start="opacity-0 scale-95"
+        x-transition:enter-end="opacity-100 scale-100"
+        x-transition:leave="transition ease-in duration-150"
+        x-transition:leave-start="opacity-100 scale-100"
+        x-transition:leave-end="opacity-0 scale-95"
+        style="
+          position:absolute; top:calc(100% + 8px); right:0; z-index:999;
+          background:#ffffff; border:1.5px solid #e2e8f0; border-radius:14px;
+          box-shadow:0 14px 45px -8px rgba(0,0,0,0.18), 0 4px 16px -4px rgba(0,0,0,0.08);
+          padding:12px; display:flex; flex-direction:column; gap:8px;
+          width:460px; max-width:95vw;
+        "
+        x-cloak
+      >
+        <!-- Card 1: Ingresos Totales -->
+        <div style="background:#ffffff; border:1px solid #e2e8f0; border-left:4px solid #059669; border-radius:10px; padding:12px 16px; display:flex; align-items:center; justify-content:space-between;">
+          <div>
+            <div style="font-size:10.5px; font-weight:800; color:#047857; text-transform:uppercase; letter-spacing:0.5px;">Ingresos por Ventas</div>
+            <div style="font-size:20px; font-weight:900; color:#059669; margin-top:2px;" x-text="'Q ' + Number(kpis.total_income || 0).toLocaleString('es-GT', {minimumFractionDigits:2, maximumFractionDigits:2})">Q 0.00</div>
+            <div style="font-size:11px; color:#64748b; margin-top:2px;">Cuenta 4101 - Ventas POS</div>
+          </div>
+          <div style="width:38px; height:38px; border-radius:10px; background:#dcfce7; color:#15803d; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;">
+            <i class="ph ph-trend-up"></i>
+          </div>
+        </div>
+
+        <!-- Card 2: Costo de Ventas (COGS) -->
+        <div style="background:#ffffff; border:1px solid #e2e8f0; border-left:4px solid #dc2626; border-radius:10px; padding:12px 16px; display:flex; align-items:center; justify-content:space-between;">
+          <div>
+            <div style="font-size:10.5px; font-weight:800; color:#b91c1c; text-transform:uppercase; letter-spacing:0.5px;">Costo de Ventas (COGS)</div>
+            <div style="font-size:20px; font-weight:900; color:#dc2626; margin-top:2px;" x-text="'Q ' + Number(kpis.total_cogs || 0).toLocaleString('es-GT', {minimumFractionDigits:2, maximumFractionDigits:2})">Q 0.00</div>
+            <div style="font-size:11px; color:#64748b; margin-top:2px;">Cuenta 5101 - Mercaderías</div>
+          </div>
+          <div style="width:38px; height:38px; border-radius:10px; background:#fee2e2; color:#b91c1c; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;">
+            <i class="ph ph-shopping-bag"></i>
+          </div>
+        </div>
+
+        <!-- Card 3: Utilidad Neta -->
+        <div style="background:#ffffff; border:1px solid #e2e8f0; border-left:4px solid var(--odoo-purple); border-radius:10px; padding:12px 16px; display:flex; align-items:center; justify-content:space-between;">
+          <div>
+            <div style="font-size:10.5px; font-weight:800; color:var(--odoo-purple); text-transform:uppercase; letter-spacing:0.5px;">Utilidad Neta del Ejercicio</div>
+            <div style="font-size:20px; font-weight:900; color:var(--odoo-purple); margin-top:2px;" x-text="'Q ' + Number(kpis.net_profit || 0).toLocaleString('es-GT', {minimumFractionDigits:2, maximumFractionDigits:2})">Q 0.00</div>
+            <div style="font-size:11px; color:#15803d; font-weight:700; margin-top:2px;">Resultado operacional</div>
+          </div>
+          <div style="width:38px; height:38px; border-radius:10px; background:var(--odoo-purple-light); color:var(--odoo-purple); display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;">
+            <i class="ph ph-chart-donut"></i>
+          </div>
+        </div>
+
+        <!-- Card 4: Activos Registrados -->
+        <div style="background:#ffffff; border:1px solid #e2e8f0; border-left:4px solid #0284c7; border-radius:10px; padding:12px 16px; display:flex; align-items:center; justify-content:space-between;">
+          <div>
+            <div style="font-size:10.5px; font-weight:800; color:#0369a1; text-transform:uppercase; letter-spacing:0.5px;">Activos Contables (Q)</div>
+            <div style="font-size:20px; font-weight:900; color:#0284c7; margin-top:2px;" x-text="'Q ' + Number(kpis.total_assets || 0).toLocaleString('es-GT', {minimumFractionDigits:2, maximumFractionDigits:2})">Q 0.00</div>
+            <div style="font-size:11px; color:#64748b; margin-top:2px;" x-text="kpis.entries_count + ' partidas publicadas'"></div>
+          </div>
+          <div style="width:38px; height:38px; border-radius:10px; background:#e0f2fe; color:#0284c7; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;">
+            <i class="ph ph-bank"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 3. MAIN CONTAINERS ===== -->
+
+  <!-- TAB 1: LIBRO DIARIO (ENTRIES) -->
+  <div x-show="activeTab === 'entries'" style="background:#ffffff; border:1px solid #e2e8f0; border-radius:14px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+    <div style="padding:16px 20px; border-bottom:1px solid #e2e8f0; background:#f8fafc; display:flex; justify-content:space-between; align-items:center;">
+      <h3 style="margin:0; font-size:15px; font-weight:800; color:#1e293b;">Partidas del Libro Diario (General Ledger)</h3>
+      <span style="font-size:11px; font-weight:800; color:var(--odoo-purple); background:var(--odoo-purple-light); padding:4px 10px; border-radius:12px;" x-text="entries.length + ' asientos'"></span>
+    </div>
+
+    <div style="overflow-x:auto;">
+      <table class="acc-table">
+        <thead>
+          <tr>
+            <th>No. Partida</th>
+            <th>Fecha</th>
+            <th>Diario</th>
+            <th>Concepto / Glosa</th>
+            <th style="text-align:right;">Debe (Q)</th>
+            <th style="text-align:right;">Haber (Q)</th>
+            <th style="text-align:center;">Estado</th>
+            <th style="text-align:center; width:60px;"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="e in entries" :key="e.id">
+            <tbody style="border-bottom:1px solid #e2e8f0;">
+              <tr>
+                <td style="font-weight:900; color:var(--odoo-purple); font-family:monospace;" x-text="e.number"></td>
+                <td style="color:#64748b;" x-text="e.date"></td>
+                <td>
+                  <span style="font-size:11px; font-weight:700; background:#f1f5f9; padding:2px 8px; border-radius:6px;" x-text="e.journal"></span>
+                </td>
+                <td style="font-weight:700; color:#1e293b;" x-text="e.concept"></td>
+                <td style="text-align:right; font-weight:800; color:#059669;" x-text="'Q ' + Number(e.debit).toFixed(2)"></td>
+                <td style="text-align:right; font-weight:800; color:#dc2626;" x-text="'Q ' + Number(e.credit).toFixed(2)"></td>
+                <td style="text-align:center;">
+                  <span style="font-size:11px; font-weight:800; padding:2px 8px; border-radius:10px; background:#dcfce7; color:#15803d;">
+                    ✓ Publicado
+                  </span>
+                </td>
+                <td style="text-align:center;">
+                  <button 
+                    type="button" 
+                    class="btn btn-sm btn-secondary" 
+                    style="font-size:11px; padding:3px 8px; border-radius:6px;"
+                    @click="e.expanded = !e.expanded"
+                    x-text="e.expanded ? 'Ocultar' : 'Ver Líneas'"
+                  ></button>
+                </td>
+              </tr>
+              <!-- Expandable Lines Accordion -->
+              <tr x-show="e.expanded" style="background:#fdfaff;">
+                <td colspan="8" style="padding:12px 24px;">
+                  <div style="font-size:11px; font-weight:800; color:var(--odoo-purple); text-transform:uppercase; margin-bottom:6px;">Detalle de Apuntes Contables:</div>
+                  <table style="width:100%; border-collapse:collapse; font-size:12px; background:#ffffff; border:1px solid #e2e8f0; border-radius:6px;">
+                    <thead>
+                      <tr style="background:#f8fafc; border-bottom:1px solid #e2e8f0;">
+                        <th style="padding:6px 12px; text-align:left;">Código Cuenta</th>
+                        <th style="padding:6px 12px; text-align:left;">Nombre Cuenta</th>
+                        <th style="padding:6px 12px; text-align:right;">Debe (Cargo)</th>
+                        <th style="padding:6px 12px; text-align:right;">Haber (Abono)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <template x-for="l in e.lines" :key="l.account_code">
+                        <tr style="border-bottom:1px solid #f1f5f9;">
+                          <td style="padding:6px 12px; font-family:monospace; font-weight:700;" x-text="l.account_code"></td>
+                          <td style="padding:6px 12px;" x-text="l.account_name"></td>
+                          <td style="padding:6px 12px; text-align:right; font-weight:700; color:#059669;" x-text="l.debit > 0 ? 'Q ' + Number(l.debit).toFixed(2) : '-'"></td>
+                          <td style="padding:6px 12px; text-align:right; font-weight:700; color:#dc2626;" x-text="l.credit > 0 ? 'Q ' + Number(l.credit).toFixed(2) : '-'"></td>
+                        </tr>
+                      </template>
+                    </tbody>
+                  </table>
+                </td>
+              </tr>
+            </tbody>
+          </template>
+          <tr x-show="entries.length === 0">
+            <td colspan="8" style="text-align:center; padding:40px; color:#64748b;">
+              No se encontraron asientos contables en el libro diario.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB 2: CATÁLOGO DE CUENTAS (NOMENCLATURA) -->
+  <div x-show="activeTab === 'accounts'" style="background:#ffffff; border:1px solid #e2e8f0; border-radius:14px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+    <div style="padding:16px 20px; border-bottom:1px solid #e2e8f0; background:#f8fafc; display:flex; justify-content:space-between; align-items:center;">
+      <h3 style="margin:0; font-size:15px; font-weight:800; color:#1e293b;">Nomenclatura y Catálogo de Cuentas Contables (SAT Guatemala)</h3>
+      <span style="font-size:11px; font-weight:800; color:#0369a1; background:#e0f2fe; padding:4px 10px; border-radius:12px;" x-text="accounts.length + ' cuentas'"></span>
+    </div>
+
+    <div style="overflow-x:auto;">
+      <table class="acc-table">
+        <thead>
+          <tr>
+            <th style="width:140px;">Código Cuenta</th>
+            <th>Nombre / Descripción de Cuenta</th>
+            <th>Tipo de Cuenta</th>
+            <th style="text-align:right;">Total Debe</th>
+            <th style="text-align:right;">Total Haber</th>
+            <th style="text-align:right;">Saldo Actual (Q)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="acc in accounts" :key="acc.id">
+            <tr>
+              <td style="font-family:monospace; font-weight:900; color:var(--odoo-purple); font-size:13.5px;" x-text="acc.code"></td>
+              <td style="font-weight:700; color:#1e293b;" x-text="acc.name"></td>
+              <td>
+                <span 
+                  style="font-size:11px; font-weight:800; padding:2px 8px; border-radius:6px;"
+                  :style="getAccountTypeBadgeStyle(acc.account_type)"
+                  x-text="getAccountTypeLabel(acc.account_type)"
+                ></span>
+              </td>
+              <td style="text-align:right; color:#64748b;" x-text="'Q ' + Number(acc.total_debit).toFixed(2)"></td>
+              <td style="text-align:right; color:#64748b;" x-text="'Q ' + Number(acc.total_credit).toFixed(2)"></td>
+              <td style="text-align:right;">
+                <span 
+                  style="font-weight:900; font-size:13.5px;"
+                  :style="acc.balance >= 0 ? 'color:#059669;' : 'color:#dc2626;'"
+                  x-text="'Q ' + Number(acc.balance).toFixed(2)"
+                ></span>
+              </td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB 3: BALANCE DE COMPROBACIÓN (TRIAL BALANCE) -->
+  <div x-show="activeTab === 'trial'" style="background:#ffffff; border:1px solid #e2e8f0; border-radius:14px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+    <div style="padding:16px 20px; border-bottom:1px solid #e2e8f0; background:#f8fafc; display:flex; justify-content:space-between; align-items:center;">
+      <div>
+        <h3 style="margin:0; font-size:15px; font-weight:800; color:#1e293b;">Balance de Comprobación y Saldos (Trial Balance)</h3>
+        <div style="font-size:11.5px; color:#64748b; margin-top:2px;">Verificación de cuadre contable (Movimientos y Saldos)</div>
+      </div>
+      <div>
+        <template x-if="trialBalance.totals?.is_balanced">
+          <span style="font-size:11px; font-weight:900; background:#dcfce7; color:#15803d; padding:4px 12px; border-radius:12px; border:1px solid #86efac;">
+            ✓ BALANCE CUADRADO (Partida Doble)
+          </span>
+        </template>
+      </div>
+    </div>
+
+    <div style="overflow-x:auto;">
+      <table class="acc-table">
+        <thead>
+          <tr>
+            <th rowspan="2" style="border-right:1px solid #e2e8f0;">Código</th>
+            <th rowspan="2" style="border-right:1px solid #e2e8f0;">Cuenta Contable</th>
+            <th colspan="2" style="text-align:center; border-bottom:1px solid #cbd5e1; border-right:1px solid #e2e8f0; background:#f1f5f9;">MOVIMIENTOS</th>
+            <th colspan="2" style="text-align:center; border-bottom:1px solid #cbd5e1; background:#f1f5f9;">SALDOS</th>
+          </tr>
+          <tr>
+            <th style="text-align:right; font-size:10.5px;">Debe (Q)</th>
+            <th style="text-align:right; font-size:10.5px; border-right:1px solid #e2e8f0;">Haber (Q)</th>
+            <th style="text-align:right; font-size:10.5px;">Deudor (Q)</th>
+            <th style="text-align:right; font-size:10.5px;">Acreedor (Q)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="item in trialBalance.items || []" :key="'tb_' + item.code">
+            <tr>
+              <td style="font-family:monospace; font-weight:800; color:var(--odoo-purple);" x-text="item.code"></td>
+              <td style="font-weight:700; color:#1e293b;" x-text="item.name"></td>
+              <td style="text-align:right; color:#475569;" x-text="'Q ' + Number(item.debit_moves).toFixed(2)"></td>
+              <td style="text-align:right; color:#475569; border-right:1px solid #f1f5f9;" x-text="'Q ' + Number(item.credit_moves).toFixed(2)"></td>
+              <td style="text-align:right; font-weight:800; color:#059669;" x-text="item.debtor_balance > 0 ? 'Q ' + Number(item.debtor_balance).toFixed(2) : '-'"></td>
+              <td style="text-align:right; font-weight:800; color:#dc2626;" x-text="item.creditor_balance > 0 ? 'Q ' + Number(item.creditor_balance).toFixed(2) : '-'"></td>
+            </tr>
+          </template>
+        </tbody>
+        <tfoot>
+          <tr style="background:#f8fafc; border-top:2px solid #cbd5e1; font-weight:900; font-size:13.5px;">
+            <td colspan="2" style="text-align:right; padding:12px 16px;">SUMAS TOTALES:</td>
+            <td style="text-align:right; padding:12px 16px; color:#1e293b;" x-text="'Q ' + Number(trialBalance.totals?.debit_moves || 0).toFixed(2)"></td>
+            <td style="text-align:right; padding:12px 16px; color:#1e293b; border-right:1px solid #e2e8f0;" x-text="'Q ' + Number(trialBalance.totals?.credit_moves || 0).toFixed(2)"></td>
+            <td style="text-align:right; padding:12px 16px; color:#059669;" x-text="'Q ' + Number(trialBalance.totals?.debtor_balance || 0).toFixed(2)"></td>
+            <td style="text-align:right; padding:12px 16px; color:#dc2626;" x-text="'Q ' + Number(trialBalance.totals?.creditor_balance || 0).toFixed(2)"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB 4: ESTADO DE RESULTADOS (P&L) -->
+  <div x-show="activeTab === 'pnl'" style="background:#ffffff; border:1px solid #e2e8f0; border-radius:14px; padding:28px 36px; box-shadow:0 1px 3px rgba(0,0,0,0.03); max-width:800px; margin:0 auto;">
+    <div style="border-bottom:2px solid var(--odoo-purple); padding-bottom:14px; margin-bottom:22px; text-align:center;">
+      <h2 style="margin:0; font-size:20px; font-weight:900; color:#1e293b;">ESTADO DE RESULTADOS (PÉRDIDAS Y GANANCIAS)</h2>
+      <div style="font-size:12px; color:#64748b; margin-top:4px;">Cifras expresadas en Quetzales (GTQ)</div>
+    </div>
+
+    <!-- 1. INGRESOS -->
+    <div style="margin-bottom:20px;">
+      <div style="font-size:13px; font-weight:900; color:#059669; text-transform:uppercase; border-bottom:1px solid #e2e8f0; padding-bottom:6px; margin-bottom:10px;">
+        1. INGRESOS DE OPERACIÓN
+      </div>
+      <template x-for="inc in incomeStatement.incomes || []" :key="inc.code">
+        <div style="display:flex; justify-content:space-between; padding:4px 0; font-size:13px;">
+          <span style="color:#334155;" x-text="inc.code + ' ' + inc.name"></span>
+          <span style="font-weight:700;" x-text="'Q ' + Number(inc.amount).toFixed(2)"></span>
+        </div>
+      </template>
+      <div style="display:flex; justify-content:space-between; border-top:1px solid #cbd5e1; padding-top:6px; margin-top:6px; font-weight:800; font-size:13.5px; color:#059669;">
+        <span>TOTAL INGRESOS BRUTOS:</span>
+        <span x-text="'Q ' + Number(incomeStatement.total_incomes || 0).toFixed(2)"></span>
+      </div>
+    </div>
+
+    <!-- 2. COSTOS DE VENTA -->
+    <div style="margin-bottom:20px;">
+      <div style="font-size:13px; font-weight:900; color:#dc2626; text-transform:uppercase; border-bottom:1px solid #e2e8f0; padding-bottom:6px; margin-bottom:10px;">
+        2. COSTO DE MERCADERÍA VENDIDA (COGS)
+      </div>
+      <template x-for="cst in incomeStatement.costs || []" :key="cst.code">
+        <div style="display:flex; justify-content:space-between; padding:4px 0; font-size:13px;">
+          <span style="color:#334155;" x-text="cst.code + ' ' + cst.name"></span>
+          <span style="font-weight:700;" x-text="'(Q ' + Number(cst.amount).toFixed(2) + ')'"></span>
+        </div>
+      </template>
+      <div style="display:flex; justify-content:space-between; border-top:1px solid #cbd5e1; padding-top:6px; margin-top:6px; font-weight:800; font-size:13.5px; color:#dc2626;">
+        <span>TOTAL COSTO DE VENTAS:</span>
+        <span x-text="'(Q ' + Number(incomeStatement.total_costs || 0).toFixed(2) + ')'"></span>
+      </div>
+    </div>
+
+    <!-- MARGEN BRUTO -->
+    <div style="background:#f8fafc; border:1.5px solid #cbd5e1; border-radius:8px; padding:10px 16px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; font-weight:900; font-size:15px; color:var(--odoo-purple);">
+      <span>= UTILIDAD BRUTA EN VENTAS:</span>
+      <span x-text="'Q ' + Number(incomeStatement.gross_profit || 0).toFixed(2)"></span>
+    </div>
+
+    <!-- 3. GASTOS DE OPERACIÓN -->
+    <div style="margin-bottom:20px;">
+      <div style="font-size:13px; font-weight:900; color:#d97706; text-transform:uppercase; border-bottom:1px solid #e2e8f0; padding-bottom:6px; margin-bottom:10px;">
+        3. GASTOS DE ADMINISTRACIÓN Y VENTAS
+      </div>
+      <template x-for="exp in incomeStatement.expenses || []" :key="exp.code">
+        <div style="display:flex; justify-content:space-between; padding:4px 0; font-size:13px;">
+          <span style="color:#334155;" x-text="exp.code + ' ' + exp.name"></span>
+          <span style="font-weight:700;" x-text="'(Q ' + Number(exp.amount).toFixed(2) + ')'"></span>
+        </div>
+      </template>
+      <div style="display:flex; justify-content:space-between; border-top:1px solid #cbd5e1; padding-top:6px; margin-top:6px; font-weight:800; font-size:13.5px; color:#d97706;">
+        <span>TOTAL GASTOS OPERATIVOS:</span>
+        <span x-text="'(Q ' + Number(incomeStatement.total_expenses || 0).toFixed(2) + ')'"></span>
+      </div>
+    </div>
+
+    <!-- UTILIDAD NETA FINAL -->
+    <div style="background:#fdfaff; border:2px solid var(--odoo-purple); border-radius:10px; padding:14px 20px; display:flex; justify-content:space-between; align-items:center;">
+      <div>
+        <div style="font-size:16px; font-weight:900; color:#1e293b;">= UTILIDAD NETA DEL EJERCICIO:</div>
+        <div style="font-size:11.5px; color:#64748b;" x-text="'Margen de Rentabilidad Neta: ' + (incomeStatement.margin_pct || 0) + '%'"></div>
+      </div>
+      <div style="font-size:22px; font-weight:900; color:var(--odoo-purple);" x-text="'Q ' + Number(incomeStatement.net_profit || 0).toFixed(2)"></div>
+    </div>
+
+  </div>
+
+  <!-- ===== MODAL 1: NUEVO ASIENTO MULTI-LÍNEA ===== -->
+  <div class="modal-backdrop" x-show="showEntryModal" style="display:none;" x-cloak>
+    <div class="modal" style="max-width:720px; background:#ffffff; border-radius:14px; padding:24px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:12px; margin-bottom:16px;">
+        <div>
+          <h3 style="margin:0; font-size:16px; font-weight:800; color:#1e293b;">Crear Asiento Contable (Partida Doble)</h3>
+          <div style="font-size:11.5px; color:#64748b;">Registro en el Libro Diario con validación de balance</div>
+        </div>
+        <button style="border:none; background:none; font-size:22px; cursor:pointer; color:#94a3b8;" @click="showEntryModal = false">&times;</button>
+      </div>
+
+      <div style="display:grid; grid-template-columns:2fr 1fr 1fr; gap:12px; margin-bottom:16px;">
+        <div>
+          <label style="font-size:11px; font-weight:800; color:#475569; display:block; margin-bottom:3px; text-transform:uppercase;">CONCEPTO / GLOSA *</label>
+          <input type="text" class="form-control" style="width:100%; font-weight:700;" placeholder="Ej: Pago de alquiler mensual de local" x-model="entryForm.concept">
+        </div>
+        <div>
+          <label style="font-size:11px; font-weight:800; color:#475569; display:block; margin-bottom:3px; text-transform:uppercase;">DIARIO</label>
+          <select class="form-control" style="width:100%; font-weight:700;" x-model="entryForm.journal">
+            <option value="Operaciones Varias">Operaciones Varias</option>
+            <option value="Bancos y Caja">Bancos y Caja</option>
+            <option value="Gastos">Gastos Operativos</option>
+            <option value="Ajustes Contables">Ajustes Contables</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px; font-weight:800; color:#475569; display:block; margin-bottom:3px; text-transform:uppercase;">FECHA</label>
+          <input type="date" class="form-control" style="width:100%; font-weight:700;" x-model="entryForm.entry_date">
+        </div>
+      </div>
+
+      <!-- Apuntes Contables Table -->
+      <div style="border:1px solid #e2e8f0; border-radius:8px; overflow:hidden; margin-bottom:14px;">
+        <table style="width:100%; border-collapse:collapse; font-size:12.5px;">
+          <thead>
+            <tr style="background:#f8fafc; border-bottom:1px solid #e2e8f0;">
+              <th style="padding:8px 12px; text-align:left;">Cuenta Contable</th>
+              <th style="padding:8px 12px; text-align:right; width:130px;">Debe (Q)</th>
+              <th style="padding:8px 12px; text-align:right; width:130px;">Haber (Q)</th>
+              <th style="padding:8px 12px; text-align:center; width:40px;"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="(line, idx) in entryForm.lines" :key="idx">
+              <tr style="border-bottom:1px solid #f1f5f9;">
+                <td style="padding:6px 12px;">
+                  <select class="form-control" style="width:100%; padding:6px 8px; font-size:12px; font-weight:700;" x-model="line.account_id">
+                    <option value="">-- Seleccionar Cuenta --</option>
+                    <template x-for="acc in accounts" :key="acc.id">
+                      <option :value="acc.id" x-text="acc.code + ' - ' + acc.name"></option>
+                    </template>
+                  </select>
+                </td>
+                <td style="padding:6px 12px; text-align:right;">
+                  <input type="number" step="0.01" min="0" class="form-control" style="width:100%; text-align:right; font-weight:800; padding:6px 8px;" x-model.number="line.debit" placeholder="0.00">
+                </td>
+                <td style="padding:6px 12px; text-align:right;">
+                  <input type="number" step="0.01" min="0" class="form-control" style="width:100%; text-align:right; font-weight:800; padding:6px 8px;" x-model.number="line.credit" placeholder="0.00">
+                </td>
+                <td style="padding:6px 12px; text-align:center;">
+                  <button type="button" style="border:none; background:none; color:#ef4444; font-size:16px; cursor:pointer;" @click="removeEntryLine(idx)">
+                    <i class="ph ph-trash"></i>
+                  </button>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
+        <button type="button" class="btn btn-sm btn-secondary" style="font-weight:700;" @click="addEntryLine()">
+          <i class="ph ph-plus"></i> + Agregar Línea
+        </button>
+
+        <!-- Balance Indicator -->
+        <div style="display:flex; gap:16px; font-size:13px;">
+          <div>Debe: <strong style="color:#059669;" x-text="'Q ' + getEntryTotalDebit().toFixed(2)"></strong></div>
+          <div>Haber: <strong style="color:#dc2626;" x-text="'Q ' + getEntryTotalCredit().toFixed(2)"></strong></div>
+          <div>
+            Diferencia: 
+            <strong :style="isEntryBalanced() ? 'color:#15803d;' : 'color:#dc2626;'" x-text="'Q ' + Math.abs(getEntryTotalDebit() - getEntryTotalCredit()).toFixed(2)"></strong>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; gap:10px; border-top:1px solid #e2e8f0; padding-top:14px;">
+        <button type="button" class="btn btn-secondary" @click="showEntryModal = false">Cancelar</button>
+        <button 
+          type="button" 
+          class="btn btn-primary" 
+          style="background:var(--odoo-purple);"
+          @click="saveJournalEntry()"
+          :disabled="!isEntryBalanced()"
+        >
+          Publicar Asiento
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MODAL 2: NUEVA CUENTA CONTABLE ===== -->
+  <div class="modal-backdrop" x-show="showAccountModal" style="display:none;" x-cloak>
+    <div class="modal" style="max-width:480px; background:#ffffff; border-radius:14px; padding:24px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:12px; margin-bottom:16px;">
+        <h3 style="margin:0; font-size:16px; font-weight:800; color:#1e293b;">Nueva Cuenta en el Catálogo</h3>
+        <button style="border:none; background:none; font-size:22px; cursor:pointer; color:#94a3b8;" @click="showAccountModal = false">&times;</button>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:14px;">
+        <div style="display:grid; grid-template-columns:1fr 1.5fr; gap:12px;">
+          <div>
+            <label style="font-size:11px; font-weight:800; color:#475569; display:block; margin-bottom:3px; text-transform:uppercase;">CÓDIGO *</label>
+            <input type="text" class="form-control" style="width:100%; font-family:monospace; font-weight:800;" placeholder="Ej: 6106" x-model="accountForm.code">
+          </div>
+          <div>
+            <label style="font-size:11px; font-weight:800; color:#475569; display:block; margin-bottom:3px; text-transform:uppercase;">TIPO DE CUENTA *</label>
+            <select class="form-control" style="width:100%; font-weight:700;" x-model="accountForm.account_type">
+              <option value="asset">1. Activo</option>
+              <option value="liability">2. Pasivo</option>
+              <option value="equity">3. Capital / Patrimonio</option>
+              <option value="income">4. Ingreso</option>
+              <option value="cost">5. Costo</option>
+              <option value="expense">6. Gasto de Operación</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label style="font-size:11px; font-weight:800; color:#475569; display:block; margin-bottom:3px; text-transform:uppercase;">NOMBRE DE LA CUENTA *</label>
+          <input type="text" class="form-control" style="width:100%; font-weight:700;" placeholder="Ej: Gastos de Publicidad y Marketing" x-model="accountForm.name">
+        </div>
+      </div>
+
+      <div style="margin-top:20px; display:flex; justify-content:flex-end; gap:10px;">
+        <button type="button" class="btn btn-secondary" @click="showAccountModal = false">Cancelar</button>
+        <button type="button" class="btn btn-primary" style="background:var(--odoo-purple);" @click="saveAccount()">Guardar Cuenta</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function accountingERPModule() {
+    return {
+      activeTab: 'entries',
+      showKpis: false,
+      search: '',
+      kpis: { total_income: 0, total_cogs: 0, gross_profit: 0, total_expenses: 0, net_profit: 0, total_assets: 0, entries_count: 0 },
+      entries: [],
+      accounts: [],
+      trialBalance: { items: [], totals: {} },
+      incomeStatement: { incomes: [], costs: [], expenses: [] },
+
+      showEntryModal: false,
+      entryForm: {
+        concept: '',
+        journal: 'Operaciones Varias',
+        entry_date: new Date().toISOString().slice(0, 10),
+        lines: []
+      },
+
+      showAccountModal: false,
+      accountForm: {
+        code: '',
+        name: '',
+        account_type: 'expense'
+      },
+
+      async init() {
+        await Promise.all([
+          this.loadKPIs(),
+          this.loadEntries(),
+          this.loadAccounts(),
+          this.loadTrialBalance(),
+          this.loadIncomeStatement()
+        ]);
+      },
+
+      async loadKPIs() {
+        try {
+          const res = await API.get('/accounting/kpis');
+          if (res) this.kpis = res;
+        } catch(e) {}
+      },
+
+      async loadEntries() {
+        try {
+          const res = await API.get(`/accounting/entries?search=${encodeURIComponent(this.search)}`);
+          this.entries = (res || []).map(e => ({ ...e, expanded: false }));
+        } catch(e) {}
+      },
+
+      async loadAccounts() {
+        try {
+          const res = await API.get(`/accounting/accounts?search=${encodeURIComponent(this.search)}`);
+          this.accounts = res || [];
+        } catch(e) {}
+      },
+
+      async loadTrialBalance() {
+        try {
+          const res = await API.get('/accounting/trial-balance');
+          if (res) this.trialBalance = res;
+        } catch(e) {}
+      },
+
+      async loadIncomeStatement() {
+        try {
+          const res = await API.get('/accounting/income-statement');
+          if (res) this.incomeStatement = res;
+        } catch(e) {}
+      },
+
+      onSearchChange() {
+        if (this.activeTab === 'entries') this.loadEntries();
+        else if (this.activeTab === 'accounts') this.loadAccounts();
+      },
+
+      getAccountTypeLabel(t) {
+        const labels = {
+          asset: '1. Activo',
+          liability: '2. Pasivo',
+          equity: '3. Capital',
+          income: '4. Ingreso',
+          cost: '5. Costo',
+          expense: '6. Gasto'
+        };
+        return labels[t] || t;
+      },
+
+      getAccountTypeBadgeStyle(t) {
+        const styles = {
+          asset: 'background:#e0f2fe; color:#0369a1;',
+          liability: 'background:#fee2e2; color:#b91c1c;',
+          equity: 'background:#ede9fe; color:#6d28d9;',
+          income: 'background:#dcfce7; color:#15803d;',
+          cost: 'background:#ffedd5; color:#c2410c;',
+          expense: 'background:#fef3c7; color:#b45309;'
+        };
+        return styles[t] || 'background:#f1f5f9; color:#475569;';
+      },
+
+      openNewEntryModal() {
+        this.entryForm = {
+          concept: '',
+          journal: 'Operaciones Varias',
+          entry_date: new Date().toISOString().slice(0, 10),
+          lines: [
+            { account_id: '', debit: 0, credit: 0 },
+            { account_id: '', debit: 0, credit: 0 }
+          ]
+        };
+        this.showEntryModal = true;
+      },
+
+      addEntryLine() {
+        this.entryForm.lines.push({ account_id: '', debit: 0, credit: 0 });
+      },
+
+      removeEntryLine(idx) {
+        this.entryForm.lines.splice(idx, 1);
+      },
+
+      getEntryTotalDebit() {
+        return this.entryForm.lines.reduce((acc, l) => acc + (Number(l.debit) || 0), 0);
+      },
+
+      getEntryTotalCredit() {
+        return this.entryForm.lines.reduce((acc, l) => acc + (Number(l.credit) || 0), 0);
+      },
+
+      isEntryBalanced() {
+        const dr = this.getEntryTotalDebit();
+        const cr = this.getEntryTotalCredit();
+        return dr > 0 && Math.abs(dr - cr) < 0.01;
+      },
+
+      async saveJournalEntry() {
+        if (!this.entryForm.concept) {
+          return alert('El concepto o glosa del asiento es obligatorio.');
+        }
+        if (!this.isEntryBalanced()) {
+          return alert('El asiento está descuadrado: Total Debe != Total Haber.');
+        }
+
+        try {
+          await API.post('/accounting/entries', this.entryForm);
+          this.showEntryModal = false;
+          await this.init();
+          alert('¡Asiento contable publicado exitosamente!');
+        } catch(e) {
+          alert('Error al publicar asiento: ' + (e.message || e));
+        }
+      },
+
+      openNewAccountModal() {
+        this.accountForm = {
+          code: '',
+          name: '',
+          account_type: 'expense'
+        };
+        this.showAccountModal = true;
+      },
+
+      async saveAccount() {
+        if (!this.accountForm.code || !this.accountForm.name) {
+          return alert('El código y nombre de la cuenta son obligatorios.');
+        }
+        try {
+          await API.post('/accounting/accounts', this.accountForm);
+          this.showAccountModal = false;
+          await this.loadAccounts();
+          alert('¡Cuenta contable creada con éxito!');
+        } catch(e) {
+          alert('Error al crear cuenta: ' + (e.message || e));
+        }
+      },
+
+      exportCurrentViewCSV() {
+        let csvContent = "data:text/csv;charset=utf-8,";
+        let filename = `contabilidad_${this.activeTab}.csv`;
+
+        if (this.activeTab === 'entries') {
+          csvContent += "Partida,Fecha,Diario,Concepto,Debe,Haber\n";
+          this.entries.forEach(e => {
+            csvContent += `"${e.number}","${e.date}","${e.journal}","${e.concept}",${e.debit},${e.credit}\n`;
+          });
+        } else if (this.activeTab === 'accounts') {
+          csvContent += "Codigo,Nombre,Tipo,Debe,Haber,Saldo\n";
+          this.accounts.forEach(a => {
+            csvContent += `"${a.code}","${a.name}","${a.account_type}",${a.total_debit},${a.total_credit},${a.balance}\n`;
+          });
+        } else if (this.activeTab === 'trial') {
+          csvContent += "Codigo,Cuenta,Movimientos_Debe,Movimientos_Haber,Saldo_Deudor,Saldo_Acreedor\n";
+          (this.trialBalance.items || []).forEach(t => {
+            csvContent += `"${t.code}","${t.name}",${t.debit_moves},${t.credit_moves},${t.debtor_balance},${t.creditor_balance}\n`;
+          });
+        }
+
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", filename);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    }
+  }
+</script>
+{% endblock %}

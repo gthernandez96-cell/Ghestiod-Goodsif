@@ -4,8 +4,6 @@ from sqlalchemy.dialects.postgresql import UUID, JSONB, ARRAY
 from sqlalchemy.ext.compiler import compiles
 import uuid
 from app.core.database import Base
-
-
 # ===== COMPILATION ADAPTERS FOR SQLITE (DESARROLLO LOCAL SIN POSTGRESQL) =====
 @compiles(JSONB, "sqlite")
 def compile_jsonb_sqlite(type_, compiler, **kw):
@@ -20,6 +18,7 @@ def compile_uuid_sqlite(type_, compiler, **kw):
 @compiles(ARRAY, "sqlite")
 def compile_array_sqlite(type_, compiler, **kw):
     return "JSON"
+
 
 
 class TimestampMixin:

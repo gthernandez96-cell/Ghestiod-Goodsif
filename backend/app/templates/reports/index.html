@@ -1,57 +1,725 @@
 {% set show_layout = true %}
 {% extends "base.html" %}
 
-{% block title %}Reportes y Análisis — POS Empresarial{% endblock %}
+{% block title %}Reportes Ejecutivos & Business Intelligence — POS Empresarial{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* =============================================
+     EXECUTIVE REPORTS & BI STYLES
+  ============================================= */
+  :root {
+    --odoo-purple: #714B67;
+    --odoo-purple-light: #f4eff3;
+    --odoo-teal: #00A09D;
+    --odoo-teal-light: #e6f6f6;
+  }
+
+  .bi-kpi-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 18px 22px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .bi-kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+  }
+
+  .report-tab-pill {
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 800;
+    cursor: pointer;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    color: #475569;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .report-tab-pill:hover {
+    background: #f1f5f9;
+    color: #1e293b;
+  }
+  .report-tab-pill.active {
+    background: var(--odoo-purple);
+    color: #ffffff;
+    border-color: var(--odoo-purple);
+    box-shadow: 0 2px 8px rgba(113, 75, 103, 0.25);
+  }
+
+  .date-preset-btn {
+    padding: 5px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    border-radius: 6px;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+  .date-preset-btn:hover {
+    background: #f8fafc;
+    color: #0f172a;
+  }
+  .date-preset-btn.active {
+    background: #f1f5f9;
+    border-color: var(--odoo-purple);
+    color: var(--odoo-purple);
+    font-weight: 800;
+  }
+
+  .report-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .report-table th {
+    background: #f8fafc;
+    color: #475569;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 12px 16px;
+    border-bottom: 2px solid #e2e8f0;
+    text-align: left;
+  }
+  .report-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid #f1f5f9;
+    color: #1e293b;
+    vertical-align: middle;
+  }
+  .report-table tr:hover td {
+    background: #fdfaff;
+  }
+
+  /* Mini visual bar for sales */
+  .bar-container {
+    background: #f1f5f9;
+    height: 8px;
+    border-radius: 4px;
+    overflow: hidden;
+    width: 100%;
+    margin-top: 4px;
+  }
+  .bar-fill {
+    background: var(--odoo-purple);
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.3s ease;
+  }
+</style>
+{% endblock %}
 
 {% block content %}
-<div x-data="reportsPage()" x-init="init()">
-  <div class="page-header">
-    <div>
-      <h1 class="page-title">Reportes y Business Intelligence</h1>
-      <p class="page-subtitle">Ventas por producto, arqueos de caja y utilidad bruta</p>
+<div x-data="reportsBIModule()" x-init="init()">
+  
+  <!-- ===== TOP CONTROL PANEL SUB-HEADER ===== -->
+  <div style="margin:-20px -24px 20px -24px; padding:12px 24px; background:#ffffff; border-bottom:1px solid #e2e8f0; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px; box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+    
+    <!-- Left: Title & Quick Date Presets -->
+    <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+      <div style="font-size:15px; font-weight:900; color:#1e293b; display:flex; align-items:center; gap:6px; margin-right:6px;">
+        <i class="ph ph-chart-line-up" style="color:var(--odoo-purple); font-size:18px;"></i>
+        <span>Business Intelligence & Reportes</span>
+      </div>
+
+      <div style="display:flex; gap:6px; flex-wrap:wrap;">
+        <button class="date-preset-btn" :class="activePreset === 'today' ? 'active' : ''" @click="setPreset('today')">Hoy</button>
+        <button class="date-preset-btn" :class="activePreset === '7days' ? 'active' : ''" @click="setPreset('7days')">7 Días</button>
+        <button class="date-preset-btn" :class="activePreset === 'this_month' ? 'active' : ''" @click="setPreset('this_month')">Este Mes</button>
+        <button class="date-preset-btn" :class="activePreset === 'last_month' ? 'active' : ''" @click="setPreset('last_month')">Mes Anterior</button>
+        <button class="date-preset-btn" :class="activePreset === 'this_year' ? 'active' : ''" @click="setPreset('this_year')">Año 2026</button>
+      </div>
+    </div>
+
+    <!-- Center/Right: Date Pickers & Universal Export -->
+    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+      <div style="display:flex; align-items:center; gap:6px; background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; padding:4px 10px;">
+        <span style="font-size:11px; font-weight:700; color:#64748b;">DESDE:</span>
+        <input type="date" style="border:none; background:transparent; font-size:12.5px; font-weight:700; color:#1e293b; outline:none;" x-model="startDate" @change="activePreset = 'custom'; reloadAllData()">
+        <span style="font-size:11px; font-weight:700; color:#64748b; margin-left:4px;">HASTA:</span>
+        <input type="date" style="border:none; background:transparent; font-size:12.5px; font-weight:700; color:#1e293b; outline:none;" x-model="endDate" @change="activePreset = 'custom'; reloadAllData()">
+      </div>
+
+      <!-- Export to Excel / CSV -->
+      <button 
+        type="button" 
+        class="btn btn-secondary" 
+        style="background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; font-weight:800; border-radius:8px; padding:7px 14px; font-size:12.5px; display:flex; align-items:center; gap:6px; cursor:pointer;"
+        @click="exportCurrentReportToCSV()"
+        title="Descargar datos en formato Excel / CSV"
+      >
+        <i class="ph ph-file-csv" style="font-size:16px;"></i> Exportar Excel / CSV
+      </button>
+
+      <!-- Print Report PDF -->
+      <button 
+        type="button" 
+        class="btn btn-secondary" 
+        style="background:#f8fafc; color:#334155; border:1px solid #cbd5e1; font-weight:700; border-radius:8px; padding:7px 14px; font-size:12.5px; display:flex; align-items:center; gap:6px; cursor:pointer;"
+        @click="printExecutiveReport()"
+        title="Imprimir informe oficial en PDF"
+      >
+        <i class="ph ph-printer" style="font-size:16px; color:#64748b;"></i> Imprimir PDF
+      </button>
+    </div>
+
+  </div>
+
+  <!-- ===== 2. REPORT TABS SWITCHER & FLOATING KPI POPOVER ===== -->
+  <div style="position:relative; display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:20px;">
+    <button class="report-tab-pill" :class="activeReport === 'sales' ? 'active' : ''" @click="activeReport = 'sales'">
+      <i class="ph ph-chart-bar"></i> 1. Ventas & Rentabilidad por Día
+    </button>
+    <button class="report-tab-pill" :class="activeReport === 'products' ? 'active' : ''" @click="activeReport = 'products'">
+      <i class="ph ph-crown"></i> 2. Ranking Top Productos (Pareto)
+    </button>
+    <button class="report-tab-pill" :class="activeReport === 'inventory' ? 'active' : ''" @click="activeReport = 'inventory'">
+      <i class="ph ph-stack"></i> 3. Valoración de Inventario por Bodega
+    </button>
+    <button class="report-tab-pill" :class="activeReport === 'fel' ? 'active' : ''" @click="activeReport = 'fel'">
+      <i class="ph ph-file-text"></i> 4. Libro Oficial de Ventas FEL SAT
+    </button>
+    <button class="report-tab-pill" :class="activeReport === 'payments' ? 'active' : ''" @click="activeReport = 'payments'">
+      <i class="ph ph-credit-card"></i> 5. Métodos de Pago
+    </button>
+
+    <!-- Right Controls: Resumen Button (al par derecho) -->
+    <div style="margin-left:auto; display:flex; align-items:center; gap:10px; position:relative;">
+      <button
+        type="button"
+        @click="showKpis = !showKpis"
+        style="
+          display:inline-flex; align-items:center; gap:7px;
+          padding:6px 16px;
+          background:linear-gradient(135deg, #714B67 0%, #9b6b8f 100%);
+          border:none; border-radius:20px;
+          font-size:12px; font-weight:800; color:#ffffff;
+          cursor:pointer; transition:all 0.22s cubic-bezier(0.4,0,0.2,1);
+          box-shadow:0 2px 10px rgba(113,75,103,0.3);
+          letter-spacing:0.3px; white-space:nowrap;
+        "
+        onmouseover="this.style.boxShadow='0 4px 16px rgba(113,75,103,0.5)'; this.style.transform='translateY(-1px)'"
+        onmouseout="this.style.boxShadow='0 2px 10px rgba(113,75,103,0.3)'; this.style.transform='translateY(0)'"
+      >
+        <i class="ph ph-chart-bar" style="font-size:15px;"></i>
+        <span x-text="showKpis ? 'Ocultar resumen' : 'Resumen'"></span>
+        <i
+          class="ph ph-caret-down"
+          style="font-size:12px; transition:transform 0.25s ease;"
+          :style="showKpis ? 'transform:rotate(180deg)' : 'transform:rotate(0deg)'"
+        ></i>
+      </button>
+
+      <!-- Floating Popover Dropdown Panel (Exacto a Inventarios y AP, alineado a la derecha) -->
+      <div
+        x-show="showKpis"
+        @click.outside="showKpis = false"
+        x-transition:enter="transition ease-out duration-200"
+        x-transition:enter-start="opacity-0 scale-95"
+        x-transition:enter-end="opacity-100 scale-100"
+        x-transition:leave="transition ease-in duration-150"
+        x-transition:leave-start="opacity-100 scale-100"
+        x-transition:leave-end="opacity-0 scale-95"
+        style="
+          position:absolute; top:calc(100% + 8px); right:0; z-index:999;
+          background:#ffffff; border:1.5px solid #e2e8f0; border-radius:14px;
+          box-shadow:0 14px 45px -8px rgba(0,0,0,0.18), 0 4px 16px -4px rgba(0,0,0,0.08);
+          padding:12px; display:flex; flex-direction:column; gap:8px;
+          width:460px; max-width:95vw;
+        "
+        x-cloak
+      >
+        <!-- Card 1: Facturación Bruta -->
+        <div style="background:#ffffff; border:1px solid #e2e8f0; border-left:4px solid var(--odoo-purple); border-radius:10px; padding:12px 16px; display:flex; align-items:center; justify-content:space-between;">
+          <div>
+            <div style="font-size:10.5px; font-weight:800; color:var(--odoo-purple); text-transform:uppercase; letter-spacing:0.5px;">Facturación Bruta (Q)</div>
+            <div style="font-size:20px; font-weight:900; color:#1e293b; margin-top:2px;" x-text="'Q ' + Number(kpis.total_sales || 0).toLocaleString('es-GT', {minimumFractionDigits:2, maximumFractionDigits:2})">Q 0.00</div>
+            <div style="font-size:11px; color:#64748b; margin-top:2px;">
+              <span>Subtotal: Q <span x-text="Number(kpis.total_subtotal || 0).toFixed(2)"></span> | IVA: Q <span x-text="Number(kpis.total_tax || 0).toFixed(2)"></span></span>
+            </div>
+          </div>
+          <div style="width:38px; height:38px; border-radius:10px; background:var(--odoo-purple-light); color:var(--odoo-purple); display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;">
+            <i class="ph ph-currency-circle-dollar"></i>
+          </div>
+        </div>
+
+        <!-- Card 2: Ganancia Bruta & Margen -->
+        <div style="background:#ffffff; border:1px solid #e2e8f0; border-left:4px solid #10b981; border-radius:10px; padding:12px 16px; display:flex; align-items:center; justify-content:space-between;">
+          <div>
+            <div style="font-size:10.5px; font-weight:800; color:#047857; text-transform:uppercase; letter-spacing:0.5px;">Ganancia Bruta & Margen</div>
+            <div style="font-size:20px; font-weight:900; color:#059669; margin-top:2px;" x-text="'Q ' + Number(kpis.gross_profit || 0).toLocaleString('es-GT', {minimumFractionDigits:2, maximumFractionDigits:2})">Q 0.00</div>
+            <div style="font-size:11px; color:#059669; font-weight:800; margin-top:2px;">
+              <span>Margen: <span x-text="kpis.profit_margin_pct || 0"></span>% sobre venta</span>
+            </div>
+          </div>
+          <div style="width:38px; height:38px; border-radius:10px; background:#dcfce7; color:#15803d; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;">
+            <i class="ph ph-trend-up"></i>
+          </div>
+        </div>
+
+        <!-- Card 3: Valoración de Inventario -->
+        <div style="background:#ffffff; border:1px solid #e2e8f0; border-left:4px solid #0284c7; border-radius:10px; padding:12px 16px; display:flex; align-items:center; justify-content:space-between;">
+          <div>
+            <div style="font-size:10.5px; font-weight:800; color:#0369a1; text-transform:uppercase; letter-spacing:0.5px;">Valoración de Inventario (Q)</div>
+            <div style="font-size:20px; font-weight:900; color:#0284c7; margin-top:2px;" x-text="'Q ' + Number(kpis.inventory_valuation || 0).toLocaleString('es-GT', {minimumFractionDigits:2, maximumFractionDigits:2})">Q 0.00</div>
+            <div style="font-size:11px; color:#64748b; margin-top:2px;">
+              <span>Stock valorizado a costo</span>
+            </div>
+          </div>
+          <div style="width:38px; height:38px; border-radius:10px; background:#e0f2fe; color:#0284c7; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;">
+            <i class="ph ph-warehouse"></i>
+          </div>
+        </div>
+
+        <!-- Card 4: Ticket Promedio -->
+        <div style="background:#ffffff; border:1px solid #e2e8f0; border-left:4px solid #f59e0b; border-radius:10px; padding:12px 16px; display:flex; align-items:center; justify-content:space-between;">
+          <div>
+            <div style="font-size:10.5px; font-weight:800; color:#d97706; text-transform:uppercase; letter-spacing:0.5px;">Ticket Promedio</div>
+            <div style="font-size:20px; font-weight:900; color:#d97706; margin-top:2px;" x-text="'Q ' + Number(kpis.avg_ticket || 0).toFixed(2)">Q 0.00</div>
+            <div style="font-size:11px; color:#64748b; margin-top:2px;">
+              <span>En <strong x-text="kpis.total_orders || 0"></strong> transacciones</span>
+            </div>
+          </div>
+          <div style="width:38px; height:38px; border-radius:10px; background:#fef3c7; color:#d97706; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;">
+            <i class="ph ph-receipt"></i>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
-  <div class="grid grid-cols-3 gap-4 mb-4">
-    <div class="card">
-      <div class="flex items-center gap-3">
-        <div style="font-size:32px">📊</div>
-        <div>
-          <h3 class="font-bold text-white">Ventas por Período</h3>
-          <p class="text-xs text-muted">Resumen consolidado de facturación</p>
-        </div>
+  <!-- ===== 3. REPORT CONTAINERS ===== -->
+
+  <!-- ===== REPORTE 1: VENTAS POR DÍA ===== -->
+  <div x-show="activeReport === 'sales'" style="background:#ffffff; border:1px solid #e2e8f0; border-radius:14px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,0.03);">
+    <div style="padding:16px 20px; border-bottom:1px solid #e2e8f0; background:#f8fafc; display:flex; justify-content:space-between; align-items:center;">
+      <div>
+        <h3 style="margin:0; font-size:15px; font-weight:800; color:#1e293b;">Evolución de Ventas y Margen de Utilidad</h3>
+        <div style="font-size:11.5px; color:#64748b; margin-top:2px;">Consolidado diario de ventas, costo de mercadería vendida y ganancia</div>
       </div>
-      <button class="btn btn-secondary btn-full mt-3 btn-sm">Ver Reporte</button>
+      <span style="font-size:11px; font-weight:800; color:var(--odoo-purple); background:var(--odoo-purple-light); padding:4px 10px; border-radius:12px;" x-text="salesData.length + ' días con ventas'"></span>
     </div>
 
-    <div class="card">
-      <div class="flex items-center gap-3">
-        <div style="font-size:32px">📦</div>
-        <div>
-          <h3 class="font-bold text-white">Rotación de Productos</h3>
-          <p class="text-xs text-muted">Productos más vendidos (Top 10)</p>
-        </div>
-      </div>
-      <button class="btn btn-secondary btn-full mt-3 btn-sm">Ver Reporte</button>
-    </div>
-
-    <div class="card">
-      <div class="flex items-center gap-3">
-        <div style="font-size:32px">🧾</div>
-        <div>
-          <h3 class="font-bold text-white">Reporte FEL SAT</h3>
-          <p class="text-xs text-muted">Libro de ventas para la SAT</p>
-        </div>
-      </div>
-      <button class="btn btn-secondary btn-full mt-3 btn-sm">Exportar Excel</button>
+    <div style="overflow-x:auto;">
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th style="text-align:center;">Tickets</th>
+            <th style="text-align:right;">Subtotal Gravado</th>
+            <th style="text-align:right;">Costo (COGS)</th>
+            <th style="text-align:right;">Ganancia Bruta</th>
+            <th style="text-align:center;">Margen %</th>
+            <th style="text-align:right;">IVA Débito (12%)</th>
+            <th style="text-align:right;">Total Facturado (Q)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="row in salesData" :key="row.date">
+            <tr>
+              <td style="font-weight:800; color:#0f172a;">
+                <span x-text="row.date"></span>
+                <div class="bar-container">
+                  <div class="bar-fill" :style="'width:' + getRelativeSalesBarWidth(row.total) + '%'"></div>
+                </div>
+              </td>
+              <td style="text-align:center; font-weight:700; color:#64748b;" x-text="row.transactions"></td>
+              <td style="text-align:right; font-weight:700; color:#334155;" x-text="'Q ' + Number(row.subtotal).toFixed(2)"></td>
+              <td style="text-align:right; color:#64748b;" x-text="'Q ' + Number(row.cost).toFixed(2)"></td>
+              <td style="text-align:right; font-weight:800; color:#059669;" x-text="'Q ' + Number(row.profit).toFixed(2)"></td>
+              <td style="text-align:center;">
+                <span 
+                  style="font-size:11px; font-weight:800; padding:2px 8px; border-radius:10px;"
+                  :style="row.margin_pct >= 25 ? 'background:#dcfce7; color:#15803d;' : 'background:#ffedd5; color:#c2410c;'"
+                  x-text="row.margin_pct + '%'"
+                ></span>
+              </td>
+              <td style="text-align:right; color:#64748b;" x-text="'Q ' + Number(row.tax_amount).toFixed(2)"></td>
+              <td style="text-align:right; font-weight:900; color:var(--odoo-purple); font-size:14px;" x-text="'Q ' + Number(row.total).toFixed(2)"></td>
+            </tr>
+          </template>
+          <tr x-show="salesData.length === 0">
+            <td colspan="8" style="text-align:center; padding:40px; color:#64748b;">
+              No se registraron ventas en el período seleccionado.
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </div>
+
+  <!-- ===== REPORTE 2: TOP PRODUCTOS ===== -->
+  <div x-show="activeReport === 'products'" style="background:#ffffff; border:1px solid #e2e8f0; border-radius:14px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,0.03);">
+    <div style="padding:16px 20px; border-bottom:1px solid #e2e8f0; background:#f8fafc; display:flex; justify-content:space-between; align-items:center;">
+      <div>
+        <h3 style="margin:0; font-size:15px; font-weight:800; color:#1e293b;">Ranking de Productos Más Vendidos & Rentabilidad (Pareto)</h3>
+        <div style="font-size:11.5px; color:#64748b; margin-top:2px;">Ordenados por facturación total generada</div>
+      </div>
+      <span style="font-size:11px; font-weight:800; color:#059669; background:#dcfce7; padding:4px 10px; border-radius:12px;" x-text="topProducts.length + ' productos en ranking'"></span>
+    </div>
+
+    <div style="overflow-x:auto;">
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th style="width:40px; text-align:center;">#</th>
+            <th>Producto</th>
+            <th style="text-align:center;">Unidades Vendidas</th>
+            <th style="text-align:right;">Ingreso Total (Q)</th>
+            <th style="text-align:right;">Costo Total (Q)</th>
+            <th style="text-align:right;">Utilidad Bruta (Q)</th>
+            <th style="text-align:center;">Margen %</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="(prod, idx) in topProducts" :key="prod.product_id">
+            <tr>
+              <td style="text-align:center; font-weight:900; color:var(--odoo-purple);" x-text="idx + 1"></td>
+              <td style="font-weight:800; color:#0f172a;" x-text="prod.product_name"></td>
+              <td style="text-align:center; font-weight:800; color:#334155;" x-text="prod.units_sold + ' uds.'"></td>
+              <td style="text-align:right; font-weight:900; color:var(--odoo-purple);" x-text="'Q ' + Number(prod.total_revenue).toFixed(2)"></td>
+              <td style="text-align:right; color:#64748b;" x-text="'Q ' + Number(prod.total_cost).toFixed(2)"></td>
+              <td style="text-align:right; font-weight:800; color:#059669;" x-text="'Q ' + Number(prod.gross_profit).toFixed(2)"></td>
+              <td style="text-align:center;">
+                <span 
+                  style="font-size:11px; font-weight:800; padding:2px 8px; border-radius:10px;"
+                  :style="prod.margin_pct >= 30 ? 'background:#dcfce7; color:#15803d;' : 'background:#ffedd5; color:#c2410c;'"
+                  x-text="prod.margin_pct + '%'"
+                ></span>
+              </td>
+            </tr>
+          </template>
+          <tr x-show="topProducts.length === 0">
+            <td colspan="7" style="text-align:center; padding:40px; color:#64748b;">
+              No hay datos de productos vendidos en el rango seleccionado.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===== REPORTE 3: VALORACIÓN DE INVENTARIO ===== -->
+  <div x-show="activeReport === 'inventory'" style="background:#ffffff; border:1px solid #e2e8f0; border-radius:14px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,0.03);">
+    <div style="padding:16px 20px; border-bottom:1px solid #e2e8f0; background:#f8fafc; display:flex; justify-content:space-between; align-items:center;">
+      <div>
+        <h3 style="margin:0; font-size:15px; font-weight:800; color:#1e293b;">Valoración de Existencias por Bodega</h3>
+        <div style="font-size:11.5px; color:#64748b; margin-top:2px;">Auditoría de existencias físicas a costo de adquisición y a precio de venta</div>
+      </div>
+      <span style="font-size:11px; font-weight:800; color:#0284c7; background:#e0f2fe; padding:4px 10px; border-radius:12px;" x-text="inventoryValuation.length + ' líneas valorizadas'"></span>
+    </div>
+
+    <div style="overflow-x:auto;">
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th>Almacén / Bodega</th>
+            <th>Producto</th>
+            <th>SKU</th>
+            <th style="text-align:center;">Existencia Actual</th>
+            <th style="text-align:right;">Costo Unit. (Q)</th>
+            <th style="text-align:right;">Valoración Costo (Q)</th>
+            <th style="text-align:right;">Precio Venta (Q)</th>
+            <th style="text-align:right;">Valoración Venta (Q)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="item in inventoryValuation" :key="item.product_id + '_' + item.warehouse_code">
+            <tr>
+              <td style="font-weight:800; color:var(--odoo-purple);">
+                <span x-text="item.warehouse_name"></span>
+                <span style="font-size:10.5px; color:#64748b; font-family:monospace;" x-text="' (' + item.warehouse_code + ')'"></span>
+              </td>
+              <td style="font-weight:700; color:#1e293b;" x-text="item.product_name"></td>
+              <td style="font-family:monospace; color:#64748b;" x-text="item.internal_ref || 'N/A'"></td>
+              <td style="text-align:center; font-weight:800; color:#334155;" x-text="item.stock + ' uds.'"></td>
+              <td style="text-align:right; color:#64748b;" x-text="'Q ' + Number(item.cost_price).toFixed(2)"></td>
+              <td style="text-align:right; font-weight:800; color:#0369a1;" x-text="'Q ' + Number(item.valuation_cost).toFixed(2)"></td>
+              <td style="text-align:right; color:#64748b;" x-text="'Q ' + Number(item.sale_price).toFixed(2)"></td>
+              <td style="text-align:right; font-weight:800; color:#059669;" x-text="'Q ' + Number(item.valuation_sale).toFixed(2)"></td>
+            </tr>
+          </template>
+          <tr x-show="inventoryValuation.length === 0">
+            <td colspan="8" style="text-align:center; padding:40px; color:#64748b;">
+              No hay existencias registradas en las bodegas.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===== REPORTE 4: LIBRO FEL SAT ===== -->
+  <div x-show="activeReport === 'fel'" style="background:#ffffff; border:1px solid #e2e8f0; border-radius:14px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,0.03);">
+    <div style="padding:16px 20px; border-bottom:1px solid #e2e8f0; background:#f8fafc; display:flex; justify-content:space-between; align-items:center;">
+      <div>
+        <h3 style="margin:0; font-size:15px; font-weight:800; color:#1e293b;">Libro Oficial de Ventas FEL para la SAT (Formulario AsisteLibros)</h3>
+        <div style="font-size:11.5px; color:#64748b; margin-top:2px;">Documentos Tributarios Electrónicos (DTE) certificados</div>
+      </div>
+      <span style="font-size:11px; font-weight:800; color:#6366f1; background:#ede9fe; padding:4px 10px; border-radius:12px;" x-text="felLedger.length + ' DTEs certificados'"></span>
+    </div>
+
+    <div style="overflow-x:auto;">
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th>Fecha Certificación</th>
+            <th>Tipo DTE</th>
+            <th>Serie & Número</th>
+            <th>UUID / Autorización SAT</th>
+            <th>NIT Receptor</th>
+            <th>Nombre Receptor</th>
+            <th style="text-align:right;">Base Gravada (Q)</th>
+            <th style="text-align:right;">IVA 12% (Q)</th>
+            <th style="text-align:right;">Total DTE (Q)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="dte in felLedger" :key="dte.uuid || dte.numero">
+            <tr>
+              <td style="font-weight:700; color:#475569;" x-text="dte.fecha"></td>
+              <td>
+                <span style="font-size:10.5px; font-weight:800; background:#f1f5f9; color:#334155; padding:2px 6px; border-radius:6px;" x-text="dte.tipo_dte"></span>
+              </td>
+              <td style="font-weight:800; color:var(--odoo-purple);" x-text="dte.serie + '-' + dte.numero"></td>
+              <td style="font-family:monospace; font-size:11px; color:#64748b;" x-text="dte.uuid ? dte.uuid.slice(0, 18) + '...' : 'N/A'" :title="dte.uuid"></td>
+              <td style="font-weight:800; color:#334155;" x-text="dte.nit_receptor"></td>
+              <td style="font-weight:700; color:#1e293b;" x-text="dte.nombre_receptor"></td>
+              <td style="text-align:right; font-weight:700; color:#334155;" x-text="'Q ' + Number(dte.subtotal).toFixed(2)"></td>
+              <td style="text-align:right; font-weight:700; color:#64748b;" x-text="'Q ' + Number(dte.iva).toFixed(2)"></td>
+              <td style="text-align:right; font-weight:900; color:#059669; font-size:13.5px;" x-text="'Q ' + Number(dte.total).toFixed(2)"></td>
+            </tr>
+          </template>
+          <tr x-show="felLedger.length === 0">
+            <td colspan="9" style="text-align:center; padding:40px; color:#64748b;">
+              No se encontraron facturas FEL certificadas en este período.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===== REPORTE 5: MÉTODOS DE PAGO ===== -->
+  <div x-show="activeReport === 'payments'" style="background:#ffffff; border:1px solid #e2e8f0; border-radius:14px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,0.03);">
+    <div style="padding:16px 20px; border-bottom:1px solid #e2e8f0; background:#f8fafc;">
+      <h3 style="margin:0; font-size:15px; font-weight:800; color:#1e293b;">Distribución de Cobros por Método de Pago</h3>
+      <div style="font-size:11.5px; color:#64748b; margin-top:2px;">Participación de efectivo, tarjetas bancarias, transferencias y créditos</div>
+    </div>
+
+    <div style="overflow-x:auto;">
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th>Método de Pago</th>
+            <th style="text-align:center;">Transacciones</th>
+            <th style="text-align:right;">Monto Recaudado (Q)</th>
+            <th style="text-align:center; width:220px;">Participación %</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="p in paymentMethods" :key="p.payment_method">
+            <tr>
+              <td style="font-weight:800; color:#0f172a; text-transform:capitalize;">
+                <i class="ph ph-wallet" style="color:var(--odoo-purple); margin-right:6px;"></i>
+                <span x-text="p.payment_method === 'cash' ? 'Efectivo en Caja' : (p.payment_method === 'card' ? 'Tarjeta de Débito / Crédito' : (p.payment_method === 'transfer' ? 'Transferencia Bancaria' : p.payment_method))"></span>
+              </td>
+              <td style="text-align:center; font-weight:700; color:#64748b;" x-text="p.transaction_count + ' pagos'"></td>
+              <td style="text-align:right; font-weight:900; color:var(--odoo-purple); font-size:14px;" x-text="'Q ' + Number(p.amount).toFixed(2)"></td>
+              <td style="text-align:center;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <div class="bar-container" style="flex:1;">
+                    <div class="bar-fill" :style="'width:' + p.percentage + '%'"></div>
+                  </div>
+                  <span style="font-weight:800; font-size:12px; min-width:42px;" x-text="p.percentage + '%'"></span>
+                </div>
+              </td>
+            </tr>
+          </template>
+          <tr x-show="paymentMethods.length === 0">
+            <td colspan="4" style="text-align:center; padding:40px; color:#64748b;">
+              No hay pagos registrados en este período.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
 </div>
 
 <script>
-  function reportsPage() {
+  function reportsBIModule() {
     return {
-      async init() {}
+      activeReport: 'sales',
+      showKpis: false,
+      activePreset: 'this_month',
+      startDate: '',
+      endDate: '',
+      kpis: {
+        total_sales: 0,
+        total_subtotal: 0,
+        total_tax: 0,
+        total_orders: 0,
+        gross_profit: 0,
+        profit_margin_pct: 0,
+        avg_ticket: 0,
+        inventory_valuation: 0
+      },
+      salesData: [],
+      topProducts: [],
+      inventoryValuation: [],
+      felLedger: [],
+      paymentMethods: [],
+
+      async init() {
+        this.setPreset('this_month');
+      },
+
+      setPreset(preset) {
+        this.activePreset = preset;
+        const now = new Date();
+        let s = new Date();
+        let e = new Date();
+
+        if (preset === 'today') {
+          s = now;
+          e = now;
+        } else if (preset === '7days') {
+          s.setDate(now.getDate() - 7);
+        } else if (preset === 'this_month') {
+          s = new Date(now.getFullYear(), now.getMonth(), 1);
+          e = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        } else if (preset === 'last_month') {
+          s = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+          e = new Date(now.getFullYear(), now.getMonth(), 0);
+        } else if (preset === 'this_year') {
+          s = new Date(now.getFullYear(), 0, 1);
+          e = new Date(now.getFullYear(), 11, 31);
+        }
+
+        this.startDate = s.toISOString().slice(0, 10);
+        this.endDate = e.toISOString().slice(0, 10);
+        this.reloadAllData();
+      },
+
+      async reloadAllData() {
+        await Promise.all([
+          this.loadKPIs(),
+          this.loadSales(),
+          this.loadTopProducts(),
+          this.loadInventoryValuation(),
+          this.loadFelLedger(),
+          this.loadPaymentMethods()
+        ]);
+      },
+
+      async loadKPIs() {
+        try {
+          const res = await API.get(`/reports/executive-kpis?start_date=${this.startDate}&end_date=${this.endDate}`);
+          if (res) this.kpis = res;
+        } catch(e) {}
+      },
+
+      async loadSales() {
+        try {
+          const res = await API.get(`/reports/sales-by-period?start_date=${this.startDate}&end_date=${this.endDate}`);
+          this.salesData = res || [];
+        } catch(e) {}
+      },
+
+      async loadTopProducts() {
+        try {
+          const res = await API.get(`/reports/top-products?start_date=${this.startDate}&end_date=${this.endDate}`);
+          this.topProducts = res || [];
+        } catch(e) {}
+      },
+
+      async loadInventoryValuation() {
+        try {
+          const res = await API.get('/reports/inventory-valuation');
+          this.inventoryValuation = res || [];
+        } catch(e) {}
+      },
+
+      async loadFelLedger() {
+        try {
+          const res = await API.get(`/reports/fel-ledger?start_date=${this.startDate}&end_date=${this.endDate}`);
+          this.felLedger = res || [];
+        } catch(e) {}
+      },
+
+      async loadPaymentMethods() {
+        try {
+          const res = await API.get(`/reports/payment-methods?start_date=${this.startDate}&end_date=${this.endDate}`);
+          this.paymentMethods = res || [];
+        } catch(e) {}
+      },
+
+      getRelativeSalesBarWidth(amount) {
+        if (!this.salesData.length) return 0;
+        const max = Math.max(...this.salesData.map(d => d.total || 0));
+        if (max <= 0) return 0;
+        return Math.min(100, Math.round(((amount || 0) / max) * 100));
+      },
+
+      exportCurrentReportToCSV() {
+        let csvContent = "data:text/csv;charset=utf-8,";
+        let filename = `reporte_${this.activeReport}_${this.startDate}_${this.endDate}.csv`;
+
+        if (this.activeReport === 'sales') {
+          csvContent += "Fecha,Transacciones,Subtotal,Costo,Ganancia_Bruta,Margen_Pct,IVA,Total\n";
+          this.salesData.forEach(r => {
+            csvContent += `"${r.date}",${r.transactions},${r.subtotal},${r.cost},${r.profit},${r.margin_pct}%,${r.tax_amount},${r.total}\n`;
+          });
+        } else if (this.activeReport === 'products') {
+          csvContent += "Producto,Unidades_Vendidas,Ingreso_Total,Costo_Total,Utilidad_Bruta,Margen_Pct\n";
+          this.topProducts.forEach(r => {
+            csvContent += `"${r.product_name}",${r.units_sold},${r.total_revenue},${r.total_cost},${r.gross_profit},${r.margin_pct}%\n`;
+          });
+        } else if (this.activeReport === 'inventory') {
+          csvContent += "Almacen,Codigo,Producto,SKU,Existencia,Costo_Unitario,Valoracion_Costo,Precio_Venta,Valoracion_Venta\n";
+          this.inventoryValuation.forEach(r => {
+            csvContent += `"${r.warehouse_name}","${r.warehouse_code}","${r.product_name}","${r.internal_ref}",${r.stock},${r.cost_price},${r.valuation_cost},${r.sale_price},${r.valuation_sale}\n`;
+          });
+        } else if (this.activeReport === 'fel') {
+          csvContent += "Fecha,Tipo_DTE,Serie,Numero,UUID,NIT_Receptor,Nombre_Receptor,Subtotal,IVA,Total\n";
+          this.felLedger.forEach(r => {
+            csvContent += `"${r.fecha}","${r.tipo_dte}","${r.serie}","${r.numero}","${r.uuid}","${r.nit_receptor}","${r.nombre_receptor}",${r.subtotal},${r.iva},${r.total}\n`;
+          });
+        } else if (this.activeReport === 'payments') {
+          csvContent += "Metodo_Pago,Transacciones,Monto,Porcentaje\n";
+          this.paymentMethods.forEach(r => {
+            csvContent += `"${r.payment_method}",${r.transaction_count},${r.amount},${r.percentage}%\n`;
+          });
+        }
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.setAttribute("download", filename);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
+      },
+
+      printExecutiveReport() {
+        window.print();
+      }
     }
   }
 </script>

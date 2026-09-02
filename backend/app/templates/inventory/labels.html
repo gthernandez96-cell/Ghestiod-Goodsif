@@ -1,0 +1,258 @@
+{% set show_layout = true %}
+{% extends "base.html" %}
+
+{% block title %}Impresor de Etiquetas de Góndola y Códigos de Barras — POS Empresarial{% endblock %}
+
+{% block extra_css %}
+<style>
+  :root {
+    --odoo-purple: #714B67;
+    --odoo-purple-light: #f4eff3;
+  }
+
+  /* Screen preview styling */
+  .labels-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 20px;
+    background: #525659;
+    border-radius: 12px;
+    min-height: 400px;
+  }
+
+  /* Shelf Label Standard 70mm x 35mm */
+  .shelf-label-70x35 {
+    width: 250px;
+    height: 130px;
+    background: #ffffff;
+    border: 1.5px solid #000000;
+    border-radius: 6px;
+    padding: 10px 12px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: #000000;
+    position: relative;
+    page-break-inside: avoid;
+  }
+
+  /* Mini Sticker Label 50mm x 25mm */
+  .shelf-label-50x25 {
+    width: 190px;
+    height: 95px;
+    background: #ffffff;
+    border: 1px solid #000000;
+    border-radius: 4px;
+    padding: 6px 8px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    font-family: sans-serif;
+    color: #000000;
+    page-break-inside: avoid;
+  }
+
+  /* Print specific CSS */
+  @media print {
+    body * {
+      visibility: hidden;
+    }
+    .print-area, .print-area * {
+      visibility: visible;
+    }
+    .print-area {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      background: #ffffff !important;
+      padding: 0 !important;
+      gap: 8px !important;
+      display: flex !important;
+      flex-wrap: wrap !important;
+    }
+    .no-print {
+      display: none !important;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div x-data="labelsModule()" x-init="init()">
+  
+  <!-- ===== TOP SUB-HEADER ===== -->
+  <div class="no-print" style="margin:-20px -24px 20px -24px; padding:12px 24px; background:#ffffff; border-bottom:1px solid #e2e8f0; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px;">
+    <div style="display:flex; align-items:center; gap:12px;">
+      <button 
+        class="btn btn-primary" 
+        style="background:var(--odoo-purple); color:#ffffff; font-weight:800; border-radius:8px; padding:7px 20px; border:none; display:flex; align-items:center; gap:6px; cursor:pointer;"
+        @click="window.print()"
+      >
+        <i class="ph ph-printer" style="font-size:16px;"></i> Imprimir Etiquetas Ahora
+      </button>
+
+      <div style="font-size:15px; font-weight:800; color:#1e293b;">
+        <span style="color:#64748b; font-weight:600;">Inventario /</span>
+        <span>Generador e Impresor de Etiquetas de Góndola</span>
+      </div>
+    </div>
+
+    <!-- Quick Options -->
+    <div style="display:flex; align-items:center; gap:10px;">
+      <select class="form-control" style="font-weight:700; font-size:12.5px; padding:6px 12px;" x-model="selectedFormat">
+        <option value="70x35">Etiqueta de Góndola / Estante (70x35mm)</option>
+        <option value="50x25">Etiqueta Adhesiva de Producto (50x25mm)</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- ===== CONTROL BAR: FILTERS & SELECTION ===== -->
+  <div class="card no-print" style="background:#ffffff; border:1px solid #e2e8f0; border-radius:10px; padding:16px; margin-bottom:20px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+      
+      <!-- Search & Category -->
+      <div style="display:flex; align-items:center; gap:10px; flex:1; max-width:480px;">
+        <input 
+          type="text" 
+          placeholder="Buscar producto para generar etiqueta..." 
+          class="form-control" 
+          style="width:100%; font-weight:600; padding:8px 12px;" 
+          x-model="search"
+          @input="filterProducts()"
+        >
+      </div>
+
+      <!-- Action buttons -->
+      <div style="display:flex; align-items:center; gap:8px;">
+        <button 
+          type="button" 
+          class="btn btn-secondary" 
+          style="font-size:12px; font-weight:700;"
+          @click="selectAll()"
+        >
+          ✓ Seleccionar Todos
+        </button>
+        <button 
+          type="button" 
+          class="btn btn-secondary" 
+          style="font-size:12px; font-weight:700;"
+          @click="clearAll()"
+        >
+          ✕ Desmarcar
+        </button>
+        <span style="font-size:12.5px; font-weight:800; color:var(--odoo-purple);" x-text="selectedProducts.length + ' productos seleccionados'"></span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== LABELS PREVIEW PRINT AREA ===== -->
+  <div class="labels-container print-area">
+    <template x-for="p in selectedProducts" :key="p.id">
+      
+      <!-- Format 1: Góndola 70x35mm -->
+      <div x-show="selectedFormat === '70x35'" class="shelf-label-70x35">
+        <!-- Top: Product Name -->
+        <div style="font-size:12px; font-weight:900; line-height:1.2; text-transform:uppercase; max-height:28px; overflow:hidden;" x-text="p.name"></div>
+
+        <!-- Center: Big Price & Unit -->
+        <div style="display:flex; justify-content:space-between; align-items:flex-end; margin:4px 0;">
+          <div>
+            <div style="font-size:8.5px; font-weight:800; color:#333; text-transform:uppercase;">PRECIO NORMAL</div>
+            <div style="font-size:26px; font-weight:900; line-height:1; letter-spacing:-0.5px;" x-text="'Q ' + Number(p.sale_price).toFixed(2)"></div>
+          </div>
+          <div style="text-align:right;">
+            <span style="font-size:9.5px; font-weight:800; background:#000; color:#fff; padding:2px 6px; border-radius:3px;" x-text="p.uom || 'UNIDAD'"></span>
+          </div>
+        </div>
+
+        <!-- Bottom: Barcode Simulation & SKU -->
+        <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid #000; padding-top:4px;">
+          <div>
+            <div style="font-family:monospace; font-size:10px; font-weight:900; letter-spacing:1.5px;" x-text="p.barcode || p.sku"></div>
+            <div style="font-size:7.5px; color:#555;" x-text="'SKU: ' + p.sku"></div>
+          </div>
+          <div style="font-size:8px; font-weight:800; text-transform:uppercase;" x-text="companyName"></div>
+        </div>
+      </div>
+
+      <!-- Format 2: Mini Sticker 50x25mm -->
+      <div x-show="selectedFormat === '50x25'" class="shelf-label-50x25">
+        <div style="font-size:10px; font-weight:900; text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" x-text="p.name"></div>
+        
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div style="font-size:18px; font-weight:900;" x-text="'Q ' + Number(p.sale_price).toFixed(2)"></div>
+          <div style="font-family:monospace; font-size:8.5px; font-weight:800;" x-text="p.barcode || p.sku"></div>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; font-size:7px; font-weight:700; color:#444; border-top:0.5px solid #000; padding-top:2px;">
+          <span x-text="'SKU: ' + p.sku"></span>
+          <span x-text="companyName"></span>
+        </div>
+      </div>
+
+    </template>
+
+    <div x-show="selectedProducts.length === 0" style="color:#ffffff; text-align:center; width:100%; padding:60px 0; font-size:14px; font-weight:700;">
+      No hay productos seleccionados para imprimir. Busca o selecciona productos en la barra superior.
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function labelsModule() {
+    return {
+      allProducts: [],
+      filteredList: [],
+      selectedProducts: [],
+      search: '',
+      selectedFormat: '70x35',
+      companyName: 'POS EMPRESARIAL',
+
+      async init() {
+        await this.loadData();
+      },
+
+      async loadData() {
+        try {
+          const comp = await API.get('/companies/current');
+          if (comp && comp.trade_name) this.companyName = comp.trade_name;
+
+          const res = await API.get('/products/?limit=100');
+          this.allProducts = res.items || res || [];
+          this.filteredList = [...this.allProducts];
+          // Pre-select first 12 products
+          this.selectedProducts = this.allProducts.slice(0, 12);
+        } catch(e) {}
+      },
+
+      filterProducts() {
+        const q = this.search.toLowerCase().trim();
+        if (!q) {
+          this.selectedProducts = this.allProducts.slice(0, 12);
+          return;
+        }
+        this.selectedProducts = this.allProducts.filter(p => 
+          (p.name && p.name.toLowerCase().includes(q)) ||
+          (p.sku && p.sku.toLowerCase().includes(q)) ||
+          (p.barcode && p.barcode.toLowerCase().includes(q))
+        );
+      },
+
+      selectAll() {
+        this.selectedProducts = [...this.allProducts];
+      },
+
+      clearAll() {
+        this.selectedProducts = [];
+      }
+    }
+  }
+</script>
+{% endblock %}

@@ -1,397 +1,1301 @@
-{% set show_layout = true %}
+{% set show_layout = false %}
 {% extends "base.html" %}
 
-{% block title %}Dashboard — POS Empresarial{% endblock %}
+{% block title %}Tablero Principal & Analítica Ejecutiva — POS Empresarial{% endblock %}
 
-{% block content %}
-<div x-data="dashboardPage()">
+{% block extra_css %}
+<style>
+  :root {
+    --odoo-purple: #714B67;
+    --odoo-purple-hover: #5d3d54;
+    --odoo-purple-light: #f4eff3;
+    --odoo-teal: #00A09D;
+    --odoo-teal-light: #e6f6f6;
+  }
 
-  <!-- Page Header -->
-  <div class="page-header">
-    <div>
-      <h1 class="page-title">Dashboard</h1>
-      <p class="page-subtitle" x-text="'Bienvenido, ' + (currentUser?.full_name || 'Usuario') + ' · ' + todayDate"></p>
-    </div>
-    <div class="flex gap-2">
-      <select class="form-control" style="width:180px" x-model="selectedBranch" @change="loadData()">
-        <option value="">Todas las sucursales</option>
-        <template x-for="b in branches" :key="b.id">
-          <option :value="b.id" x-text="b.name"></option>
-        </template>
-      </select>
-      <button class="btn btn-primary" @click="loadData()">
-        <i class="ph ph-arrows-clockwise"></i> Actualizar
-      </button>
-    </div>
-  </div>
+  /* Glassmorphic Cards & Containers */
+  .dash-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .dash-card:hover {
+    box-shadow: 0 8px 24px rgba(113, 75, 103, 0.08);
+  }
 
-  <!-- KPI Cards -->
-  <div class="kpi-grid">
-    <div class="kpi-card blue">
-      <div class="kpi-icon"><i class="ph ph-currency-circle-dollar"></i></div>
-      <div class="kpi-value" x-text="'Q ' + formatMoney(kpis.sales_today)"></div>
-      <div class="kpi-label">Ventas Hoy</div>
-      <div class="kpi-trend up">
-        <i class="ph ph-trend-up"></i>
-        <span x-text="kpis.sales_trend + '% vs ayer'"></span>
-      </div>
-    </div>
+  .kpi-tile {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 18px 20px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+    position: relative;
+    overflow: hidden;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .kpi-tile:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.07);
+  }
 
-    <div class="kpi-card green">
-      <div class="kpi-icon"><i class="ph ph-receipt"></i></div>
-      <div class="kpi-value" x-text="kpis.invoices_today"></div>
-      <div class="kpi-label">Facturas Hoy</div>
-      <div class="kpi-trend up">
-        <i class="ph ph-trend-up"></i>
-        <span x-text="kpis.invoices_trend + '% vs ayer'"></span>
-      </div>
-    </div>
+  /* Modern Segmented Control for Period Selector */
+  .period-segmented-control {
+    display: inline-flex;
+    background: #ffffff;
+    padding: 3px;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    gap: 3px;
+    align-items: center;
+  }
+  .period-segment-btn {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    border: none;
+    outline: none;
+    background: transparent;
+    padding: 6px 14px;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #64748b;
+    border-radius: 9px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    user-select: none;
+    line-height: 1.2;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .period-segment-btn:hover {
+    color: #1e293b;
+    background: #f8fafc;
+  }
+  .period-segment-btn.active {
+    background: #714B67 !important;
+    color: #ffffff !important;
+    font-weight: 800 !important;
+    box-shadow: 0 2px 8px rgba(113, 75, 103, 0.28) !important;
+  }
 
-    <div class="kpi-card yellow">
-      <div class="kpi-icon"><i class="ph ph-package"></i></div>
-      <div class="kpi-value" x-text="kpis.low_stock"></div>
-      <div class="kpi-label">Productos Stock Bajo</div>
-      <div class="kpi-trend down" x-show="kpis.low_stock > 0">
-        <i class="ph ph-warning"></i>
-        <span>Requiere atención</span>
-      </div>
-    </div>
+  /* Mode Switcher Tabs (Módulos & Apps vs Métricas & BI) */
+  .view-switcher-btn {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    padding: 8px 18px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 800;
+    cursor: pointer;
+    border: 1.5px solid transparent;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    outline: none;
+  }
+  .view-switcher-btn.active {
+    background: #714B67 !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(113, 75, 103, 0.3) !important;
+    border-color: transparent !important;
+  }
+  .view-switcher-btn.inactive {
+    background: rgba(255, 255, 255, 0.7);
+    color: #475569;
+    border-color: #cbd5e1;
+  }
+  .view-switcher-btn.inactive:hover {
+    background: #ffffff;
+    color: #1e293b;
+  }
 
-    <div class="kpi-card blue">
-      <div class="kpi-icon"><i class="ph ph-storefront"></i></div>
-      <div class="kpi-value" x-text="kpis.active_sessions"></div>
-      <div class="kpi-label">Cajas Abiertas</div>
-      <div class="kpi-trend up">
-        <i class="ph ph-check-circle"></i>
-        <span>Todas en línea</span>
-      </div>
-    </div>
+  /* App Launcher Cards */
+  .launcher-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 36px 24px;
+    justify-items: center;
+  }
+  @media (max-width: 990px) {
+    .launcher-grid {
+      grid-template-columns: repeat(3, 1fr);
+      gap: 28px 18px;
+    }
+  }
+  @media (max-width: 640px) {
+    .launcher-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px 14px;
+    }
+  }
 
-    <div class="kpi-card green">
-      <div class="kpi-icon"><i class="ph ph-arrows-left-right"></i></div>
-      <div class="kpi-value" x-text="kpis.pending_transfers"></div>
-      <div class="kpi-label">Traslados Pendientes</div>
-    </div>
+  .app-launcher-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    width: 140px;
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .app-launcher-card:hover {
+    transform: translateY(-8px) scale(1.06);
+  }
+  .app-icon-wrapper {
+    width: 80px;
+    height: 80px;
+    border-radius: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 12px;
+    background: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    transition: all 0.25s ease;
+  }
+  .app-launcher-card:hover .app-icon-wrapper {
+    box-shadow: 0 16px 36px rgba(113, 75, 103, 0.25) !important;
+  }
+  .app-label {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #1e1b4b;
+    text-align: center;
+  }
+</style>
+{% endblock %}
 
-    <div class="kpi-card red">
-      <div class="kpi-icon"><i class="ph ph-currency-circle-dollar"></i></div>
-      <div class="kpi-value" x-text="'Q ' + formatMoney(kpis.sales_month)"></div>
-      <div class="kpi-label">Ventas del Mes</div>
-    </div>
-  </div>
+{% block content_raw %}
+<div 
+  x-data="mainDashboardPage()" 
+  x-init="init()"
+  style="min-height:100vh; background:linear-gradient(135deg, #f4eff3 0%, #ebe4f0 50%, #f4eff3 100%); font-family:inherit; padding:24px 32px;"
+>
 
-  <!-- Charts + Tables -->
-  <div class="grid" style="grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 20px">
-
-    <!-- Gráfica de ventas -->
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title"><i class="ph ph-chart-line"></i> Ventas por Día (últimos 30 días)</span>
-        <div class="flex gap-2">
-          <button class="badge badge-primary" style="cursor:pointer" @click="chartPeriod='30d'; loadSalesChart()">30D</button>
-          <button class="badge badge-muted" style="cursor:pointer" @click="chartPeriod='7d'; loadSalesChart()">7D</button>
-        </div>
-      </div>
-      <canvas id="salesChart" height="220"></canvas>
-    </div>
-
-    <!-- Top productos -->
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title"><i class="ph ph-star"></i> Top Productos</span>
+  <!-- ============================================================= -->
+  <!-- TOP BAR HEADER                                                -->
+  <!-- ============================================================= -->
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
+    <!-- Left: Brand Logo & Title -->
+    <div style="display:flex; align-items:center; gap:12px;">
+      <div style="width:38px; height:38px; border-radius:10px; background:#714B67; color:#ffffff; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:900; box-shadow:0 4px 12px rgba(113,75,103,0.35);">
+        ⣿
       </div>
       <div>
-        <template x-for="(p, i) in topProducts" :key="p.id">
-          <div class="flex items-center gap-2" style="padding: 10px 0; border-bottom: 1px solid var(--glass-border)">
-            <div style="width:24px;height:24px;border-radius:6px;background:var(--primary-700);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:white" x-text="i+1"></div>
-            <div style="flex:1">
-              <div class="text-white" style="font-size:13px;font-weight:500" x-text="p.name"></div>
-              <div class="text-muted text-xs" x-text="p.units + ' unidades'"></div>
-            </div>
-            <div class="text-success font-bold" x-text="'Q ' + formatMoney(p.total)"></div>
+        <div style="font-size:17px; font-weight:900; color:#1e1b4b; letter-spacing:0.2px;">POS Empresarial ERP</div>
+        <div style="font-size:11.5px; color:#64748b; font-weight:600;" x-text="activeBranchName + ' • ' + currentDate"></div>
+      </div>
+    </div>
+
+
+
+    <!-- Center: View Switcher (Apps vs Analytics) - Visible para Administradores -->
+    <div x-show="isAdmin" style="display:flex; align-items:center; background:rgba(255,255,255,0.6); padding:4px; border-radius:24px; border:1px solid #cbd5e1; box-shadow:0 2px 8px rgba(0,0,0,0.04);" x-cloak>
+      <button 
+        type="button" 
+        @click="viewMode = 'apps'" 
+        class="view-switcher-btn" 
+        :class="viewMode === 'apps' ? 'active' : 'inactive'"
+      >
+        <i class="ph ph-squares-four text-base"></i> Módulos & Apps
+      </button>
+      <button 
+        type="button" 
+        @click="viewMode = 'analytics'; init(); initCharts()" 
+        class="view-switcher-btn" 
+        :class="viewMode === 'analytics' ? 'active' : 'inactive'"
+      >
+        <i class="ph ph-chart-line-up text-base"></i> Métricas & BI
+      </button>
+    </div>
+
+    <!-- Right: User Avatar & Menu -->
+    <div style="display:flex; align-items:center; gap:12px;">
+      <a 
+        href="/pos" 
+        style="display:flex; align-items:center; gap:6px; background:#714B67; color:#ffffff; font-size:12.5px; font-weight:800; padding:8px 14px; border-radius:10px; text-decoration:none; box-shadow:0 4px 10px rgba(113,75,103,0.25);"
+      >
+        <i class="ph ph-shopping-cart text-base"></i> Abrir POS
+      </a>
+
+      <div style="position:relative;" x-data="{ openUserMenu: false }">
+        <div 
+          style="display:flex; align-items:center; gap:8px; cursor:pointer; padding:5px 10px; border-radius:10px; background:rgba(255,255,255,0.8); border:1px solid #cbd5e1;" 
+          @click="openUserMenu = !openUserMenu" 
+          @click.outside="openUserMenu = false"
+        >
+          <div style="width:30px; height:30px; background:#714B67; color:#ffffff; font-size:13px; font-weight:800; border-radius:8px; display:flex; align-items:center; justify-content:center;" x-text="userInitial">
+            A
           </div>
-        </template>
-        <div class="text-center text-muted" style="padding:20px" x-show="topProducts.length === 0">
-          Sin datos aún
+          <span style="font-size:13px; font-weight:700; color:#1e1b4b;" x-text="userName"></span>
+          <i class="ph ph-caret-down" style="font-size:11px; color:#64748b;"></i>
+        </div>
+
+        <!-- Dropdown Menu -->
+        <div
+          x-show="openUserMenu"
+          style="position:absolute; top:calc(100% + 8px); right:0; min-width:210px; background:#ffffff; border:1px solid #cbd5e1; border-radius:12px; box-shadow:0 12px 30px rgba(0,0,0,0.15); padding:8px; z-index:9999;"
+          @click.stop
+          x-cloak
+        >
+          <div style="padding:8px 10px; border-bottom:1px solid #f1f5f9;">
+            <div style="font-size:12.5px; font-weight:800; color:#1e293b;" x-text="userName"></div>
+            <div style="font-size:11px; color:#64748b;" x-text="currentUser?.email || 'admin@pos.gt'"></div>
+          </div>
+          <div style="padding:4px 0;">
+            <a href="/settings" x-show="isAdmin" style="display:flex; align-items:center; gap:8px; padding:7px 10px; border-radius:6px; font-size:12.5px; font-weight:600; color:#334155; text-decoration:none;">
+              <i class="ph ph-gear"></i> Configuración
+            </a>
+            <button type="button" @click="logout()" style="width:100%; display:flex; align-items:center; gap:8px; padding:7px 10px; border-radius:6px; font-size:12.5px; font-weight:700; color:#dc2626; background:transparent; border:none; cursor:pointer; text-align:left;">
+              <i class="ph ph-sign-out"></i> Cerrar Sesión
+            </button>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Últimas ventas -->
-  <div class="card">
-    <div class="card-header">
-      <span class="card-title"><i class="ph ph-clock-counter-clockwise"></i> Últimas Ventas</span>
-      <a href="/inventory?tab=sales" class="btn btn-ghost btn-sm">Ver todas</a>
+
+  <!-- ============================================================= -->
+  <!-- VISTA 1: MÓDULOS & LANZADOR DE APPS (APP LAUNCHER)            -->
+  <!-- ============================================================= -->
+  <div x-show="viewMode === 'apps'" class="space-y-8 mt-6">
+    <!-- Search Bar -->
+    <div style="max-width:480px; margin:20px auto 0 auto; position:relative;">
+      <div style="display:flex; align-items:center; background:#ffffff !important; border:2px solid #714B67 !important; border-radius:10px !important; padding:10px 18px; box-shadow:0 4px 16px rgba(113, 75, 103, 0.12);">
+        <i class="ph ph-magnifying-glass" style="font-size:20px; color:#714B67 !important; margin-right:12px; font-weight:800;"></i>
+        <input
+          type="text"
+          placeholder="Buscar aplicación o módulo..."
+          style="border:none !important; outline:none !important; width:100% !important; font-size:14px !important; font-weight:700 !important; color:#1e293b !important; background:transparent !important;"
+          x-model="searchQuery"
+        >
+      </div>
     </div>
-    <div class="table-container">
-      <table>
-        <thead>
-          <tr>
-            <th>Número</th>
-            <th>Cliente</th>
-            <th>NIT</th>
-            <th>Sucursal</th>
-            <th>Total</th>
-            <th>FEL</th>
-            <th>Estado</th>
-            <th>Fecha</th>
-          </tr>
-        </thead>
-        <tbody>
-          <template x-for="sale in recentSales" :key="sale.id">
-            <tr @click="window.location='/sales/'+sale.id" style="cursor:pointer">
-              <td><span class="font-bold text-white" x-text="sale.number"></span></td>
-              <td x-text="sale.customer_name || 'Consumidor Final'"></td>
-              <td x-text="sale.customer_nit || 'CF'"></td>
-              <td x-text="sale.branch_name || '-'"></td>
-              <td class="text-success font-bold" x-text="'Q ' + formatMoney(sale.total)"></td>
-              <td>
-                <span
-                  class="badge"
-                  :class="sale.fel_status === 'certified' ? 'badge-success' : (sale.fel_status === 'contingency' ? 'badge-warning' : 'badge-muted')"
-                  x-text="sale.fel_status === 'certified' ? '✓ FEL' : (sale.fel_status === 'contingency' ? '⚠ Contingencia' : 'Pendiente')"
-                ></span>
-              </td>
-              <td>
-                <span class="badge" :class="{
-                  'badge-success': sale.state === 'paid',
-                  'badge-warning': sale.state === 'confirmed',
-                  'badge-danger': sale.state === 'cancelled',
-                }">
-                  <span x-text="sale.state === 'paid' ? 'Pagada' : sale.state === 'confirmed' ? 'Confirmada' : sale.state"></span>
-                </span>
-              </td>
-              <td class="text-muted text-sm" x-text="formatDate(sale.sale_date)"></td>
-            </tr>
-          </template>
-          <tr x-show="recentSales.length === 0">
-            <td colspan="8" class="text-center text-muted" style="padding:32px">
-              No hay ventas registradas hoy
-            </td>
-          </tr>
-        </tbody>
-      </table>
+
+    <!-- App Launcher Grid -->
+    <div style="max-width:1020px; margin:36px auto 40px auto;">
+      <div class="launcher-grid">
+
+        <!-- 1. Punto de venta (Todos) -->
+        <div class="app-launcher-card" x-show="matchesSearch('Punto de venta POS Cajas')" @click="openApp('/pos')">
+          <div class="app-icon-wrapper" style="box-shadow:0 12px 28px rgba(168, 85, 247, 0.22); border:2px solid #a855f7;">
+            <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#7e22ce" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 9l1-5h16l1 5"></path>
+              <path d="M3 9a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2"></path>
+              <path d="M5 11v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-8"></path>
+              <path d="M10 15h4"></path>
+            </svg>
+          </div>
+          <div class="app-label" style="font-weight:800; color:#5b21b6;">Punto de venta</div>
+        </div>
+
+        <!-- 2. Inventario (Todos) -->
+        <div class="app-launcher-card" x-show="matchesSearch('Inventario Catálogo Stock')" @click="openApp('/inventory')">
+          <div class="app-icon-wrapper" style="box-shadow:0 12px 28px rgba(249, 115, 22, 0.2);">
+            <svg width="44" height="44" viewBox="0 0 24 24" fill="none">
+              <path d="M12 2L2 7l10 5 10-5-10-5z" fill="#f97316"/>
+              <path d="M2 17l10 5V12L2 7v10z" fill="#a855f7"/>
+              <path d="M22 17l-10 5V12l10-5v10z" fill="#ec4899"/>
+            </svg>
+          </div>
+          <div class="app-label">Inventario</div>
+        </div>
+
+        <!-- 3. Clientes (Todos) -->
+        <div class="app-launcher-card" x-show="matchesSearch('Clientes CRM Directorio')" @click="openApp('/customers')">
+          <div class="app-icon-wrapper" style="box-shadow:0 12px 28px rgba(6, 182, 212, 0.2);">
+            <svg width="42" height="42" viewBox="0 0 24 24" fill="#06b6d4">
+              <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
+            </svg>
+          </div>
+          <div class="app-label">Clientes</div>
+        </div>
+
+        <!-- 4. Cotizaciones (Todos) -->
+        <div class="app-launcher-card" x-show="matchesSearch('Cotizaciones Proformas Presupuestos')" @click="openApp('/quotes')">
+          <div class="app-icon-wrapper" style="box-shadow:0 12px 28px rgba(13, 148, 136, 0.2);">
+            <i class="ph ph-file-text" style="font-size:38px; color:#0d9488;"></i>
+          </div>
+          <div class="app-label">Cotizaciones</div>
+        </div>
+
+        <!-- 5. Cuentas por Cobrar (AR - Administrador) -->
+        <div class="app-launcher-card" x-show="isAdmin && matchesSearch('Cuentas por Cobrar Créditos CxC')" @click="openApp('/ar')">
+          <div class="app-icon-wrapper" style="box-shadow:0 12px 28px rgba(16, 185, 129, 0.22); border:1.5px solid #10b981;">
+            <i class="ph ph-hand-coins" style="font-size:40px; color:#059669;"></i>
+          </div>
+          <div class="app-label" style="color:#047857;">Cuentas por Cobrar</div>
+        </div>
+
+        <!-- 6. Cuentas por Pagar (AP - Administrador) -->
+        <div class="app-launcher-card" x-show="isAdmin && matchesSearch('Cuentas por Pagar Deudas CxP')" @click="openApp('/ap')">
+          <div class="app-icon-wrapper" style="box-shadow:0 12px 28px rgba(225, 29, 72, 0.2);">
+            <i class="ph ph-credit-card" style="font-size:40px; color:#e11d48;"></i>
+          </div>
+          <div class="app-label">Cuentas por Pagar</div>
+        </div>
+
+        <!-- 7. Compras (Administrador) -->
+        <div class="app-launcher-card" x-show="isAdmin && matchesSearch('Compras Proveedores')" @click="openApp('/purchases')">
+          <div class="app-icon-wrapper" style="box-shadow:0 12px 28px rgba(99, 102, 241, 0.2);">
+            <svg width="42" height="42" viewBox="0 0 24 24" fill="#6366f1">
+              <path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
+            </svg>
+          </div>
+          <div class="app-label">Compras</div>
+        </div>
+
+        <!-- 8. Traslados (Administrador) -->
+        <div class="app-launcher-card" x-show="isAdmin && matchesSearch('Traslados Bodegas')" @click="openApp('/transfers')">
+          <div class="app-icon-wrapper" style="box-shadow:0 12px 28px rgba(13, 148, 136, 0.2);">
+            <svg width="42" height="42" viewBox="0 0 24 24" fill="#0d9488">
+              <path d="M6.99 11L3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4v3H10v2h7.01v3L21 9z"/>
+            </svg>
+          </div>
+          <div class="app-label">Traslados</div>
+        </div>
+
+        <!-- 9. Reportes (Administrador) -->
+        <div class="app-launcher-card" x-show="isAdmin && matchesSearch('Reportes Analitica BI')" @click="openApp('/reports')">
+          <div class="app-icon-wrapper" style="box-shadow:0 12px 28px rgba(245, 158, 11, 0.2);">
+            <svg width="42" height="42" viewBox="0 0 24 24" fill="#f59e0b">
+              <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm3 12H9v-2h2v-4H9v-2h4v6h2v2z"/>
+            </svg>
+          </div>
+          <div class="app-label">Reportes</div>
+        </div>
+
+        <!-- 10. Fabricación (Administrador) -->
+        <div class="app-launcher-card" x-show="isAdmin && matchesSearch('Fabricación BOM')" @click="openApp('/mfg')">
+          <div class="app-icon-wrapper" style="box-shadow:0 12px 28px rgba(16, 185, 129, 0.2);">
+            <i class="ph ph-factory" style="font-size:38px; color:#10b981;"></i>
+          </div>
+          <div class="app-label">Fabricación</div>
+        </div>
+
+        <!-- 11. Contabilidad (Administrador) -->
+        <div class="app-launcher-card" x-show="isAdmin && matchesSearch('Contabilidad Libro Diario')" @click="openApp('/accounting')">
+          <div class="app-icon-wrapper" style="box-shadow:0 12px 28px rgba(113, 75, 103, 0.2);">
+            <i class="ph ph-scales" style="font-size:38px; color:#714B67;"></i>
+          </div>
+          <div class="app-label">Contabilidad</div>
+        </div>
+
+        <!-- 12. Facturación FEL (Administrador) -->
+        <div class="app-launcher-card" x-show="isAdmin && matchesSearch('Facturación FEL SAT')" @click="openApp('/invoicing')">
+          <div class="app-icon-wrapper" style="box-shadow:0 12px 28px rgba(99, 102, 241, 0.2);">
+            <i class="ph ph-receipt" style="font-size:38px; color:#6366f1;"></i>
+          </div>
+          <div class="app-label">Facturación FEL</div>
+        </div>
+
+        <!-- 13. Despachos / Delivery (Administrador) -->
+        <div class="app-launcher-card" x-show="isAdmin && matchesSearch('Despachos Delivery Rutas')" @click="openApp('/delivery')">
+          <div class="app-icon-wrapper" style="box-shadow:0 12px 28px rgba(14, 165, 233, 0.2);">
+            <i class="ph ph-moped" style="font-size:38px; color:#0ea5e9;"></i>
+          </div>
+          <div class="app-label">Delivery</div>
+        </div>
+
+        <!-- 14. Recursos Humanos (Administrador) -->
+        <div class="app-launcher-card" x-show="isAdmin && matchesSearch('Recursos Humanos Empleados Planilla')" @click="openApp('/hr')">
+          <div class="app-icon-wrapper" style="box-shadow:0 12px 28px rgba(236, 72, 153, 0.2);">
+            <i class="ph ph-identification-card" style="font-size:38px; color:#ec4899;"></i>
+          </div>
+          <div class="app-label">Recursos Humanos</div>
+        </div>
+
+        <!-- 15. Auditoría (Administrador) -->
+        <div class="app-launcher-card" x-show="isAdmin && matchesSearch('Auditoría Logs')" @click="openApp('/audit')">
+          <div class="app-icon-wrapper" style="box-shadow:0 12px 28px rgba(71, 85, 105, 0.2);">
+            <i class="ph ph-shield-check" style="font-size:38px; color:#475569;"></i>
+          </div>
+          <div class="app-label">Auditoría</div>
+        </div>
+
+        <!-- 16. Usuarios & Roles (Administrador) -->
+        <div class="app-launcher-card" x-show="isAdmin && matchesSearch('Usuarios Roles Permisos Colaboradores')" @click="openApp('/users')">
+          <div class="app-icon-wrapper" style="box-shadow:0 12px 28px rgba(113, 75, 103, 0.22); border:1.5px solid #714B67;">
+            <i class="ph ph-users-three" style="font-size:38px; color:#714B67;"></i>
+          </div>
+          <div class="app-label" style="color:#714B67; font-weight:800;">Usuarios & Roles</div>
+        </div>
+
+        <!-- 17. Empresas & Multi-Compañía (Administrador) -->
+        <div class="app-launcher-card" x-show="isAdmin && matchesSearch('Empresas Compañías Sucursales')" @click="openApp('/companies')">
+          <div class="app-icon-wrapper" style="box-shadow:0 12px 28px rgba(113, 75, 103, 0.25); border:1.5px solid #714B67;">
+            <i class="ph-bold ph-buildings" style="font-size:38px; color:#714B67;"></i>
+          </div>
+          <div class="app-label" style="font-weight:800; color:#714B67;">Empresas</div>
+        </div>
+
+        <!-- 18. Bodegas & Almacenes (Administrador) -->
+        <div class="app-launcher-card" x-show="isAdmin && matchesSearch('Bodegas Almacenes Ubicaciones Stock')" @click="openApp('/warehouses')">
+          <div class="app-icon-wrapper" style="box-shadow:0 12px 28px rgba(14, 165, 233, 0.25); border:1.5px solid #0284c7;">
+            <i class="ph-bold ph-warehouse" style="font-size:38px; color:#0284c7;"></i>
+          </div>
+          <div class="app-label" style="font-weight:800; color:#0284c7;">Bodegas</div>
+        </div>
+
+        <!-- 19. Configuración (Administrador) -->
+        <div class="app-launcher-card" x-show="isAdmin && matchesSearch('Configuración Ajustes')" @click="openApp('/settings')">
+          <div class="app-icon-wrapper" style="box-shadow:0 12px 28px rgba(100, 116, 139, 0.2);">
+            <i class="ph ph-gear-six" style="font-size:38px; color:#64748b;"></i>
+          </div>
+          <div class="app-label">Configuración</div>
+        </div>
+
+      </div>
     </div>
   </div>
 
-  <!-- Stock bajo -->
-  <div class="card" style="margin-top:20px" x-show="lowStockItems.length > 0">
-    <div class="card-header">
-      <span class="card-title"><i class="ph ph-warning" style="color:var(--warning)"></i> Productos con Stock Bajo</span>
-      <a href="/inventory?tab=stock" class="btn btn-ghost btn-sm">Ver inventario</a>
+
+  <!-- ============================================================= -->
+  <!-- VISTA 2: TABLERO ANALÍTICO & BI EJECUTIVO EN TIEMPO REAL      -->
+  <!-- ============================================================= -->
+  <div x-show="viewMode === 'analytics'" class="space-y-6 mt-6" x-cloak>
+
+    <!-- SUB-HEADER EJECUTIVO DE BI CON SELECTOR TEMPORAL -->
+    <div style="background:rgba(255,255,255,0.9); backdrop-filter:blur(12px); border:1px solid #e2e8f0; border-radius:16px; padding:18px 24px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; box-shadow:0 4px 20px rgba(0,0,0,0.03);">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <div style="width:44px; height:44px; border-radius:12px; background:linear-gradient(135deg, #714B67 0%, #4a2e44 100%); color:#ffffff; display:flex; align-items:center; justify-content:center; font-size:22px; box-shadow:0 4px 12px rgba(113,75,103,0.3);">
+          <i class="ph ph-chart-line-up"></i>
+        </div>
+        <div>
+          <h2 style="margin:0; font-size:17px; font-weight:900; color:#1e1b4b; letter-spacing:-0.2px;">Centro de Analítica & Inteligencia de Negocios (BI)</h2>
+          <p style="margin:0; font-size:12px; color:#64748b; font-weight:600;" x-text="'Métricas consolidadas • ' + (kpis.period_label || 'Este Mes') + ' • ' + activeBranchName"></p>
+        </div>
+      </div>
+
+      <!-- Timeframe Period Selector & Export Actions -->
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        
+        <!-- Period Selector Modern Segmented Control -->
+        <div class="period-segmented-control">
+          <button 
+            type="button" 
+            @click="setPeriod('today')" 
+            class="period-segment-btn"
+            :class="{ 'active': selectedPeriod === 'today' }"
+          >Hoy</button>
+          <button 
+            type="button" 
+            @click="setPeriod('week')" 
+            class="period-segment-btn"
+            :class="{ 'active': selectedPeriod === 'week' }"
+          >Semana</button>
+          <button 
+            type="button" 
+            @click="setPeriod('month')" 
+            class="period-segment-btn"
+            :class="{ 'active': selectedPeriod === 'month' }"
+          >Mes</button>
+          <button 
+            type="button" 
+            @click="setPeriod('year')" 
+            class="period-segment-btn"
+            :class="{ 'active': selectedPeriod === 'year' }"
+          >Año</button>
+        </div>
+
+        <!-- Export to Excel (CSV) Button -->
+        <a 
+          :href="'/api/v1/dashboard/export-excel?period=' + selectedPeriod"
+          target="_blank"
+          style="background:#f8fafc; border:1.5px solid #cbd5e1; color:#059669; padding:7px 14px; border-radius:10px; font-size:12.5px; font-weight:800; cursor:pointer; display:flex; align-items:center; gap:6px; box-shadow:0 1px 3px rgba(0,0,0,0.04); text-decoration:none; transition:all 0.2s;"
+          onmouseover="this.style.borderColor='#059669'; this.style.background='#ecfdf5'"
+          onmouseout="this.style.borderColor='#cbd5e1'; this.style.background='#f8fafc'"
+          title="Descargar reporte analítico completo en Excel"
+        >
+          <i class="ph ph-file-xls" style="font-size:16px;"></i> Exportar Excel
+        </a>
+
+        <!-- Print BI Report Button -->
+        <button 
+          type="button" 
+          onclick="window.print()" 
+          style="background:linear-gradient(135deg, #714B67 0%, #58334f 100%); border:none; color:#ffffff; padding:7px 16px; border-radius:10px; font-size:12.5px; font-weight:800; cursor:pointer; display:flex; align-items:center; gap:6px; box-shadow:0 4px 12px rgba(113,75,103,0.25);"
+        >
+          <i class="ph ph-printer" style="font-size:15px;"></i> Imprimir Informe
+        </button>
+      </div>
     </div>
-    <div class="table-container">
-      <table>
-        <thead>
-          <tr>
-            <th>Producto</th>
-            <th>Código</th>
-            <th>Stock Actual</th>
-            <th>Stock Mínimo</th>
-            <th>Diferencia</th>
-          </tr>
-        </thead>
-        <tbody>
-          <template x-for="item in lowStockItems" :key="item.product_id">
-            <tr>
-              <td class="text-white font-semibold" x-text="item.name"></td>
-              <td class="text-muted" x-text="item.internal_ref || '-'"></td>
-              <td>
-                <span class="badge badge-danger" x-text="item.qty_on_hand"></span>
-              </td>
-              <td class="text-muted" x-text="item.min_stock"></td>
-              <td class="text-danger font-bold" x-text="'-' + item.shortage"></td>
-            </tr>
+
+    <!-- KPI ROW: EXECUTIVE PERFORMANCE TILES WITH GROWTH COMPARISONS -->
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:18px;">
+      
+      <!-- 1. Ventas del Período + % Crecimiento -->
+      <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:16px; padding:20px; position:relative; overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,0.03); border-top:4px solid #714B67; transition:transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 12px 28px rgba(113,75,103,0.1)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 16px rgba(0,0,0,0.03)'">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-size:11px; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.6px;" x-text="'Ventas (' + (kpis.period_label || 'Período') + ')'"></span>
+          <div style="width:34px; height:34px; border-radius:10px; background:#f4eff3; color:#714B67; display:flex; align-items:center; justify-content:center; font-size:17px; font-weight:800;">
+            <i class="ph ph-shopping-cart"></i>
+          </div>
+        </div>
+        <div style="font-size:26px; font-weight:900; color:#1e1b4b; margin-top:10px; letter-spacing:-0.5px;" x-text="formatMoney(kpis.sales_period || kpis.sales_today)">Q 0.00</div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:14px; padding-top:10px; border-top:1px solid #f1f5f9; font-size:11.5px;">
+          <span style="color:#64748b; font-weight:600;" x-text="(kpis.invoices_period || kpis.invoices_today) + ' facturas emitidas'"></span>
+          <!-- Crecimiento Badge -->
+          <span 
+            style="display:inline-flex; align-items:center; gap:3px; padding:2px 7px; border-radius:6px; font-weight:800; font-size:10.5px;"
+            :style="(kpis.sales_growth_pct || 0) >= 0 ? 'background:#dcfce7; color:#15803d;' : 'background:#fee2e2; color:#b91c1c;'"
+          >
+            <i class="ph" :class="(kpis.sales_growth_pct || 0) >= 0 ? 'ph-trend-up' : 'ph-trend-down'"></i>
+            <span x-text="((kpis.sales_growth_pct || 0) >= 0 ? '+' : '') + (kpis.sales_growth_pct || 0) + '%'"></span>
+          </span>
+        </div>
+      </div>
+
+      <!-- 2. Ganancia Bruta & Margen de Rentabilidad Real -->
+      <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:16px; padding:20px; position:relative; overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,0.03); border-top:4px solid #059669; transition:transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 12px 28px rgba(5,150,105,0.1)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 16px rgba(0,0,0,0.03)'">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-size:11px; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.6px;">Utilidad Bruta Estimada</span>
+          <div style="width:34px; height:34px; border-radius:10px; background:#ecfdf5; color:#059669; display:flex; align-items:center; justify-content:center; font-size:17px; font-weight:800;">
+            <i class="ph ph-chart-polar"></i>
+          </div>
+        </div>
+        <div style="font-size:26px; font-weight:900; color:#064e3b; margin-top:10px; letter-spacing:-0.5px;" x-text="formatMoney(kpis.gross_profit || 0)">Q 0.00</div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:14px; padding-top:10px; border-top:1px solid #f1f5f9; font-size:11.5px;">
+          <span style="color:#64748b; font-weight:600;">Margen Operativo:</span>
+          <span style="padding:2px 8px; border-radius:6px; background:#ecfdf5; color:#059669; font-weight:900; font-size:11px;" x-text="(kpis.gross_margin_pct || 0) + '% Margen'"></span>
+        </div>
+      </div>
+
+      <!-- 3. Ticket Promedio & Eficiencia Transaccional -->
+      <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:16px; padding:20px; position:relative; overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,0.03); border-top:4px solid #2563eb; transition:transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 12px 28px rgba(37,99,235,0.1)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 16px rgba(0,0,0,0.03)'">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-size:11px; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.6px;">Ticket Promedio</span>
+          <div style="width:34px; height:34px; border-radius:10px; background:#eff6ff; color:#2563eb; display:flex; align-items:center; justify-content:center; font-size:17px; font-weight:800;">
+            <i class="ph ph-receipt"></i>
+          </div>
+        </div>
+        <div style="font-size:26px; font-weight:900; color:#1e3a8a; margin-top:10px; letter-spacing:-0.5px;" x-text="formatMoney(kpis.avg_ticket_period || kpis.avg_ticket_today)">Q 0.00</div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:14px; padding-top:10px; border-top:1px solid #f1f5f9; font-size:11.5px;">
+          <span style="color:#64748b; font-weight:600;">Mes Acumulado:</span>
+          <span style="color:#2563eb; font-weight:800;" x-text="formatMoney(kpis.sales_month || 0)"></span>
+        </div>
+      </div>
+
+      <!-- 4. Liquidez Neta: Cartera CxC vs Deuda CxP -->
+      <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:16px; padding:20px; position:relative; overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,0.03); border-top:4px solid #f59e0b; transition:transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 12px 28px rgba(245,158,11,0.1)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 16px rgba(0,0,0,0.03)'">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-size:11px; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.6px;">CxC vs CxP (Liquidez)</span>
+          <div style="width:34px; height:34px; border-radius:10px; background:#fef3c7; color:#d97706; display:flex; align-items:center; justify-content:center; font-size:17px; font-weight:800;">
+            <i class="ph ph-scales"></i>
+          </div>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:baseline; margin-top:10px;">
+          <div>
+            <div style="font-size:10.5px; font-weight:700; color:#059669;">Por Cobrar (CxC)</div>
+            <div style="font-size:18px; font-weight:900; color:#064e3b;" x-text="formatMoney(kpis.total_receivable)">Q 0.00</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:10.5px; font-weight:700; color:#e11d48;">Por Pagar (CxP)</div>
+            <div style="font-size:18px; font-weight:900; color:#881337;" x-text="formatMoney(kpis.total_payable)">Q 0.00</div>
+          </div>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:14px; padding-top:10px; border-top:1px solid #f1f5f9; font-size:11.5px;">
+          <span style="color:#64748b; font-weight:600;">Stock Bajo:</span>
+          <span style="font-weight:800; color:#ea580c;" x-text="(kpis.low_stock || 0) + ' productos críticos'"></span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- CHARTS ROW 1: SALES TIMELINE & CATEGORY BREAKDOWN -->
+    <div style="display:grid; grid-template-columns:2fr 1fr; gap:20px;">
+      
+      <!-- Sales Timeline Chart (2 Columnas) -->
+      <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:16px; padding:22px; box-shadow:0 4px 16px rgba(0,0,0,0.03);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div style="width:36px; height:36px; border-radius:10px; background:#f4eff3; color:#714B67; display:flex; align-items:center; justify-content:center; font-size:18px;">
+              <i class="ph ph-chart-line"></i>
+            </div>
+            <div>
+              <h3 style="margin:0; font-size:14.5px; font-weight:900; color:#1e1b4b;">Evolución de Ventas & Facturación Diaria</h3>
+              <p style="margin:0; font-size:11.5px; color:#64748b;">Comportamiento de ingresos facturados en Quetzales</p>
+            </div>
+          </div>
+
+          <div class="period-segmented-control">
+            <button 
+              type="button" 
+              @click="chartDays = 7; loadSalesChart()" 
+              class="period-segment-btn"
+              :class="{ 'active': chartDays === 7 }"
+              style="padding:5px 12px; font-size:11.5px;"
+            >7 Días</button>
+            <button 
+              type="button" 
+              @click="chartDays = 30; loadSalesChart()" 
+              class="period-segment-btn"
+              :class="{ 'active': chartDays === 30 }"
+              style="padding:5px 12px; font-size:11.5px;"
+            >30 Días</button>
+          </div>
+        </div>
+
+        <div style="height:280px; position:relative;">
+          <canvas id="salesTrendsChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Categories Breakdown (1 Columna) -->
+      <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:16px; padding:22px; box-shadow:0 4px 16px rgba(0,0,0,0.03);">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
+          <div style="width:36px; height:36px; border-radius:10px; background:#eff6ff; color:#2563eb; display:flex; align-items:center; justify-content:center; font-size:18px;">
+            <i class="ph ph-chart-pie-slice"></i>
+          </div>
+          <div>
+            <h3 style="margin:0; font-size:14.5px; font-weight:900; color:#1e1b4b;">Ventas por Categoría</h3>
+            <p style="margin:0; font-size:11.5px; color:#64748b;">Participación de rubros en la facturación</p>
+          </div>
+        </div>
+
+        <div style="height:280px; position:relative; display:flex; align-items:center; justify-content:center;">
+          <canvas id="categoryChart"></canvas>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- CHARTS ROW 2: PEAK HOURS & PAYMENT METHODS -->
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+      
+      <!-- Peak Hours Chart -->
+      <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:16px; padding:22px; box-shadow:0 4px 16px rgba(0,0,0,0.03);">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
+          <div style="width:36px; height:36px; border-radius:10px; background:#fef3c7; color:#d97706; display:flex; align-items:center; justify-content:center; font-size:18px;">
+            <i class="ph ph-clock-countdown"></i>
+          </div>
+          <div>
+            <h3 style="margin:0; font-size:14.5px; font-weight:900; color:#1e1b4b;">Horarios Pico de Venta</h3>
+            <p style="margin:0; font-size:11.5px; color:#64748b;">Volumen recaudado según la hora del día</p>
+          </div>
+        </div>
+
+        <div style="height:250px; position:relative;">
+          <canvas id="peakHoursChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Payment Methods Breakdown -->
+      <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:16px; padding:22px; box-shadow:0 4px 16px rgba(0,0,0,0.03);">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
+          <div style="width:36px; height:36px; border-radius:10px; background:#ecfdf5; color:#059669; display:flex; align-items:center; justify-content:center; font-size:18px;">
+            <i class="ph ph-credit-card"></i>
+          </div>
+          <div>
+            <h3 style="margin:0; font-size:14.5px; font-weight:900; color:#1e1b4b;">Mix de Formas de Pago</h3>
+            <p style="margin:0; font-size:11.5px; color:#64748b;">Efectivo, tarjetas, transferencias y crédito</p>
+          </div>
+        </div>
+
+        <div style="height:250px; position:relative; display:flex; align-items:center; justify-content:center;">
+          <canvas id="paymentMethodsChart"></canvas>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RANKING & ALERTS ROW: PODIO DE CAJEROS & ALERTA DE STOCK CRÍTICO -->
+    <div style="display:grid; grid-template-columns:1.2fr 0.8fr; gap:20px;">
+      
+      <!-- Podio & Rendimiento de Cajeros / Vendedores -->
+      <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:16px; padding:22px; box-shadow:0 4px 16px rgba(0,0,0,0.03);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid #f1f5f9; padding-bottom:10px;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <i class="ph ph-users-three" style="font-size:20px; color:#714B67;"></i>
+            <h3 style="margin:0; font-size:13.5px; font-weight:900; color:#1e1b4b; text-transform:uppercase; letter-spacing:0.5px;">Rendimiento de Cajeros & Colaboradores</h3>
+          </div>
+          <span style="font-size:11.5px; font-weight:700; color:#64748b;" x-text="cashierRankings.length + ' vendedores'"></span>
+        </div>
+
+        <div style="overflow-x:auto;">
+          <table style="width:100%; border-collapse:collapse; font-size:12.5px;">
+            <thead>
+              <tr style="color:#64748b; font-size:11px; font-weight:800; text-transform:uppercase; border-bottom:1.5px solid #f1f5f9; text-align:left;">
+                <th style="padding:8px 6px;">Rank</th>
+                <th style="padding:8px 6px;">Colaborador</th>
+                <th style="padding:8px 6px; text-align:center;">Tickets</th>
+                <th style="padding:8px 6px; text-align:right;">Total Vendido</th>
+                <th style="padding:8px 6px; text-align:right;">Ticket Prom.</th>
+                <th style="padding:8px 6px; text-align:right;">Cuota %</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-if="cashierRankings.length === 0">
+                <tr><td colspan="6" style="text-align:center; padding:24px; color:#94a3b8;">No hay ventas registradas en el período seleccionado.</td></tr>
+              </template>
+              <template x-for="c in cashierRankings" :key="c.user_id">
+                <tr style="border-bottom:1px solid #f8fafc; transition:background 0.15s;" onmouseover="this.style.background='#fdfaff'" onmouseout="this.style.background='transparent'">
+                  <td style="padding:10px 6px;">
+                    <span 
+                      style="display:inline-flex; width:24px; height:24px; border-radius:50%; align-items:center; justify-content:center; font-size:11px; font-weight:900;"
+                      :style="c.rank === 1 ? 'background:#fef3c7; color:#b45309;' : (c.rank === 2 ? 'background:#f1f5f9; color:#475569;' : (c.rank === 3 ? 'background:#ffedd5; color:#9a3412;' : 'background:#f8fafc; color:#94a3b8;'))"
+                      x-text="c.rank === 1 ? '🥇' : (c.rank === 2 ? '🥈' : (c.rank === 3 ? '🥉' : c.rank))"
+                    ></span>
+                  </td>
+                  <td style="padding:10px 6px;">
+                    <div style="font-weight:800; color:#1e293b;" x-text="c.name"></div>
+                    <div style="font-size:11px; color:#64748b;" x-text="c.email"></div>
+                  </td>
+                  <td style="padding:10px 6px; text-align:center; font-weight:700; color:#64748b;" x-text="c.tickets"></td>
+                  <td style="padding:10px 6px; text-align:right; font-weight:900; color:#1e1b4b;" x-text="formatMoney(c.total_sales)"></td>
+                  <td style="padding:10px 6px; text-align:right; font-weight:700; color:#059669;" x-text="formatMoney(c.avg_ticket)"></td>
+                  <td style="padding:10px 6px; text-align:right;">
+                    <span style="font-size:11.5px; font-weight:900; color:#714B67;" x-text="c.share_pct + '%'"></span>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Radar de Alertas de Inventario Crítico -->
+      <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:16px; padding:22px; box-shadow:0 4px 16px rgba(0,0,0,0.03);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid #f1f5f9; padding-bottom:10px;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <i class="ph ph-warning-circle" style="font-size:20px; color:#ea580c;"></i>
+            <h3 style="margin:0; font-size:13.5px; font-weight:900; color:#1e1b4b; text-transform:uppercase; letter-spacing:0.5px;">Radar de Stock Crítico</h3>
+          </div>
+          <a href="/inventory" style="font-size:12px; font-weight:800; color:#ea580c; text-decoration:none;">Reabastecer &rarr;</a>
+        </div>
+
+        <div style="overflow-y:auto; max-height:260px; display:flex; flex-direction:column; gap:8px;">
+          <template x-if="stockAlerts.length === 0">
+            <div style="text-align:center; padding:30px; color:#10b981; font-size:13px; font-weight:700;">
+              <i class="ph ph-check-circle" style="font-size:28px; display:block; margin-bottom:6px;"></i>
+              ¡Excelente! Todo el stock está sobre los niveles mínimos.
+            </div>
           </template>
-        </tbody>
-      </table>
+          <template x-for="item in stockAlerts" :key="item.product_id">
+            <div style="padding:10px 12px; border-radius:10px; border:1px solid #fee2e2; background:#fff5f5; display:flex; justify-content:space-between; align-items:center;">
+              <div>
+                <div style="font-size:13px; font-weight:800; color:#991b1b;" x-text="item.name"></div>
+                <div style="font-size:11px; color:#7f1d1d; margin-top:2px;" x-text="'Mínimo: ' + item.min_stock + ' | Cat: ' + item.category"></div>
+              </div>
+              <div style="text-align:right;">
+                <span style="font-size:12px; font-weight:900; padding:3px 8px; border-radius:6px; background:#fee2e2; color:#b91c1c;" x-text="item.current_stock + ' en stock'"></span>
+                <div style="font-size:10px; color:#dc2626; font-weight:800; margin-top:3px;" x-text="'Faltan ' + item.deficit + ' uds'"></div>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+
     </div>
+
+    <!-- TABLES ROW: TOP PRODUCTS & RECENT LIVE SALES -->
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+      
+      <!-- Top 5 Profitable Products -->
+      <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:16px; padding:22px; box-shadow:0 4px 16px rgba(0,0,0,0.03);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid #f1f5f9; padding-bottom:10px;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <i class="ph ph-trophy" style="font-size:20px; color:#f59e0b;"></i>
+            <h3 style="margin:0; font-size:13.5px; font-weight:900; color:#1e1b4b; text-transform:uppercase; letter-spacing:0.5px;">Top Productos Más Rentables</h3>
+          </div>
+          <a href="/inventory" style="font-size:12px; font-weight:800; color:#714B67; text-decoration:none;">Ver Catálogo &rarr;</a>
+        </div>
+
+        <div style="overflow-x:auto;">
+          <table style="width:100%; border-collapse:collapse; font-size:12.5px;">
+            <thead>
+              <tr style="color:#64748b; font-size:11px; font-weight:800; text-transform:uppercase; border-bottom:1.5px solid #f1f5f9; text-align:left;">
+                <th style="padding:8px 6px;">#</th>
+                <th style="padding:8px 6px;">Producto</th>
+                <th style="padding:8px 6px; text-align:right;">Uds.</th>
+                <th style="padding:8px 6px; text-align:right;">Ingresos</th>
+                <th style="padding:8px 6px; text-align:right;">Margen</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="(p, idx) in profitabilityData.top_profitable_products?.slice(0, 5)" :key="p.product_name">
+                <tr style="border-bottom:1px solid #f8fafc; transition:background 0.15s;" onmouseover="this.style.background='#fdfaff'" onmouseout="this.style.background='transparent'">
+                  <td style="padding:10px 6px;">
+                    <span 
+                      style="display:inline-flex; width:22px; height:22px; border-radius:50%; align-items:center; justify-content:center; font-size:11px; font-weight:900;"
+                      :style="idx === 0 ? 'background:#fef3c7; color:#b45309;' : (idx === 1 ? 'background:#f1f5f9; color:#475569;' : 'background:#f8fafc; color:#94a3b8;')"
+                      x-text="idx + 1"
+                    ></span>
+                  </td>
+                  <td style="padding:10px 6px; font-weight:800; color:#1e293b;" x-text="p.product_name"></td>
+                  <td style="padding:10px 6px; text-align:right; color:#64748b; font-weight:700;" x-text="p.qty_sold"></td>
+                  <td style="padding:10px 6px; text-align:right; font-weight:800; color:#1e1b4b;" x-text="formatMoney(p.revenue)"></td>
+                  <td style="padding:10px 6px; text-align:right; font-weight:900; color:#059669;" x-text="p.margin_pct + '%'"></td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Recent Transactions Live -->
+      <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:16px; padding:22px; box-shadow:0 4px 16px rgba(0,0,0,0.03);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid #f1f5f9; padding-bottom:10px;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <i class="ph ph-receipt" style="font-size:20px; color:#714B67;"></i>
+            <h3 style="margin:0; font-size:13.5px; font-weight:900; color:#1e1b4b; text-transform:uppercase; letter-spacing:0.5px;">Últimas Facturas / Ventas en Vivo</h3>
+          </div>
+          <a href="/pos" style="font-size:12px; font-weight:800; color:#714B67; text-decoration:none;">Ir a Caja &rarr;</a>
+        </div>
+
+        <div style="overflow-x:auto;">
+          <table style="width:100%; border-collapse:collapse; font-size:12.5px;">
+            <thead>
+              <tr style="color:#64748b; font-size:11px; font-weight:800; text-transform:uppercase; border-bottom:1.5px solid #f1f5f9; text-align:left;">
+                <th style="padding:8px 6px;">No. Factura</th>
+                <th style="padding:8px 6px;">Cliente</th>
+                <th style="padding:8px 6px;">Hora</th>
+                <th style="padding:8px 6px; text-align:right;">Monto Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="s in recentSales" :key="s.id">
+                <tr style="border-bottom:1px solid #f8fafc; transition:background 0.15s;" onmouseover="this.style.background='#fdfaff'" onmouseout="this.style.background='transparent'">
+                  <td style="padding:10px 6px; font-family:monospace; font-weight:800; color:#714B67;" x-text="s.number"></td>
+                  <td style="padding:10px 6px; color:#1e293b; font-weight:700;" x-text="s.customer_name"></td>
+                  <td style="padding:10px 6px; color:#64748b; font-size:11.5px;" x-text="s.time"></td>
+                  <td style="padding:10px 6px; text-align:right; font-weight:900; color:#0f172a; font-size:13.5px;" x-text="formatMoney(s.total)"></td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
   </div>
 
 </div>
-{% endblock %}
 
-{% block extra_js %}
 <script>
-function dashboardPage() {
+function mainDashboardPage() {
   return {
+    viewMode: 'apps', // 'apps' or 'analytics'
+    selectedPeriod: 'month', // 'today', 'week', 'month', 'year'
+    searchQuery: '',
     currentUser: JSON.parse(localStorage.getItem('user') || '{}'),
-    branches: [],
-    selectedBranch: '',
-    chartPeriod: '30d',
-    salesChart: null,
+    activeBranchName: localStorage.getItem('branch_name') || 'Sucursal Principal',
+    chartDays: 30,
 
-    kpis: {
-      sales_today: 0, sales_trend: 0, invoices_today: 0, invoices_trend: 0,
-      low_stock: 0, active_sessions: 0, pending_transfers: 0, sales_month: 0,
-    },
-
-    topProducts: [],
+    // Data models
+    kpis: {},
     recentSales: [],
-    lowStockItems: [],
+    profitabilityData: {},
+    cashierRankings: [],
+    stockAlerts: [],
 
-    get todayDate() {
-      return new Date().toLocaleDateString('es-GT', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+    // Charts instances
+    salesChartInst: null,
+    categoryChartInst: null,
+    peakHoursChartInst: null,
+    paymentMethodsChartInst: null,
+
+    get userName() {
+      return this.currentUser?.full_name || 'Administrador del Sistema';
     },
 
-    formatMoney(val) {
-      return Number(val || 0).toLocaleString('es-GT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    get userInitial() {
+      return (this.userName || 'A')[0].toUpperCase();
     },
 
-    formatDate(d) {
-      if (!d) return '-';
-      return new Date(d).toLocaleString('es-GT', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
+    get currentDate() {
+      const d = new Date();
+      return d.toLocaleDateString('es-GT', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+    },
+
+    matchesSearch(label) {
+      if (!this.searchQuery) return true;
+      return label.toLowerCase().includes(this.searchQuery.toLowerCase());
+    },
+
+    openApp(path) {
+      window.location.href = path;
+    },
+
+    logout() {
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      localStorage.removeItem('user');
+      window.location.href = '/login';
+    },
+
+    isAdmin: (() => {
+      try {
+        const u = JSON.parse(localStorage.getItem('user') || '{}');
+        if (u.is_superuser || u.is_admin || u.username === 'admin' || (u.email && u.email.includes('admin'))) return true;
+        const codes = (u.role_codes || (u.roles || []).map(r => r.code || r));
+        return codes.includes('admin') || codes.includes('store_manager');
+      } catch(e) { return false; }
+    })(),
+
+    async init() {
+      await this.checkAdminRole();
+      await this.loadKpis();
+      await this.loadCashierPerformance();
+      await this.loadStockAlerts();
+      await this.loadRecentSales();
+      await this.loadProfitability();
+    },
+
+    async authFetch(url, options = {}) {
+      const token = localStorage.getItem('access_token');
+      const headers = {
+        ...(token ? { 'Authorization': 'Bearer ' + token } : {}),
+        ...(options.headers || {})
+      };
+      return fetch(url, { ...options, headers });
     },
 
     async init() {
-      await this.loadBranches();
-      await this.loadData();
-      this.initChart();
-
-      // Auto-refresh cada 60 segundos
-      setInterval(() => this.loadData(), 60000);
-    },
-
-    async loadBranches() {
-      try {
-        this.branches = await API.get('/branches/');
-      } catch(e) {}
-    },
-
-    async loadData() {
+      await this.checkAdminRole();
       await Promise.all([
-        this.loadKPIs(),
-        this.loadTopProducts(),
+        this.loadKpis(),
+        this.loadCashierPerformance(),
+        this.loadStockAlerts(),
         this.loadRecentSales(),
-        this.loadLowStock(),
-        this.loadSalesChart(),
+        this.loadProfitability()
       ]);
     },
 
-    async loadKPIs() {
+    async setPeriod(p) {
+      this.selectedPeriod = p;
+      await Promise.all([
+        this.loadKpis(),
+        this.loadCashierPerformance()
+      ]);
+    },
+
+    async checkAdminRole() {
       try {
-        const data = await API.get('/dashboard/kpis' + (this.selectedBranch ? '?branch_id=' + this.selectedBranch : ''));
-        this.kpis = { ...this.kpis, ...data };
-      } catch(e) {
-        // Demo data
-        this.kpis = {
-          sales_today: 12450.50, sales_trend: 8.5,
-          invoices_today: 47, invoices_trend: 12,
-          low_stock: 5, active_sessions: 3,
-          pending_transfers: 2, sales_month: 384750.00,
-        };
+        const u = JSON.parse(localStorage.getItem('user') || '{}');
+        if (u.is_superuser || u.is_admin || u.username === 'admin' || (u.email && u.email.includes('admin'))) {
+          this.isAdmin = true;
+        }
+        const token = localStorage.getItem('access_token');
+        if (!token) return;
+        const res = await this.authFetch('/api/v1/auth/me');
+        if (res.ok) {
+          const me = await res.json();
+          if (me.is_superuser || me.is_admin || me.username === 'admin' || (me.email && me.email.includes('admin'))) {
+            this.isAdmin = true;
+          } else {
+            const codes = (me.roles || []).map(r => r.code);
+            this.isAdmin = codes.includes('admin') || codes.includes('store_manager');
+          }
+        }
+      } catch(e) {}
+    },
+
+    async loadKpis() {
+      try {
+        const res = await this.authFetch(`/api/v1/dashboard/kpis?period=${this.selectedPeriod}`);
+        if (res.ok) this.kpis = await res.json();
+      } catch (e) {
+        console.error("Error loading dashboard KPIs:", e);
       }
     },
 
-    async loadTopProducts() {
+    async loadCashierPerformance() {
       try {
-        const data = await API.get('/reports/top-products?limit=5');
-        this.topProducts = data.items || [];
-      } catch(e) {
-        this.topProducts = [
-          { id: '1', name: 'Coca-Cola 600ml', units: 240, total: 1680 },
-          { id: '2', name: 'Arroz Integral 1kg', units: 180, total: 2700 },
-          { id: '3', name: 'Leche Entera 1L', units: 150, total: 1800 },
-          { id: '4', name: 'Pan Molde Grande', units: 120, total: 1440 },
-          { id: '5', name: 'Aceite Vegetal 1L', units: 95, total: 2375 },
-        ];
+        const res = await this.authFetch(`/api/v1/dashboard/cashier-performance?period=${this.selectedPeriod}`);
+        if (res.ok) {
+          const data = await res.json();
+          this.cashierRankings = data.items || [];
+        }
+      } catch (e) {
+        console.error("Error loading cashier rankings:", e);
+      }
+    },
+
+    async loadStockAlerts() {
+      try {
+        const res = await this.authFetch('/api/v1/dashboard/stock-alerts');
+        if (res.ok) {
+          const data = await res.json();
+          this.stockAlerts = data.items || [];
+        }
+      } catch (e) {
+        console.error("Error loading stock alerts:", e);
       }
     },
 
     async loadRecentSales() {
       try {
-        const data = await API.get('/sales/?page_size=8' + (this.selectedBranch ? '&branch_id=' + this.selectedBranch : ''));
-        this.recentSales = data.items || [];
-      } catch(e) {
-        this.recentSales = [];
+        const res = await this.authFetch('/api/v1/dashboard/recent-sales?limit=5');
+        if (res.ok) this.recentSales = await res.json();
+      } catch (e) {
+        console.error("Error loading recent sales:", e);
       }
     },
 
-    async loadLowStock() {
+    async loadProfitability() {
       try {
-        const data = await API.get('/inventory/low-stock');
-        this.lowStockItems = data.items || [];
-      } catch(e) {
-        this.lowStockItems = [];
+        const res = await this.authFetch('/api/v1/dashboard/profitability-and-runway');
+        if (res.ok) this.profitabilityData = await res.json();
+      } catch (e) {
+        console.error("Error loading profitability data:", e);
       }
+    },
+
+    async initCharts() {
+      this.$nextTick(async () => {
+        await Promise.all([
+          this.loadSalesChart(),
+          this.loadCategoryChart(),
+          this.loadPeakHoursChart(),
+          this.loadPaymentMethodsChart()
+        ]);
+      });
     },
 
     async loadSalesChart() {
       try {
-        const data = await API.get('/reports/sales-chart?period=' + this.chartPeriod);
-        this.updateChart(data.labels || [], data.values || []);
-      } catch(e) {
-        // Demo chart data
-        const labels = Array.from({ length: 30 }, (_, i) => {
-          const d = new Date(); d.setDate(d.getDate() - (29 - i));
-          return d.getDate() + '/' + (d.getMonth() + 1);
-        });
-        const values = Array.from({ length: 30 }, () => Math.random() * 15000 + 5000);
-        this.updateChart(labels, values);
-      }
-    },
+        const res = await this.authFetch(`/api/v1/dashboard/sales-chart?days=${this.chartDays}`);
+        if (!res.ok) return;
+        const data = await res.json();
 
-    initChart() {
-      const ctx = document.getElementById('salesChart');
-      if (!ctx) return;
+        const canvas = document.getElementById('salesTrendsChart');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
 
-      this.salesChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: [],
-          datasets: [{
-            label: 'Ventas (Q)',
-            data: [],
-            fill: true,
-            backgroundColor: 'rgba(59, 130, 246, 0.08)',
-            borderColor: 'rgba(59, 130, 246, 0.8)',
-            pointBackgroundColor: 'rgb(59, 130, 246)',
-            pointRadius: 3,
-            tension: 0.4,
-            borderWidth: 2,
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              backgroundColor: 'rgba(15, 23, 42, 0.95)',
-              titleColor: '#94a3b8',
-              bodyColor: 'white',
-              borderColor: 'rgba(255,255,255,0.08)',
-              borderWidth: 1,
-              callbacks: {
-                label: (ctx) => 'Q ' + ctx.parsed.y.toLocaleString('es-GT', { minimumFractionDigits: 2 })
-              }
-            }
+        if (this.salesChartInst) {
+          this.salesChartInst.destroy();
+          this.salesChartInst = null;
+        }
+
+        const gradient = ctx.createLinearGradient(0, 0, 0, 260);
+        gradient.addColorStop(0, 'rgba(113, 75, 103, 0.35)');
+        gradient.addColorStop(1, 'rgba(113, 75, 103, 0.0)');
+
+        this.salesChartInst = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: data.labels,
+            datasets: [{
+              label: 'Ventas Diarias (Q)',
+              data: data.data,
+              borderColor: '#714B67',
+              backgroundColor: gradient,
+              borderWidth: 2.5,
+              tension: 0.35,
+              fill: true,
+              pointBackgroundColor: '#714B67',
+              pointRadius: 3,
+              pointHoverRadius: 6
+            }]
           },
-          scales: {
-            x: {
-              grid: { color: 'rgba(255,255,255,0.04)' },
-              ticks: { color: '#64748b', font: { size: 11 } }
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: (c) => ` Total: Q ${Number(c.raw).toLocaleString('es-GT', { minimumFractionDigits: 2 })}`
+                }
+              }
             },
-            y: {
-              grid: { color: 'rgba(255,255,255,0.04)' },
-              ticks: {
-                color: '#64748b',
-                font: { size: 11 },
-                callback: (v) => 'Q ' + v.toLocaleString()
+            scales: {
+              y: {
+                beginAtZero: true,
+                grid: { color: '#f1f5f9' },
+                ticks: {
+                  callback: (v) => `Q ${v >= 1000 ? (v/1000) + 'k' : v}`
+                }
+              },
+              x: {
+                grid: { display: false }
               }
             }
           }
-        }
-      });
+        });
+      } catch (e) {
+        console.error("Error loading sales chart:", e);
+      }
     },
 
-    updateChart(labels, values) {
-      if (!this.salesChart) return;
-      this.salesChart.data.labels = labels;
-      this.salesChart.data.datasets[0].data = values;
-      this.salesChart.update();
+    async loadCategoryChart() {
+      try {
+        const res = await this.authFetch('/api/v1/dashboard/category-breakdown');
+        if (!res.ok) return;
+        const data = await res.json();
+
+        const canvas = document.getElementById('categoryChart');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+
+        if (this.categoryChartInst) {
+          this.categoryChartInst.destroy();
+          this.categoryChartInst = null;
+        }
+
+        this.categoryChartInst = new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+            labels: data.labels,
+            datasets: [{
+              data: data.data,
+              backgroundColor: [
+                '#714B67',
+                '#00A09D',
+                '#f59e0b',
+                '#6366f1',
+                '#ec4899',
+                '#10b981'
+              ],
+              borderWidth: 2,
+              borderColor: '#ffffff'
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: { boxWidth: 12, font: { size: 11, weight: 'bold' } }
+              }
+            },
+            cutout: '65%'
+          }
+        });
+      } catch (e) {
+        console.error("Error loading category chart:", e);
+      }
     },
+
+    async loadPeakHoursChart() {
+      try {
+        const res = await this.authFetch('/api/v1/dashboard/sales-by-hour');
+        if (!res.ok) return;
+        const data = await res.json();
+
+        const canvas = document.getElementById('peakHoursChart');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+
+        if (this.peakHoursChartInst) {
+          this.peakHoursChartInst.destroy();
+          this.peakHoursChartInst = null;
+        }
+
+        const gradient = ctx.createLinearGradient(0, 0, 0, 240);
+        gradient.addColorStop(0, '#00A09D');
+        gradient.addColorStop(1, 'rgba(0, 160, 157, 0.15)');
+
+        this.peakHoursChartInst = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: data.labels,
+            datasets: [{
+              label: 'Ventas (Q)',
+              data: data.sales,
+              backgroundColor: gradient,
+              borderRadius: 8,
+              borderSkipped: false,
+              hoverBackgroundColor: '#714B67'
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: (c) => ` Recaudado: Q ${Number(c.raw).toLocaleString('es-GT', { minimumFractionDigits: 2 })}`
+                }
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                grid: { color: '#f8fafc' },
+                ticks: {
+                  callback: (v) => `Q ${v >= 1000 ? (v/1000) + 'k' : v}`
+                }
+              },
+              x: { grid: { display: false } }
+            }
+          }
+        });
+      } catch (e) {
+        console.error("Error loading peak hours chart:", e);
+      }
+    },
+
+    async loadPaymentMethodsChart() {
+      try {
+        const res = await this.authFetch('/api/v1/dashboard/payment-methods');
+        if (!res.ok) return;
+        const data = await res.json();
+
+        const canvas = document.getElementById('paymentMethodsChart');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+
+        if (this.paymentMethodsChartInst) {
+          this.paymentMethodsChartInst.destroy();
+          this.paymentMethodsChartInst = null;
+        }
+
+        this.paymentMethodsChartInst = new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+            labels: data.labels,
+            datasets: [{
+              data: data.data,
+              backgroundColor: [
+                '#059669',
+                '#2563eb',
+                '#714B67',
+                '#d97706',
+                '#e11d48'
+              ],
+              borderWidth: 2,
+              borderColor: '#ffffff',
+              hoverOffset: 6
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '60%',
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: { boxWidth: 12, font: { size: 11, weight: 'bold' } }
+              },
+              tooltip: {
+                callbacks: {
+                  label: (c) => ` Q ${Number(c.raw).toLocaleString('es-GT', { minimumFractionDigits: 2 })}`
+                }
+              }
+            }
+          }
+        });
+      } catch (e) {
+        console.error("Error loading payment methods chart:", e);
+      }
+    },
+
+    formatMoney(val) {
+      const num = Number(val) || 0;
+      return `Q ${num.toLocaleString('es-GT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
   };
 }
 </script>

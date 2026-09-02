@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Reporte Z — Cierre de Caja #{{ session.session_number }}</title>
+  <style>
+    @page {
+      size: 80mm auto;
+      margin: 0;
+    }
+    body {
+      width: 78mm;
+      margin: 0 auto;
+      padding: 4mm 2mm;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 12px;
+      color: #000;
+      background: #fff;
+    }
+    .text-center { text-align: center; }
+    .text-right { text-align: right; }
+    .font-bold { font-weight: bold; }
+    .divider { border-top: 1px dashed #000; margin: 6px 0; }
+    .divider-double { border-top: 2px double #000; margin: 6px 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    th, td { padding: 2px 0; }
+    @media print {
+      body { width: 100%; padding: 0; }
+      .no-print { display: none; }
+    }
+  </style>
+</head>
+<body onload="window.print()">
+  <div class="no-print text-center" style="margin-bottom: 10px; background: #eee; padding: 6px;">
+    <button onclick="window.print()" style="padding: 6px 16px; font-weight: bold; cursor: pointer;">🖨️ Imprimir Reporte Z</button>
+    <button onclick="window.close()" style="padding: 6px 16px; margin-left: 8px; cursor: pointer;">Cerrar</button>
+  </div>
+
+  <div class="text-center font-bold" style="font-size: 16px;">REPORTE DE CIERRE Z</div>
+  <div class="text-center font-bold">{{ company.name or 'POS EMPRESARIAL' }}</div>
+  <div class="text-center">{{ branch.name or 'Sucursal' }}</div>
+
+  <div class="divider-double"></div>
+
+  <div><b>SESIÓN #:</b> {{ session.session_number }}</div>
+  <div><b>CAJERO:</b> {{ user.full_name or user.email }}</div>
+  <div><b>APERTURA:</b> {{ session.opened_at.strftime('%d/%m/%Y %H:%M') if session.opened_at else '-' }}</div>
+  <div><b>CIERRE:</b> {{ session.closed_at.strftime('%d/%m/%Y %H:%M') if session.closed_at else 'AHORA' }}</div>
+
+  <div class="divider"></div>
+
+  <div class="font-bold">1. CUADRE DE EFECTIVO (GAVETA):</div>
+  <table>
+    <tr>
+      <td>(+ Fondo de Apertura):</td>
+      <td class="text-right">Q{{ "%.2f"|format(session.opening_balance or 0) }}</td>
+    </tr>
+    <tr>
+      <td>(+ Entradas Efectivo):</td>
+      <td class="text-right">Q{{ "%.2f"|format(session.total_cash_in or 0) }}</td>
+    </tr>
+    <tr>
+      <td>(+ Ventas al Contado):</td>
+      <td class="text-right">Q{{ "%.2f"|format(cash_sales if cash_sales is defined else (session.total_sales or 0)) }}</td>
+    </tr>
+    <tr>
+      <td>(- Retiros Efectivo):</td>
+      <td class="text-right">-Q{{ "%.2f"|format(session.total_cash_out or 0) }}</td>
+    </tr>
+    <tr class="font-bold">
+      <td>(= Efectivo Esperado):</td>
+      <td class="text-right">Q{{ "%.2f"|format(expected_cash if expected_cash is defined else (session.closing_balance_expected or 0)) }}</td>
+    </tr>
+    <tr class="font-bold">
+      <td>(Efectivo Contado Real):</td>
+      <td class="text-right">Q{{ "%.2f"|format(session.closing_balance_real or 0) }}</td>
+    </tr>
+    <tr class="font-bold">
+      <td>DIFERENCIA EFECTIVO:</td>
+      <td class="text-right">Q{{ "%.2f"|format(session.closing_difference or 0) }}</td>
+    </tr>
+  </table>
+
+  <div class="divider"></div>
+
+  <div class="font-bold">2. VENTAS AL CRÉDITO Y OTROS:</div>
+  <table>
+    <tr>
+      <td>💳 Ventas al Crédito:</td>
+      <td class="text-right">Q{{ "%.2f"|format(credit_sales if credit_sales is defined else 0) }}</td>
+    </tr>
+    {% if card_sales is defined and card_sales > 0 %}
+    <tr>
+      <td>💳 Tarjetas / Bancos:</td>
+      <td class="text-right">Q{{ "%.2f"|format(card_sales) }}</td>
+    </tr>
+    {% endif %}
+    <tr class="font-bold">
+      <td>TOTAL FACTURADO TURNO:</td>
+      <td class="text-right">Q{{ "%.2f"|format(total_sales if total_sales is defined else (session.total_sales or 0)) }}</td>
+    </tr>
+  </table>
+
+  <div class="divider-double"></div>
+
+  <div style="margin-top: 40px;" class="text-center">
+    <div>____________________________</div>
+    <div>Firma Cajero</div>
+  </div>
+
+  <div style="margin-top: 30px;" class="text-center">
+    <div>____________________________</div>
+    <div>Firma Supervisor / Auditor</div>
+  </div>
+
+  <div class="divider"></div>
+  <div class="text-center" style="font-size: 10px; margin-top: 6px;">
+    IMPRESO POR POS EMPRESARIAL
+  </div>
+</body>
+</html>

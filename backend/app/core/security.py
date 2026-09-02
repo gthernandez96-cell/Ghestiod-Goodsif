@@ -81,7 +81,13 @@ async def get_current_user(
     except (ValueError, TypeError):
         raise HTTPException(status_code=401, detail="ID de usuario inválido en token")
 
-    result = await db.execute(select(User).where(User.id == user_id, User.is_active == True))
+    from sqlalchemy.orm import selectinload
+
+    result = await db.execute(
+        select(User)
+        .options(selectinload(User.roles))
+        .where(User.id == user_id, User.is_active == True)
+    )
     user = result.scalar_one_or_none()
 
     if not user:

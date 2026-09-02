@@ -2,12 +2,199 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>{% block title %}POS Empresarial{% endblock %}</title>
-  <meta name="description" content="{% block description %}Sistema de Punto de Venta Empresarial con FEL{% endblock %}">
+  <meta name="description" content="{% block description %}Sistema de Punto de Venta y ERP Empresarial con Facturación SAT FEL{% endblock %}">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#714B67">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
 
-  <!-- CSS -->
-  <link rel="stylesheet" href="/static/css/main.css">
+  <!-- CSS con Cache-Buster y Overrides Odoo -->
+  <link rel="stylesheet" href="/static/css/main.css?v=20260819_touch_responsive">
+
+  <style>
+    /* ==========================================================
+       ADAPTIVE RESPONSIVE & TOUCH OPTIMIZATION DESIGN SYSTEM
+       Compatible con Móviles, Tablets, Pantallas Táctiles y PC
+       ========================================================== */
+    :root {
+      --odoo-purple: #714B67;
+      --odoo-purple-hover: #5d3d54;
+      --odoo-purple-light: #f4eff3;
+      --odoo-teal: #00A09D;
+    }
+
+    body, html {
+      background-color: #f8fafc !important;
+      color: #1e293b !important;
+      touch-action: manipulation; /* Optimizar toques táctiles */
+      -webkit-font-smoothing: antialiased;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* Odoo Subnav Pills with Horizontal Kinetic Touch Scroll */
+    .subnav-pills-scroll {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none; /* Firefox */
+      -ms-overflow-style: none; /* IE/Edge */
+      padding: 2px 0;
+      white-space: nowrap;
+    }
+    .subnav-pills-scroll::-webkit-scrollbar {
+      display: none; /* Chrome/Safari */
+    }
+
+    .nav-tab-pill {
+      text-decoration: none !important;
+      font-size: 12.5px !important;
+      font-weight: 700 !important;
+      padding: 6px 14px !important;
+      border-radius: 20px !important;
+      transition: all 0.15s ease !important;
+      white-space: nowrap !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 6px !important;
+      cursor: pointer !important;
+      min-height: 32px;
+      flex-shrink: 0;
+    }
+
+    .nav-tab-active {
+      background: var(--odoo-purple) !important;
+      color: #ffffff !important;
+      font-weight: 800 !important;
+      border: 1px solid var(--odoo-purple) !important;
+      box-shadow: 0 2px 8px rgba(113, 75, 103, 0.25) !important;
+    }
+
+    .nav-tab-inactive {
+      background: #f1f5f9 !important;
+      color: #475569 !important;
+      font-weight: 600 !important;
+      border: 1px solid #cbd5e1 !important;
+    }
+    .nav-tab-inactive:hover {
+      background: #e2e8f0 !important;
+      color: #0f172a !important;
+    }
+
+    /* Forms and Touch Inputs */
+    .form-control, input, select, textarea {
+      font-size: 14px !important;
+      border-radius: 8px !important;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    
+    /* Prevent auto-zoom in iOS Safari when clicking input fields */
+    @media screen and (max-width: 768px) {
+      input, select, textarea, .form-control {
+        font-size: 16px !important;
+        min-height: 40px;
+      }
+      .btn {
+        min-height: 42px !important;
+        padding: 8px 16px !important;
+      }
+    }
+
+    /* Tables Responsive Touch Container */
+    .table-responsive {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      border-radius: 10px;
+    }
+
+    /* Modals Responsive Viewport */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(2px);
+      z-index: 999;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 16px;
+    }
+    .modal {
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      background: #ffffff;
+      border-radius: 14px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Mobile Bottom Navigation Bar (Visible only on < 768px) */
+    .mobile-bottom-nav {
+      display: none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 60px;
+      background: #ffffff;
+      border-top: 1px solid #e2e8f0;
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+      z-index: 190;
+      justify-content: space-around;
+      align-items: center;
+      padding: 0 4px;
+    }
+    .mobile-nav-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #64748b;
+      text-decoration: none;
+      font-size: 10px;
+      font-weight: 700;
+      gap: 2px;
+      flex: 1;
+      height: 100%;
+      transition: color 0.15s;
+    }
+    .mobile-nav-btn.active, .mobile-nav-btn:hover {
+      color: var(--odoo-purple);
+    }
+    .mobile-nav-btn i {
+      font-size: 20px;
+    }
+
+    @media screen and (max-width: 768px) {
+      .mobile-bottom-nav {
+        display: flex !important;
+      }
+      .page-content {
+        padding: 14px 12px 76px 12px !important;
+      }
+      .hide-on-mobile {
+        display: none !important;
+      }
+      .stack-on-mobile {
+        flex-direction: column !important;
+        align-items: stretch !important;
+      }
+      .full-width-on-mobile {
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+      .grid-responsive {
+        grid-template-columns: 1fr !important;
+      }
+    }
+  </style>
   {% block extra_css %}{% endblock %}
 
   <!-- Iconos (Phosphor Icons) -->
@@ -18,230 +205,436 @@
 
   <!-- HTMX -->
   <script src="https://unpkg.com/htmx.org@2.0.3" defer></script>
-
-  <!-- Alpine.js -->
-  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
 <body>
   {% if show_layout %}
   <div class="app-layout" x-data="appState()">
 
-    <!-- ===== SIDEBAR ===== -->
-    <aside class="sidebar" :class="{ 'collapsed': sidebarCollapsed }" id="sidebar">
+    <!-- ===== TOPBAR HEADER (ADAPTIVE DESKTOP & MOBILE) ===== -->
+    <header class="topbar" style="background:#ffffff; border-bottom:1px solid #e2e8f0; color:#1e293b; position:fixed; top:0; left:0; right:0; height:46px; z-index:200; display:flex; align-items:center; justify-content:space-between; padding:0 14px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+      
+      <!-- Left: Odoo 9-Dots + Title + Subnav Pills -->
+      <div style="display:flex; align-items:center; gap:12px; min-width:0; flex:1;">
+        
+        <!-- 9-Dots App Switcher -->
+        <a href="/dashboard" style="color:var(--odoo-purple); font-size:22px; text-decoration:none; display:flex; align-items:center; flex-shrink:0;" title="Menú Principal">
+          <i class="ph ph-squares-four"></i>
+        </a>
 
-      <!-- Logo -->
-      <div class="sidebar-logo">
-        <div class="logo-icon">
-          <i class="ph ph-storefront"></i>
+        <!-- Module Name (Desktop) -->
+        <div class="hide-on-mobile" style="display:flex; align-items:center; gap:6px; font-weight:800; font-size:14px; color:#1e293b; white-space:nowrap; flex-shrink:0;">
+          <span x-text="currentModuleName">Inventario</span>
         </div>
-        <div class="logo-text" x-show="!sidebarCollapsed">
-          POS Pro
-          <span>Sistema Empresarial</span>
-        </div>
+
+        <!-- Horizontal Subnav Pills (4 Módulos Principales) -->
+        <nav class="subnav-pills-scroll">
+
+          <!-- 1. POS Tabs -->
+          <template x-if="currentPage === 'pos' || currentPage === 'sessions'">
+            <div style="display:flex; align-items:center; gap:6px;">
+              <a href="/pos/sessions" class="nav-tab-pill" :class="window.location.pathname.includes('/sessions') ? 'nav-tab-active' : 'nav-tab-inactive'">Terminales & Cajas</a>
+              <a href="/pos" class="nav-tab-pill" :class="window.location.pathname === '/pos' ? 'nav-tab-active' : 'nav-tab-inactive'">Cobro POS</a>
+            </div>
+          </template>
+
+          <!-- 2. Inventario Tabs -->
+          <template x-if="currentPage === 'inventory' || currentPage === 'warehouses' || currentPage === 'transfers'">
+            <div style="display:flex; align-items:center; gap:6px;">
+              <a href="/inventory" class="nav-tab-pill" :class="window.location.pathname === '/inventory' && !window.location.search.includes('tab=wastes') && !window.location.search.includes('tab=kardex') ? 'nav-tab-active' : 'nav-tab-inactive'">Catálogo General</a>
+              <a href="/warehouses" class="nav-tab-pill" :class="window.location.pathname.includes('/warehouses') ? 'nav-tab-active' : 'nav-tab-inactive'">🏢 Bodegas</a>
+              <a href="/transfers" class="nav-tab-pill" :class="window.location.pathname.includes('/transfers') ? 'nav-tab-active' : 'nav-tab-inactive'">🔄 Traslados</a>
+              <a href="/inventory/labels" class="nav-tab-pill nav-tab-inactive">🏷️ Etiquetas</a>
+              <a href="/inventory?tab=wastes" class="nav-tab-pill" :class="window.location.search.includes('tab=wastes') ? 'nav-tab-active' : 'nav-tab-inactive'">Vencimientos</a>
+              <a href="/inventory?tab=kardex" class="nav-tab-pill" :class="window.location.search.includes('tab=kardex') ? 'nav-tab-active' : 'nav-tab-inactive'">Kardex</a>
+            </div>
+          </template>
+
+          <!-- 3. Clientes Tabs -->
+          <template x-if="currentPage === 'customers'">
+            <div style="display:flex; align-items:center; gap:6px;">
+              <a href="/customers" class="nav-tab-pill" :class="window.location.pathname.includes('/customers') ? 'nav-tab-active' : 'nav-tab-inactive'">Directorio de Clientes</a>
+              <a href="/customers/new" class="nav-tab-pill nav-tab-inactive">+ Nuevo Cliente</a>
+            </div>
+          </template>
+
+          <!-- 4. Cotizaciones Tabs -->
+          <template x-if="currentPage === 'quotes'">
+            <div style="display:flex; align-items:center; gap:6px;">
+              <a href="/quotes" class="nav-tab-pill nav-tab-active">Cotizaciones</a>
+              <a href="/quotes/new" class="nav-tab-pill nav-tab-inactive">+ Nueva Cotización</a>
+              <a href="/pos" class="nav-tab-pill nav-tab-inactive">Punto de Venta</a>
+            </div>
+          </template>
+
+          <!-- 5. Compras / AP Tabs (Administrador) -->
+          <template x-if="currentPage === 'purchases' || currentPage === 'ap'">
+            <div style="display:flex; align-items:center; gap:6px;">
+              <a href="/purchases" class="nav-tab-pill" :class="window.location.pathname.includes('/purchases') ? 'nav-tab-active' : 'nav-tab-inactive'">Órdenes de Compra</a>
+              <a href="/ap" class="nav-tab-pill" :class="window.location.pathname.includes('/ap') ? 'nav-tab-active' : 'nav-tab-inactive'">Cuentas por Pagar (AP)</a>
+            </div>
+          </template>
+
+          <!-- 6. Cuentas por Cobrar (AR - Administrador) -->
+          <template x-if="currentPage === 'ar'">
+            <div style="display:flex; align-items:center; gap:6px;">
+              <a href="/ar" class="nav-tab-pill nav-tab-active">💰 Cuentas por Cobrar (AR)</a>
+              <a href="/customers" class="nav-tab-pill nav-tab-inactive">Directorio de Clientes</a>
+            </div>
+          </template>
+
+          <!-- 7. Contabilidad / Reportes (Administrador) -->
+          <template x-if="currentPage === 'accounting' || currentPage === 'reports'">
+            <div style="display:flex; align-items:center; gap:6px;">
+              <a href="/accounting" class="nav-tab-pill" :class="window.location.pathname.includes('/accounting') ? 'nav-tab-active' : 'nav-tab-inactive'">Libro Diario</a>
+              <a href="/reports" class="nav-tab-pill" :class="window.location.pathname.includes('/reports') ? 'nav-tab-active' : 'nav-tab-inactive'">Reportes SAT & BI</a>
+            </div>
+          </template>
+
+          <!-- 8. Configuración / Usuarios / Empresas (Administrador) -->
+          <template x-if="currentPage === 'settings' || currentPage === 'users' || currentPage === 'companies'">
+            <div style="display:flex; align-items:center; gap:6px;">
+              <a href="/settings" class="nav-tab-pill" :class="window.location.pathname === '/settings' ? 'nav-tab-active' : 'nav-tab-inactive'">Ajustes ERP</a>
+              <a href="/companies" class="nav-tab-pill" :class="window.location.pathname.includes('/companies') ? 'nav-tab-active' : 'nav-tab-inactive'">🏢 Empresas</a>
+              <a href="/users" class="nav-tab-pill" :class="window.location.pathname.includes('/users') ? 'nav-tab-active' : 'nav-tab-inactive'">👤 Usuarios & Roles</a>
+            </div>
+          </template>
+
+        </nav>
       </div>
 
-      <!-- Branch Selector -->
-      <div class="branch-selector" x-show="!sidebarCollapsed" @click="toggleBranchMenu()">
-        <div class="branch-name" x-text="currentBranch.name || 'Seleccionar Sucursal'"></div>
-        <div class="branch-label">Sucursal activa <i class="ph ph-caret-down"></i></div>
+      <!-- Right: Actions & User Avatar -->
+      <div class="topbar-actions" style="display:flex; align-items:center; gap:10px; flex-shrink:0;">
+        
+        <!-- Stock Alerts Bell Notification Widget -->
+        <div style="position:relative;" x-data="{ openAlerts: false, alertsData: { items: [], total_alerts: 0 } }" x-init="fetch('/api/v1/dashboard/stock-alerts', { headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('access_token') || '') } }).then(r => r.json()).then(d => alertsData = d).catch(() => {})">
+          <div 
+            style="width:32px; height:32px; border-radius:8px; background:#f8fafc; border:1px solid #e2e8f0; display:flex; align-items:center; justify-content:center; cursor:pointer; position:relative; color:#475569; transition:all 0.15s;"
+            @click="openAlerts = !openAlerts"
+            title="Alertas de Inventario"
+            onmouseover="this.style.background='#f1f5f9'"
+            onmouseout="this.style.background='#f8fafc'"
+          >
+            <i class="ph ph-bell" style="font-size:17px;"></i>
+            <span 
+              x-show="alertsData.total_alerts > 0" 
+              x-text="alertsData.total_alerts"
+              style="position:absolute; top:-4px; right:-4px; background:#ef4444; color:#ffffff; font-size:10px; font-weight:800; border-radius:10px; padding:1px 5px; min-width:16px; text-align:center; box-shadow:0 2px 5px rgba(239,68,68,0.4);"
+            ></span>
+          </div>
+
+          <!-- Stock Alerts Dropdown Drawer -->
+          <div 
+            x-show="openAlerts" 
+            @click.outside="openAlerts = false"
+            style="position:absolute; top:38px; right:0; width:340px; background:#ffffff; border:1px solid #cbd5e1; border-radius:12px; box-shadow:0 12px 30px rgba(0,0,0,0.15); padding:12px 0; z-index:1000;" 
+            x-cloak
+          >
+            <div style="padding:0 16px 10px 16px; border-bottom:1px solid #f1f5f9; display:flex; align-items:center; justify-content:space-between;">
+              <div style="font-weight:800; font-size:13px; color:#1e293b; display:flex; align-items:center; gap:6px;">
+                <span>⚠️ Alertas de Stock Bajo</span>
+              </div>
+              <span style="font-size:11px; font-weight:700; color:#ef4444;" x-text="alertsData.total_alerts + ' productos'"></span>
+            </div>
+
+            <div style="max-height:280px; overflow-y:auto; padding:6px 0;">
+              <template x-if="!alertsData.items || alertsData.items.length === 0">
+                <div style="padding:20px; text-align:center; color:#64748b; font-size:12px;">
+                  ✅ Todo el inventario está en niveles óptimos
+                </div>
+              </template>
+              <template x-for="item in alertsData.items" :key="item.product_id">
+                <a :href="'/inventory/' + item.product_id" style="display:flex; align-items:center; justify-content:space-between; padding:8px 16px; text-decoration:none; border-bottom:1px solid #f8fafc; transition:background 0.15s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
+                  <div>
+                    <div style="font-size:12.5px; font-weight:700; color:#1e293b;" x-text="item.name"></div>
+                    <div style="font-size:11px; color:#64748b;" x-text="'Mínimo: ' + item.min_stock + ' · Cat: ' + item.category"></div>
+                  </div>
+                  <div style="text-align:right;">
+                    <span 
+                      style="font-size:11px; font-weight:800; padding:2px 8px; border-radius:6px;"
+                      :style="item.current_stock <= 0 ? 'background:#fee2e2; color:#b91c1c;' : 'background:#ffedd5; color:#c2410c;'"
+                      x-text="item.current_stock + ' disp.'"
+                    ></span>
+                  </div>
+                </a>
+              </template>
+            </div>
+
+            <div style="padding:8px 16px 0 16px; border-top:1px solid #f1f5f9; text-align:center;">
+              <a href="/inventory?filter=low_stock" style="font-size:12px; font-weight:700; color:var(--odoo-purple); text-decoration:none;">Ver todo en inventario &rarr;</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Multi-Company Indicator -->
+        <div class="hide-on-mobile" style="display:flex; align-items:center; gap:6px; background:#f4eff3; border:1px solid #e9d5ff; color:var(--odoo-purple); padding:4px 10px; border-radius:12px; font-size:11.5px; font-weight:800;">
+          <i class="ph ph-buildings"></i>
+          <span x-text="activeCompanyName || 'Empresa Activa'"></span>
+        </div>
+
+        <!-- Branch Switcher Dropdown (Cambio de Sucursal en Vivo) -->
+        <div style="position:relative;" x-data="{ openBranchMenu: false }">
+          <div 
+            @click="openBranchMenu = !openBranchMenu"
+            style="display:flex; align-items:center; gap:6px; background:#f8fafc; border:1px solid #cbd5e1; color:#1e293b; padding:4px 10px; border-radius:10px; font-size:11.5px; font-weight:800; cursor:pointer; transition:all 0.15s;"
+            onmouseover="this.style.background='#f1f5f9'"
+            onmouseout="this.style.background='#f8fafc'"
+            title="Cambiar Sucursal Activa"
+          >
+            <span>🏪</span>
+            <span x-text="activeBranchName || 'Sucursal Principal'"></span>
+            <i class="ph ph-caret-down" style="font-size:12px; color:#64748b;"></i>
+          </div>
+
+          <!-- Dropdown List of Branches -->
+          <div 
+            x-show="openBranchMenu" 
+            @click.outside="openBranchMenu = false"
+            style="position:absolute; top:36px; right:0; width:260px; background:#ffffff; border:1px solid #cbd5e1; border-radius:10px; box-shadow:0 12px 30px rgba(0,0,0,0.15); padding:6px 0; z-index:1000;" 
+            x-cloak
+          >
+            <div style="padding:6px 12px; border-bottom:1px solid #f1f5f9; font-size:11px; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.5px;">
+              Seleccionar Sucursal Activa
+            </div>
+            <div style="max-height:220px; overflow-y:auto;">
+              <template x-for="b in availableBranches" :key="b.id">
+                <div 
+                  @click="switchBranch(b); openBranchMenu = false;"
+                  style="padding:8px 12px; font-size:12px; font-weight:700; color:#1e293b; cursor:pointer; display:flex; align-items:center; justify-content:space-between; transition:background 0.15s;"
+                  :style="b.id === activeBranchId ? 'background:#fdf4f9; color:var(--odoo-purple); font-weight:800;' : ''"
+                  onmouseover="if (this.style.background.indexOf('fdf4f9') === -1) this.style.background='#f8fafc'"
+                  onmouseout="if (this.style.background.indexOf('fdf4f9') === -1) this.style.background='transparent'"
+                >
+                  <div style="display:flex; align-items:center; gap:6px;">
+                    <span>🏬</span>
+                    <span x-text="b.name"></span>
+                  </div>
+                  <span x-show="b.id === activeBranchId" style="font-size:14px; color:var(--odoo-purple);">✓</span>
+                </div>
+              </template>
+            </div>
+          </div>
+        </div>
+
+        <!-- POS Quick Link Button -->
+        <a 
+          href="/pos" 
+          class="btn btn-sm" 
+          style="background:var(--odoo-purple); color:#ffffff; font-weight:800; border-radius:8px; padding:5px 12px; font-size:12px; text-decoration:none; display:flex; align-items:center; gap:4px;"
+          title="Ir al POS"
+        >
+          <i class="ph ph-shopping-cart"></i> <span class="hide-on-mobile">POS</span>
+        </a>
+
+        <!-- User Dropdown -->
+        <div style="position:relative;" x-data="{ openUserMenu: false }">
+          <div 
+            style="width:30px; height:30px; border-radius:50%; background:var(--odoo-purple); color:#ffffff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:13px; cursor:pointer;"
+            @click="openUserMenu = !openUserMenu"
+          >
+            <span x-text="(currentUser?.full_name || 'A')[0].toUpperCase()"></span>
+          </div>
+
+          <!-- Dropdown -->
+          <div 
+            x-show="openUserMenu" 
+            @click.away="openUserMenu = false"
+            style="position:absolute; top:36px; right:0; width:220px; background:#ffffff; border:1px solid #cbd5e1; border-radius:10px; box-shadow:0 10px 25px rgba(0,0,0,0.12); padding:8px 0; z-index:900;" 
+            x-cloak
+          >
+            <div style="padding:8px 14px; border-bottom:1px solid #f1f5f9;">
+              <div style="font-weight:800; font-size:13px; color:#1e293b;" x-text="currentUser?.full_name || 'Administrador'"></div>
+              <div style="font-size:11px; color:#64748b;" x-text="currentUser?.email || 'admin@empresa.com'"></div>
+            </div>
+            <div style="padding:4px;">
+              <a href="/settings" style="display:flex; align-items:center; gap:8px; padding:8px 12px; font-size:12px; font-weight:700; color:#334155; text-decoration:none; border-radius:6px;">
+                <i class="ph ph-gear"></i> Configuración
+              </a>
+              <a href="/login" style="display:flex; align-items:center; gap:8px; padding:8px 12px; font-size:12px; font-weight:700; color:#dc2626; text-decoration:none; border-radius:6px;" @click="logout()">
+                <i class="ph ph-sign-out"></i> Cerrar Sesión
+              </a>
+            </div>
+          </div>
+        </div>
+
       </div>
 
-      <!-- Nav -->
-      <nav class="sidebar-nav">
-        <!-- Principal -->
-        <div class="nav-section-label" x-show="!sidebarCollapsed">Principal</div>
+    </header>
 
-        <a href="/dashboard" class="nav-item" :class="{ active: currentPage === 'dashboard' }">
-          <span class="nav-icon"><i class="ph ph-chart-bar"></i></span>
-          <span x-show="!sidebarCollapsed">Dashboard</span>
-        </a>
-
-        <a href="/pos" class="nav-item" :class="{ active: currentPage === 'pos' }">
-          <span class="nav-icon"><i class="ph ph-cash-register"></i></span>
-          <span x-show="!sidebarCollapsed">Punto de Venta</span>
-        </a>
-
-        <!-- Inventario -->
-        <div class="nav-section-label" x-show="!sidebarCollapsed">Inventario</div>
-
-        <a href="/inventory" class="nav-item" :class="{ active: currentPage === 'inventory' }">
-          <span class="nav-icon"><i class="ph ph-package"></i></span>
-          <span x-show="!sidebarCollapsed">Productos</span>
-        </a>
-
-        <a href="/inventory?tab=stock" class="nav-item">
-          <span class="nav-icon"><i class="ph ph-warehouse"></i></span>
-          <span x-show="!sidebarCollapsed">
-            Stock
-            <template x-if="lowStockCount > 0">
-              <span class="nav-badge" x-text="lowStockCount"></span>
-            </template>
-          </span>
-        </a>
-
-        <a href="/transfers" class="nav-item" :class="{ active: currentPage === 'transfers' }">
-          <span class="nav-icon"><i class="ph ph-arrows-left-right"></i></span>
-          <span x-show="!sidebarCollapsed">Traslados</span>
-        </a>
-
-        <!-- Compras -->
-        <div class="nav-section-label" x-show="!sidebarCollapsed">Compras</div>
-
-        <a href="/purchases" class="nav-item" :class="{ active: currentPage === 'purchases' }">
-          <span class="nav-icon"><i class="ph ph-shopping-cart"></i></span>
-          <span x-show="!sidebarCollapsed">Órdenes de Compra</span>
-        </a>
-
-        <a href="/customers?type=supplier" class="nav-item">
-          <span class="nav-icon"><i class="ph ph-truck"></i></span>
-          <span x-show="!sidebarCollapsed">Proveedores</span>
-        </a>
-
-        <!-- CRM -->
-        <div class="nav-section-label" x-show="!sidebarCollapsed">Clientes</div>
-
-        <a href="/customers" class="nav-item" :class="{ active: currentPage === 'customers' }">
-          <span class="nav-icon"><i class="ph ph-users"></i></span>
-          <span x-show="!sidebarCollapsed">Clientes</span>
-        </a>
-
-        <!-- Reportes -->
-        <div class="nav-section-label" x-show="!sidebarCollapsed">Reportes</div>
-
-        <a href="/reports" class="nav-item" :class="{ active: currentPage === 'reports' }">
-          <span class="nav-icon"><i class="ph ph-file-text"></i></span>
-          <span x-show="!sidebarCollapsed">Reportes</span>
-        </a>
-
-        <!-- Config -->
-        <div class="nav-section-label" x-show="!sidebarCollapsed">Sistema</div>
-
-        <a href="/settings" class="nav-item" :class="{ active: currentPage === 'settings' }">
-          <span class="nav-icon"><i class="ph ph-gear"></i></span>
-          <span x-show="!sidebarCollapsed">Configuración</span>
-        </a>
-      </nav>
-
-      <!-- Footer de usuario -->
-      <div class="sidebar-footer">
-        <div class="user-card">
-          <div class="user-avatar" x-text="userInitials"></div>
-          <div class="user-info" x-show="!sidebarCollapsed">
-            <div class="user-name" x-text="currentUser.full_name || 'Usuario'"></div>
-            <div class="user-role" x-text="currentUser.role || 'Cajero'"></div>
-          </div>
-        </div>
-        <button class="btn btn-ghost btn-sm btn-full mt-2" x-show="!sidebarCollapsed" @click="logout()">
-          <i class="ph ph-sign-out"></i> Cerrar Sesión
-        </button>
-      </div>
-    </aside>
-
-    <!-- ===== MAIN CONTENT ===== -->
-    <div class="main-content" :class="{ expanded: sidebarCollapsed }">
-
-      <!-- Topbar -->
-      <header class="topbar">
-        <button class="btn btn-ghost btn-icon" @click="sidebarCollapsed = !sidebarCollapsed">
-          <i class="ph ph-list"></i>
-        </button>
-
-        <div class="topbar-search">
-          <i class="ph ph-magnifying-glass search-icon"></i>
-          <input type="text" placeholder="Buscar productos, ventas, clientes..." id="globalSearch">
-        </div>
-
-        <div class="topbar-actions">
-          <!-- Notificaciones -->
-          <button class="btn btn-ghost btn-icon" style="position:relative">
-            <i class="ph ph-bell"></i>
-            <span x-show="notifications > 0" style="position:absolute;top:4px;right:4px;width:8px;height:8px;background:var(--danger);border-radius:50%"></span>
-          </button>
-
-          <!-- Estado FEL -->
-          <div class="badge" :class="felOnline ? 'badge-success' : 'badge-warning'">
-            <i class="ph" :class="felOnline ? 'ph-wifi-high' : 'ph-wifi-slash'"></i>
-            <span x-text="felOnline ? 'FEL Online' : 'FEL Offline'"></span>
-          </div>
-
-          <!-- Caja activa -->
-          <div class="badge badge-primary" x-show="cashierSession">
-            <i class="ph ph-cash-register"></i>
-            <span>Caja Abierta</span>
-          </div>
-        </div>
-      </header>
-
-      <!-- Contenido de la página -->
-      <main class="page-content">
+    <!-- ===== MAIN CONTENT AREA ===== -->
+    <div class="main-content" style="margin-top:46px; min-height:calc(100vh - 46px); background:#f8fafc;">
+      <main class="page-content" style="padding:16px 20px;">
         {% block content %}{% endblock %}
       </main>
     </div>
+
+    <!-- ===== MOBILE BOTTOM NAVIGATION BAR (SMARTPHONES) ===== -->
+    <nav class="mobile-bottom-nav">
+      <a href="/dashboard" class="mobile-nav-btn" :class="currentPage === 'dashboard' ? 'active' : ''">
+        <i class="ph ph-squares-four"></i>
+        <span>Inicio</span>
+      </a>
+      <a href="/pos" class="mobile-nav-btn" :class="currentPage === 'pos' ? 'active' : ''">
+        <i class="ph ph-shopping-cart"></i>
+        <span>POS</span>
+      </a>
+      <a href="/inventory" class="mobile-nav-btn" :class="currentPage === 'inventory' ? 'active' : ''">
+        <i class="ph ph-package"></i>
+        <span>Inventario</span>
+      </a>
+      <a href="/customers" class="mobile-nav-btn" :class="currentPage === 'customers' ? 'active' : ''">
+        <i class="ph ph-users"></i>
+        <span>Clientes</span>
+      </a>
+      <a href="/quotes" class="mobile-nav-btn" :class="currentPage === 'quotes' ? 'active' : ''">
+        <i class="ph ph-file-text"></i>
+        <span>Cotizar</span>
+      </a>
+    </nav>
+
   </div>
   {% else %}
     {% block content_raw %}{% endblock %}
   {% endif %}
 
-  <!-- Toast container -->
-  <div class="toast-container" id="toastContainer"></div>
-
-  <!-- JS principal -->
+  <!-- Scripts base -->
   <script src="/static/js/app.js"></script>
   <script src="/static/js/api.js"></script>
+  <script src="/static/js/db.js"></script>
   {% block extra_js %}{% endblock %}
 
   <script>
     function appState() {
       return {
-        sidebarCollapsed: false,
-        currentPage: window.location.pathname.replace('/', '') || 'dashboard',
         currentUser: JSON.parse(localStorage.getItem('user') || '{}'),
-        currentBranch: JSON.parse(localStorage.getItem('branch') || '{}'),
-        notifications: 0,
-        lowStockCount: 0,
-        felOnline: navigator.onLine,
-        cashierSession: null,
-
-        get userInitials() {
-          const name = this.currentUser?.full_name || 'U';
-          return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0,2);
-        },
-
-        init() {
-          // Verificar autenticación
-          const token = localStorage.getItem('access_token');
-          if (!token && window.location.pathname !== '/login') {
-            window.location.href = '/login';
-            return;
-          }
-
-          // Escuchar estado de red
-          window.addEventListener('online', () => this.felOnline = true);
-          window.addEventListener('offline', () => this.felOnline = false);
-
-          // Cargar conteo de stock bajo
-          if (token) this.loadLowStockCount();
-        },
-
-        async loadLowStockCount() {
+        activeCompanyName: 'POS Empresarial',
+        activeBranchId: localStorage.getItem('branch_id') || '',
+        activeBranchName: localStorage.getItem('branch_name') || 'Sucursal Principal',
+        availableBranches: [],
+        isAdmin: (() => {
           try {
-            const data = await API.get('/inventory/low-stock');
-            this.lowStockCount = data?.total || 0;
+            const u = JSON.parse(localStorage.getItem('user') || '{}');
+            if (u.is_superuser || u.is_admin || u.username === 'admin' || (u.email && u.email.includes('admin'))) return true;
+            const codes = (u.role_codes || (u.roles || []).map(r => r.code || r));
+            return codes.includes('admin') || codes.includes('store_manager');
+          } catch(e) { return false; }
+        })(),
+
+        async init() {
+          try {
+            const u = JSON.parse(localStorage.getItem('user') || '{}');
+            if (u.is_superuser || u.is_admin || u.username === 'admin' || (u.email && u.email.includes('admin'))) {
+              this.isAdmin = true;
+            }
+            const me = await API.get('/auth/me');
+            if (me) {
+              this.currentUser = me;
+              if (me.is_superuser || me.is_admin || me.username === 'admin' || (me.email && me.email.includes('admin'))) {
+                this.isAdmin = true;
+              } else {
+                const codes = (me.roles || []).map(r => r.code);
+                this.isAdmin = codes.includes('admin') || codes.includes('store_manager');
+              }
+            }
+          } catch(e) {}
+
+          try {
+            const res = await API.get('/companies/current');
+            if (res && res.trade_name) this.activeCompanyName = res.trade_name;
+          } catch(e) {}
+
+          await this.loadBranches();
+        },
+
+        async loadBranches() {
+          try {
+            const res = await fetch('/api/v1/auth/public-branches');
+            if (res.ok) {
+              this.availableBranches = await res.json();
+              if (this.availableBranches.length > 0 && !this.activeBranchId) {
+                this.activeBranchId = this.availableBranches[0].id;
+                this.activeBranchName = this.availableBranches[0].name;
+                localStorage.setItem('branch_id', this.activeBranchId);
+                localStorage.setItem('branch_name', this.activeBranchName);
+              } else if (this.activeBranchId) {
+                const match = this.availableBranches.find(b => b.id === this.activeBranchId);
+                if (match) this.activeBranchName = match.name;
+              }
+            }
           } catch(e) {}
         },
 
-        toggleBranchMenu() {
-          // Abrir selector de sucursal
+        switchBranch(b) {
+          this.activeBranchId = b.id;
+          this.activeBranchName = b.name;
+          localStorage.setItem('branch_id', b.id);
+          localStorage.setItem('branch_name', b.name);
+          localStorage.setItem('active_branch', b.name);
+          
+          // Notificar y recargar datos de la sucursal
+          const toastEl = document.createElement('div');
+          toastEl.style.cssText = 'position:fixed; bottom:20px; right:20px; background:#714B67; color:#fff; padding:10px 18px; border-radius:10px; font-weight:800; font-size:13px; z-index:99999; box-shadow:0 10px 25px rgba(0,0,0,0.2); animation:fadeIn 0.3s;';
+          toastEl.innerHTML = '🏪 Sucursal cambiada a: ' + b.name;
+          document.body.appendChild(toastEl);
+          setTimeout(() => {
+            toastEl.remove();
+            window.location.reload();
+          }, 600);
+        },
+
+
+        get currentPage() {
+          const path = window.location.pathname;
+          if (path.includes('/dashboard')) return 'dashboard';
+          if (path.includes('/pos')) return 'pos';
+          if (path.includes('/delivery')) return 'pos';
+          if (path.includes('/inventory')) return 'inventory';
+          if (path.includes('/transfers')) return 'transfers';
+          if (path.includes('/purchases')) return 'purchases';
+          if (path.includes('/ap')) return 'ap';
+          if (path.includes('/ar')) return 'ar';
+          if (path.includes('/quotes')) return 'quotes';
+          if (path.includes('/customers')) return 'customers';
+          if (path.includes('/invoicing')) return 'invoicing';
+          if (path.includes('/reports')) return 'reports';
+          if (path.includes('/mfg')) return 'mfg';
+          if (path.includes('/accounting')) return 'accounting';
+          if (path.includes('/users')) return 'users';
+          if (path.includes('/settings')) return 'settings';
+          return 'inventory';
+        },
+
+        get currentModuleName() {
+          const path = window.location.pathname;
+          if (path.includes('/pos')) return 'Punto de Venta';
+          if (path.includes('/delivery')) return 'Despachos & Delivery';
+          if (path.includes('/inventory/labels')) return 'Etiquetas de Góndola';
+          if (path.includes('/inventory')) return 'Inventario';
+          if (path.includes('/transfers')) return 'Traslados';
+          if (path.includes('/quotes')) return 'Cotizaciones';
+          if (path.includes('/purchases')) return 'Compras';
+          if (path.includes('/ap')) return 'Cuentas por Pagar';
+          if (path.includes('/ar')) return 'Cuentas por Cobrar';
+          if (path.includes('/customers')) return 'Clientes & Crédito';
+          if (path.includes('/invoicing')) return 'Facturación FEL';
+          if (path.includes('/reports')) return 'Reportes';
+          if (path.includes('/mfg')) return 'Fabricación';
+          if (path.includes('/accounting')) return 'Contabilidad';
+          if (path.includes('/users')) return 'Usuarios & Roles';
+          if (path.includes('/settings')) return 'Configuración';
+          if (path.includes('/dashboard')) return 'Menú Principal';
+          return 'POS Empresarial';
         },
 
         logout() {
-          localStorage.removeItem('access_token');
-          localStorage.removeItem('refresh_token');
-          localStorage.removeItem('user');
+          localStorage.clear();
+          document.cookie = "access_token=; path=/; max-age=0; SameSite=Lax";
           window.location.href = '/login';
         }
       }
     }
   </script>
+
+  <!-- Alpine.js Core (Inicializado después de que todos los componentes y scripts de página estén definidos) -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </body>
 </html>

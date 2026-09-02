@@ -1,0 +1,270 @@
+{% set show_layout = true %}
+{% extends "base.html" %}
+
+{% block title %}Gestión Multi-Empresa — POS Empresarial{% endblock %}
+
+{% block extra_css %}
+<style>
+  .company-card {
+    background: #ffffff;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 22px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .company-card:hover {
+    transform: translateY(-3px);
+    border-color: #714B67;
+    box-shadow: 0 12px 28px rgba(113, 75, 103, 0.12);
+  }
+  .company-card.current {
+    border-color: #714B67;
+    background: #fdfaff;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div x-data="companiesPage()" x-init="init()">
+  
+  <!-- ===== TOP HEADER BAR ===== -->
+  <div style="margin:-20px -24px 20px -24px; padding:14px 24px; background:#ffffff; border-bottom:1px solid #e2e8f0; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+    
+    <!-- Left: Actions & Title -->
+    <div style="display:flex; align-items:center; gap:12px;">
+      <button class="btn btn-primary" style="background:#714B67; color:#ffffff; font-weight:800; border-radius:8px; padding:8px 20px; border:none; box-shadow:0 2px 8px rgba(113,75,103,0.25); display:flex; align-items:center; gap:6px; cursor:pointer;" @click="openNewCompanyModal()">
+        <i class="ph ph-plus" style="font-weight:800;"></i> Nueva Empresa
+      </button>
+      <div style="font-size:15px; font-weight:800; color:#1e293b; display:flex; align-items:center; gap:8px; margin-left:6px;">
+        <span>Multi-Empresas & Entidades Jurídicas</span>
+      </div>
+    </div>
+
+    <!-- Right: Quick Links -->
+    <div style="display:flex; align-items:center; gap:10px;">
+      <a href="/warehouses" class="btn btn-secondary" style="background:#f8fafc; color:#334155; border:1px solid #cbd5e1; font-weight:700; border-radius:8px; padding:7px 14px; font-size:12.5px; text-decoration:none; display:flex; align-items:center; gap:6px;">
+        <i class="ph ph-warehouse" style="color:#714B67;"></i> Ver Bodegas
+      </a>
+    </div>
+
+  </div>
+
+  <!-- ===== COMPANIES GRID ===== -->
+  <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(320px, 1fr)); gap:20px;">
+    <template x-for="c in companies" :key="c.id">
+      <div class="company-card" :class="c.is_current ? 'current' : ''">
+        <div>
+          <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+            <div style="display:flex; gap:14px; align-items:center;">
+              <template x-if="c.logo_url">
+                <img :src="c.logo_url" style="width:48px; height:48px; border-radius:12px; object-fit:cover; border:1px solid #e2e8f0;">
+              </template>
+              <template x-if="!c.logo_url">
+                <div style="width:48px; height:48px; border-radius:12px; background:#f4eff3; color:#714B67; font-size:24px; display:flex; align-items:center; justify-content:center;">
+                  <i class="ph ph-buildings"></i>
+                </div>
+              </template>
+
+              <div>
+                <h3 style="margin:0; font-size:16px; font-weight:900; color:#0f172a;" x-text="c.name"></h3>
+                <div style="font-size:12px; color:#64748b; margin-top:2px;" x-text="'NIT: ' + c.nit"></div>
+              </div>
+            </div>
+
+            <template x-if="c.is_current">
+              <span style="font-size:10.5px; font-weight:800; background:#714B67; color:#ffffff; padding:3px 10px; border-radius:12px; box-shadow:0 2px 6px rgba(113,75,103,0.2);">
+                ✓ Activa
+              </span>
+            </template>
+          </div>
+
+          <div style="margin-top:16px; padding:12px; background:#f8fafc; border-radius:10px; border:1px solid #e2e8f0; font-size:12px; display:flex; flex-direction:column; gap:6px;">
+            <div style="display:flex; justify-content:space-between;">
+              <span style="color:#64748b;">Régimen SAT:</span>
+              <strong style="color:#1e293b;" x-text="c.tax_regime === 'general' ? 'General 12%' : 'Pequeño Contribuyente'"></strong>
+            </div>
+            <div style="display:flex; justify-content:space-between;">
+              <span style="color:#64748b;">Moneda:</span>
+              <strong style="color:#059669;" x-text="c.currency || 'GTQ'"></strong>
+            </div>
+            <div style="display:flex; justify-content:space-between;" x-show="c.phone">
+              <span style="color:#64748b;">Teléfono:</span>
+              <strong style="color:#1e293b;" x-text="c.phone"></strong>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:18px; padding-top:12px; border-top:1px solid #f1f5f9; display:flex; justify-content:space-between; align-items:center;">
+          <button 
+            type="button" 
+            class="btn btn-sm" 
+            style="background:#f1f5f9; color:#475569; border:none; padding:5px 12px; border-radius:6px; font-weight:700;"
+            @click="editCompany(c)"
+          >
+            Editar Datos
+          </button>
+
+          <template x-if="!c.is_current">
+            <button 
+              type="button" 
+              class="btn btn-sm" 
+              style="background:#714B67; color:#ffffff; border:none; padding:5px 14px; border-radius:6px; font-weight:800; cursor:pointer;"
+              @click="switchActiveCompany(c)"
+            >
+              Cambiar a esta Empresa &rarr;
+            </button>
+          </template>
+        </div>
+      </div>
+    </template>
+  </div>
+
+  <!-- Modal Crear / Editar Empresa -->
+  <div class="modal-backdrop" x-show="showModal" style="display:none;" x-cloak>
+    <div class="modal" style="max-width:540px; background:#ffffff; border-radius:14px; padding:24px; box-shadow:0 12px 32px rgba(0,0,0,0.15);">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:12px; margin-bottom:16px;">
+        <h3 style="font-size:16px; font-weight:800; color:#1e293b; margin:0;" x-text="isEditing ? 'Editar Empresa' : 'Nueva Empresa'"></h3>
+        <button style="border:none; background:none; font-size:22px; cursor:pointer; color:#94a3b8;" @click="showModal = false">&times;</button>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:14px;">
+        <div>
+          <label style="font-size:11.5px; font-weight:800; color:#475569; display:block; margin-bottom:4px;">RAZÓN SOCIAL / NOMBRE LEGAL *</label>
+          <input type="text" class="form-control" style="width:100%; padding:8px 12px;" x-model="modalForm.name" placeholder="Ej: Comercializadora Guatemalteca S.A.">
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div>
+            <label style="font-size:11.5px; font-weight:800; color:#475569; display:block; margin-bottom:4px;">NOMBRE COMERCIAL</label>
+            <input type="text" class="form-control" style="width:100%; padding:8px 12px;" x-model="modalForm.trade_name" placeholder="Ej: Tiendas El Ahorro">
+          </div>
+
+          <div>
+            <label style="font-size:11.5px; font-weight:800; color:#475569; display:block; margin-bottom:4px;">NIT *</label>
+            <input type="text" class="form-control" style="width:100%; padding:8px 12px;" x-model="modalForm.nit" placeholder="8899776-4">
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div>
+            <label style="font-size:11.5px; font-weight:800; color:#475569; display:block; margin-bottom:4px;">RÉGIMEN SAT</label>
+            <select class="form-control" style="width:100%; padding:8px 12px;" x-model="modalForm.tax_regime">
+              <option value="general">Régimen General 12%</option>
+              <option value="pequeno_contribuyente">Pequeño Contribuyente 5%</option>
+            </select>
+          </div>
+
+          <div>
+            <label style="font-size:11.5px; font-weight:800; color:#475569; display:block; margin-bottom:4px;">TELÉFONO</label>
+            <input type="text" class="form-control" style="width:100%; padding:8px 12px;" x-model="modalForm.phone" placeholder="2233-4455">
+          </div>
+        </div>
+
+        <div>
+          <label style="font-size:11.5px; font-weight:800; color:#475569; display:block; margin-bottom:4px;">DIRECCIÓN FISCAL</label>
+          <input type="text" class="form-control" style="width:100%; padding:8px 12px;" x-model="modalForm.address" placeholder="Zona 10, Ciudad de Guatemala">
+        </div>
+      </div>
+
+      <div style="margin-top:20px; display:flex; justify-content:flex-end; gap:10px;">
+        <button type="button" class="btn btn-secondary" style="border-radius:8px; padding:8px 16px;" @click="showModal = false">Cancelar</button>
+        <button type="button" class="btn btn-primary" style="background:#714B67; color:#ffffff; border:none; border-radius:8px; padding:8px 20px; font-weight:800;" @click="saveCompany()">Guardar Empresa</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function companiesPage() {
+    return {
+      companies: [],
+      showModal: false,
+      isEditing: false,
+      modalForm: {
+        id: null,
+        name: '',
+        trade_name: '',
+        nit: '',
+        tax_regime: 'general',
+        phone: '',
+        address: ''
+      },
+
+      async init() {
+        await this.loadCompanies();
+      },
+
+      async loadCompanies() {
+        try {
+          const res = await API.get('/companies');
+          this.companies = res || [];
+        } catch(e) {}
+      },
+
+      openNewCompanyModal() {
+        this.isEditing = false;
+        this.modalForm = {
+          id: null,
+          name: '',
+          trade_name: '',
+          nit: '',
+          tax_regime: 'general',
+          phone: '',
+          address: ''
+        };
+        this.showModal = true;
+      },
+
+      editCompany(c) {
+        this.isEditing = true;
+        this.modalForm = {
+          id: c.id,
+          name: c.name,
+          trade_name: c.trade_name,
+          nit: c.nit,
+          tax_regime: c.tax_regime,
+          phone: c.phone || '',
+          address: c.address || ''
+        };
+        this.showModal = true;
+      },
+
+      async saveCompany() {
+        if (!this.modalForm.name || !this.modalForm.nit) {
+          return alert('El nombre legal y NIT son obligatorios.');
+        }
+
+        try {
+          if (this.isEditing) {
+            await API.put(`/companies/${this.modalForm.id}`, this.modalForm);
+          } else {
+            await API.post('/companies', this.modalForm);
+          }
+          this.showModal = false;
+          await this.loadCompanies();
+          alert('¡Empresa guardada exitosamente!');
+        } catch(e) {
+          alert('Error al guardar empresa: ' + (e.message || e));
+        }
+      },
+
+      async switchActiveCompany(c) {
+        if (!confirm(`¿Deseas cambiar el contexto de trabajo a "${c.name}"?`)) return;
+
+        try {
+          await API.post(`/companies/switch/${c.id}`, {});
+          alert(`¡Ahora estás trabajando en: ${c.name}!`);
+          window.location.reload();
+        } catch(e) {
+          alert('Error al cambiar de empresa: ' + (e.message || e));
+        }
+      }
+    }
+  }
+</script>
+{% endblock %}

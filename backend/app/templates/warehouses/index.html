@@ -1,0 +1,572 @@
+{% set show_layout = true %}
+{% extends "base.html" %}
+
+{% block title %}Gestión de Bodegas & Almacenes — Odoo 17 / SAP ERP{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* =============================================
+     ODOO 17 & SAP S/4HANA WAREHOUSE DASHBOARD
+  ============================================= */
+  :root {
+    --odoo-purple: #714B67;
+    --odoo-purple-dark: #58374f;
+    --odoo-purple-light: #f4eff3;
+    --odoo-teal: #00A09D;
+    --odoo-teal-light: #e6f6f6;
+    --sap-blue: #0A6ED1;
+    --sap-blue-light: #EBF3FC;
+    --sap-gray-border: #D9D9D9;
+  }
+
+  /* Odoo 17 Warehouse Kanban Card */
+  .odoo-wh-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+  }
+  .odoo-wh-card:hover {
+    transform: translateY(-3px);
+    border-color: var(--odoo-purple);
+    box-shadow: 0 12px 28px rgba(113, 75, 103, 0.12);
+  }
+  .odoo-wh-card-header {
+    padding: 16px 18px 12px;
+    border-bottom: 1px solid #f1f5f9;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+  .odoo-wh-body {
+    padding: 16px 18px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .odoo-wh-footer {
+    padding: 12px 18px;
+    background: #f8fafc;
+    border-top: 1px solid #f1f5f9;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  /* Odoo Operation Badge Pill */
+  .odoo-op-box {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: all 0.15s ease;
+    cursor: pointer;
+  }
+  .odoo-op-box:hover {
+    border-color: var(--odoo-purple);
+    background: var(--odoo-purple-light);
+  }
+
+  /* SAP Table Styling */
+  .sap-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .sap-table th {
+    background: #f4f6f9;
+    color: #475569;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 12px 16px;
+    border-bottom: 2px solid #cbd5e1;
+    text-align: left;
+  }
+  .sap-table td {
+    padding: 14px 16px;
+    border-bottom: 1px solid #f1f5f9;
+    color: #1e293b;
+    vertical-align: middle;
+  }
+  .sap-table tr:hover td {
+    background: #f8fafc;
+  }
+
+  /* Odoo Smart Buttons */
+  .odoo-smart-btn {
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    padding: 5px 10px;
+    font-size: 11.5px;
+    font-weight: 700;
+    color: #334155;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    text-decoration: none;
+    transition: all 0.15s ease;
+  }
+  .odoo-smart-btn:hover {
+    background: #f1f5f9;
+    color: var(--odoo-purple);
+    border-color: var(--odoo-purple);
+  }
+
+  .view-toggle-btn {
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    color: #64748b;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+  }
+  .view-toggle-btn.active {
+    background: var(--odoo-purple);
+    color: #ffffff;
+    border-color: var(--odoo-purple);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div x-data="odooWarehousesPage()" x-init="init()">
+  
+  <!-- ===== ODOO 17 / SAP CONTROL PANEL SUB-HEADER ===== -->
+  <div style="margin:-20px -24px 20px -24px; padding:12px 24px; background:#ffffff; border-bottom:1px solid #e2e8f0; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+    
+    <!-- Left: Actions & Breadcrumbs -->
+    <div style="display:flex; align-items:center; gap:12px;">
+      <a 
+        href="/warehouses/new"
+        class="btn btn-primary" 
+        style="background:var(--odoo-purple); color:#ffffff; font-weight:800; border-radius:8px; padding:7px 18px; border:none; box-shadow:0 2px 8px rgba(113,75,103,0.25); display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px; text-decoration:none;" 
+      >
+        <i class="ph ph-plus" style="font-weight:800;"></i> Nuevo Almacén
+      </a>
+
+      <div style="font-size:15px; font-weight:800; color:#1e293b; display:flex; align-items:center; gap:6px; margin-left:4px;">
+        <span style="color:#64748b; font-weight:600;">Inventario /</span>
+        <span>Centros Logísticos & Bodegas</span>
+      </div>
+    </div>
+
+    <!-- Center: Search Input Odoo Style -->
+    <div style="position:relative; display:flex; align-items:center; width:340px; max-width:100%;">
+      <i class="ph ph-magnifying-glass" style="position:absolute; left:12px; color:var(--odoo-purple); font-size:16px; font-weight:800; pointer-events:none;"></i>
+      <input 
+        type="text" 
+        placeholder="Buscar almacén, código (e.g. BOD-001)..." 
+        style="width:100%; padding:7px 30px 7px 36px; border:1.5px solid #cbd5e1; border-radius:8px; font-size:13px; font-weight:600; color:#1e293b; outline:none;"
+        x-model="search"
+        @input.debounce.200ms="applyFilters()"
+      >
+      <i class="ph ph-x-circle" style="position:absolute; right:10px; color:#94a3b8; font-size:16px; cursor:pointer;" x-show="search" @click="search = ''; applyFilters()"></i>
+    </div>
+
+    <!-- Right: View Switcher (Kanban Odoo vs SAP Table) & Links -->
+    <div style="display:flex; align-items:center; gap:10px;">
+      <a href="/transfers/new" class="btn btn-secondary" style="background:#f8fafc; color:#334155; border:1px solid #cbd5e1; font-weight:700; border-radius:8px; padding:6px 12px; font-size:12px; text-decoration:none; display:flex; align-items:center; gap:5px;">
+        <i class="ph ph-arrows-left-right" style="color:var(--odoo-purple);"></i> Traslado Interno
+      </a>
+      
+      <div style="display:flex; border:1px solid #cbd5e1; border-radius:8px; overflow:hidden; background:#ffffff;">
+        <button 
+          type="button" 
+          class="view-toggle-btn" 
+          :class="viewMode === 'kanban' ? 'active' : ''"
+          @click="viewMode = 'kanban'"
+          title="Vista Odoo 17 Kanban Cards"
+        >
+          <i class="ph ph-squares-four"></i>
+        </button>
+        <button 
+          type="button" 
+          class="view-toggle-btn" 
+          :class="viewMode === 'table' ? 'active' : ''"
+          @click="viewMode = 'table'"
+          title="Vista SAP S/4HANA Lista ERP"
+        >
+          <i class="ph ph-list-bullets"></i>
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ===== 1. EXECUTIVE KPIS (ODOO/SAP STYLE) ===== -->
+  <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:16px; margin-bottom:22px;">
+    
+    <!-- Total Bodegas -->
+    <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; padding:14px 18px; display:flex; align-items:center; justify-content:space-between; box-shadow:0 1px 3px rgba(0,0,0,0.02); border-left:4px solid var(--odoo-purple);">
+      <div>
+        <div style="font-size:11px; font-weight:800; color:var(--odoo-purple); text-transform:uppercase; letter-spacing:0.5px;">Centros de Almacén (SLoc)</div>
+        <div style="font-size:22px; font-weight:900; color:#1e293b; margin-top:2px;" x-text="warehouses.length">0</div>
+        <div style="font-size:11px; color:#64748b;">En operación activa</div>
+      </div>
+      <div style="width:40px; height:40px; border-radius:10px; background:var(--odoo-purple-light); color:var(--odoo-purple); display:flex; align-items:center; justify-content:center; font-size:20px;">
+        <i class="ph ph-warehouse"></i>
+      </div>
+    </div>
+
+    <!-- Stock Total Consolidado -->
+    <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; padding:14px 18px; display:flex; align-items:center; justify-content:space-between; box-shadow:0 1px 3px rgba(0,0,0,0.02); border-left:4px solid #059669;">
+      <div>
+        <div style="font-size:11px; font-weight:800; color:#047857; text-transform:uppercase; letter-spacing:0.5px;">Existencia Global Física</div>
+        <div style="font-size:22px; font-weight:900; color:#059669; margin-top:2px;" x-text="Number(totalUnitsInStock).toLocaleString() + ' uds.'">0</div>
+        <div style="font-size:11px; color:#64748b;">Consolidado de inventario</div>
+      </div>
+      <div style="width:40px; height:40px; border-radius:10px; background:#dcfce7; color:#15803d; display:flex; align-items:center; justify-content:center; font-size:20px;">
+        <i class="ph ph-package"></i>
+      </div>
+    </div>
+
+    <!-- Sucursales Conectadas -->
+    <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; padding:14px 18px; display:flex; align-items:center; justify-content:space-between; box-shadow:0 1px 3px rgba(0,0,0,0.02); border-left:4px solid #0284c7;">
+      <div>
+        <div style="font-size:11px; font-weight:800; color:#0369a1; text-transform:uppercase; letter-spacing:0.5px;">Sucursales / Plantas</div>
+        <div style="font-size:22px; font-weight:900; color:#0284c7; margin-top:2px;" x-text="branches.length">0</div>
+        <div style="font-size:11px; color:#64748b;">Puntos de distribución</div>
+      </div>
+      <div style="width:40px; height:40px; border-radius:10px; background:#e0f2fe; color:#0284c7; display:flex; align-items:center; justify-content:center; font-size:20px;">
+        <i class="ph ph-storefront"></i>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ===== 2. VISTA KANBAN ODOO 17 (DEFAULT) ===== -->
+  <div x-show="viewMode === 'kanban'">
+    <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)); gap:20px;">
+      <template x-for="wh in filteredWarehouses" :key="wh.id">
+        <div class="odoo-wh-card">
+          
+          <!-- Card Header -->
+          <div class="odoo-wh-card-header">
+            <div style="display:flex; gap:12px; align-items:center;">
+              <div style="width:42px; height:42px; border-radius:10px; background:var(--odoo-purple-light); color:var(--odoo-purple); font-size:22px; display:flex; align-items:center; justify-content:center;">
+                <i class="ph ph-warehouse"></i>
+              </div>
+              <div>
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <h3 style="margin:0; font-size:15px; font-weight:900; color:#0f172a;" x-text="wh.name"></h3>
+                </div>
+                <div style="font-size:11.5px; color:#64748b; margin-top:2px;" x-text="wh.branch_name"></div>
+              </div>
+            </div>
+
+            <div>
+              <template x-if="wh.is_default">
+                <span style="font-size:10.5px; font-weight:800; background:#dcfce7; color:#15803d; padding:2px 8px; border-radius:10px; border:1px solid #86efac;">
+                  ★ Principal
+                </span>
+              </template>
+            </div>
+          </div>
+
+          <!-- Card Body: Odoo 17 Operation Cards -->
+          <div class="odoo-wh-body">
+            
+            <!-- Technical Info Ribbon -->
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:10px 12px; background:#f8fafc; border-radius:8px; border:1px solid #e2e8f0; font-size:12px;">
+              <div>
+                <div style="font-size:10.5px; font-weight:800; color:#64748b; text-transform:uppercase;">CÓDIGO (SLOC):</div>
+                <div style="font-weight:900; color:#1e293b; font-size:13.5px; margin-top:1px;" x-text="wh.code"></div>
+              </div>
+              <div>
+                <div style="font-size:10.5px; font-weight:800; color:#64748b; text-transform:uppercase;">EXISTENCIAS:</div>
+                <div style="font-weight:900; color:var(--odoo-purple); font-size:13.5px; margin-top:1px;" x-text="wh.total_stock + ' unid.'"></div>
+              </div>
+            </div>
+
+            <!-- Operations Breakdown -->
+            <div style="display:flex; flex-direction:column; gap:8px;">
+              <!-- Smart Action: Inventario General -->
+              <a :href="'/inventory?warehouse_id=' + wh.id" class="odoo-op-box" style="text-decoration:none;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <i class="ph ph-package" style="color:var(--odoo-teal); font-size:18px;"></i>
+                  <span style="font-size:12.5px; font-weight:700; color:#334155;">Consultar Catálogo y Stock</span>
+                </div>
+                <span style="font-size:11px; font-weight:800; color:var(--odoo-teal); background:var(--odoo-teal-light); padding:2px 8px; border-radius:10px;" x-text="(wh.product_count || 0) + ' SKUs'"></span>
+              </a>
+
+              <!-- Smart Action: Traslados de salida -->
+              <a :href="'/transfers?warehouse_id=' + wh.id" class="odoo-op-box" style="text-decoration:none;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <i class="ph ph-arrows-left-right" style="color:var(--odoo-purple); font-size:18px;"></i>
+                  <span style="font-size:12.5px; font-weight:700; color:#334155;">Historial de Traslados</span>
+                </div>
+                <i class="ph ph-caret-right" style="color:#94a3b8; font-size:14px;"></i>
+              </a>
+            </div>
+
+            <div style="font-size:11.5px; color:#64748b; display:flex; align-items:center; gap:5px;" x-show="wh.address">
+              <i class="ph ph-map-pin" style="color:#94a3b8;"></i>
+              <span x-text="wh.address"></span>
+            </div>
+
+          </div>
+
+          <!-- Card Footer -->
+          <div class="odoo-wh-footer">
+            <a 
+              :href="'/warehouses/' + wh.id"
+              class="odoo-smart-btn"
+            >
+              <i class="ph ph-sliders"></i> Ajustes / Editar
+            </a>
+
+            <a :href="'/inventory?warehouse_id=' + wh.id" style="font-size:12px; font-weight:800; color:var(--odoo-purple); text-decoration:none; display:flex; align-items:center; gap:4px;">
+              Ver Existencias &rarr;
+            </a>
+          </div>
+
+        </div>
+      </template>
+    </div>
+  </div>
+
+  <!-- ===== 3. VISTA LISTA SAP S/4HANA ERP ===== -->
+  <div x-show="viewMode === 'table'" style="background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+    <div style="overflow-x:auto;">
+      <table class="sap-table">
+        <thead>
+          <tr>
+            <th>Centro Logístico / Sucursal</th>
+            <th>Código (SLoc)</th>
+            <th>Denominación de Bodega</th>
+            <th>Ubicación / Dirección</th>
+            <th style="text-align:center;">SKUs Únicos</th>
+            <th style="text-align:center;">Stock Físico</th>
+            <th style="text-align:center;">Estado</th>
+            <th style="text-align:right;">Operaciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="wh in filteredWarehouses" :key="wh.id">
+            <tr>
+              <td style="font-weight:700; color:#475569;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <i class="ph ph-buildings" style="color:var(--odoo-purple);"></i>
+                  <span x-text="wh.branch_name"></span>
+                </div>
+              </td>
+              <td>
+                <span style="font-family:monospace; font-weight:800; background:#f1f5f9; padding:3px 8px; border-radius:6px; color:#1e293b;" x-text="wh.code"></span>
+              </td>
+              <td>
+                <div style="font-weight:800; color:#0f172a;" x-text="wh.name"></div>
+                <template x-if="wh.is_default">
+                  <span style="font-size:10px; font-weight:800; color:#15803d; background:#dcfce7; padding:1px 6px; border-radius:6px;">★ Principal</span>
+                </template>
+              </td>
+              <td style="color:#64748b;" x-text="wh.address || 'Ubicación General'"></td>
+              <td style="text-align:center; font-weight:800; color:#334155;" x-text="wh.product_count || 0"></td>
+              <td style="text-align:center;">
+                <span style="font-weight:900; color:var(--odoo-purple); font-size:13.5px;" x-text="wh.total_stock + ' uds.'"></span>
+              </td>
+              <td style="text-align:center;">
+                <span style="font-size:11px; font-weight:800; padding:3px 10px; border-radius:12px; background:#dcfce7; color:#15803d;">
+                  ✓ Activa
+                </span>
+              </td>
+              <td style="text-align:right;">
+                <div style="display:flex; justify-content:flex-end; gap:6px;">
+                  <a :href="'/inventory?warehouse_id=' + wh.id" class="odoo-smart-btn" title="Ver Inventario">
+                    <i class="ph ph-package"></i>
+                  </a>
+                  <a :href="'/warehouses/' + wh.id" class="odoo-smart-btn" title="Editar Ficha">
+                    <i class="ph ph-pencil-simple"></i>
+                  </a>
+                </div>
+              </td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Modal Crear / Editar Bodega (Odoo 17 / SAP Style) -->
+  <div class="modal-backdrop" x-show="showModal" style="display:none;" x-cloak>
+    <div class="modal" style="max-width:540px; background:#ffffff; border-radius:16px; padding:26px; box-shadow:0 16px 36px rgba(0,0,0,0.18);">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:14px; margin-bottom:18px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <div style="width:36px; height:36px; border-radius:8px; background:var(--odoo-purple-light); color:var(--odoo-purple); display:flex; align-items:center; justify-content:center; font-size:18px;">
+            <i class="ph ph-warehouse"></i>
+          </div>
+          <div>
+            <h3 style="font-size:16px; font-weight:800; color:#1e293b; margin:0;" x-text="isEditing ? 'Configurar Almacén (Odoo / SAP)' : 'Crear Nuevo Almacén / SLoc'"></h3>
+            <div style="font-size:11.5px; color:#64748b;">Parámetros del Centro Logístico</div>
+          </div>
+        </div>
+        <button style="border:none; background:none; font-size:22px; cursor:pointer; color:#94a3b8;" @click="showModal = false">&times;</button>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:16px;">
+        <div>
+          <label style="font-size:11.5px; font-weight:800; color:#475569; display:block; margin-bottom:5px; text-transform:uppercase;">DENOMINACIÓN DEL ALMACÉN *</label>
+          <input type="text" class="form-control" style="width:100%; padding:9px 12px; font-weight:700;" x-model="modalForm.name" placeholder="Ej: Bodega Central de Productos o Bodega Frío">
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+          <div>
+            <label style="font-size:11.5px; font-weight:800; color:#475569; display:block; margin-bottom:5px; text-transform:uppercase;">CÓDIGO INTERNO (SLOC) *</label>
+            <input type="text" class="form-control" style="width:100%; padding:9px 12px; font-weight:800; font-family:monospace;" x-model="modalForm.code" placeholder="BOD-002">
+          </div>
+
+          <div>
+            <label style="font-size:11.5px; font-weight:800; color:#475569; display:block; margin-bottom:5px; text-transform:uppercase;">SUCURSAL / CENTRO</label>
+            <select class="form-control" style="width:100%; padding:9px 12px; font-weight:700;" x-model="modalForm.branch_id">
+              <template x-for="b in branches" :key="b.id">
+                <option :value="b.id" x-text="b.name"></option>
+              </template>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label style="font-size:11.5px; font-weight:800; color:#475569; display:block; margin-bottom:5px; text-transform:uppercase;">UBICACIÓN FÍSICA / PASILLO / SECTOR</label>
+          <input type="text" class="form-control" style="width:100%; padding:9px 12px;" x-model="modalForm.address" placeholder="Ej: Sector A, Pasillo 3, Nivel 2">
+        </div>
+
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px 14px; display:flex; align-items:center; gap:10px;">
+          <input type="checkbox" id="wh_default_sap" x-model="modalForm.is_default" style="width:18px; height:18px; accent-color:var(--odoo-purple);">
+          <label for="wh_default_sap" style="font-size:13px; font-weight:700; color:#1e293b; cursor:pointer;">
+            Establecer como Bodega Principal por defecto (Default SLoc)
+          </label>
+        </div>
+      </div>
+
+      <div style="margin-top:24px; display:flex; justify-content:flex-end; gap:10px;">
+        <button type="button" class="btn btn-secondary" style="border-radius:8px; padding:8px 18px; font-weight:700;" @click="showModal = false">Cancelar</button>
+        <button type="button" class="btn btn-primary" style="background:var(--odoo-purple); color:#ffffff; border:none; border-radius:8px; padding:8px 22px; font-weight:800;" @click="saveWarehouse()">
+          Guardar Almacén
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function odooWarehousesPage() {
+    return {
+      warehouses: [],
+      filteredWarehouses: [],
+      branches: [],
+      search: '',
+      viewMode: 'kanban', // 'kanban' (Odoo) | 'table' (SAP)
+      showModal: false,
+      isEditing: false,
+      modalForm: {
+        id: null,
+        name: '',
+        code: '',
+        branch_id: '',
+        address: '',
+        is_default: false
+      },
+
+      get totalUnitsInStock() {
+        return this.warehouses.reduce((acc, w) => acc + (w.total_stock || 0), 0);
+      },
+
+      async init() {
+        await this.loadBranches();
+        await this.loadWarehouses();
+      },
+
+      async loadBranches() {
+        try {
+          const res = await API.get('/branches/');
+          this.branches = res || [];
+        } catch(e) {}
+      },
+
+      async loadWarehouses() {
+        try {
+          const res = await API.get('/branches/warehouses');
+          this.warehouses = res || [];
+          this.applyFilters();
+        } catch(e) {}
+      },
+
+      applyFilters() {
+        if (!this.search) {
+          this.filteredWarehouses = this.warehouses;
+          return;
+        }
+        const q = this.search.toLowerCase();
+        this.filteredWarehouses = this.warehouses.filter(w =>
+          w.name.toLowerCase().includes(q) ||
+          w.code.toLowerCase().includes(q) ||
+          (w.branch_name && w.branch_name.toLowerCase().includes(q))
+        );
+      },
+
+      openNewWarehouseModal() {
+        this.isEditing = false;
+        this.modalForm = {
+          id: null,
+          name: '',
+          code: 'BOD-00' + (this.warehouses.length + 1),
+          branch_id: this.branches[0]?.id || '',
+          address: '',
+          is_default: this.warehouses.length === 0
+        };
+        this.showModal = true;
+      },
+
+      editWarehouse(wh) {
+        this.isEditing = true;
+        this.modalForm = {
+          id: wh.id,
+          name: wh.name,
+          code: wh.code,
+          branch_id: wh.branch_id,
+          address: wh.address || '',
+          is_default: wh.is_default
+        };
+        this.showModal = true;
+      },
+
+      async saveWarehouse() {
+        if (!this.modalForm.name || !this.modalForm.code) {
+          return alert('El nombre y código de bodega son obligatorios.');
+        }
+
+        try {
+          if (this.isEditing) {
+            await API.put(`/branches/warehouses/${this.modalForm.id}`, this.modalForm);
+          } else {
+            await API.post('/branches/warehouses', this.modalForm);
+          }
+          this.showModal = false;
+          await this.loadWarehouses();
+          alert('¡Almacén guardado exitosamente!');
+        } catch(e) {
+          alert('Error al guardar almacén: ' + (e.message || e));
+        }
+      }
+    }
+  }
+</script>
+{% endblock %}

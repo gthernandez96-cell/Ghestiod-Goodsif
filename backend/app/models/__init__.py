@@ -14,6 +14,14 @@ from app.models.purchase import PurchaseOrder, PurchaseOrderLine, GoodsReceipt, 
 from app.models.transfer import Transfer, TransferLine
 from app.models.fel import FELDocument, FELSequence
 
+# Nuevos Módulos Odoo
+from app.models.hr import Employee, Attendance
+from app.models.mfg import BOM, BOMItem, ProductionOrder
+from app.models.accounting import Account, JournalEntry, JournalEntryLine
+from app.models.audit import AuditLog
+from app.models.ap import SupplierBill
+from app.models.ar import CustomerInvoiceCredit, CustomerCreditPayment
+
 __all__ = [
     "BaseModel",
     "Company", "Branch", "Warehouse", "TaxRegime",
@@ -27,4 +35,12 @@ __all__ = [
     "PurchaseOrder", "PurchaseOrderLine", "GoodsReceipt", "GoodsReceiptLine",
     "Transfer", "TransferLine",
     "FELDocument", "FELSequence",
+    # Nuevos modelos
+    "Employee", "Attendance",
+    "BOM", "BOMItem", "ProductionOrder",
+    "Account", "JournalEntry", "JournalEntryLine",
+    "AuditLog",
+    "SupplierBill",
+    "CustomerInvoiceCredit", "CustomerCreditPayment"
 ]
+

@@ -19,8 +19,8 @@ class Settings(BaseSettings):
     DEBUG: bool = True
 
     # Database
-    DATABASE_URL: str
-    DATABASE_URL_SYNC: str
+    DATABASE_URL: str = "sqlite+aiosqlite:///./pos.db"
+    DATABASE_URL_SYNC: str = "sqlite:///./pos.db"
 
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"
@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     CELERY_RESULT_BACKEND: str = "redis://localhost:6379/2"
 
     # Security
-    SECRET_KEY: str
+    SECRET_KEY: str = "clave-secreta-pos-2024"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 480
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30

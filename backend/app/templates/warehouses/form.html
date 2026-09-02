@@ -1,0 +1,460 @@
+{% set show_layout = true %}
+{% extends "base.html" %}
+
+{% block title %}{{ 'Nuevo Almacén — Odoo 17 / SAP' if warehouse_id == 'new' else 'Almacén / Bodega — Odoo 17 / SAP' }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  :root {
+    --odoo-purple: #714B67;
+    --odoo-purple-dark: #58374f;
+    --odoo-purple-light: #f4eff3;
+    --odoo-teal: #00A09D;
+    --sap-blue: #0A6ED1;
+  }
+
+  .odoo-sheet {
+    background: #ffffff;
+    border: 1px solid #d9d9d9;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+    padding: 28px 36px;
+    margin-bottom: 28px;
+    position: relative;
+  }
+
+  .odoo-stat-box {
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    border-radius: 8px;
+    padding: 8px 14px;
+    min-width: 130px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.15s ease;
+  }
+  .odoo-stat-box:hover {
+    border-color: var(--odoo-purple);
+    background: var(--odoo-purple-light);
+    transform: translateY(-1px);
+  }
+
+  .form-tab-btn {
+    padding: 10px 18px;
+    font-size: 13px;
+    font-weight: 800;
+    color: #64748b;
+    border: none;
+    background: none;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    transition: all 0.15s ease;
+  }
+  .form-tab-btn:hover {
+    color: var(--odoo-purple);
+  }
+  .form-tab-btn.active {
+    color: var(--odoo-purple);
+    border-bottom-color: var(--odoo-purple);
+  }
+
+  .odoo-input-title {
+    font-size: 24px;
+    font-weight: 900;
+    color: #0f172a;
+    width: 100%;
+    border: none;
+    border-bottom: 2px solid transparent;
+    outline: none;
+    padding: 4px 0;
+    transition: border-color 0.2s;
+    background: transparent;
+  }
+  .odoo-input-title:focus {
+    border-bottom-color: var(--odoo-purple);
+  }
+
+  .odoo-label {
+    font-size: 11px;
+    font-weight: 800;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: block;
+    margin-bottom: 5px;
+  }
+  .odoo-control {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 13.5px;
+    color: #1e293b;
+    outline: none;
+    background: #ffffff;
+    transition: all 0.2s ease;
+  }
+  .odoo-control:focus {
+    border-color: var(--odoo-purple);
+    box-shadow: 0 0 0 3px rgba(113, 75, 103, 0.15);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div x-data="warehouseFormPage('{{ warehouse_id }}')" x-init="init()">
+  
+  <!-- ===== TOP ODOO 17 / SAP CONTROL PANEL SUB-HEADER ===== -->
+  <div style="margin:-20px -24px 22px -24px; padding:12px 24px; background:#ffffff; border-bottom:1px solid #e2e8f0; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+    
+    <!-- Left: Back & Breadcrumb -->
+    <div style="display:flex; align-items:center; gap:12px;">
+      <a href="/warehouses" style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; padding:7px 14px; border-radius:8px; font-weight:700; font-size:12.5px; text-decoration:none; display:flex; align-items:center; gap:6px;">
+        <i class="ph ph-arrow-left"></i> Volver a Bodegas
+      </a>
+      <div style="font-size:15px; font-weight:800; color:#1e293b; display:flex; align-items:center; gap:6px;">
+        <span style="color:#64748b; font-weight:600;">Almacenes /</span>
+        <span x-text="warehouseId === 'new' ? 'Nuevo Almacén (SLoc)' : (form.name || 'Ficha de Bodega')"></span>
+      </div>
+    </div>
+
+    <!-- Right: Save & Discard Buttons -->
+    <div style="display:flex; align-items:center; gap:10px;">
+      <a href="/warehouses" class="btn btn-secondary" style="background:#ffffff; color:#475569; border:1px solid #cbd5e1; font-weight:700; border-radius:8px; padding:7px 16px; font-size:13px; text-decoration:none;">
+        Descartar
+      </a>
+      <button 
+        type="button" 
+        class="btn btn-primary" 
+        style="background:var(--odoo-purple); color:#ffffff; font-weight:800; border-radius:8px; padding:7px 22px; border:none; box-shadow:0 2px 8px rgba(113,75,103,0.25); display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px;"
+        @click="saveWarehouse()"
+        :disabled="isSaving"
+      >
+        <i class="ph ph-floppy-disk" style="font-weight:800;"></i>
+        <span x-text="isSaving ? 'Guardando...' : 'Guardar Almacén'"></span>
+      </button>
+    </div>
+
+  </div>
+
+  <!-- ===== MAIN ODOO 17 FORM SHEET ===== -->
+  <div class="odoo-sheet">
+    
+    <!-- Top Row: Title + Odoo Smart Buttons on Right -->
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:20px; border-bottom:1px solid #f1f5f9; padding-bottom:20px; margin-bottom:22px;">
+      
+      <!-- Warehouse Name & Code Badge -->
+      <div style="flex:1; min-width:280px;">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
+          <span style="font-size:11px; font-weight:800; text-transform:uppercase; background:#f1f5f9; color:#475569; padding:2px 8px; border-radius:6px;">
+            CENTRO / SLOC
+          </span>
+          <template x-if="form.is_default">
+            <span style="font-size:11px; font-weight:800; background:#dcfce7; color:#15803d; padding:2px 10px; border-radius:10px; border:1px solid #86efac;">
+              ★ Bodega Principal
+            </span>
+          </template>
+        </div>
+
+        <input 
+          type="text" 
+          class="odoo-input-title" 
+          placeholder="Ej: Bodega Central de Distribución"
+          x-model="form.name"
+        >
+      </div>
+
+      <!-- Odoo Smart Stats (When editing existing warehouse) -->
+      <template x-if="warehouseId !== 'new'">
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <!-- SKUs Activos -->
+          <a :href="'/inventory?warehouse_id=' + warehouseId" class="odoo-stat-box">
+            <i class="ph ph-package" style="font-size:22px; color:var(--odoo-teal);"></i>
+            <div>
+              <div style="font-size:14px; font-weight:900; color:#1e293b;" x-text="form.product_count || 0">0</div>
+              <div style="font-size:10px; font-weight:700; color:#64748b;">SKUs Activos</div>
+            </div>
+          </a>
+
+          <!-- Stock Total -->
+          <a :href="'/inventory?warehouse_id=' + warehouseId" class="odoo-stat-box">
+            <i class="ph ph-archive-box" style="font-size:22px; color:var(--odoo-purple);"></i>
+            <div>
+              <div style="font-size:14px; font-weight:900; color:var(--odoo-purple);" x-text="(form.total_stock || 0) + ' uds.'">0</div>
+              <div style="font-size:10px; font-weight:700; color:#64748b;">Stock Total</div>
+            </div>
+          </a>
+
+          <!-- Traslados -->
+          <a :href="'/transfers?warehouse_id=' + warehouseId" class="odoo-stat-box">
+            <i class="ph ph-arrows-left-right" style="font-size:22px; color:#0284c7;"></i>
+            <div>
+              <div style="font-size:14px; font-weight:900; color:#0284c7;">Traslados</div>
+              <div style="font-size:10px; font-weight:700; color:#64748b;">Operaciones</div>
+            </div>
+          </a>
+        </div>
+      </template>
+
+    </div>
+
+    <!-- Navigation Tabs (Odoo 17 Form Notebook) -->
+    <div style="display:flex; border-bottom:2px solid #e2e8f0; margin-bottom:24px;">
+      <button class="form-tab-btn" :class="activeTab === 'general' ? 'active' : ''" @click="activeTab = 'general'">
+        <i class="ph ph-buildings"></i> 1. Datos Maestros & Ubicación
+      </button>
+      <button class="form-tab-btn" :class="activeTab === 'routes' ? 'active' : ''" @click="activeTab = 'routes'">
+        <i class="ph ph-tree-structure"></i> 2. Rutas & Políticas Logísticas
+      </button>
+      <button class="form-tab-btn" :class="activeTab === 'stock' ? 'active' : ''" @click="activeTab = 'stock'" x-show="warehouseId !== 'new'">
+        <i class="ph ph-list-numbers"></i> 3. Existencias en este Almacén
+      </button>
+    </div>
+
+    <!-- TAB 1: DATOS MAESTROS -->
+    <div x-show="activeTab === 'general'" style="display:flex; flex-direction:column; gap:20px;">
+      
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+        <div>
+          <label class="odoo-label">CÓDIGO CORTO / SLOC *</label>
+          <input type="text" class="odoo-control" style="font-weight:800; font-family:monospace;" placeholder="Ej: BOD-001" x-model="form.code">
+          <div style="font-size:11px; color:#64748b; margin-top:4px;">Código interno único para identificación en traslados y reportes.</div>
+        </div>
+
+        <div>
+          <label class="odoo-label">SUCURSAL / PLANTA ASOCIADA *</label>
+          <select class="odoo-control" style="font-weight:700;" x-model="form.branch_id">
+            <template x-for="b in branches" :key="b.id">
+              <option :value="b.id" x-text="b.name + ' (' + b.code + ')'"></option>
+            </template>
+          </select>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:2fr 1fr; gap:20px;">
+        <div>
+          <label class="odoo-label">DIRECCIÓN / SECTOR / PASILLO FÍSICO</label>
+          <input type="text" class="odoo-control" placeholder="Ej: Sector Central, Pasillo 3, Estantería A" x-model="form.address">
+        </div>
+
+        <div>
+          <label class="odoo-label">TIPO DE ALMACÉN</label>
+          <select class="odoo-control" x-model="form.warehouse_type">
+            <option value="internal">Almacén Interno (Físico)</option>
+            <option value="pos">Mostrador / Punto de Venta</option>
+            <option value="transit">Tránsito / Vehículo de Reparto</option>
+            <option value="scrap">Mermas / Cuarentena</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Checkboxes & Status Box -->
+      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:18px; display:flex; flex-direction:column; gap:12px;">
+        <div style="font-size:12px; font-weight:800; color:#1e293b; text-transform:uppercase;">Preferencias Operativas:</div>
+        
+        <div style="display:flex; align-items:center; gap:10px;">
+          <input type="checkbox" id="wh_is_default" x-model="form.is_default" style="width:18px; height:18px; accent-color:var(--odoo-purple);">
+          <label for="wh_is_default" style="font-size:13px; font-weight:700; color:#1e293b; cursor:pointer;">
+            Establecer como Bodega Principal de la Sucursal (Default Storage Location)
+          </label>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:10px;">
+          <input type="checkbox" id="wh_is_active" x-model="form.is_active" style="width:18px; height:18px; accent-color:var(--odoo-purple);">
+          <label for="wh_is_active" style="font-size:13px; font-weight:700; color:#1e293b; cursor:pointer;">
+            Almacén Activo y Operativo para Ventas y Traslados
+          </label>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- TAB 2: RUTAS & POLÍTICAS LOGÍSTICAS (ODOO 17 STYLE) -->
+    <div x-show="activeTab === 'routes'" style="display:flex; flex-direction:column; gap:22px;">
+      
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+        <!-- Recepción -->
+        <div style="border:1px solid #e2e8f0; border-radius:12px; padding:18px; background:#f8fafc;">
+          <div style="font-size:13px; font-weight:800; color:var(--odoo-purple); margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+            <i class="ph ph-arrow-down-left"></i> Envíos Entrantes (Compras & Recepciones)
+          </div>
+          <label style="font-size:12.5px; color:#334155; display:flex; align-items:center; gap:8px; margin-bottom:8px; cursor:pointer;">
+            <input type="radio" name="incoming_route" value="1step" checked style="accent-color:var(--odoo-purple);">
+            <span><strong>1 Paso:</strong> Recepción directa a existencias de bodega</span>
+          </label>
+          <label style="font-size:12.5px; color:#64748b; display:flex; align-items:center; gap:8px; cursor:pointer;">
+            <input type="radio" name="incoming_route" value="2step" style="accent-color:var(--odoo-purple);">
+            <span><strong>2 Pasos:</strong> Recepción en muelle + Traslado a estante</span>
+          </label>
+        </div>
+
+        <!-- Despacho -->
+        <div style="border:1px solid #e2e8f0; border-radius:12px; padding:18px; background:#f8fafc;">
+          <div style="font-size:13px; font-weight:800; color:#059669; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+            <i class="ph ph-arrow-up-right"></i> Envíos Salientes (Ventas POS & Despachos)
+          </div>
+          <label style="font-size:12.5px; color:#334155; display:flex; align-items:center; gap:8px; margin-bottom:8px; cursor:pointer;">
+            <input type="radio" name="outgoing_route" value="1step" checked style="accent-color:#059669;">
+            <span><strong>1 Paso:</strong> Despacho directo al cliente desde stock</span>
+          </label>
+          <label style="font-size:12.5px; color:#64748b; display:flex; align-items:center; gap:8px; cursor:pointer;">
+            <input type="radio" name="outgoing_route" value="2step" style="accent-color:#059669;">
+            <span><strong>2 Pasos:</strong> Recolección (Picking) + Entrega final</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Políticas de Stock -->
+      <div style="border:1px solid #e2e8f0; border-radius:12px; padding:18px; background:#ffffff;">
+        <div style="font-size:13px; font-weight:800; color:#1e293b; margin-bottom:12px; display:flex; align-items:center; gap:6px;">
+          <i class="ph ph-shield-check" style="color:var(--odoo-teal);"></i> Control de Disponibilidad y Validación
+        </div>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <label style="font-size:12.5px; color:#334155; display:flex; align-items:center; gap:8px; cursor:pointer;">
+            <input type="checkbox" checked style="accent-color:var(--odoo-purple); width:16px; height:16px;">
+            <span>Validar existencias en tiempo real antes de confirmar ventas o traslados salientes.</span>
+          </label>
+          <label style="font-size:12.5px; color:#334155; display:flex; align-items:center; gap:8px; cursor:pointer;">
+            <input type="checkbox" checked style="accent-color:var(--odoo-purple); width:16px; height:16px;">
+            <span>Alertar automáticamente cuando los productos alcancen su punto de reorden mínimo en este almacén.</span>
+          </label>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- TAB 3: STOCK EN ESTE ALMACÉN (WHEN EDITING) -->
+    <div x-show="activeTab === 'stock'">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+        <div style="font-size:14px; font-weight:800; color:#1e293b;">
+          Existencias Físicas en <span x-text="form.name"></span>
+        </div>
+        <a :href="'/inventory?warehouse_id=' + warehouseId" class="btn btn-secondary" style="background:#f8fafc; color:var(--odoo-purple); border:1px solid #cbd5e1; font-weight:800; font-size:12px; border-radius:6px; padding:5px 12px; text-decoration:none;">
+          Abrir en Inventario Completo &rarr;
+        </a>
+      </div>
+
+      <div style="border:1px solid #e2e8f0; border-radius:10px; overflow:hidden;">
+        <table class="table" style="width:100%; border-collapse:collapse;">
+          <thead>
+            <tr style="background:#f8fafc; border-bottom:2px solid #e2e8f0;">
+              <th style="padding:10px 14px; font-size:11px; text-transform:uppercase; text-align:left; color:#475569;">Producto</th>
+              <th style="padding:10px 14px; font-size:11px; text-transform:uppercase; text-align:left; color:#475569;">SKU / Código</th>
+              <th style="padding:10px 14px; font-size:11px; text-transform:uppercase; text-align:center; color:#475569;">Existencia Actual</th>
+              <th style="padding:10px 14px; font-size:11px; text-transform:uppercase; text-align:right; color:#475569;">Precio Venta</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="p in warehouseProducts" :key="p.id">
+              <tr style="border-bottom:1px solid #f1f5f9;">
+                <td style="padding:10px 14px; font-weight:700; color:#1e293b;" x-text="p.name"></td>
+                <td style="padding:10px 14px; font-family:monospace; color:#64748b;" x-text="p.internal_ref || 'N/A'"></td>
+                <td style="padding:10px 14px; text-align:center; font-weight:900; color:var(--odoo-purple);" x-text="p.stock + ' uds.'"></td>
+                <td style="padding:10px 14px; text-align:right; font-weight:700; color:#059669;" x-text="'Q ' + Number(p.sale_price || 0).toFixed(2)"></td>
+              </tr>
+            </template>
+            <tr x-show="warehouseProducts.length === 0">
+              <td colspan="4" style="text-align:center; padding:30px; color:#64748b;">
+                No hay productos con existencias en este almacén actualmente.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+  function warehouseFormPage(warehouseId) {
+    return {
+      warehouseId: warehouseId,
+      isSaving: false,
+      activeTab: 'general',
+      branches: [],
+      warehouseProducts: [],
+      form: {
+        id: null,
+        name: '',
+        code: '',
+        branch_id: '',
+        address: '',
+        warehouse_type: 'internal',
+        is_default: false,
+        is_active: true,
+        product_count: 0,
+        total_stock: 0
+      },
+
+      async init() {
+        await this.loadBranches();
+        if (this.warehouseId !== 'new') {
+          await this.loadWarehouseData();
+          await this.loadWarehouseStock();
+        } else {
+          this.form.code = 'BOD-00' + Math.floor(Math.random() * 90 + 10);
+        }
+      },
+
+      async loadBranches() {
+        try {
+          const res = await API.get('/branches/');
+          this.branches = res || [];
+          if (this.branches.length > 0 && !this.form.branch_id) {
+            this.form.branch_id = this.branches[0].id;
+          }
+        } catch(e) {}
+      },
+
+      async loadWarehouseData() {
+        try {
+          const res = await API.get(`/branches/warehouses/${this.warehouseId}`);
+          if (res) {
+            this.form = res;
+          }
+        } catch(e) {
+          alert('Error al cargar datos del almacén: ' + (e.message || e));
+        }
+      },
+
+      async loadWarehouseStock() {
+        try {
+          const res = await API.get(`/products/?warehouse_id=${this.warehouseId}&limit=50`);
+          this.warehouseProducts = res.items || [];
+        } catch(e) {}
+      },
+
+      async saveWarehouse() {
+        if (!this.form.name || !this.form.code) {
+          return alert('La denominación y el código corto del almacén son obligatorios.');
+        }
+
+        this.isSaving = true;
+        try {
+          if (this.warehouseId === 'new') {
+            const res = await API.post('/branches/warehouses', this.form);
+            alert('¡Almacén creado exitosamente!');
+            window.location.href = `/warehouses/${res.id}`;
+          } else {
+            await API.put(`/branches/warehouses/${this.warehouseId}`, this.form);
+            alert('¡Almacén actualizado exitosamente!');
+            window.location.href = '/warehouses';
+          }
+        } catch(e) {
+          alert('Error al guardar almacén: ' + (e.message || e));
+        } finally {
+          this.isSaving = false;
+        }
+      }
+    }
+  }
+</script>
+{% endblock %}

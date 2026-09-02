@@ -3,7 +3,12 @@
 import asyncio
 import sys
 import os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+backend_dir = os.path.join(root_dir, "backend")
+if backend_dir not in sys.path:
+    sys.path.insert(0, backend_dir)
+if root_dir not in sys.path:
+    sys.path.insert(0, root_dir)
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy import select
@@ -263,19 +268,19 @@ async def seed():
 
         print("📦 Creando productos de ejemplo...")
         products_data = [
-            ("Coca-Cola 600ml", "COC001", "7501035901074", categories["BEB"].id, uom_pz.id, 7.00, 5.00, 12.00),
-            ("Arroz Integral 1kg", "ARR001", "7501234567890", categories["ALIB"].id, uom_kg.id, 15.00, 11.00, 0.00),
-            ("Leche Entera 1L", "LEC001", "7500028011234", categories["ALIB"].id, uom_lt.id, 12.00, 9.00, 0.00),
-            ("Aceite Vegetal 1L", "ACE001", "7501056789012", categories["ALIB"].id, uom_lt.id, 25.00, 18.00, 12.00),
-            ("Jabón Líquido 500ml", "JAB001", "7502134567890", categories["LIMP"].id, uom_pz.id, 28.00, 20.00, 12.00),
-            ("Papel Higiénico x4", "PAP001", "7503456789012", categories["LIMP"].id, uom_pz.id, 18.00, 13.00, 12.00),
-            ("Paracetamol 500mg x20", "PAR001", "7504567890123", categories["FARM"].id, uom_pz.id, 3.50, 2.00, 0.00),
-            ("Tornillo 1/2\" x100", "TOR001", None, categories["FERR"].id, uom_pz.id, 25.00, 15.00, 12.00),
-            ("Pintura Blanca 1gal", "PIN001", None, categories["FERR"].id, uom_pz.id, 85.00, 60.00, 12.00),
-            ("Azúcar Blanca 1kg", "AZU001", "7505678901234", categories["ALIB"].id, uom_kg.id, 8.00, 5.50, 0.00),
+            ("Coca-Cola 600ml", "COC001", "7501035901074", categories["BEB"].id, uom_pz.id, 7.00, 5.00, 12.00, "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=120&auto=format&fit=crop"),
+            ("Arroz Integral 1kg", "ARR001", "7501234567890", categories["ALIB"].id, uom_kg.id, 15.00, 11.00, 0.00, "https://images.unsplash.com/photo-1586201375761-83865001e31c?w=120&auto=format&fit=crop"),
+            ("Leche Entera 1L", "LEC001", "7500028011234", categories["ALIB"].id, uom_lt.id, 12.00, 9.00, 0.00, "https://images.unsplash.com/photo-1563636619-e9143da7973b?w=120&auto=format&fit=crop"),
+            ("Aceite Vegetal 1L", "ACE001", "7501056789012", categories["ALIB"].id, uom_lt.id, 25.00, 18.00, 12.00, "https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=120&auto=format&fit=crop"),
+            ("Jabón Líquido 500ml", "JAB001", "7502134567890", categories["LIMP"].id, uom_pz.id, 28.00, 20.00, 12.00, "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=120&auto=format&fit=crop"),
+            ("Papel Higiénico x4", "PAP001", "7503456789012", categories["LIMP"].id, uom_pz.id, 18.00, 13.00, 12.00, "https://images.unsplash.com/photo-1584556812952-905ffd0c611a?w=120&auto=format&fit=crop"),
+            ("Paracetamol 500mg x20", "PAR001", "7504567890123", categories["FARM"].id, uom_pz.id, 3.50, 2.00, 0.00, "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=120&auto=format&fit=crop"),
+            ("Tornillo 1/2\" x100", "TOR001", None, categories["FERR"].id, uom_pz.id, 25.00, 15.00, 12.00, "https://images.unsplash.com/photo-1590483736148-3c1a5e59b993?w=120&auto=format&fit=crop"),
+            ("Pintura Blanca 1gal", "PIN001", None, categories["FERR"].id, uom_pz.id, 85.00, 60.00, 12.00, "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=120&auto=format&fit=crop"),
+            ("Azúcar Blanca 1kg", "AZU001", "7505678901234", categories["ALIB"].id, uom_kg.id, 8.00, 5.50, 0.00, "https://images.unsplash.com/photo-1581798459219-318e76aecc7b?w=120&auto=format&fit=crop"),
         ]
 
-        for name, ref, barcode, cat_id, uom_id, price, cost, tax in products_data:
+        for name, ref, barcode, cat_id, uom_id, price, cost, tax, img_url in products_data:
             prod = Product(
                 company_id=company.id,
                 category_id=cat_id,
@@ -293,6 +298,7 @@ async def seed():
                 is_published=True,
                 can_be_sold=True,
                 can_be_purchased=True,
+                image_url=img_url,
             )
             db.add(prod)
         await db.flush()
@@ -326,6 +332,32 @@ async def seed():
                 total_cost=qty * product.cost_price,
             )
             db.add(move)
+
+        print("📅 Creando lotes de ejemplo próximos a vencer (Abarrotería/Farmacia)...")
+        from app.models.inventory import StockLot
+        from datetime import datetime, timedelta
+        
+        leche = next((p for p in all_products if p.internal_ref == "LEC001"), None)
+        if leche:
+            lot1 = StockLot(
+                product_id=leche.id,
+                warehouse_id=warehouse_main.id,
+                lot_number="LOTE-LECHE-2026",
+                qty_on_hand=20.0,
+                expiry_date=datetime.now() + timedelta(days=5),
+            )
+            db.add(lot1)
+
+        paracetamol = next((p for p in all_products if p.internal_ref == "PAR001"), None)
+        if paracetamol:
+            lot2 = StockLot(
+                product_id=paracetamol.id,
+                warehouse_id=warehouse_main.id,
+                lot_number="LOTE-PARA-45",
+                qty_on_hand=50.0,
+                expiry_date=datetime.now() + timedelta(days=12),
+            )
+            db.add(lot2)
 
         print("👥 Creando clientes de ejemplo...")
         customers = [

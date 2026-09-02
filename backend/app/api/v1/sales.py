@@ -13,6 +13,7 @@ from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.sale import SaleOrder, SaleOrderLine, SalePayment, SaleState, SaleType
 from app.models.cashier import CashierSession, SessionState, CashMovementType, PaymentMethod, CashMovement
+from app.models.company import Branch, Warehouse
 from app.models.inventory import StockMoveType
 from app.services.inventory_service import InventoryService
 from app.services.fel_service import FELService
@@ -32,6 +33,11 @@ class SaleLineIn(BaseModel):
     cost_price: Decimal = Decimal("0")
     discount_pct: Decimal = Decimal("0")
     tax_rate: Decimal = Decimal("12")
+    uom_id: Optional[str] = None
+    serial_number: Optional[str] = None
+    is_wholesale: Optional[bool] = False
+    wholesale_ratio: Optional[Decimal] = None
+    qty_in_base_units: Optional[bool] = True
 
 
 class SalePaymentIn(BaseModel):
@@ -54,9 +60,21 @@ class CreateSaleIn(BaseModel):
     payments: List[SalePaymentIn]
     notes: Optional[str] = None
     generate_fel: bool = True
+    client_offline_id: Optional[str] = None
 
 
 # ===== HELPERS =====
+def to_uuid(val):
+    if not val:
+        return None
+    if isinstance(val, uuid.UUID):
+        return val
+    try:
+        return uuid.UUID(str(val))
+    except Exception:
+        return None
+
+
 def _generate_sale_number(branch_code: str) -> str:
     """Generar número de venta único."""
     now = datetime.now()
@@ -74,22 +92,75 @@ async def create_sale(
     """Crear venta completa desde el POS."""
     inv_service = InventoryService(db)
 
+    company_uuid = current_user.company_id if isinstance(current_user.company_id, uuid.UUID) else to_uuid(current_user.company_id)
+    user_uuid = current_user.id if isinstance(current_user.id, uuid.UUID) else to_uuid(current_user.id)
+    branch_uuid = to_uuid(data.branch_id)
+    warehouse_uuid = to_uuid(data.warehouse_id)
+    customer_uuid = to_uuid(data.customer_id)
+    session_uuid = to_uuid(data.cashier_session_id)
+    price_list_uuid = to_uuid(data.price_list_id)
+
+    # Verificación de idempotencia para ventas offline reintentadas
+    if data.client_offline_id:
+        existing_stmt = select(SaleOrder).where(
+            SaleOrder.company_id == company_uuid,
+            SaleOrder.notes.contains(f"offline_id:{data.client_offline_id}")
+        )
+        existing_res = await db.execute(existing_stmt)
+        existing_sale = existing_res.scalar_one_or_none()
+        if existing_sale:
+            return {
+                "id": str(existing_sale.id),
+                "number": existing_sale.number,
+                "state": existing_sale.state.value if hasattr(existing_sale.state, "value") else str(existing_sale.state),
+                "total": float(existing_sale.total or 0),
+                "amount_paid": float(existing_sale.amount_paid or 0),
+                "amount_due": float(existing_sale.amount_due or 0),
+                "change": 0.0,
+                "fel_uuid": existing_sale.fel_uuid,
+                "fel_status": existing_sale.fel_status,
+                "lines_count": len(existing_sale.lines) if existing_sale.lines else 0,
+                "idempotent": True,
+            }
+
+    # Validar y asegurar branch_uuid válido
+    if branch_uuid:
+        b_chk = await db.execute(select(Branch.id).where(Branch.id == branch_uuid))
+        if not b_chk.scalar_one_or_none():
+            branch_uuid = None
+    if not branch_uuid:
+        b_res = await db.execute(select(Branch.id).limit(1))
+        branch_uuid = b_res.scalar_one_or_none()
+
+    # Validar y asegurar warehouse_uuid válido
+    if warehouse_uuid:
+        w_chk = await db.execute(select(Warehouse.id).where(Warehouse.id == warehouse_uuid))
+        if not w_chk.scalar_one_or_none():
+            warehouse_uuid = None
+    if not warehouse_uuid:
+        w_res = await db.execute(select(Warehouse.id).limit(1))
+        warehouse_uuid = w_res.scalar_one_or_none()
+
+    notes_content = data.notes or ""
+    if data.client_offline_id:
+        notes_content = f"[offline_id:{data.client_offline_id}] {notes_content}".strip()
+
     # Crear la orden
     sale = SaleOrder(
-        company_id=current_user.company_id,
-        branch_id=data.branch_id,
-        warehouse_id=data.warehouse_id,
-        customer_id=data.customer_id,
-        cashier_session_id=data.cashier_session_id,
-        user_id=str(current_user.id),
-        price_list_id=data.price_list_id,
+        company_id=company_uuid,
+        branch_id=branch_uuid,
+        warehouse_id=warehouse_uuid,
+        customer_id=customer_uuid,
+        cashier_session_id=session_uuid,
+        user_id=user_uuid,
+        price_list_id=price_list_uuid,
         number=_generate_sale_number("POS"),
         state=SaleState.DRAFT,
         sale_type=SaleType(data.sale_type),
         sale_date=datetime.now(timezone.utc),
         customer_nit=data.customer_nit,
         customer_name=data.customer_name,
-        notes=data.notes,
+        notes=notes_content,
     )
 
     # Agregar líneas y calcular totales
@@ -99,9 +170,11 @@ async def create_sale(
 
     for line_data in data.lines:
         line = SaleOrderLine(
-            product_id=line_data.product_id,
-            variant_id=line_data.variant_id,
-            lot_id=line_data.lot_id,
+            product_id=to_uuid(line_data.product_id),
+            variant_id=to_uuid(line_data.variant_id),
+            lot_id=to_uuid(line_data.lot_id),
+            uom_id=to_uuid(line_data.uom_id),
+            serial_number=line_data.serial_number,
             product_name=line_data.product_name,
             product_barcode=line_data.product_barcode,
             qty=line_data.qty,
@@ -125,12 +198,30 @@ async def create_sale(
     # Agregar pagos
     amount_paid = Decimal("0")
     for pay_data in data.payments:
+        if pay_data.payment_method == "credit":
+            if not customer_uuid:
+                raise HTTPException(status_code=400, detail="Para venta a crédito debes seleccionar un cliente registrado")
+            from app.models.partner import Partner
+            p_res = await db.execute(select(Partner).where(Partner.id == customer_uuid))
+            cust = p_res.scalar_one_or_none()
+            if not cust or cust.nit == "CF":
+                raise HTTPException(status_code=400, detail="No se puede otorgar crédito a Consumidor Final (CF). Selecciona un cliente registrado.")
+
+            c_limit = Decimal(str(cust.credit_limit or 0))
+            c_balance = Decimal(str(cust.balance or 0))
+            available = max(Decimal("0"), c_limit - c_balance)
+
+            if pay_data.amount > available:
+                raise HTTPException(status_code=400, detail=f"Crédito insuficiente para {cust.name}. Crédito disponible: Q {float(available):.2f}")
+
+            cust.balance = c_balance + pay_data.amount
+
         payment = SalePayment(
             payment_method=pay_data.payment_method,
             amount=pay_data.amount,
             reference=pay_data.reference,
             card_last4=pay_data.card_last4,
-            session_id=data.cashier_session_id,
+            session_id=session_uuid,
         )
         sale.payments.append(payment)
         amount_paid += pay_data.amount
@@ -141,23 +232,121 @@ async def create_sale(
     # Cambiar estado
     sale.state = SaleState.PAID if sale.amount_due == 0 else SaleState.CONFIRMED
 
+    # Buscar sesión de caja para registrar venta y movimientos en efectivo
+    cash_paid = sum(p.amount for p in sale.payments if p.payment_method == "cash")
+    session_obj = None
+    if session_uuid:
+        s_res = await db.execute(select(CashierSession).where(CashierSession.id == session_uuid))
+        session_obj = s_res.scalar_one_or_none()
+
+    if not session_obj and user_uuid:
+        if branch_uuid:
+            s_res = await db.execute(
+                select(CashierSession).where(
+                    CashierSession.user_id == user_uuid,
+                    CashierSession.branch_id == branch_uuid,
+                    CashierSession.state == SessionState.OPEN
+                ).order_by(CashierSession.opened_at.desc()).limit(1)
+            )
+            session_obj = s_res.scalar_one_or_none()
+
+        if not session_obj:
+            s_res = await db.execute(
+                select(CashierSession).where(
+                    CashierSession.user_id == user_uuid,
+                    CashierSession.state == SessionState.OPEN
+                ).order_by(CashierSession.opened_at.desc()).limit(1)
+            )
+            session_obj = s_res.scalar_one_or_none()
+
+        if not session_obj and branch_uuid:
+            s_res = await db.execute(
+                select(CashierSession).where(
+                    CashierSession.branch_id == branch_uuid,
+                    CashierSession.state == SessionState.OPEN
+                ).order_by(CashierSession.opened_at.desc()).limit(1)
+            )
+            session_obj = s_res.scalar_one_or_none()
+
+    if session_obj:
+        sale.cashier_session_id = session_obj.id
+        if cash_paid > 0:
+            session_obj.total_sales = (session_obj.total_sales or Decimal("0")) + cash_paid
+            sale_move = CashMovement(
+                session_id=session_obj.id,
+                move_type=CashMovementType.SALE,
+                payment_method=PaymentMethod.CASH,
+                amount=cash_paid,
+                reference=f"Venta {sale.number}",
+                user_id=user_uuid,
+            )
+            db.add(sale_move)
+
     db.add(sale)
     await db.flush()
 
     # Descontar inventario
-    for line in sale.lines:
-        await inv_service.create_move(
-            warehouse_id=uuid.UUID(data.warehouse_id),
-            product_id=uuid.UUID(str(line.product_id)),
-            move_type=StockMoveType.SALE,
-            qty=line.qty,
-            unit_cost=line.cost_price,
-            reference=sale.number,
-            reference_id=sale.id,
-            lot_id=uuid.UUID(str(line.lot_id)) if line.lot_id else None,
-            variant_id=uuid.UUID(str(line.variant_id)) if line.variant_id else None,
-            user_id=current_user.id,
-        )
+    for idx, line in enumerate(sale.lines):
+        line_data = data.lines[idx] if idx < len(data.lines) else None
+        if warehouse_uuid and line.product_id:
+            from app.models.product import Product
+            prod_obj_res = await db.execute(select(Product).where(Product.id == to_uuid(line.product_id)))
+            prod_obj = prod_obj_res.scalar_one_or_none()
+
+            # Calcular cantidad convertida según la unidad de medida y venta mayorista
+            qty_inventory = line.qty
+            is_wholesale = bool(
+                (line_data and getattr(line_data, "is_wholesale", False)) or
+                (prod_obj and prod_obj.wholesale_uom_id and line.uom_id == prod_obj.wholesale_uom_id)
+            )
+
+            if is_wholesale:
+                if line_data and getattr(line_data, "qty_in_base_units", True):
+                    qty_inventory = line.qty
+                else:
+                    ratio = Decimal(str(
+                        (line_data and getattr(line_data, "wholesale_ratio", None)) or
+                        (prod_obj and prod_obj.wholesale_ratio) or
+                        1
+                    ))
+                    qty_inventory = line.qty * ratio
+            elif line.uom_id:
+                from app.models.product import UnitOfMeasure
+                uom_res = await db.execute(select(UnitOfMeasure).where(UnitOfMeasure.id == line.uom_id))
+                uom = uom_res.scalar_one_or_none()
+                if uom:
+                    qty_inventory = line.qty * Decimal(str(uom.ratio))
+
+            # Verificar si el producto es un COMBO
+            if prod_obj and (prod_obj.attributes or {}).get("is_combo"):
+                combo_items = (prod_obj.attributes or {}).get("combo_items", [])
+                for c_item in combo_items:
+                    c_prod_id = c_item.get("product_id")
+                    c_qty = Decimal(str(c_item.get("qty", 1))) * line.qty
+                    if c_prod_id:
+                        await inv_service.create_move(
+                            warehouse_id=warehouse_uuid,
+                            product_id=uuid.UUID(str(c_prod_id)),
+                            move_type=StockMoveType.SALE,
+                            qty=c_qty,
+                            reference=f"{sale.number} (Combo Componente)",
+                            reference_id=sale.id,
+                            user_id=user_uuid,
+                        )
+            else:
+                await inv_service.create_move(
+                    warehouse_id=warehouse_uuid,
+                    product_id=to_uuid(line.product_id),
+                    move_type=StockMoveType.SALE,
+                    qty=qty_inventory,
+                    unit_cost=line.cost_price,
+                    reference=sale.number,
+                    reference_id=sale.id,
+                    lot_id=to_uuid(line.lot_id),
+                    variant_id=to_uuid(line.variant_id),
+                    user_id=user_uuid,
+                    notes=f"N/S: {line.serial_number}" if line.serial_number else ""
+                )
 
     # Generar FEL
     fel_doc = None
@@ -189,6 +378,107 @@ async def create_sale(
         "fel_uuid": sale.fel_uuid,
         "fel_status": sale.fel_status,
         "lines_count": len(sale.lines),
+    }
+
+
+class VoidSaleIn(BaseModel):
+    reason: str = "Anulación o devolución solicitada por cliente"
+
+
+@router.post("/{sale_id}/void")
+@router.post("/{sale_id}/cancel")
+async def void_or_cancel_sale(
+    sale_id: str,
+    data: Optional[VoidSaleIn] = None,
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """Anular venta, certificar anulación FEL ante el SAT y revertir inventario/créditos."""
+    reason_text = data.reason if data and data.reason else "Anulación autorizada en caja"
+    s_uuid = to_uuid(sale_id)
+    if not s_uuid:
+        raise HTTPException(status_code=400, detail="ID de venta inválido")
+
+    result = await db.execute(
+        select(SaleOrder)
+        .options(selectinload(SaleOrder.lines), selectinload(SaleOrder.payments))
+        .where(SaleOrder.id == s_uuid)
+    )
+    sale = result.scalar_one_or_none()
+    if not sale:
+        raise HTTPException(status_code=404, detail="Venta no encontrada")
+
+    if sale.state == SaleState.CANCELLED:
+        raise HTTPException(status_code=400, detail="La venta ya fue anulada previamente")
+
+    # 1. Revertir movimientos de inventario (incluyendo combos)
+    inv_service = InventoryService(db)
+    from app.models.product import Product
+    for line in sale.lines:
+        prod_obj_res = await db.execute(select(Product).where(Product.id == uuid.UUID(str(line.product_id))))
+        prod_obj = prod_obj_res.scalar_one_or_none()
+        if prod_obj and (prod_obj.attributes or {}).get("is_combo"):
+            combo_items = (prod_obj.attributes or {}).get("combo_items", [])
+            for c_item in combo_items:
+                c_prod_id = c_item.get("product_id")
+                c_qty = Decimal(str(c_item.get("qty", 1))) * (line.qty - line.qty_returned)
+                if c_prod_id:
+                    await inv_service.create_move(
+                        warehouse_id=sale.warehouse_id,
+                        product_id=uuid.UUID(str(c_prod_id)),
+                        move_type=StockMoveType.RETURN_SALE,
+                        qty=c_qty,
+                        reference=f"ANULA-{sale.number} (Combo)",
+                        reference_id=sale.id,
+                        user_id=current_user.id,
+                    )
+        else:
+            await inv_service.create_move(
+                warehouse_id=sale.warehouse_id,
+                product_id=uuid.UUID(str(line.product_id)),
+                move_type=StockMoveType.RETURN_SALE,
+                qty=line.qty - line.qty_returned,
+                reference=f"ANULA-{sale.number}",
+                reference_id=sale.id,
+                user_id=current_user.id,
+            )
+
+    # 2. Revertir saldo si fue a crédito
+    for pay in sale.payments:
+        if pay.payment_method == "credit" and sale.customer_id:
+            from app.models.partner import Partner
+            cust_res = await db.execute(select(Partner).where(Partner.id == sale.customer_id))
+            cust = cust_res.scalar_one_or_none()
+            if cust:
+                cust.balance = max(Decimal("0"), Decimal(str(cust.balance or 0)) - pay.amount)
+
+    # 3. Anular DTE en el SAT si está certificado
+    fel_cancelled = False
+    if sale.fel_uuid:
+        try:
+            from app.models.fel import FELDocument
+            fel_stmt = select(FELDocument).where(FELDocument.uuid == sale.fel_uuid)
+            fel_res = await db.execute(fel_stmt)
+            fel_doc = fel_res.scalar_one_or_none()
+            if fel_doc:
+                fel_service = FELService(db, current_user.company_id)
+                await fel_service.cancel_dte(fel_doc, reason_text)
+                fel_cancelled = True
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"No se pudo anular DTE SAT: {e}")
+
+    sale.state = SaleState.CANCELLED
+    sale.fel_status = "cancelled"
+    sale.notes = f"{sale.notes or ''} [ANULADA: {reason_text}]".strip()
+    await db.commit()
+
+    return {
+        "status": "success",
+        "message": f"Factura/Venta {sale.number} anulada con éxito.",
+        "fel_cancelled": fel_cancelled,
+        "stock_reversed": True,
+        "reason": reason_text
     }
 
 
@@ -266,10 +556,14 @@ async def get_sale(
     current_user=Depends(get_current_user),
 ):
     """Obtener detalle de una venta."""
+    s_uuid = to_uuid(sale_id)
+    if not s_uuid:
+        raise HTTPException(status_code=400, detail="ID de venta inválido")
+
     result = await db.execute(
         select(SaleOrder)
         .options(selectinload(SaleOrder.lines), selectinload(SaleOrder.payments))
-        .where(SaleOrder.id == sale_id, SaleOrder.is_deleted == False)
+        .where(SaleOrder.id == s_uuid, SaleOrder.is_deleted == False)
     )
     sale = result.scalar_one_or_none()
     if not sale:
@@ -314,41 +608,3 @@ async def get_sale(
             for p in sale.payments
         ],
     }
-
-
-@router.post("/{sale_id}/cancel")
-async def cancel_sale(
-    sale_id: str,
-    db: AsyncSession = Depends(get_db),
-    current_user=Depends(get_current_user),
-):
-    """Cancelar una venta y revertir inventario."""
-    result = await db.execute(
-        select(SaleOrder)
-        .options(selectinload(SaleOrder.lines))
-        .where(SaleOrder.id == sale_id)
-    )
-    sale = result.scalar_one_or_none()
-    if not sale:
-        raise HTTPException(status_code=404, detail="Venta no encontrada")
-
-    if sale.state == SaleState.CANCELLED:
-        raise HTTPException(status_code=400, detail="La venta ya está cancelada")
-
-    # Revertir movimientos de inventario
-    inv_service = InventoryService(db)
-    for line in sale.lines:
-        await inv_service.create_move(
-            warehouse_id=sale.warehouse_id,
-            product_id=uuid.UUID(str(line.product_id)),
-            move_type=StockMoveType.RETURN_SALE,
-            qty=line.qty - line.qty_returned,
-            reference=f"CANCEL-{sale.number}",
-            reference_id=sale.id,
-            user_id=current_user.id,
-        )
-
-    sale.state = SaleState.CANCELLED
-    await db.commit()
-
-    return {"message": f"Venta {sale.number} cancelada correctamente"}

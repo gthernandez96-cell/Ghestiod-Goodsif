@@ -8,15 +8,21 @@ window.POSUtils = {
     return 'Q ' + Number(amount || 0).toFixed(2);
   },
 
-  formatDate(dateString) {
+  formatDate(dateString, includeTime = false) {
     if (!dateString) return '';
+    if (typeof dateString === 'string' && /^\d{2}\/\d{2}\/\d{4}/.test(dateString)) {
+      return dateString;
+    }
     const d = new Date(dateString);
-    return d.toLocaleDateString('es-GT', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    if (isNaN(d.getTime())) return String(dateString);
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    if (!includeTime) {
+      return `${day}/${month}/${year}`;
+    }
+    const hours = String(d.getHours()).padStart(2, '0');
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    return `${day}/${month}/${year} ${hours}:${minutes}`;
   }
 };

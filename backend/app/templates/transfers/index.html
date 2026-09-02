@@ -3,77 +3,343 @@
 
 {% block title %}Traslados de Inventario — POS Empresarial{% endblock %}
 
+{% block extra_css %}
+<style>
+  /* =============================================
+     EXECUTIVE TRANSFERS & LOGISTICS STYLES
+  ============================================= */
+  .tr-kpi-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 16px 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .tr-kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.06);
+  }
+
+  .tr-search-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 380px;
+    max-width: 100%;
+  }
+  .tr-search-input {
+    width: 100%;
+    background: #ffffff !important;
+    border: 1.5px solid #cbd5e1 !important;
+    border-radius: 8px !important;
+    padding: 8px 34px 8px 38px !important;
+    font-size: 13.5px !important;
+    font-weight: 600 !important;
+    color: #1e293b !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+    transition: all 0.2s ease !important;
+    outline: none !important;
+  }
+  .tr-search-input:focus {
+    border-color: #714B67 !important;
+    box-shadow: 0 0 0 3px rgba(113, 75, 103, 0.15) !important;
+  }
+
+  .filter-pill {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12.5px;
+    font-weight: 700;
+    cursor: pointer;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    color: #475569;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .filter-pill:hover {
+    background: #f1f5f9;
+    color: #1e293b;
+  }
+  .filter-pill.active {
+    background: #714B67;
+    color: #ffffff;
+    border-color: #714B67;
+    box-shadow: 0 2px 8px rgba(113, 75, 103, 0.25);
+  }
+</style>
+{% endblock %}
+
 {% block content %}
 <div x-data="transfersPage()" x-init="init()">
-  <div class="page-header">
-    <div>
-      <h1 class="page-title">Traslados Internos</h1>
-      <p class="page-subtitle">Envío y recepción de stock entre sucursales y bodegas</p>
+  
+  <!-- ===== TOP HEADER BAR ===== -->
+  <div style="margin:-20px -24px 20px -24px; padding:14px 24px; background:#ffffff; border-bottom:1px solid #e2e8f0; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+    
+    <!-- Left: Actions & Title -->
+    <div style="display:flex; align-items:center; gap:12px;">
+      <a href="/transfers/new" class="btn btn-primary" style="background:#714B67; color:#ffffff; font-weight:800; border-radius:8px; padding:8px 20px; border:none; box-shadow:0 2px 8px rgba(113,75,103,0.25); display:flex; align-items:center; gap:6px; cursor:pointer; text-decoration:none;">
+        <i class="ph ph-plus" style="font-weight:800;"></i> Nuevo Traslado
+      </a>
+      <a href="/warehouses" class="btn btn-secondary" style="background:#f8fafc; color:#334155; border:1px solid #cbd5e1; font-weight:700; border-radius:8px; padding:7px 14px; font-size:12.5px; text-decoration:none; display:flex; align-items:center; gap:6px;">
+        <i class="ph ph-warehouse" style="color:#714B67;"></i> Gestionar Bodegas
+      </a>
+      <div style="font-size:15px; font-weight:800; color:#1e293b; display:flex; align-items:center; gap:8px; margin-left:6px;">
+        <span>Traslados de Inventario entre Bodegas</span>
+      </div>
     </div>
-    <div class="flex gap-2">
-      <button class="btn btn-primary" @click="showNewTransferModal = true">
-        <i class="ph ph-arrows-left-right"></i> Solicitar Traslado
+
+    <!-- Center: Search Input -->
+    <div class="tr-search-container">
+      <i class="ph ph-magnifying-glass" style="position:absolute; left:12px; color:#714B67; font-size:17px; font-weight:800; pointer-events:none;"></i>
+      <input
+        type="text"
+        class="tr-search-input"
+        placeholder="Buscar por código, bodega origen/destino..."
+        x-model="search"
+        @input.debounce.250ms="applyFilters()"
+      >
+      <i class="ph ph-x-circle" style="position:absolute; right:12px; color:#94a3b8; font-size:17px; cursor:pointer;" x-show="search.length > 0" @click="search = ''; applyFilters()"></i>
+    </div>
+
+  </div>
+
+  <!-- ===== 2. SEGMENTATION & FILTER PILLS WITH RESUMEN BUTTON ===== -->
+  <div style="position:relative; display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:20px;">
+    <span style="font-size:12px; font-weight:800; color:#64748b; margin-right:4px;">FILTRAR:</span>
+    <button class="filter-pill" :class="filterType === 'all' ? 'active' : ''" @click="filterType = 'all'; applyFilters()">
+      <span>Todos</span>
+      <span style="background:rgba(0,0,0,0.08); padding:1px 6px; border-radius:10px; font-size:11px;" x-text="transfers.length"></span>
+    </button>
+    <button class="filter-pill" :class="filterType === 'in_transit' ? 'active' : ''" @click="filterType = 'in_transit'; applyFilters()" style="color:#d97706;">
+      <span>🚚 En Tránsito</span>
+    </button>
+    <button class="filter-pill" :class="filterType === 'received' ? 'active' : ''" @click="filterType = 'received'; applyFilters()" style="color:#15803d;">
+      <span>✅ Recibidos</span>
+    </button>
+
+    <!-- Right Controls: Resumen KPI Button -->
+    <div style="margin-left:auto; display:flex; align-items:center; gap:10px; position:relative;">
+      <button
+        type="button"
+        @click="showKpis = !showKpis"
+        style="
+          display:inline-flex; align-items:center; gap:7px;
+          padding:6px 14px;
+          background:linear-gradient(135deg, #714B67 0%, #9b6b8f 100%);
+          border:none; border-radius:20px;
+          font-size:11.5px; font-weight:800; color:#ffffff;
+          cursor:pointer; transition:all 0.22s cubic-bezier(0.4,0,0.2,1);
+          box-shadow:0 2px 10px rgba(113,75,103,0.3);
+          letter-spacing:0.3px; white-space:nowrap;
+        "
+        onmouseover="this.style.boxShadow='0 4px 16px rgba(113,75,103,0.5)'; this.style.transform='translateY(-1px)'"
+        onmouseout="this.style.boxShadow='0 2px 10px rgba(113,75,103,0.3)'; this.style.transform='translateY(0)'"
+      >
+        <i class="ph ph-chart-bar" style="font-size:15px;"></i>
+        <span x-text="showKpis ? 'Ocultar resumen' : 'Resumen'"></span>
+        <i
+          class="ph ph-caret-down"
+          style="font-size:12px; transition:transform 0.25s ease;"
+          :style="showKpis ? 'transform:rotate(180deg)' : 'transform:rotate(0deg)'"
+        ></i>
       </button>
+
+      <!-- Floating KPI Dropdown Panel (alineado a la derecha) -->
+      <div
+        x-show="showKpis"
+        @click.outside="showKpis = false"
+        x-transition:enter="transition ease-out duration-200"
+        x-transition:enter-start="opacity-0 scale-95"
+        x-transition:enter-end="opacity-100 scale-100"
+        x-transition:leave="transition ease-in duration-150"
+        x-transition:leave-start="opacity-100 scale-100"
+        x-transition:leave-end="opacity-0 scale-95"
+        style="
+          position:absolute; top:calc(100% + 8px); right:0; z-index:999;
+          background:#ffffff; border:1.5px solid #e2e8f0; border-radius:14px;
+          box-shadow:0 12px 40px -8px rgba(0,0,0,0.15), 0 4px 14px -4px rgba(0,0,0,0.08);
+          padding:14px; display:grid; grid-template-columns:repeat(4, 1fr);
+          gap:10px; width:820px; max-width:90vw;
+        "
+        x-cloak
+      >
+        <div class="tr-kpi-card" style="margin:0; padding:12px 14px; border-left:3px solid #714B67;">
+          <div>
+            <div style="font-size:10.5px; font-weight:800; color:#714B67; text-transform:uppercase; letter-spacing:0.5px;">Total Traslados</div>
+            <div style="font-size:20px; font-weight:900; color:#1e293b; margin-top:3px;" x-text="kpis.total_transfers || 0">0</div>
+            <div style="font-size:10.5px; color:#64748b; margin-top:2px;">Registrados</div>
+          </div>
+          <div style="width:36px; height:36px; border-radius:9px; background:#f4eff3; color:#714B67; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;">
+            <i class="ph ph-arrows-left-right"></i>
+          </div>
+        </div>
+
+        <div class="tr-kpi-card" style="margin:0; padding:12px 14px; border-left:3px solid #f59e0b;">
+          <div>
+            <div style="font-size:10.5px; font-weight:800; color:#d97706; text-transform:uppercase; letter-spacing:0.5px;">En Tránsito</div>
+            <div style="font-size:20px; font-weight:900; color:#d97706; margin-top:3px;" x-text="kpis.in_transit_count || 0">0</div>
+            <div style="font-size:10.5px; color:#64748b; margin-top:2px;">Despachados</div>
+          </div>
+          <div style="width:36px; height:36px; border-radius:9px; background:#fef3c7; color:#d97706; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;">
+            <i class="ph ph-truck"></i>
+          </div>
+        </div>
+
+        <div class="tr-kpi-card" style="margin:0; padding:12px 14px; border-left:3px solid #10b981;">
+          <div>
+            <div style="font-size:10.5px; font-weight:800; color:#047857; text-transform:uppercase; letter-spacing:0.5px;">Recibidos</div>
+            <div style="font-size:20px; font-weight:900; color:#059669; margin-top:3px;" x-text="kpis.received_count || 0">0</div>
+            <div style="font-size:10.5px; color:#64748b; margin-top:2px;">Completados</div>
+          </div>
+          <div style="width:36px; height:36px; border-radius:9px; background:#dcfce7; color:#15803d; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;">
+            <i class="ph ph-check-circle"></i>
+          </div>
+        </div>
+
+        <div class="tr-kpi-card" style="margin:0; padding:12px 14px; border-left:3px solid #0284c7;">
+          <div>
+            <div style="font-size:10.5px; font-weight:800; color:#0369a1; text-transform:uppercase; letter-spacing:0.5px;">Bodegas</div>
+            <div style="font-size:20px; font-weight:900; color:#0284c7; margin-top:3px;" x-text="kpis.active_warehouses_count || 0">0</div>
+            <div style="font-size:10.5px; color:#64748b; margin-top:2px;">Conectadas</div>
+          </div>
+          <div style="width:36px; height:36px; border-radius:9px; background:#e0f2fe; color:#0284c7; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;">
+            <i class="ph ph-warehouse"></i>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
-  <div class="card p-0" style="overflow:hidden">
+  <!-- ===== 3. TRANSFERS TABLE VIEW ===== -->
+  <div class="card p-0" style="overflow:hidden; background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
     <div class="table-responsive">
-      <table class="table">
+      <table class="table" style="width:100%; border-collapse:collapse;">
         <thead>
-          <tr>
-            <th>Documento</th>
-            <th>Origen</th>
-            <th>Destino</th>
-            <th>Fecha</th>
-            <th>Estado</th>
-            <th class="text-right">Acciones</th>
+          <tr style="border-bottom:2px solid #e2e8f0; background:#f8fafc;">
+            <th style="padding:14px 18px; text-align:left; color:#475569; font-size:11px; text-transform:uppercase; font-weight:800;">Documento</th>
+            <th style="padding:14px 18px; text-align:left; color:#475569; font-size:11px; text-transform:uppercase; font-weight:800;">Bodega Origen</th>
+            <th style="padding:14px 18px; text-align:left; color:#475569; font-size:11px; text-transform:uppercase; font-weight:800;">Bodega Destino</th>
+            <th style="padding:14px 18px; text-align:center; color:#475569; font-size:11px; text-transform:uppercase; font-weight:800;">Cant. Artículos</th>
+            <th style="padding:14px 18px; text-align:left; color:#475569; font-size:11px; text-transform:uppercase; font-weight:800;">Fecha</th>
+            <th style="padding:14px 18px; text-align:center; color:#475569; font-size:11px; text-transform:uppercase; font-weight:800;">Estado</th>
+            <th style="padding:14px 18px; text-align:right; color:#475569; font-size:11px; text-transform:uppercase; font-weight:800;">Acción</th>
           </tr>
         </thead>
         <tbody>
-          <template x-for="t in transfers" :key="t.id">
-            <tr>
-              <td class="font-bold text-white" x-text="t.number"></td>
-              <td x-text="t.source_warehouse_name || 'Bodega Origen'"></td>
-              <td x-text="t.dest_warehouse_name || 'Bodega Destino'"></td>
-              <td x-text="t.date || 'Hoy'"></td>
-              <td>
-                <span class="badge badge-warning" x-text="t.state || 'Pendiente'"></span>
+          <template x-for="t in filteredTransfers" :key="t.id">
+            <tr style="border-bottom:1px solid #f1f5f9; transition:background 0.15s; cursor:pointer;" @click="openTransferDetail(t)" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#ffffff'">
+              <td style="padding:14px 18px;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <div style="width:32px; height:32px; border-radius:8px; background:#f4eff3; color:#714B67; font-weight:800; font-size:14px; display:flex; align-items:center; justify-content:center;">
+                    <i class="ph ph-arrows-left-right"></i>
+                  </div>
+                  <span style="font-weight:800; color:#714B67; font-size:13.5px;" x-text="t.number"></span>
+                </div>
               </td>
-              <td class="text-right">
-                <button class="btn btn-ghost btn-sm btn-icon">
-                  <i class="ph ph-eye"></i>
+              <td style="padding:14px 18px; font-weight:700; color:#c2410c;">
+                <div x-text="t.origin_warehouse_name"></div>
+                <div style="font-size:11px; color:#64748b;" x-text="t.origin_branch_name"></div>
+              </td>
+              <td style="padding:14px 18px; font-weight:700; color:#047857;">
+                <div x-text="t.dest_warehouse_name"></div>
+                <div style="font-size:11px; color:#64748b;" x-text="t.dest_branch_name"></div>
+              </td>
+              <td style="padding:14px 18px; text-align:center; font-weight:800; color:#334155;" x-text="(t.total_items || 0) + ' unid.'"></td>
+              <td style="padding:14px 18px; color:#64748b; font-size:13px;" x-text="t.date"></td>
+              <td style="padding:14px 18px; text-align:center;">
+                <span 
+                  style="font-size:11.5px; font-weight:800; padding:4px 12px; border-radius:12px; display:inline-block;"
+                  :class="t.state === 'received' ? 'bg-emerald-100 text-emerald-800' : (t.state === 'sent' ? 'bg-amber-100 text-amber-800' : 'bg-purple-100 text-purple-800')"
+                  x-text="t.state === 'received' ? '✓ Recibido' : (t.state === 'sent' ? '🚚 En Tránsito' : '📄 Solicitud')"
+                ></span>
+              </td>
+              <td style="padding:14px 18px; text-align:right;">
+                <button class="btn btn-ghost btn-sm" style="background:#f1f5f9; color:#714B67; font-weight:800; border-radius:6px; padding:4px 10px; border:none; cursor:pointer;" @click.stop="openTransferDetail(t)">
+                  Ver Ficha &rarr;
                 </button>
               </td>
             </tr>
           </template>
-          <tr x-show="transfers.length === 0">
-            <td colspan="6" class="text-center text-muted py-5">
-              <i class="ph ph-arrows-left-right" style="font-size:40px;opacity:0.3"></i>
-              <p class="mt-2">No se registran traslados pendientes</p>
+
+          <tr x-show="filteredTransfers.length === 0">
+            <td colspan="7" style="text-align:center; padding:60px 20px; color:#64748b;">
+              <i class="ph ph-truck" style="font-size:44px; color:#cbd5e1;"></i>
+              <p style="margin-top:10px; font-weight:800; font-size:16px; color:#1e293b;">No se encontraron traslados</p>
+              <p style="font-size:13px; color:#64748b; margin-top:4px;">Crea tu primer traslado con el botón superior "+ Nuevo Traslado".</p>
             </td>
           </tr>
         </tbody>
       </table>
     </div>
   </div>
+
 </div>
 
 <script>
   function transfersPage() {
     return {
       transfers: [],
-      showNewTransferModal: false,
+      filteredTransfers: [],
+      filterType: 'all',
+      search: '',
+      showKpis: false,
+      kpis: {
+        total_transfers: 0,
+        in_transit_count: 0,
+        received_count: 0,
+        active_warehouses_count: 0
+      },
 
       async init() {
+        await this.loadKPIs();
         await this.loadTransfers();
+      },
+
+      async loadKPIs() {
+        try {
+          const res = await API.get('/transfers/kpis');
+          if (res) this.kpis = res;
+        } catch(e) {}
       },
 
       async loadTransfers() {
         try {
           const res = await API.get('/transfers/');
-          this.transfers = res.items || res || [];
+          this.transfers = res || [];
+          this.applyFilters();
         } catch(e) {}
+      },
+
+      applyFilters() {
+        let list = this.transfers;
+
+        if (this.filterType === 'in_transit') {
+          list = list.filter(t => t.state === 'sent' || t.state === 'in_transit');
+        } else if (this.filterType === 'received') {
+          list = list.filter(t => t.state === 'received');
+        }
+
+        if (this.search) {
+          const q = this.search.toLowerCase();
+          list = list.filter(t => 
+            (t.number && t.number.toLowerCase().includes(q)) ||
+            (t.origin_warehouse_name && t.origin_warehouse_name.toLowerCase().includes(q)) ||
+            (t.dest_warehouse_name && t.dest_warehouse_name.toLowerCase().includes(q))
+          );
+        }
+
+        this.filteredTransfers = list;
+      },
+
+      openTransferDetail(t) {
+        window.location.href = `/transfers/${t.id}`;
       }
     }
   }

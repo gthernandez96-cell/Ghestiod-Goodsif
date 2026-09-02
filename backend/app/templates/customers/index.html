@@ -1,94 +1,1246 @@
 {% set show_layout = true %}
 {% extends "base.html" %}
 
-{% block title %}Clientes y Proveedores — POS Empresarial{% endblock %}
+{% block title %}Directorio de Clientes y Proveedores — POS Empresarial{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* =============================================
+     EXECUTIVE CUSTOMER & PARTNER CRM STYLES
+  ============================================= */
+  .crm-kpi-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 16px 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .crm-kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.06);
+  }
+
+  .odoo-contact-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    transition: all 0.15s ease;
+    position: relative;
+    cursor: pointer;
+    min-height: 135px;
+  }
+  .odoo-contact-card:hover {
+    transform: translateY(-2px);
+    border-color: #714B67;
+    box-shadow: 0 8px 20px rgba(113, 75, 103, 0.12);
+  }
+
+  .odoo-search-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 380px;
+    max-width: 100%;
+  }
+  .odoo-search-input {
+    width: 100%;
+    background: #ffffff !important;
+    border: 1.5px solid #cbd5e1 !important;
+    border-radius: 8px !important;
+    padding: 8px 34px 8px 38px !important;
+    font-size: 13.5px !important;
+    font-weight: 600 !important;
+    color: #1e293b !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+    transition: all 0.2s ease !important;
+    outline: none !important;
+  }
+  .odoo-search-input:focus {
+    border-color: #714B67 !important;
+    box-shadow: 0 0 0 3px rgba(113, 75, 103, 0.15) !important;
+  }
+
+  .filter-pill {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12.5px;
+    font-weight: 700;
+    cursor: pointer;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    color: #475569;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .filter-pill:hover {
+    background: #f1f5f9;
+    color: #1e293b;
+  }
+  .filter-pill.active {
+    background: #714B67;
+    color: #ffffff;
+    border-color: #714B67;
+    box-shadow: 0 2px 8px rgba(113, 75, 103, 0.25);
+  }
+
+  .view-switcher-btn {
+    padding: 7px 12px;
+    border: none;
+    cursor: pointer;
+    font-size: 15px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    background: #ffffff;
+    color: #64748b;
+  }
+  .view-switcher-btn.active {
+    background: #714B67 !important;
+    color: #ffffff !important;
+  }
+
+  /* 360 Tab Navigation */
+  .crm-tab-btn {
+    padding: 10px 18px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #64748b;
+    border: none;
+    border-bottom: 2px solid transparent;
+    background: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.15s ease;
+  }
+  .crm-tab-btn:hover {
+    color: #714B67;
+    background: rgba(113, 75, 103, 0.04);
+  }
+  .crm-tab-btn.active {
+    color: #714B67;
+    border-bottom-color: #714B67;
+    background: rgba(113, 75, 103, 0.06);
+  }
+
+  .quick-action-btn {
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 11.5px;
+    font-weight: 700;
+    cursor: pointer;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    color: #334155;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.15s ease;
+  }
+  .quick-action-btn:hover {
+    background: #f8fafc;
+    border-color: #94a3b8;
+  }
+  .quick-action-btn.whatsapp {
+    background: #dcfce7;
+    color: #166534;
+    border-color: #86efac;
+  }
+  .quick-action-btn.whatsapp:hover {
+    background: #bbf7d0;
+  }
+  .quick-action-btn.pay {
+    background: #ffedd5;
+    color: #9a3412;
+    border-color: #fed7aa;
+  }
+  .quick-action-btn.pay:hover {
+    background: #fed7aa;
+  }
+</style>
+{% endblock %}
 
 {% block content %}
 <div x-data="partnersPage()" x-init="init()">
-  <div class="page-header">
-    <div>
-      <h1 class="page-title">Directorio de Clientes</h1>
-      <p class="page-subtitle">Gestión de datos de facturación FEL, NIT y contactos</p>
+  
+  <!-- ===== TOP HEADER BAR ===== -->
+  <div style="margin:-20px -24px 20px -24px; padding:14px 24px; background:#ffffff; border-bottom:1px solid #e2e8f0; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+    
+    <!-- Left: Actions & Title -->
+    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+      <template x-if="canManagePartners">
+        <a href="/customers/new" class="btn btn-primary" style="background:#714B67; color:#ffffff; font-weight:800; border-radius:8px; padding:8px 18px; border:none; box-shadow:0 2px 8px rgba(113,75,103,0.25); display:flex; align-items:center; gap:6px; cursor:pointer; text-decoration:none;">
+          <i class="ph ph-plus" style="font-weight:800;"></i> Nuevo Contacto
+        </a>
+      </template>
+      <template x-if="canManagePartners">
+        <button class="btn btn-secondary" style="background:#ffffff; color:#0f766e; border:1.5px solid #0d9488; font-weight:700; border-radius:8px; padding:7px 14px; font-size:12.5px; display:flex; align-items:center; gap:6px; cursor:pointer;" @click="showImportModal = true">
+          <i class="ph ph-file-arrow-up" style="font-size:16px; color:#0d9488;"></i> Importar CSV
+        </button>
+      </template>
+      <a href="/api/v1/partners/export-csv" class="btn btn-secondary" style="background:#ffffff; color:#334155; border:1px solid #cbd5e1; font-weight:700; border-radius:8px; padding:7px 14px; font-size:12.5px; display:flex; align-items:center; gap:6px; cursor:pointer; text-decoration:none;" download>
+        <i class="ph ph-file-arrow-down" style="font-size:16px; color:#0d9488;"></i> Exportar Excel / CSV
+      </a>
+      <div style="font-size:15px; font-weight:800; color:#1e293b; display:flex; align-items:center; gap:8px; margin-left:4px;">
+        <span>Directorio Empresarial 360°</span>
+      </div>
     </div>
-    <div class="flex gap-2">
-      <button class="btn btn-primary" @click="showModal = true">
-        <i class="ph ph-user-plus"></i> Nuevo Cliente
+
+    <!-- Center: Search Input -->
+    <div class="odoo-search-container">
+      <i class="ph ph-magnifying-glass" style="position:absolute; left:12px; color:#714B67; font-size:17px; font-weight:800; pointer-events:none;"></i>
+      <input
+        type="text"
+        class="odoo-search-input"
+        placeholder="Buscar por NIT, nombre o teléfono..."
+        x-model="search"
+        @input.debounce.250ms="loadPartners()"
+      >
+      <i class="ph ph-x-circle" style="position:absolute; right:12px; color:#94a3b8; font-size:17px; cursor:pointer;" x-show="search.length > 0" @click="search = ''; loadPartners()"></i>
+    </div>
+
+    <!-- Right: View Switcher -->
+    <div style="display:flex; align-items:center; gap:10px;">
+      <div style="display:flex; border:1px solid #cbd5e1; border-radius:8px; overflow:hidden; background:#ffffff; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+        <button
+          class="view-switcher-btn"
+          :class="viewMode === 'kanban' ? 'active' : ''"
+          @click="viewMode = 'kanban'"
+          title="Vista Tarjetas 360°"
+        >
+          <i class="ph ph-squares-four"></i>
+        </button>
+        <button
+          class="view-switcher-btn"
+          :class="viewMode === 'list' ? 'active' : ''"
+          @click="viewMode = 'list'"
+          title="Vista Lista / Tabla"
+          style="border-left:1px solid #cbd5e1;"
+        >
+          <i class="ph ph-list-bullets"></i>
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ===== 2. SEGMENTATION & FILTER PILLS & FLOATING KPI POPOVER ===== -->
+  <div style="position:relative; display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:20px;">
+    
+    <span style="font-size:12px; font-weight:800; color:#64748b; margin-right:4px;">FILTRAR:</span>
+    <button class="filter-pill" :class="filterType === 'all' ? 'active' : ''" @click="filterType = 'all'; applyFilters()">
+      <span>Todos</span>
+      <span style="background:rgba(0,0,0,0.08); padding:1px 6px; border-radius:10px; font-size:11px;" x-text="partners.length"></span>
+    </button>
+    <button class="filter-pill" :class="filterType === 'customers' ? 'active' : ''" @click="filterType = 'customers'; applyFilters()">
+      <span>👤 Clientes</span>
+    </button>
+    <button class="filter-pill" :class="filterType === 'suppliers' ? 'active' : ''" @click="filterType = 'suppliers'; applyFilters()">
+      <span>🏭 Proveedores</span>
+    </button>
+    <button class="filter-pill" :class="filterType === 'with_debt' ? 'active' : ''" @click="filterType = 'with_debt'; applyFilters()" style="color:#c2410c;">
+      <span>⚠️ Con Saldo Pendiente</span>
+    </button>
+    <button class="filter-pill" :class="filterType === 'credit_active' ? 'active' : ''" @click="filterType = 'credit_active'; applyFilters()">
+      <span>💳 Con Línea de Crédito</span>
+    </button>
+    <button class="filter-pill" :class="filterType === 'companies' ? 'active' : ''" @click="filterType = 'companies'; applyFilters()">
+      <span>🏢 Empresas (S.A.)</span>
+    </button>
+
+    <!-- Right Controls: Resumen Button (al par derecho) -->
+    <div style="margin-left:auto; display:flex; align-items:center; gap:10px; position:relative;">
+      <button
+        type="button"
+        @click="showKpis = !showKpis"
+        style="
+          display:inline-flex; align-items:center; gap:7px;
+          padding:6px 16px;
+          background:linear-gradient(135deg, #714B67 0%, #9b6b8f 100%);
+          border:none; border-radius:20px;
+          font-size:12px; font-weight:800; color:#ffffff;
+          cursor:pointer; transition:all 0.22s cubic-bezier(0.4,0,0.2,1);
+          box-shadow:0 2px 10px rgba(113,75,103,0.3);
+          letter-spacing:0.3px; white-space:nowrap;
+        "
+        onmouseover="this.style.boxShadow='0 4px 16px rgba(113,75,103,0.5)'; this.style.transform='translateY(-1px)'"
+        onmouseout="this.style.boxShadow='0 2px 10px rgba(113,75,103,0.3)'; this.style.transform='translateY(0)'"
+      >
+        <i class="ph ph-chart-bar" style="font-size:15px;"></i>
+        <span x-text="showKpis ? 'Ocultar resumen' : 'Resumen'"></span>
+        <i
+          class="ph ph-caret-down"
+          style="font-size:12px; transition:transform 0.25s ease;"
+          :style="showKpis ? 'transform:rotate(180deg)' : 'transform:rotate(0deg)'"
+        ></i>
       </button>
+
+      <!-- Floating Popover Dropdown Panel (alineado a la derecha) -->
+      <div
+        x-show="showKpis"
+        @click.outside="showKpis = false"
+        x-transition:enter="transition ease-out duration-200"
+        x-transition:enter-start="opacity-0 scale-95"
+        x-transition:enter-end="opacity-100 scale-100"
+        x-transition:leave="transition ease-in duration-150"
+        x-transition:leave-start="opacity-100 scale-100"
+        x-transition:leave-end="opacity-0 scale-95"
+        style="
+          position:absolute; top:calc(100% + 8px); right:0; z-index:999;
+          background:#ffffff; border:1.5px solid #e2e8f0; border-radius:14px;
+          box-shadow:0 14px 45px -8px rgba(0,0,0,0.18), 0 4px 16px -4px rgba(0,0,0,0.08);
+          padding:12px; display:flex; flex-direction:column; gap:8px;
+          width:460px; max-width:95vw;
+        "
+        x-cloak
+      >
+        <!-- Card 1: Directorio Activo -->
+        <div style="background:#ffffff; border:1px solid #e2e8f0; border-left:4px solid #0284c7; border-radius:10px; padding:12px 16px; display:flex; align-items:center; justify-content:space-between;">
+          <div>
+            <div style="font-size:10.5px; font-weight:800; color:#0369a1; text-transform:uppercase; letter-spacing:0.5px;">Directorio Activo</div>
+            <div style="font-size:20px; font-weight:900; color:#1e293b; margin-top:2px;" x-text="kpis.total_contacts || 0">0</div>
+            <div style="font-size:11px; color:#64748b; margin-top:2px;">
+              <span style="color:#0d9488; font-weight:700;" x-text="(kpis.total_customers || 0) + ' Clientes'"></span> · 
+              <span style="color:#6366f1; font-weight:700;" x-text="(kpis.total_suppliers || 0) + ' Prov.'"></span>
+            </div>
+          </div>
+          <div style="width:38px; height:38px; border-radius:10px; background:#e0f2fe; color:#0369a1; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;">
+            <i class="ph ph-users-three"></i>
+          </div>
+        </div>
+
+        <!-- Card 2: Cartera por Cobrar -->
+        <div style="background:#ffffff; border:1px solid #e2e8f0; border-left:4px solid #f97316; border-radius:10px; padding:12px 16px; display:flex; align-items:center; justify-content:space-between;">
+          <div>
+            <div style="font-size:10.5px; font-weight:800; color:#c2410c; text-transform:uppercase; letter-spacing:0.5px;">Cartera por Cobrar</div>
+            <div style="font-size:20px; font-weight:900; color:#ea580c; margin-top:2px;" x-text="'Q ' + Number(kpis.total_debt || 0).toLocaleString('es-GT', {minimumFractionDigits:2, maximumFractionDigits:2})">Q 0.00</div>
+            <div style="font-size:11px; color:#64748b; margin-top:2px;">
+              <span style="font-weight:700; color:#ea580c;" x-text="(kpis.debtor_customers_count || 0) + ' clientes con deuda'"></span>
+            </div>
+          </div>
+          <div style="width:38px; height:38px; border-radius:10px; background:#ffedd5; color:#ea580c; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;">
+            <i class="ph ph-coins"></i>
+          </div>
+        </div>
+
+        <!-- Card 3: Crédito Global Otorgado -->
+        <div style="background:#ffffff; border:1px solid #e2e8f0; border-left:4px solid #10b981; border-radius:10px; padding:12px 16px; display:flex; align-items:center; justify-content:space-between;">
+          <div>
+            <div style="font-size:10.5px; font-weight:800; color:#047857; text-transform:uppercase; letter-spacing:0.5px;">Crédito Global Otorgado</div>
+            <div style="font-size:20px; font-weight:900; color:#1e293b; margin-top:2px;" x-text="'Q ' + Number(kpis.total_credit_limit || 0).toLocaleString('es-GT', {minimumFractionDigits:2, maximumFractionDigits:2})">Q 0.00</div>
+            <div style="font-size:11px; color:#64748b; margin-top:2px;">
+              <span>Disponible: </span>
+              <strong style="color:#10b981;" x-text="'Q ' + Number(kpis.total_available_credit || 0).toLocaleString('es-GT', {minimumFractionDigits:2, maximumFractionDigits:2})"></strong>
+            </div>
+          </div>
+          <div style="width:38px; height:38px; border-radius:10px; background:#dcfce7; color:#15803d; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;">
+            <i class="ph ph-credit-card"></i>
+          </div>
+        </div>
+
+        <!-- Card 4: Uso de Línea de Crédito -->
+        <div style="background:#ffffff; border:1px solid #e2e8f0; border-left:4px solid #714B67; border-radius:10px; padding:12px 16px; display:flex; align-items:center; justify-content:space-between;">
+          <div style="flex:1; margin-right:12px;">
+            <div style="font-size:10.5px; font-weight:800; color:#714B67; text-transform:uppercase; letter-spacing:0.5px;">Uso de Línea de Crédito</div>
+            <div style="font-size:20px; font-weight:900; color:#714B67; margin-top:2px;" x-text="creditUtilizationPct + '%'">0%</div>
+            <div style="width:100%; background:#e2e8f0; height:6px; border-radius:3px; margin-top:6px; overflow:hidden;">
+              <div style="background:#714B67; height:100%; border-radius:3px; transition:width 0.3s;" :style="'width: ' + creditUtilizationPct + '%'"></div>
+            </div>
+          </div>
+          <div style="width:38px; height:38px; border-radius:10px; background:#fae8ff; color:#a21caf; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;">
+            <i class="ph ph-chart-pie-slice"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ===== 3. KANBAN / ODOO ENTERPRISE CONTACTS VIEW ===== -->
+  <div x-show="viewMode === 'kanban'">
+    <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(320px, 1fr)); gap:14px;">
+      <template x-for="p in filteredPartners" :key="p.id">
+        <div class="odoo-contact-card" @click="openDetailModal(p)">
+          
+          <!-- Odoo Horizontal Card: Left Avatar / Photo -->
+          <div style="width:68px; height:68px; border-radius:10px; background:#f8fafc; border:1px solid #e2e8f0; flex-shrink:0; display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden;">
+            <!-- Customer Image if present -->
+            <template x-if="p.image_url">
+              <img :src="p.image_url" alt="Foto" style="width:100%; height:100%; object-fit:cover;">
+            </template>
+
+            <!-- Fallback Icon if no image (Diseño moderno, limpio y elegante) -->
+            <template x-if="!p.image_url">
+              <div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg, rgba(113,75,103,0.06) 0%, rgba(113,75,103,0.14) 100%);">
+                <i class="ph ph-image-square" style="font-size:32px; color:#714B67; opacity:0.85;"></i>
+              </div>
+            </template>
+
+            <!-- Status dot (Debt vs OK) -->
+            <span 
+              style="position:absolute; bottom:3px; right:3px; width:10px; height:10px; border:2px solid white; border-radius:50%;"
+              :style="(p.balance || 0) > 0 ? 'background:#ef4444;' : 'background:#10b981;'"
+              :title="(p.balance || 0) > 0 ? 'Saldo pendiente: Q ' + Number(p.balance).toFixed(2) : 'Al día'"
+            ></span>
+          </div>
+
+          <!-- Odoo Horizontal Card: Right Details -->
+          <div style="flex:1; min-width:0; display:flex; flex-direction:column; justify-content:space-between; gap:4px;">
+            
+            <div>
+              <!-- Name & Title -->
+              <div style="font-weight:700; font-size:14px; color:#111827; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" x-text="p.name"></div>
+              <div style="font-size:11px; color:#6b7280; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:-1px;" x-text="p.trade_name ? p.trade_name : ''" x-show="p.trade_name"></div>
+
+              <!-- Tags / Monospace NIT (Sin bordes duros) -->
+              <div style="display:flex; align-items:center; gap:6px; margin-top:4px; flex-wrap:wrap;">
+                <span style="font-size:11px; font-weight:700; background:#f1f5f9; color:#475569; padding:2px 8px; border-radius:12px; font-family:monospace;" x-text="'NIT: ' + (p.nit || 'CF')"></span>
+                <span 
+                  style="font-size:11px; font-weight:700; padding:2px 8px; border-radius:12px;"
+                  :style="p.partner_type === 'supplier' ? 'background:#f4eff3; color:#714B67;' : 'background:#ecfdf5; color:#065f46;'" 
+                  x-text="p.partner_type === 'supplier' ? 'Proveedor' : 'Cliente'"
+                ></span>
+              </div>
+
+              <!-- Contact Info (Email, Phone, City) -->
+              <div style="margin-top:6px; display:flex; flex-direction:column; gap:2px; font-size:11.5px; color:#4b5563;">
+                <div style="display:flex; align-items:center; gap:5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" x-show="p.email">
+                  <i class="ph ph-envelope-simple" style="color:#714B67; font-size:13px; flex-shrink:0;"></i>
+                  <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" x-text="p.email"></span>
+                </div>
+                <div style="display:flex; align-items:center; gap:5px;" x-show="p.phone || p.mobile">
+                  <i class="ph ph-phone" style="color:#714B67; font-size:13px; flex-shrink:0;"></i>
+                  <span x-text="p.phone || p.mobile"></span>
+                </div>
+                <div style="display:flex; align-items:center; gap:5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" x-show="p.city || p.address">
+                  <i class="ph ph-map-pin" style="color:#714B67; font-size:13px; flex-shrink:0;"></i>
+                  <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" x-text="p.city ? p.city : p.address"></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Financial Debt Badge (if balance > 0) -->
+            <div 
+              style="margin-top:4px; padding:3px 8px; border-radius:6px; font-size:11px; font-weight:700; display:flex; justify-content:space-between; align-items:center;"
+              :style="(p.balance || 0) > 0 ? 'background:#fef2f2; color:#b91c1c;' : 'background:#f8fafc; color:#64748b;'"
+              x-show="(p.credit_limit || 0) > 0 || (p.balance || 0) > 0"
+            >
+              <span>Saldo: <strong :style="(p.balance || 0) > 0 ? 'color:#dc2626;' : 'color:#15803d;'" x-text="'Q ' + Number(p.balance || 0).toFixed(2)"></strong></span>
+              <span style="font-size:10.5px; font-weight:500;" x-show="(p.credit_limit || 0) > 0" x-text="'Lím: Q ' + Number(p.credit_limit || 0).toFixed(0)"></span>
+            </div>
+
+            <!-- Bottom Quick Actions -->
+            <div style="margin-top:6px; border-top:1px solid #f3f4f6; padding-top:6px; display:flex; align-items:center; justify-content:space-between; gap:6px;">
+              <div style="display:flex; gap:5px;">
+                <button 
+                  type="button" 
+                  class="quick-action-btn whatsapp" 
+                  @click.stop="openWhatsApp(p)"
+                  title="WhatsApp"
+                  style="padding:2px 7px; font-size:11px; border-radius:4px;"
+                  x-show="p.phone || p.mobile"
+                >
+                  <i class="ph ph-whatsapp-logo"></i>
+                </button>
+
+                <button 
+                  type="button" 
+                  class="quick-action-btn pay" 
+                  @click.stop="openPayModal(p)"
+                  title="Registrar Abono"
+                  style="padding:2px 7px; font-size:11px; border-radius:4px;"
+                  x-show="(p.balance || 0) > 0"
+                >
+                  <i class="ph ph-hand-coins"></i> Abonar
+                </button>
+              </div>
+
+              <span style="font-size:11px; font-weight:700; color:#714B67; display:flex; align-items:center; gap:2px;">
+                Ficha 360° &rarr;
+              </span>
+            </div>
+
+          </div>
+
+        </div>
+      </template>
+    </div>
+
+    <!-- Empty State -->
+    <div x-show="filteredPartners.length === 0" style="text-align:center; padding:60px 20px; color:#64748b; background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; margin-top:10px;">
+      <i class="ph ph-users" style="font-size:48px; color:#94a3b8;"></i>
+      <p style="margin-top:10px; font-weight:800; font-size:16px; color:#1e293b;">No se encontraron contactos</p>
+      <p style="font-size:13px; color:#64748b; margin-top:4px;">Intenta cambiar el filtro de búsqueda o crea un nuevo cliente.</p>
     </div>
   </div>
 
-  <div class="card mb-4">
-    <div class="flex gap-3 items-center">
-      <div style="flex:1;position:relative">
-        <i class="ph ph-magnifying-glass search-icon" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted)"></i>
-        <input
-          type="text"
-          class="form-control"
-          style="padding-left:36px"
-          placeholder="Buscar por NIT, nombre o teléfono..."
-          x-model="search"
-          @input.debounce.300ms="loadPartners()"
-        >
+  <!-- ===== 4. LIST TABLE VIEW ===== -->
+  <div x-show="viewMode === 'list'">
+    <div class="card p-0" style="overflow:hidden; background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+      <div class="table-responsive">
+        <table class="table" style="width:100%; border-collapse:collapse;">
+          <thead>
+            <tr style="border-bottom:2px solid #e2e8f0; background:#f8fafc;">
+              <th style="padding:14px 18px; text-align:left; color:#475569; font-size:11px; text-transform:uppercase; font-weight:800;">Contacto / Razón Social</th>
+              <th style="padding:14px 18px; text-align:left; color:#475569; font-size:11px; text-transform:uppercase; font-weight:800;">NIT Guatemala</th>
+              <th style="padding:14px 18px; text-align:left; color:#475569; font-size:11px; text-transform:uppercase; font-weight:800;">Tipo</th>
+              <th style="padding:14px 18px; text-align:left; color:#475569; font-size:11px; text-transform:uppercase; font-weight:800;">Teléfono</th>
+              <th style="padding:14px 18px; text-align:right; color:#475569; font-size:11px; text-transform:uppercase; font-weight:800;">Saldo Adeudado</th>
+              <th style="padding:14px 18px; text-align:right; color:#475569; font-size:11px; text-transform:uppercase; font-weight:800;">Límite Crédito</th>
+              <th style="padding:14px 18px; text-align:right; color:#475569; font-size:11px; text-transform:uppercase; font-weight:800;">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="p in filteredPartners" :key="p.id">
+              <tr style="border-bottom:1px solid #f1f5f9; transition:background 0.15s; cursor:pointer;" @click="openDetailModal(p)" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#ffffff'">
+                <td style="padding:14px 18px;">
+                  <div style="display:flex; align-items:center; gap:10px;">
+                    <template x-if="p.image_url">
+                      <img :src="p.image_url" alt="Foto" style="width:36px; height:36px; border-radius:50%; object-fit:cover; border:1px solid #cbd5e1; flex-shrink:0;">
+                    </template>
+                    <template x-if="!p.image_url">
+                      <div 
+                        style="width:36px; height:36px; border-radius:50%; color:white; font-size:18px; display:flex; align-items:center; justify-content:center; flex-shrink:0;" 
+                        :style="p.partner_type === 'supplier' ? 'background:#4f46e5;' : 'background:#714B67;'"
+                      >
+                        <i class="ph ph-image"></i>
+                      </div>
+                    </template>
+                    <div>
+                      <div style="font-weight:700; color:#1e293b; font-size:13.5px;" x-text="p.name"></div>
+                      <div style="font-size:11px; color:#64748b;" x-text="p.email || p.city || ''"></div>
+                    </div>
+                  </div>
+                </td>
+                <td style="padding:14px 18px;"><span style="font-size:11px; font-weight:700; background:#f1f5f9; color:#475569; padding:3px 10px; border-radius:12px; font-family:monospace;" x-text="p.nit || 'CF'"></span></td>
+                <td style="padding:14px 18px;"><span style="font-size:11px; font-weight:700; padding:3px 10px; border-radius:12px;" :style="p.partner_type === 'supplier' ? 'background:#f4eff3; color:#714B67;' : 'background:#ecfdf5; color:#065f46;'" x-text="p.partner_type === 'supplier' ? 'Proveedor' : 'Cliente'"></span></td>
+                <td style="padding:14px 18px; color:#475569; font-weight:600; font-size:13px;" x-text="p.phone || p.mobile || 'N/A'"></td>
+                <td style="padding:14px 18px; text-align:right; font-weight:800; font-size:13.5px;" :style="(p.balance || 0) > 0 ? 'color:#ea580c;' : 'color:#10b981;'" x-text="'Q ' + Number(p.balance || 0).toFixed(2)"></td>
+                <td style="padding:14px 18px; text-align:right; color:#475569; font-weight:600; font-size:13px;" x-text="'Q ' + Number(p.credit_limit || 0).toFixed(2)"></td>
+                <td style="padding:14px 18px; text-align:right;">
+                  <div style="display:flex; justify-content:flex-end; gap:6px;" @click.stop>
+                    <button class="quick-action-btn whatsapp" x-show="p.phone || p.mobile" @click="openWhatsApp(p)" title="WhatsApp"><i class="ph ph-whatsapp-logo"></i></button>
+                    <button class="quick-action-btn pay" x-show="(p.balance || 0) > 0" @click="openPayModal(p)" title="Abonar"><i class="ph ph-hand-coins"></i></button>
+                    <button class="quick-action-btn" @click="openDetailModal(p)" title="Ver Expediente 360°"><i class="ph ph-eye"></i></button>
+                  </div>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
 
-  <div class="card p-0" style="overflow:hidden">
-    <div class="table-responsive">
-      <table class="table">
-        <thead>
-          <tr>
-            <th>Cliente / Razón Social</th>
-            <th>NIT</th>
-            <th>Teléfono</th>
-            <th>Correo</th>
-            <th>Dirección</th>
-            <th class="text-right">Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          <template x-for="p in partners" :key="p.id">
-            <tr>
-              <td class="font-bold text-white" x-text="p.name"></td>
-              <td><span class="badge badge-primary" x-text="p.nit || 'CF'"></span></td>
-              <td x-text="p.phone || 'N/A'"></td>
-              <td x-text="p.email || 'N/A'"></td>
-              <td x-text="p.address || 'Ciudad'"></td>
-              <td class="text-right">
-                <button class="btn btn-ghost btn-sm btn-icon">
-                  <i class="ph ph-pencil"></i>
-                </button>
-              </td>
-            </tr>
+  <!-- ===== 5. MODAL EXPEDIENTE 360° DEL CLIENTE (5 PESTAÑAS) ===== -->
+  <div class="modal-backdrop" x-show="showDetailModal" style="display:none; z-index:2000;" x-cloak>
+    <div style="background:#ffffff; width:760px; max-width:96vw; max-height:92vh; border-radius:16px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25); display:flex; flex-direction:column; overflow:hidden; border:1px solid #e2e8f0; font-family:'Inter', sans-serif;">
+      
+      <!-- Modal Header -->
+      <div style="background:#714B67; color:#ffffff; padding:18px 24px; display:flex; justify-content:space-between; align-items:center;">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="width:44px; height:44px; border-radius:50%; background:rgba(255,255,255,0.2); font-weight:900; font-size:18px; display:flex; align-items:center; justify-content:center;">
+            <span x-text="detailForm.name ? detailForm.name[0].toUpperCase() : 'C'"></span>
+          </div>
+          <div>
+            <div style="font-size:17px; font-weight:800; letter-spacing:0.3px;" x-text="detailForm.name || 'Nuevo Contacto'"></div>
+            <div style="font-size:11.5px; opacity:0.85;" x-text="'NIT: ' + (detailForm.nit || 'CF') + ' · ' + (detailForm.partner_type === 'supplier' ? 'Proveedor' : 'Cliente')"></div>
+          </div>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:8px;">
+          <button 
+            type="button" 
+            class="quick-action-btn" 
+            style="background:#22c55e; color:#ffffff; border:none; padding:6px 12px; border-radius:8px; font-weight:800;"
+            @click="sellInPos(detailForm)"
+            title="Iniciar Venta POS con este cliente"
+          >
+            🛒 Vender en POS
+          </button>
+          <button type="button" @click="showDetailModal = false" style="background:none; border:none; color:#ffffff; font-size:24px; cursor:pointer; line-height:1;">&times;</button>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs Header -->
+      <div style="display:flex; border-bottom:1px solid #e2e8f0; background:#f8fafc; overflow-x:auto;">
+        <button class="crm-tab-btn" :class="activeTab === 'general' ? 'active' : ''" @click="activeTab = 'general'">
+          <i class="ph ph-user"></i> Datos Fiscales & Contacto
+        </button>
+        <button class="crm-tab-btn" :class="activeTab === 'credit' ? 'active' : ''" @click="activeTab = 'credit'">
+          <i class="ph ph-credit-card"></i> Crédito & Condiciones
+        </button>
+        <button class="crm-tab-btn" :class="activeTab === 'sales' ? 'active' : ''" @click="activeTab = 'sales'; loadPartnerSales()">
+          <i class="ph ph-receipt"></i> Historial de Ventas
+        </button>
+        <button class="crm-tab-btn" :class="activeTab === 'statement' ? 'active' : ''" @click="activeTab = 'statement'; loadPartnerStatement()">
+          <i class="ph ph-file-text"></i> Estado de Cuenta
+        </button>
+        <button class="crm-tab-btn" :class="activeTab === 'notes' ? 'active' : ''" @click="activeTab = 'notes'">
+          <i class="ph ph-tag"></i> Notas & Etiquetas
+        </button>
+      </div>
+
+      <!-- Modal Body Tabs -->
+      <div style="padding:22px 24px; overflow-y:auto; flex:1; background:#ffffff;">
+
+        <!-- TAB 1: DATOS FISCALES & CONTACTO -->
+        <div x-show="activeTab === 'general'" class="space-y-4">
+
+          <!-- VISTA SOLO LECTURA (PARA CAJEROS - SIN CAMPOS DE EDICIÓN) -->
+          <template x-if="!canManagePartners">
+            <div class="space-y-4">
+              <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:18px; display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                <div>
+                  <span style="font-size:11px; font-weight:800; color:#64748b; text-transform:uppercase;">Nombre o Razón Social</span>
+                  <div style="font-size:15px; font-weight:800; color:#1e293b; margin-top:2px;" x-text="detailForm.name || 'Sin nombre'"></div>
+                  <div style="font-size:12px; color:#64748b;" x-show="detailForm.trade_name" x-text="detailForm.trade_name"></div>
+                </div>
+                <div>
+                  <span style="font-size:11px; font-weight:800; color:#64748b; text-transform:uppercase;">NIT (SAT Guatemala)</span>
+                  <div style="font-size:15px; font-weight:800; color:#714B67; font-family:monospace; margin-top:2px;" x-text="detailForm.nit || 'CF'"></div>
+                </div>
+                <div>
+                  <span style="font-size:11px; font-weight:800; color:#64748b; text-transform:uppercase;">Tipo de Contacto</span>
+                  <div style="margin-top:2px;">
+                    <span style="font-size:12px; font-weight:800; padding:2px 8px; border-radius:10px;" :style="detailForm.partner_type === 'supplier' ? 'background:#f4eff3; color:#714B67;' : 'background:#ecfdf5; color:#065f46;'" x-text="detailForm.partner_type === 'supplier' ? 'Proveedor' : 'Cliente'"></span>
+                  </div>
+                </div>
+                <div>
+                  <span style="font-size:11px; font-weight:800; color:#64748b; text-transform:uppercase;">CUI / DPI</span>
+                  <div style="font-size:13.5px; font-weight:700; color:#334155; margin-top:2px;" x-text="detailForm.cui || 'No registrado'"></div>
+                </div>
+                <div>
+                  <span style="font-size:11px; font-weight:800; color:#64748b; text-transform:uppercase;">Teléfono / Celular</span>
+                  <div style="font-size:13.5px; font-weight:700; color:#334155; margin-top:2px;" x-text="detailForm.phone || detailForm.mobile || 'No registrado'"></div>
+                </div>
+                <div>
+                  <span style="font-size:11px; font-weight:800; color:#64748b; text-transform:uppercase;">Correo Electrónico</span>
+                  <div style="font-size:13.5px; font-weight:700; color:#334155; margin-top:2px;" x-text="detailForm.email || 'No registrado'"></div>
+                </div>
+                <div style="grid-column: span 2;">
+                  <span style="font-size:11px; font-weight:800; color:#64748b; text-transform:uppercase;">Dirección Fiscal</span>
+                  <div style="font-size:13.5px; font-weight:600; color:#334155; margin-top:2px;" x-text="(detailForm.address || 'Ciudad') + (detailForm.city ? ', ' + detailForm.city : '')"></div>
+                </div>
+              </div>
+            </div>
           </template>
-          <tr x-show="partners.length === 0">
-            <td colspan="6" class="text-center text-muted py-5">
-              <i class="ph ph-users" style="font-size:40px;opacity:0.3"></i>
-              <p class="mt-2">No hay clientes registrados</p>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+
+          <!-- VISTA DE EDICIÓN (SOLO ADMINISTRADORES Y ENCARGADOS) -->
+          <template x-if="canManagePartners">
+            <div class="space-y-4">
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+                <div>
+                  <label style="font-size:11.5px; font-weight:800; color:#475569;">NIT GUATEMALA (SAT) *</label>
+                  <div style="display:flex; gap:8px; margin-top:4px;">
+                    <input type="text" class="form-control" style="flex:1; padding:9px 12px; font-weight:800;" x-model="detailForm.nit" placeholder="1234567-8 o CF">
+                    <button type="button" style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; border-radius:8px; padding:0 12px; font-size:12px; font-weight:800; cursor:pointer;" @click="lookupSAT()">🔍 SAT</button>
+                  </div>
+                </div>
+                <div>
+                  <label style="font-size:11.5px; font-weight:800; color:#475569;">CUI / DPI</label>
+                  <input type="text" class="form-control" style="width:100%; padding:9px 12px; margin-top:4px;" x-model="detailForm.cui" placeholder="Número de DPI / Documento">
+                </div>
+              </div>
+
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+                <div>
+                  <label style="font-size:11.5px; font-weight:800; color:#475569;">NOMBRE O RAZÓN SOCIAL *</label>
+                  <input type="text" class="form-control" style="width:100%; padding:9px 12px; margin-top:4px; font-weight:800;" x-model="detailForm.name" placeholder="Nombre completo o Empresa, S.A.">
+                </div>
+                <div>
+                  <label style="font-size:11.5px; font-weight:800; color:#475569;">NOMBRE COMERCIAL</label>
+                  <input type="text" class="form-control" style="width:100%; padding:9px 12px; margin-top:4px;" x-model="detailForm.trade_name" placeholder="Nombre de fantasía / local">
+                </div>
+              </div>
+
+              <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:14px;">
+                <div>
+                  <label style="font-size:11.5px; font-weight:800; color:#475569;">TIPO DE CONTACTO</label>
+                  <select class="form-control" style="width:100%; padding:9px 12px; margin-top:4px; font-weight:700;" x-model="detailForm.partner_type">
+                    <option value="customer">Cliente</option>
+                    <option value="supplier">Proveedor</option>
+                    <option value="both">Ambos (Cliente / Proveedor)</option>
+                  </select>
+                </div>
+                <div>
+                  <label style="font-size:11.5px; font-weight:800; color:#475569;">TELÉFONO PRINCIPAL</label>
+                  <input type="text" class="form-control" style="width:100%; padding:9px 12px; margin-top:4px;" x-model="detailForm.phone" placeholder="+502 2345-6789">
+                </div>
+                <div>
+                  <label style="font-size:11.5px; font-weight:800; color:#475569;">CELULAR / WHATSAPP</label>
+                  <input type="text" class="form-control" style="width:100%; padding:9px 12px; margin-top:4px;" x-model="detailForm.mobile" placeholder="+502 5555-1234">
+                </div>
+              </div>
+
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+                <div>
+                  <label style="font-size:11.5px; font-weight:800; color:#475569;">CORREO ELECTRÓNICO</label>
+                  <input type="email" class="form-control" style="width:100%; padding:9px 12px; margin-top:4px;" x-model="detailForm.email" placeholder="facturacion@empresa.com">
+                </div>
+                <div>
+                  <label style="font-size:11.5px; font-weight:800; color:#475569;">DEPARTAMENTO / CIUDAD</label>
+                  <input type="text" class="form-control" style="width:100%; padding:9px 12px; margin-top:4px;" x-model="detailForm.city" placeholder="Guatemala / Quetzaltenango / etc.">
+                </div>
+              </div>
+
+              <div>
+                <label style="font-size:11.5px; font-weight:800; color:#475569;">DIRECCIÓN FISCAL Y DE ENTREGA</label>
+                <input type="text" class="form-control" style="width:100%; padding:9px 12px; margin-top:4px;" x-model="detailForm.address" placeholder="Avenida / Calle, Zona, Edificio">
+              </div>
+            </div>
+          </template>
+
+        </div>
+
+        <!-- TAB 2: CRÉDITO & CONDICIONES -->
+        <div x-show="activeTab === 'credit'" class="space-y-4">
+          <!-- Credit Gauge Card -->
+          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:18px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div>
+                <div style="font-size:12px; font-weight:800; color:#64748b; text-transform:uppercase;">Estado de la Línea de Crédito</div>
+                <div style="font-size:24px; font-weight:900; color:#ea580c; margin-top:4px;" x-text="'Q ' + Number(detailForm.balance || 0).toFixed(2) + ' Adeudado'"></div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-size:12px; font-weight:700; color:#64748b;">Crédito Disponible</div>
+                <div style="font-size:20px; font-weight:900; color:#10b981; margin-top:2px;" x-text="'Q ' + Number(detailForm.available_credit || (detailForm.credit_limit - detailForm.balance) || 0).toFixed(2)"></div>
+              </div>
+            </div>
+
+            <!-- Progress Bar -->
+            <div style="width:100%; background:#e2e8f0; height:8px; border-radius:4px; margin-top:12px; overflow:hidden;">
+              <div 
+                style="background:#ea580c; height:100%; border-radius:4px; transition:width 0.3s;"
+                :style="'width: ' + Math.min(100, Math.round(((detailForm.balance || 0) / (detailForm.credit_limit || 1)) * 100)) + '%'"
+              ></div>
+            </div>
+            <div style="font-size:11px; color:#64748b; margin-top:6px; display:flex; justify-content:space-between;">
+              <span x-text="'Límite Asignado: Q ' + Number(detailForm.credit_limit || 0).toFixed(2)"></span>
+              <span x-text="Math.min(100, Math.round(((detailForm.balance || 0) / (detailForm.credit_limit || 1)) * 100)) + '% Utilizado'"></span>
+            </div>
+          </div>
+
+          <!-- Inputs de Modificación de Crédito (Solo Administradores) -->
+          <template x-if="canManagePartners">
+            <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:14px; margin-top:16px;">
+              <div>
+                <label style="font-size:11.5px; font-weight:800; color:#475569;">LÍMITE DE CRÉDITO (Q)</label>
+                <input type="number" step="0.01" class="form-control" style="width:100%; padding:9px 12px; margin-top:4px; font-weight:800;" x-model.number="detailForm.credit_limit" placeholder="0.00">
+              </div>
+              <div>
+                <label style="font-size:11.5px; font-weight:800; color:#475569;">DÍAS DE CRÉDITO / PLAZO</label>
+                <input type="number" min="0" max="365" class="form-control" style="width:100%; padding:9px 12px; margin-top:4px; font-weight:800;" x-model.number="detailForm.payment_days" placeholder="30">
+                <div style="display:flex; gap:4px; margin-top:4px; flex-wrap:wrap;">
+                  <button type="button" class="btn btn-ghost" style="padding:1px 6px; font-size:10px; font-weight:700; border:1px solid #cbd5e1; border-radius:4px; background:#fff; cursor:pointer;" @click="detailForm.payment_days = 0; detailForm.credit_status = 'none'">Contado (0d)</button>
+                  <button type="button" class="btn btn-ghost" style="padding:1px 6px; font-size:10px; font-weight:700; border:1px solid #cbd5e1; border-radius:4px; background:#fff; cursor:pointer;" @click="detailForm.payment_days = 15; detailForm.credit_status = 'active'">15d</button>
+                  <button type="button" class="btn btn-ghost" style="padding:1px 6px; font-size:10px; font-weight:700; border:1px solid #cbd5e1; border-radius:4px; background:#fff; cursor:pointer;" @click="detailForm.payment_days = 30; detailForm.credit_status = 'active'">30d</button>
+                  <button type="button" class="btn btn-ghost" style="padding:1px 6px; font-size:10px; font-weight:700; border:1px solid #cbd5e1; border-radius:4px; background:#fff; cursor:pointer;" @click="detailForm.payment_days = 60; detailForm.credit_status = 'active'">60d</button>
+                </div>
+              </div>
+              <div>
+                <label style="font-size:11.5px; font-weight:800; color:#475569;">ESTADO DEL CRÉDITO</label>
+                <select class="form-control" style="width:100%; padding:9px 12px; margin-top:4px; font-weight:700;" x-model="detailForm.credit_status">
+                  <option value="active">🟢 Activo / Autorizado</option>
+                  <option value="suspended">🟡 Suspendido</option>
+                  <option value="blocked">🔴 Bloqueado</option>
+                  <option value="none">⚪ Sin Crédito</option>
+                </select>
+              </div>
+            </div>
+          </template>
+        </div>
+
+        <!-- TAB 3: HISTORIAL DE VENTAS -->
+        <div x-show="activeTab === 'sales'">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <div style="font-size:13px; font-weight:800; color:#1e293b;">Facturas y Órdenes Registradas</div>
+            <div style="font-size:11.5px; color:#64748b;" x-text="partnerSales.length + ' ventas encontradas'"></div>
+          </div>
+
+          <template x-if="partnerSales.length === 0">
+            <div style="text-align:center; padding:40px 16px; color:#94a3b8; font-size:13px; background:#f8fafc; border-radius:10px;">
+              Este cliente aún no tiene ventas registradas en el sistema.
+            </div>
+          </template>
+
+          <template x-if="partnerSales.length > 0">
+            <div style="border:1px solid #e2e8f0; border-radius:10px; overflow:hidden;">
+              <table style="width:100%; border-collapse:collapse; font-size:12.5px;">
+                <thead style="background:#f8fafc; color:#475569; font-weight:700; border-bottom:1px solid #e2e8f0;">
+                  <tr>
+                    <th style="padding:10px 14px; text-align:left;">No. Factura</th>
+                    <th style="padding:10px 14px; text-align:left;">Fecha</th>
+                    <th style="padding:10px 14px; text-align:right;">Monto</th>
+                    <th style="padding:10px 14px; text-align:center;">Estado</th>
+                    <th style="padding:10px 14px; text-align:center;">Ticket</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <template x-for="s in partnerSales" :key="s.id">
+                    <tr style="border-bottom:1px solid #f1f5f9;">
+                      <td style="padding:10px 14px; font-weight:800; color:#334155;" x-text="s.number"></td>
+                      <td style="padding:10px 14px; color:#64748b;" x-text="s.sale_date"></td>
+                      <td style="padding:10px 14px; text-align:right; font-weight:800; color:#0f172a;" x-text="'Q ' + Number(s.total || 0).toFixed(2)"></td>
+                      <td style="padding:10px 14px; text-align:center;">
+                        <span style="padding:2px 8px; border-radius:10px; font-size:10px; font-weight:800; background:#dcfce7; color:#15803d;" x-text="s.state"></span>
+                      </td>
+                      <td style="padding:10px 14px; text-align:center;">
+                        <a :href="'/sales/' + s.id + '/ticket'" target="_blank" style="color:#714B67; font-weight:700; text-decoration:none;">📄 Ver</a>
+                      </td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+          </template>
+        </div>
+
+        <!-- TAB 4: ESTADO DE CUENTA -->
+        <div x-show="activeTab === 'statement'">
+          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:18px; margin-bottom:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div>
+                <div style="font-size:15px; font-weight:800; color:#1e293b;">Resumen de Cuenta Corriente</div>
+                <div style="font-size:12px; color:#64748b; margin-top:2px;">Consolidado de facturación y pagos</div>
+              </div>
+              <button 
+                type="button" 
+                class="btn btn-secondary" 
+                style="background:#714B67; color:#ffffff; border:none; padding:7px 16px; border-radius:8px; font-weight:800; font-size:12px; cursor:pointer;"
+                @click="printStatement()"
+              >
+                🖨️ Imprimir Estado de Cuenta
+              </button>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; margin-bottom:16px;">
+            <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:10px; padding:12px; text-align:center;">
+              <div style="font-size:11px; font-weight:700; color:#64748b;">Total Compras Históricas</div>
+              <div style="font-size:18px; font-weight:900; color:#1e293b; margin-top:4px;" x-text="'Q ' + Number(statementData.summary?.total_purchases || 0).toFixed(2)">Q 0.00</div>
+            </div>
+            <div style="background:#fff7ed; border:1px solid #fed7aa; border-radius:10px; padding:12px; text-align:center;">
+              <div style="font-size:11px; font-weight:700; color:#c2410c;">Saldo Pendiente Actual</div>
+              <div style="font-size:18px; font-weight:900; color:#ea580c; margin-top:4px;" x-text="'Q ' + Number(statementData.summary?.total_pending_due || detailForm.balance || 0).toFixed(2)">Q 0.00</div>
+            </div>
+            <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:12px; text-align:center;">
+              <div style="font-size:11px; font-weight:700; color:#15803d;">Crédito Disponible</div>
+              <div style="font-size:18px; font-weight:900; color:#16a34a; margin-top:4px;" x-text="'Q ' + Number(detailForm.available_credit || 0).toFixed(2)">Q 0.00</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 5: NOTAS & ETIQUETAS -->
+        <div x-show="activeTab === 'notes'" class="space-y-4">
+          <div>
+            <label style="font-size:11.5px; font-weight:800; color:#475569;">OBSERVACIONES / BITÁCORA INTERNA</label>
+            <textarea class="form-control" style="width:100%; height:120px; padding:10px 12px; margin-top:4px;" x-model="detailForm.notes" placeholder="Condiciones especiales de entrega, días de pago preferidos, contacto alternativo..."></textarea>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div style="background:#f8fafc; border-top:1px solid #e2e8f0; padding:14px 24px; display:flex; justify-content:flex-end; gap:12px;">
+        <button type="button" class="btn btn-secondary" style="border-radius:8px; padding:8px 18px; font-weight:700;" @click="showDetailModal = false">Cerrar</button>
+        <template x-if="canManagePartners">
+          <button type="button" class="btn btn-primary" style="background:#714B67; color:#ffffff; border-radius:8px; padding:9px 24px; border:none; font-weight:800; box-shadow:0 2px 8px rgba(113,75,103,0.3);" @click="savePartner()">Guardar Cambios</button>
+        </template>
+      </div>
+
     </div>
   </div>
+
+  <!-- ===== 6. MODAL REGISTRO DE ABONO / PAGO DE CRÉDITO ===== -->
+  <div class="modal-backdrop" x-show="showPayModal" style="display:none; z-index:2100;" x-cloak>
+    <div style="background:#ffffff; width:440px; max-width:92vw; border-radius:16px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25); overflow:hidden; border:1px solid #e2e8f0;">
+      <div style="background:#ea580c; color:#ffffff; padding:16px 20px; display:flex; justify-content:space-between; align-items:center;">
+        <div style="font-weight:800; font-size:16px;">💵 Registrar Abono de Crédito</div>
+        <button type="button" @click="showPayModal = false" style="background:none; border:none; color:white; font-size:22px; cursor:pointer;">&times;</button>
+      </div>
+
+      <div style="padding:20px; display:flex; flex-direction:column; gap:14px;">
+        <div style="background:#fff7ed; border:1px solid #ffedd5; border-radius:10px; padding:12px;">
+          <div style="font-size:12px; color:#c2410c; font-weight:700;" x-text="selectedPartner?.name"></div>
+          <div style="font-size:18px; font-weight:900; color:#ea580c; margin-top:2px;" x-text="'Saldo Actual: Q ' + Number(selectedPartner?.balance || 0).toFixed(2)"></div>
+        </div>
+
+        <div>
+          <label style="font-size:11.5px; font-weight:800; color:#475569;">MONTO A ABONAR (Q) *</label>
+          <input type="number" step="0.01" class="form-control" style="width:100%; padding:10px 12px; font-size:16px; font-weight:900; margin-top:4px;" x-model.number="payForm.amount" placeholder="0.00">
+        </div>
+
+        <div>
+          <label style="font-size:11.5px; font-weight:800; color:#475569;">MÉTODO DE PAGO</label>
+          <select class="form-control" style="width:100%; padding:9px 12px; margin-top:4px; font-weight:700;" x-model="payForm.payment_method">
+            <option value="cash">Efectivo</option>
+            <option value="card">Tarjeta Débito / Crédito</option>
+            <option value="transfer">Transferencia Bancaria</option>
+            <option value="cheque">Cheque</option>
+          </select>
+        </div>
+
+        <div>
+          <label style="font-size:11.5px; font-weight:800; color:#475569;">REFERENCIA / NO. DE BOLETA</label>
+          <input type="text" class="form-control" style="width:100%; padding:9px 12px; margin-top:4px;" x-model="payForm.reference" placeholder="Ej: Transf. 987654">
+        </div>
+      </div>
+
+      <div style="padding:14px 20px; border-top:1px solid #e2e8f0; background:#f8fafc; display:flex; justify-content:flex-end; gap:10px;">
+        <button type="button" class="btn btn-secondary" style="border-radius:8px; padding:8px 16px;" @click="showPayModal = false">Cancelar</button>
+        <button type="button" class="btn btn-primary" style="background:#ea580c; color:#ffffff; border:none; border-radius:8px; padding:8px 20px; font-weight:800;" @click="submitCreditPayment()">Confirmar Abono</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MODAL DE IMPORTACIÓN MASIVA CSV DE CLIENTES/PROVEEDORES ===== -->
+  <div class="modal-backdrop" x-show="showImportModal" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.6); backdrop-filter:blur(4px); z-index:1500; display:flex; align-items:center; justify-content:center; padding:16px;" x-cloak>
+    <div class="card" style="background:#ffffff; border-radius:16px; max-width:540px; width:100%; padding:24px; box-shadow:0 20px 40px rgba(0,0,0,0.2); animation:slideUp 0.2s ease-out;">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div style="width:38px; height:38px; border-radius:10px; background:#ccfbf1; color:#0f766e; display:flex; align-items:center; justify-content:center; font-size:20px;">
+            <i class="ph ph-file-arrow-up"></i>
+          </div>
+          <div>
+            <h3 style="font-size:17px; font-weight:800; color:#0f172a; margin:0;">Importar Clientes y Proveedores</h3>
+            <p style="font-size:12px; color:#64748b; margin:2px 0 0 0;">Carga masiva rápida de socios comerciales</p>
+          </div>
+        </div>
+        <button type="button" @click="showImportModal = false; importResult = null" style="background:none; border:none; font-size:22px; color:#94a3b8; cursor:pointer;">&times;</button>
+      </div>
+
+      <!-- Paso 1: Descargar Plantilla -->
+      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:14px; margin-bottom:18px; display:flex; align-items:center; justify-content:space-between;">
+        <div>
+          <div style="font-size:12.5px; font-weight:800; color:#334155;">1. Descarga la plantilla oficial</div>
+          <div style="font-size:11.5px; color:#64748b;">Archivo CSV con columnas de NIT, Nombre, Crédito, etc.</div>
+        </div>
+        <a href="/api/v1/partners/template-csv" download class="btn btn-sm" style="background:#714B67; color:#ffffff; font-weight:700; border-radius:6px; padding:6px 12px; font-size:12px; text-decoration:none; display:flex; align-items:center; gap:5px;">
+          <i class="ph ph-download-simple"></i> Plantilla .csv
+        </a>
+      </div>
+
+      <!-- Paso 2: Seleccionar archivo -->
+      <div style="margin-bottom:18px;">
+        <label style="font-size:12px; font-weight:800; color:#475569; display:block; margin-bottom:6px;">2. SELECCIONA TU ARCHIVO CSV</label>
+        <input type="file" id="partnerCsvFileInput" accept=".csv, text/csv" style="width:100%; padding:10px; border:1.5px dashed #cbd5e1; border-radius:10px; background:#f8fafc; font-size:13px; cursor:pointer;" @change="selectedCsvFile = $event.target.files[0]">
+      </div>
+
+      <!-- Mensaje de resultado -->
+      <template x-if="importResult">
+        <div style="padding:12px 16px; border-radius:10px; margin-bottom:16px; font-size:13px;" :style="importResult.status === 'success' ? 'background:#ecfdf5; border:1px solid #a7f3d0; color:#065f46;' : 'background:#fef2f2; border:1px solid #fecaca; color:#991b1b;'">
+          <div style="font-weight:800; margin-bottom:4px;" x-text="importResult.status === 'success' ? '✅ Importación Exitosa' : '❌ Error al importar'"></div>
+          <div x-text="'Se procesaron ' + (importResult.total_processed || 0) + ' contactos (' + (importResult.created || 0) + ' nuevos, ' + (importResult.updated || 0) + ' actualizados)'"></div>
+          <template x-if="importResult.errors && importResult.errors.length > 0">
+            <div style="margin-top:6px; font-size:11.5px;">
+              <div style="font-weight:700;">Observaciones:</div>
+              <ul style="margin:2px 0 0 16px; padding:0;">
+                <template x-for="err in importResult.errors">
+                  <li x-text="err"></li>
+                </template>
+              </ul>
+            </div>
+          </template>
+        </div>
+      </template>
+
+      <!-- Botones footer -->
+      <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
+        <button type="button" class="btn btn-secondary" style="border:1px solid #cbd5e1; background:#ffffff; font-weight:700; border-radius:8px; padding:8px 16px; cursor:pointer;" @click="showImportModal = false; importResult = null">Cancelar</button>
+        <button type="button" class="btn btn-primary" style="background:#0f766e; color:#ffffff; font-weight:800; border-radius:8px; padding:8px 20px; border:none; cursor:pointer; display:flex; align-items:center; gap:6px;" :disabled="!selectedCsvFile || isUploadingCsv" @click="uploadPartnersCsv()">
+          <span x-show="!isUploadingCsv">Subir e Importar</span>
+          <span x-show="isUploadingCsv">Procesando...</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <script>
   function partnersPage() {
     return {
+      viewMode: 'kanban',
+      showKpis: false,
       partners: [],
+      filteredPartners: [],
+      filterType: 'all',
       search: '',
-      showModal: false,
+      showKpis: false,
+      activeTab: 'general',
+      showDetailModal: false,
+      showPayModal: false,
+      showImportModal: false,
+      selectedCsvFile: null,
+      isUploadingCsv: false,
+      importResult: null,
+      selectedPartner: null,
+      partnerSales: [],
+      statementData: {},
+      kpis: {
+        total_contacts: 0,
+        total_customers: 0,
+        total_suppliers: 0,
+        total_debt: 0,
+        total_credit_limit: 0,
+        total_available_credit: 0,
+        debtor_customers_count: 0
+      },
+      detailForm: {
+        id: null,
+        name: '',
+        nit: 'CF',
+        cui: '',
+        trade_name: '',
+        partner_type: 'customer',
+        phone: '',
+        mobile: '',
+        email: '',
+        address: '',
+        city: 'Guatemala',
+        country: 'Guatemala',
+        is_company: false,
+        credit_status: 'active',
+        credit_limit: 0,
+        payment_days: 0,
+        balance: 0,
+        available_credit: 0,
+        notes: '',
+        tags: []
+      },
+      payForm: {
+        amount: 0,
+        payment_method: 'cash',
+        reference: ''
+      },
+      canManagePartners: (() => {
+        try {
+          const u = JSON.parse(localStorage.getItem('user') || '{}');
+          if (u.is_superuser || u.is_admin || u.username === 'admin' || (u.email && u.email.includes('admin'))) return true;
+          const codes = (u.role_codes || (u.roles || []).map(r => r.code || r));
+          return codes.includes('admin') || codes.includes('store_manager') || codes.includes('accountant') || codes.includes('inventory_manager');
+        } catch(e) { return false; }
+      })(),
+
+      get creditUtilizationPct() {
+        const total = Number(this.kpis.total_credit_limit || 0);
+        const debt = Number(this.kpis.total_debt || 0);
+        if (total <= 0) return 0;
+        return Math.min(100, Math.round((debt / total) * 100));
+      },
 
       async init() {
+        await this.checkUserPermissions();
+        await this.loadKPIs();
         await this.loadPartners();
+      },
+
+      async checkUserPermissions() {
+        try {
+          const u = JSON.parse(localStorage.getItem('user') || '{}');
+          if (u.is_superuser || u.is_admin || u.username === 'admin' || (u.email && u.email.includes('admin'))) {
+            this.canManagePartners = true;
+          }
+          const me = await API.get('/auth/me');
+          if (me) {
+            if (me.is_superuser || me.is_admin || me.username === 'admin' || (me.email && me.email.includes('admin'))) {
+              this.canManagePartners = true;
+            } else {
+              const codes = (me.role_codes || (me.roles || []).map(r => r.code || r));
+              this.canManagePartners = codes.includes('admin') || codes.includes('store_manager') || codes.includes('accountant') || codes.includes('inventory_manager');
+            }
+          }
+        } catch(e) {}
+      },
+
+      async loadKPIs() {
+        try {
+          const res = await API.get('/partners/kpis');
+          if (res) this.kpis = res;
+        } catch(e) {}
       },
 
       async loadPartners() {
         try {
           const res = await API.get(`/partners/?search=${encodeURIComponent(this.search)}`);
           this.partners = res.items || res || [];
+          this.applyFilters();
         } catch(e) {}
+      },
+
+      applyFilters() {
+        let list = this.partners;
+        if (this.filterType === 'customers') {
+          list = list.filter(p => p.partner_type === 'customer' || p.partner_type === 'both');
+        } else if (this.filterType === 'suppliers') {
+          list = list.filter(p => p.partner_type === 'supplier' || p.partner_type === 'both');
+        } else if (this.filterType === 'with_debt') {
+          list = list.filter(p => (p.balance || 0) > 0);
+        } else if (this.filterType === 'credit_active') {
+          list = list.filter(p => (p.credit_limit || 0) > 0);
+        } else if (this.filterType === 'companies') {
+          list = list.filter(p => p.is_company || (p.name && (p.name.includes('S.A.') || p.name.includes('SOCIEDAD'))));
+        }
+        this.filteredPartners = list;
+      },
+
+      openCreateModal() {
+        window.location.href = '/customers/new';
+      },
+
+      openDetailModal(p) {
+        window.location.href = `/customers/${p.id}`;
+      },
+
+      async loadPartnerSales() {
+        if (!this.detailForm.id) return;
+        try {
+          const res = await API.get(`/partners/${this.detailForm.id}/sales`);
+          this.partnerSales = res.items || [];
+        } catch(e) {
+          this.partnerSales = [];
+        }
+      },
+
+      async loadPartnerStatement() {
+        if (!this.detailForm.id) return;
+        try {
+          const res = await API.get(`/partners/${this.detailForm.id}/statement`);
+          this.statementData = res;
+        } catch(e) {
+          this.statementData = {};
+        }
+      },
+
+      async lookupSAT() {
+        if (!this.detailForm.nit) return;
+        try {
+          const res = await API.get('/fel/lookup-nit/' + this.detailForm.nit);
+          if (res && res.valid) {
+            this.detailForm.name = res.name;
+            this.detailForm.address = res.address;
+            this.detailForm.nit = res.nit;
+            if (res.name.includes('S.A.') || res.name.includes('SOCIEDAD') || res.name.includes('LIMITADA')) {
+              this.detailForm.is_company = true;
+            }
+          }
+        } catch(e) {}
+      },
+
+      openWhatsApp(p) {
+        const phone = (p.mobile || p.phone || '').replace(/\D/g, '');
+        if (!phone) return alert('El contacto no tiene número telefónico registrado');
+        const num = phone.length === 8 ? '502' + phone : phone;
+        const msg = encodeURIComponent(`Hola ${p.name}, le saludamos de POS Empresarial. Esperamos que se encuentre muy bien.`);
+        window.open(`https://wa.me/${num}?text=${msg}`, '_blank');
+      },
+
+      sellInPos(p) {
+        localStorage.setItem('pos_preselected_customer', JSON.stringify({
+          id: p.id,
+          name: p.name,
+          nit: p.nit || 'CF'
+        }));
+        window.location.href = '/pos';
+      },
+
+      openPayModal(p) {
+        this.selectedPartner = p;
+        this.payForm = {
+          amount: p.balance || 0,
+          payment_method: 'cash',
+          reference: ''
+        };
+        this.showPayModal = true;
+      },
+
+      async submitCreditPayment() {
+        if (this.payForm.amount <= 0) return alert('Ingresa un monto válido');
+        try {
+          await API.post(`/partners/${this.selectedPartner.id}/credit-payments`, this.payForm);
+          this.showPayModal = false;
+          await this.loadKPIs();
+          await this.loadPartners();
+          if (this.showDetailModal && this.detailForm.id === this.selectedPartner.id) {
+            await this.openDetailModal(this.selectedPartner);
+          }
+          alert('¡Abono registrado con éxito!');
+        } catch(e) {
+          alert('Error al registrar abono: ' + (e.message || e));
+        }
+      },
+
+      async uploadPartnersCsv() {
+        if (!this.selectedCsvFile) return;
+        this.isUploadingCsv = true;
+        this.importResult = null;
+        try {
+          const formData = new FormData();
+          formData.append('file', this.selectedCsvFile);
+
+          const token = localStorage.getItem('access_token');
+          const response = await fetch('/api/v1/partners/import-csv', {
+            method: 'POST',
+            headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+            body: formData
+          });
+
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.detail || 'Error al procesar el archivo');
+
+          this.importResult = data;
+          await this.loadKPIs();
+          await this.loadPartners();
+        } catch(err) {
+          this.importResult = { status: 'error', errors: [err.message || 'Error de conexión'] };
+        } finally {
+          this.isUploadingCsv = false;
+        }
+      },
+
+      async savePartner() {
+        if (!this.detailForm.name) return alert('El nombre es requerido');
+        try {
+          if (this.detailForm.id) {
+            await API.put(`/partners/${this.detailForm.id}`, this.detailForm);
+          } else {
+            await API.post('/partners/', this.detailForm);
+          }
+          this.showDetailModal = false;
+          await this.loadKPIs();
+          await this.loadPartners();
+        } catch(e) {
+          alert('Error al guardar contacto: ' + (e.message || e));
+        }
+      },
+
+      exportToCSV() {
+        let csv = 'ID,Nombre,Nombre Comercial,NIT,DPI,Tipo,Telefono,Celular,Correo,Direccion,Saldo,Limite Credito\n';
+        this.partners.forEach(p => {
+          csv += `"${p.id}","${p.name}","${p.trade_name || ''}","${p.nit || 'CF'}","${p.cui || ''}","${p.partner_type || 'customer'}","${p.phone || ''}","${p.mobile || ''}","${p.email || ''}","${p.address || ''}",${p.balance || 0},${p.credit_limit || 0}\n`;
+        });
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.setAttribute('download', 'directorio_clientes_pos_empresarial.csv');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
       }
     }
   }

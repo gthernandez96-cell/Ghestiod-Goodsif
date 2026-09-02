@@ -6,6 +6,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 import enum
+from decimal import Decimal
 from app.models.base import BaseModel
 
 
@@ -101,6 +102,8 @@ class SaleOrderLine(BaseModel):
     product_id = Column(UUID(as_uuid=True), ForeignKey("products.id"), nullable=False)
     variant_id = Column(UUID(as_uuid=True), ForeignKey("product_variants.id"), nullable=True)
     lot_id = Column(UUID(as_uuid=True), ForeignKey("stock_lots.id"), nullable=True)
+    uom_id = Column(UUID(as_uuid=True), ForeignKey("units_of_measure.id"), nullable=True)
+    serial_number = Column(String(100), nullable=True)
 
     # Producto
     product_name = Column(String(500), nullable=False)  # Snapshot del nombre
@@ -127,12 +130,18 @@ class SaleOrderLine(BaseModel):
 
     def compute_totals(self):
         """Recalcular totales de la línea."""
-        base = float(self.qty) * float(self.unit_price)
-        disc = base * (float(self.discount_pct) / 100)
-        self.discount_amount = round(disc, 4)
-        self.subtotal = round(base - disc, 4)
-        self.tax_amount = round(float(self.subtotal) * (float(self.tax_rate) / 100), 4)
-        self.total = round(float(self.subtotal) + float(self.tax_amount), 4)
+        FOUR = Decimal("0.0001")
+        qty_dec = Decimal(str(self.qty or 0))
+        price_dec = Decimal(str(self.unit_price or 0))
+        disc_pct_dec = Decimal(str(self.discount_pct or 0))
+        tax_rate_dec = Decimal(str(self.tax_rate or 0))
+
+        base = qty_dec * price_dec
+        disc = base * (disc_pct_dec / Decimal("100"))
+        self.discount_amount = disc.quantize(FOUR)
+        self.subtotal = (base - disc).quantize(FOUR)
+        self.tax_amount = (self.subtotal * (tax_rate_dec / Decimal("100"))).quantize(FOUR)
+        self.total = (self.subtotal + self.tax_amount).quantize(FOUR)
 
     def __repr__(self):
         return f"<SaleLine {self.product_name} x{self.qty}>"

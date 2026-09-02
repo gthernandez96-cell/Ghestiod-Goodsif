@@ -55,6 +55,9 @@ class Partner(BaseModel):
     bank_account = Column(String(100))
     bank_name = Column(String(200))
 
+    # Foto / Logo del contacto
+    image_url = Column(Text, nullable=True)
+
     is_active = Column(Boolean, default=True)
     notes = Column(Text)
     tags = Column(JSONB, default=list)

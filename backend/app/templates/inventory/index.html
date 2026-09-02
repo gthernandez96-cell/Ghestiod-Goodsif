@@ -1,160 +1,816 @@
 {% set show_layout = true %}
 {% extends "base.html" %}
 
-{% block title %}Inventario y Productos — POS Empresarial{% endblock %}
+{% block title %}Inventario y Catálogo de Productos — POS Empresarial{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* =============================================
+     EXECUTIVE INVENTORY & CATALOG CRM STYLES
+  ============================================= */
+  .inv-kpi-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 16px 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .inv-kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+  }
+
+  .odoo-product-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+    transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    cursor: pointer;
+  }
+
+  .odoo-product-card:hover {
+    transform: translateY(-3px);
+    border-color: #714B67;
+    box-shadow: 0 12px 28px rgba(113, 75, 103, 0.12);
+  }
+
+  .odoo-search-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 380px;
+    max-width: 100%;
+  }
+
+  .odoo-search-input {
+    width: 100%;
+    background: #ffffff !important;
+    border: 1.5px solid #cbd5e1 !important;
+    border-radius: 8px !important;
+    padding: 8px 34px 8px 38px !important;
+    font-size: 13.5px !important;
+    font-weight: 600 !important;
+    color: #1e293b !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+    transition: all 0.2s ease !important;
+    outline: none !important;
+  }
+
+  .odoo-search-input:focus {
+    border-color: #714B67 !important;
+    box-shadow: 0 0 0 3px rgba(113, 75, 103, 0.15) !important;
+  }
+
+  .filter-pill {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12.5px;
+    font-weight: 700;
+    cursor: pointer;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    color: #475569;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .filter-pill:hover {
+    background: #f1f5f9;
+    color: #1e293b;
+  }
+
+  .filter-pill.active {
+    background: #714B67;
+    color: #ffffff;
+    border-color: #714B67;
+    box-shadow: 0 2px 8px rgba(113, 75, 103, 0.25);
+  }
+
+  .view-switcher-btn {
+    padding: 7px 12px;
+    border: none;
+    cursor: pointer;
+    font-size: 15px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    background: #ffffff;
+    color: #64748b;
+  }
+
+  .view-switcher-btn.active {
+    background: #714B67 !important;
+    color: #ffffff !important;
+  }
+</style>
+{% endblock %}
 
 {% block content %}
-<div x-data="inventoryPage()" x-init="init()">
-  <!-- Page Header -->
-  <div class="page-header">
-    <div>
-      <h1 class="page-title">Inventario y Productos</h1>
-      <p class="page-subtitle">Gestión de catálogo, existencias por bodega y Kardex de movimientos</p>
-    </div>
-    <div class="flex gap-2">
-      <button class="btn btn-secondary" @click="showCategoryModal = true">
-        <i class="ph ph-folder-plus"></i> Nueva Categoría
-      </button>
-      <button class="btn btn-primary" @click="showProductModal = true">
-        <i class="ph ph-plus-circle"></i> Nuevo Producto
-      </button>
-    </div>
-  </div>
-
-  <!-- Filters & Search -->
-  <div class="card mb-4">
-    <div class="flex gap-3 flex-wrap items-center">
-      <div style="flex:1;min-width:250px;position:relative">
-        <i class="ph ph-magnifying-glass search-icon" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted)"></i>
-        <input
-          type="text"
-          class="form-control"
-          style="padding-left:36px"
-          placeholder="Buscar por nombre, código interno o código de barras..."
-          x-model="search"
-          @input.debounce.300ms="loadProducts()"
-        >
-      </div>
-
-      <select class="form-control" style="width:200px" x-model="selectedCategory" @change="loadProducts()">
-        <option value="">Todas las categorías</option>
-        <template x-for="cat in categories" :key="cat.id">
-          <option :value="cat.id" x-text="cat.name"></option>
-        </template>
-      </select>
-
-      <button class="btn btn-ghost" @click="loadProducts()">
-        <i class="ph ph-arrows-clockwise"></i> Recargar
-      </button>
-    </div>
-  </div>
-
-  <!-- Table Card -->
-  <div class="card p-0" style="overflow:hidden">
-    <div class="table-responsive">
-      <table class="table">
-        <thead>
-          <tr>
-            <th>Producto</th>
-            <th>Código / EAN</th>
-            <th>Categoría</th>
-            <th>Precio Venta</th>
-            <th>Costo Avg</th>
-            <th>Stock Global</th>
-            <th>Estado</th>
-            <th class="text-right">Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          <template x-for="product in products" :key="product.id">
-            <tr>
-              <td>
-                <div class="flex items-center gap-3">
-                  <div style="font-size:24px" x-text="product.emoji || '📦'"></div>
-                  <div>
-                    <div class="font-bold text-white" x-text="product.name"></div>
-                    <div class="text-xs text-muted" x-text="product.description || 'Sin descripción'"></div>
-                  </div>
-                </div>
-              </td>
-              <td>
-                <span class="badge" x-text="product.barcode || product.internal_ref || 'N/A'"></span>
-              </td>
-              <td>
-                <span class="text-muted" x-text="product.category_name || 'General'"></span>
-              </td>
-              <td>
-                <span class="font-bold text-success" x-text="'Q ' + formatPrice(product.sale_price)"></span>
-              </td>
-              <td>
-                <span class="text-muted" x-text="'Q ' + formatPrice(product.cost_price)"></span>
-              </td>
-              <td>
-                <span
-                  class="badge"
-                  :class="product.stock <= 0 ? 'badge-danger' : (product.stock < product.min_stock ? 'badge-warning' : 'badge-success')"
-                  x-text="product.stock + ' U'"
-                ></span>
-              </td>
-              <td>
-                <span class="badge" :class="product.is_active ? 'badge-success' : 'badge-danger'" x-text="product.is_active ? 'Activo' : 'Inactivo'"></span>
-              </td>
-              <td class="text-right">
-                <button class="btn btn-ghost btn-sm btn-icon" @click="editProduct(product)">
-                  <i class="ph ph-pencil"></i>
-                </button>
-              </td>
-            </tr>
-          </template>
-          <tr x-show="products.length === 0">
-            <td colspan="8" class="text-center text-muted py-5">
-              <i class="ph ph-package" style="font-size:40px;opacity:0.3"></i>
-              <p class="mt-2">No se encontraron productos registrados</p>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-</div>
-
 <script>
   function inventoryPage() {
     return {
+      viewMode: 'kanban',
       products: [],
+      filteredProducts: [],
       categories: [],
+      warehouses: [],
+      selectedWarehouseId: '',
+      statusFilter: 'active', // 'active' | 'archived' | 'all'
+      filterType: 'all',
+      selectedCategoryId: '',
       search: '',
-      selectedCategory: '',
-      showProductModal: false,
-      showCategoryModal: false,
-
-      formatPrice(v) { return Number(v || 0).toFixed(2); },
+      showKpis: false,
+      showImportModal: false,
+      selectedCsvFile: null,
+      isUploadingCsv: false,
+      importResult: null,
+      canManageProducts: true,
+      kpis: {
+        total_products: 0,
+        total_valuation: 0,
+        low_stock_count: 0,
+        out_of_stock_count: 0,
+        in_stock_count: 0
+      },
 
       async init() {
-        await this.loadCategories();
-        await this.loadProducts();
+        try { await this.checkUserPermissions(); } catch (e) { }
+        try { await this.loadWarehouses(); } catch (e) { }
+        try { await this.loadKPIs(); } catch (e) { }
+        try { await this.loadCategories(); } catch (e) { }
+        try { await this.loadProducts(); } catch (e) { }
+      },
+
+      async checkUserPermissions() {
+        try {
+          const u = JSON.parse(localStorage.getItem('user') || '{}');
+          if (u.is_superuser || u.is_admin || u.username === 'admin' || (u.email && u.email.includes('admin'))) {
+            this.canManageProducts = true;
+          }
+          const me = await API.get('/auth/me');
+          if (me) {
+            if (me.is_superuser || me.is_admin || me.username === 'admin' || (me.email && me.email.includes('admin'))) {
+              this.canManageProducts = true;
+            } else {
+              const codes = (me.roles || []).map(r => r.code);
+              this.canManageProducts = codes.includes('admin') || codes.includes('inventory_manager') || codes.includes('store_manager');
+            }
+          }
+        } catch (e) { }
+      },
+
+      async loadWarehouses() {
+        try {
+          const res = await API.get('/branches/warehouses');
+          this.warehouses = Array.isArray(res) ? res : (res.items || res.warehouses || []);
+        } catch (e) {
+          console.warn("No se pudieron cargar las bodegas:", e);
+          this.warehouses = [];
+        }
+      },
+
+      async loadKPIs() {
+        try {
+          let url = '/products/kpis';
+          if (this.selectedWarehouseId) {
+            url += `?warehouse_id=${encodeURIComponent(this.selectedWarehouseId)}`;
+          }
+          const res = await API.get(url);
+          if (res) this.kpis = res;
+        } catch (e) { }
       },
 
       async loadCategories() {
         try {
           const res = await API.get('/products/categories');
           this.categories = res || [];
-        } catch(e) {}
+        } catch (e) { }
       },
 
       async loadProducts() {
         try {
-          let url = `/products/?search=${encodeURIComponent(this.search)}`;
-          if (this.selectedCategory) url += `&category_id=${this.selectedCategory}`;
+          let url = '/products/?';
+          if (this.statusFilter === 'active') {
+            url += 'is_active=true';
+          } else if (this.statusFilter === 'archived') {
+            url += 'is_active=false';
+          }
+          if (this.selectedWarehouseId) {
+            url += `&warehouse_id=${encodeURIComponent(this.selectedWarehouseId)}`;
+          }
+          if (this.search) {
+            url += `&search=${encodeURIComponent(this.search)}`;
+          }
           const res = await API.get(url);
-          this.products = res.items || res || [];
-        } catch(e) {}
+          this.products = res.items || (Array.isArray(res) ? res : []);
+          this.applyFilters();
+        } catch (e) {
+          console.error("Error al cargar productos:", e);
+        }
       },
 
-      editProduct(p) {
-        alert('Editar producto: ' + p.name);
+      applyFilters() {
+        let list = [...this.products];
+
+        if (this.filterType === 'in_stock') {
+          list = list.filter(p => (p.stock || 0) > 0);
+        } else if (this.filterType === 'low_stock') {
+          list = list.filter(p => (p.stock || 0) > 0 && (p.stock || 0) <= (p.min_stock || 5));
+        } else if (this.filterType === 'out_of_stock') {
+          list = list.filter(p => (p.stock || 0) <= 0);
+        }
+
+        if (this.selectedCategoryId) {
+          list = list.filter(p => p.category_id === this.selectedCategoryId);
+        }
+
+        this.filteredProducts = list;
+      },
+
+      async toggleArchiveProduct(p) {
+        if (!confirm(`¿Deseas ${p.is_active ? 'ARCHIVAR' : 'DESARCHIVAR'} el producto "${p.name}"?`)) {
+          return;
+        }
+        try {
+          const res = await API.post(`/products/${p.id}/toggle-active`);
+          alert(res.message || 'Estado actualizado');
+          await this.loadKPIs();
+          await this.loadProducts();
+        } catch (e) {
+          alert('Error al cambiar estado del producto: ' + (e.message || e));
+        }
+      },
+
+      async deleteProduct(p) {
+        if (!confirm(`⚠️ ¿Estás seguro de ELIMINAR definitivamente el producto "${p.name}" del catálogo?\n\nEsta acción no se puede deshacer.`)) {
+          return;
+        }
+        try {
+          const res = await API.delete(`/products/${p.id}`);
+          alert(res.message || 'Producto eliminado correctamente');
+          await this.loadKPIs();
+          await this.loadProducts();
+        } catch (e) {
+          alert('Error al eliminar producto: ' + (e.message || e));
+        }
+      },
+
+      openProductDetail(p) {
+        if (!this.canManageProducts) {
+          return;
+        }
+        window.location.href = `/inventory/${p.id}`;
+      },
+
+      async uploadProductsCsv() {
+        if (!this.selectedCsvFile) return;
+        this.isUploadingCsv = true;
+        this.importResult = null;
+        try {
+          const formData = new FormData();
+          formData.append('file', this.selectedCsvFile);
+
+          const token = localStorage.getItem('access_token');
+          const response = await fetch('/api/v1/products/import-csv', {
+            method: 'POST',
+            headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+            body: formData
+          });
+
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.detail || 'Error al procesar el archivo');
+
+          this.importResult = data;
+          await this.loadKPIs();
+          await this.loadCategories();
+          await this.loadProducts();
+        } catch (err) {
+          this.importResult = { status: 'error', errors: [err.message || 'Error de conexión'] };
+        } finally {
+          this.isUploadingCsv = false;
+        }
+      },
+
+      exportToCSV() {
+        let csv = 'ID,Nombre,SKU,Codigo Barras,Categoria,Costo,Precio Venta,Stock Actual,Stock Minimo\n';
+        this.products.forEach(p => {
+          csv += `"${p.id}","${p.name}","${p.internal_ref || ''}","${p.barcode || ''}","${p.category_name || 'General'}",${p.cost_price || 0},${p.sale_price || 0},${p.stock || 0},${p.min_stock || 0}\n`;
+        });
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.setAttribute('download', 'catalogo_inventarios_pos_empresarial.csv');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
       }
-    }
+    };
+  }
+  window.inventoryPage = inventoryPage;
+  document.addEventListener('alpine:init', () => {
+    Alpine.data('inventoryPage', inventoryPage);
+  });
+  if (window.Alpine) {
+    window.Alpine.data('inventoryPage', inventoryPage);
   }
 </script>
+
+<div x-data="inventoryPage">
+
+  <!-- ===== TOP HEADER BAR ===== -->
+  <div
+    style="margin:-20px -24px 20px -24px; padding:14px 24px; background:#ffffff; border-bottom:1px solid #e2e8f0; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+
+    <!-- Left: Actions & Title -->
+    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+      <template x-if="canManageProducts">
+        <a href="/inventory/new" class="btn btn-primary"
+          style="background:#714B67; color:#ffffff; font-weight:800; border-radius:8px; padding:8px 18px; border:none; box-shadow:0 2px 8px rgba(113,75,103,0.25); display:flex; align-items:center; gap:6px; cursor:pointer; text-decoration:none;">
+          <i class="ph ph-plus" style="font-weight:800;"></i> Nuevo Producto
+        </a>
+      </template>
+      <template x-if="canManageProducts">
+        <button class="btn btn-secondary"
+          style="background:#ffffff; color:#0f766e; border:1.5px solid #0d9488; font-weight:700; border-radius:8px; padding:7px 14px; font-size:12.5px; display:flex; align-items:center; gap:6px; cursor:pointer;"
+          @click="showImportModal = true">
+          <i class="ph ph-file-arrow-up" style="font-size:16px; color:#0d9488;"></i> Importar CSV
+        </button>
+      </template>
+      <a href="/api/v1/products/export-csv" class="btn btn-secondary"
+        style="background:#ffffff; color:#334155; border:1px solid #cbd5e1; font-weight:700; border-radius:8px; padding:7px 14px; font-size:12.5px; display:flex; align-items:center; gap:6px; cursor:pointer; text-decoration:none;"
+        download>
+        <i class="ph ph-file-arrow-down" style="font-size:16px; color:#0d9488;"></i> Exportar Excel / CSV
+      </a>
+      <div
+        style="font-size:15px; font-weight:800; color:#1e293b; display:flex; align-items:center; gap:8px; margin-left:4px;">
+        <span>Catálogo de Inventarios</span>
+      </div>
+    </div>
+
+    <!-- Center: Search Input -->
+    <div class="odoo-search-container">
+      <i class="ph ph-magnifying-glass"
+        style="position:absolute; left:12px; color:#714B67; font-size:17px; font-weight:800; pointer-events:none;"></i>
+      <input type="text" class="odoo-search-input" placeholder="Buscar por código, nombre o categoría..."
+        x-model="search" @input.debounce.250ms="loadProducts()">
+      <i class="ph ph-x-circle" style="position:absolute; right:12px; color:#94a3b8; font-size:17px; cursor:pointer;"
+        x-show="search.length > 0" @click="search = ''; loadProducts()"></i>
+    </div>
+
+    <!-- Right: View Switcher -->
+    <div style="display:flex; align-items:center; gap:10px;">
+      <div
+        style="display:flex; border:1px solid #cbd5e1; border-radius:8px; overflow:hidden; background:#ffffff; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+        <button class="view-switcher-btn" :class="viewMode === 'kanban' ? 'active' : ''" @click="viewMode = 'kanban'"
+          title="Vista Tarjetas">
+          <i class="ph ph-squares-four"></i>
+        </button>
+        <button class="view-switcher-btn" :class="viewMode === 'list' ? 'active' : ''" @click="viewMode = 'list'"
+          title="Vista Tabla" style="border-left:1px solid #cbd5e1;">
+          <i class="ph ph-list-bullets"></i>
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+
+  <!-- ===== 2. SEGMENTATION & FILTER PILLS ===== -->
+  <div style="position:relative; display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:20px;">
+
+    <!-- Status Filters -->
+    <span style="font-size:12px; font-weight:800; color:#64748b;">ESTADO:</span>
+    <button class="filter-pill" :class="statusFilter === 'active' ? 'active' : ''"
+      @click="statusFilter = 'active'; loadProducts()">
+      <span>Activos</span>
+    </button>
+    <button class="filter-pill" :class="statusFilter === 'archived' ? 'active' : ''"
+      @click="statusFilter = 'archived'; loadProducts()" style="color:#d97706;">
+      <span>📁 Archivados</span>
+    </button>
+    <button class="filter-pill" :class="statusFilter === 'all' ? 'active' : ''"
+      @click="statusFilter = 'all'; loadProducts()">
+      <span>Todos</span>
+      <span style="background:rgba(0,0,0,0.08); padding:1px 6px; border-radius:10px; font-size:11px;"
+        x-text="products.length"></span>
+    </button>
+
+    <div style="width:1px; height:20px; background:#cbd5e1; margin:0 4px;"></div>
+
+    <!-- Stock Filters -->
+    <button class="filter-pill" :class="filterType === 'in_stock' ? 'active' : ''"
+      @click="filterType = filterType === 'in_stock' ? 'all' : 'in_stock'; applyFilters()">
+      <span>🟢 Con Stock</span>
+    </button>
+    <button class="filter-pill" :class="filterType === 'low_stock' ? 'active' : ''"
+      @click="filterType = filterType === 'low_stock' ? 'all' : 'low_stock'; applyFilters()" style="color:#c2410c;">
+      <span>⚠️ Stock Bajo</span>
+    </button>
+    <button class="filter-pill" :class="filterType === 'out_of_stock' ? 'active' : ''"
+      @click="filterType = filterType === 'out_of_stock' ? 'all' : 'out_of_stock'; applyFilters()"
+      style="color:#dc2626;">
+      <span>🔴 Agotados</span>
+    </button>
+
+    <!-- Warehouse selector -->
+    <div style="display:flex; align-items:center; gap:6px;">
+      <span style="font-size:12px; font-weight:700; color:#64748b;">🏢 Bodega:</span>
+      <select class="form-control"
+        style="padding:5px 10px; font-size:12px; font-weight:700; border-radius:8px; max-width:180px;"
+        x-model="selectedWarehouseId" @change="loadProducts(); loadKPIs();">
+        <option value="">Todas las bodegas</option>
+        <template x-for="wh in warehouses" :key="wh.id">
+          <option :value="wh.id" x-text="wh.name + (wh.branch ? ' (' + wh.branch.name + ')' : '')"></option>
+        </template>
+      </select>
+    </div>
+
+    <!-- Category selector -->
+    <div style="display:flex; align-items:center; gap:6px;">
+      <span style="font-size:12px; font-weight:700; color:#64748b;">Categoría:</span>
+      <select class="form-control" style="padding:5px 10px; font-size:12px; font-weight:700; border-radius:8px;"
+        x-model="selectedCategoryId" @change="applyFilters()">
+        <option value="">Todas las categorías</option>
+        <template x-for="cat in categories" :key="cat.id">
+          <option :value="cat.id" x-text="cat.name"></option>
+        </template>
+      </select>
+    </div>
+
+    <!-- Divider -->
+    <div style="width:1px; height:20px; background:#e2e8f0;"></div>
+
+    <!-- Premium KPI Toggle Button — al par de Categorías -->
+    <button type="button" @click="showKpis = !showKpis" style="
+          display:inline-flex; align-items:center; gap:7px;
+          padding:6px 14px;
+          background:linear-gradient(135deg, #714B67 0%, #9b6b8f 100%);
+          border:none; border-radius:20px;
+          font-size:11.5px; font-weight:800; color:#ffffff;
+          cursor:pointer; transition:all 0.22s cubic-bezier(0.4,0,0.2,1);
+          box-shadow:0 2px 10px rgba(113,75,103,0.3);
+          letter-spacing:0.3px; white-space:nowrap;
+        " onmouseover="this.style.boxShadow='0 4px 16px rgba(113,75,103,0.5)'; this.style.transform='translateY(-1px)'"
+      onmouseout="this.style.boxShadow='0 2px 10px rgba(113,75,103,0.3)'; this.style.transform='translateY(0)'">
+      <i class="ph ph-chart-bar" style="font-size:15px;"></i>
+      <span x-text="showKpis ? 'Ocultar resumen' : 'Resumen'"></span>
+      <i class="ph ph-caret-down" style="font-size:12px; transition:transform 0.25s ease;"
+        :style="showKpis ? 'transform:rotate(180deg)' : 'transform:rotate(0deg)'"></i>
+    </button>
+
+    <!-- Floating KPI Dropdown Panel (alineado a la derecha) -->
+    <div x-show="showKpis" @click.outside="showKpis = false" x-transition:enter="transition ease-out duration-200"
+      x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
+      x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 scale-100"
+      x-transition:leave-end="opacity-0 scale-95" style="
+          position:absolute; top:calc(100% + 8px); right:0; z-index:999;
+          background:#ffffff; border:1.5px solid #e2e8f0; border-radius:14px;
+          box-shadow:0 12px 40px -8px rgba(0,0,0,0.15), 0 4px 14px -4px rgba(0,0,0,0.08);
+          padding:14px; display:grid; grid-template-columns:repeat(4, 1fr);
+          gap:10px; width:820px; max-width:90vw;
+        " x-cloak>
+      <div class="inv-kpi-card" style="margin:0; padding:12px 14px;">
+        <div>
+          <div
+            style="font-size:10.5px; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.5px;">
+            Total SKUs</div>
+          <div style="font-size:20px; font-weight:900; color:#1e293b; margin-top:3px;"
+            x-text="kpis.total_products || 0">0</div>
+          <span style="font-size:10.5px; color:#10b981; font-weight:700;"
+            x-text="(kpis.in_stock_count || 0) + ' en stock'"></span>
+        </div>
+        <div
+          style="width:36px; height:36px; border-radius:9px; background:#e0f2fe; color:#0369a1; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;">
+          <i class="ph ph-package"></i></div>
+      </div>
+      <div class="inv-kpi-card" style="margin:0; padding:12px 14px; border-left:3px solid #10b981;">
+        <div>
+          <div
+            style="font-size:10.5px; font-weight:800; color:#047857; text-transform:uppercase; letter-spacing:0.5px;">
+            Valoración</div>
+          <div style="font-size:15px; font-weight:900; color:#059669; margin-top:3px;"
+            x-text="'Q ' + Number(kpis.total_valuation || 0).toLocaleString('es-GT', {minimumFractionDigits:2, maximumFractionDigits:2})">
+            Q 0.00</div>
+          <div style="font-size:10.5px; color:#64748b; margin-top:2px;">Costo total en almacén</div>
+        </div>
+        <div
+          style="width:36px; height:36px; border-radius:9px; background:#dcfce7; color:#15803d; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;">
+          <i class="ph ph-vault"></i></div>
+      </div>
+      <div class="inv-kpi-card" style="margin:0; padding:12px 14px; border-left:3px solid #f97316;">
+        <div>
+          <div
+            style="font-size:10.5px; font-weight:800; color:#c2410c; text-transform:uppercase; letter-spacing:0.5px;">
+            Stock Bajo</div>
+          <div style="font-size:20px; font-weight:900; color:#ea580c; margin-top:3px;"
+            x-text="kpis.low_stock_count || 0">0</div>
+          <div style="font-size:10.5px; color:#64748b; margin-top:2px;">Bajo punto de reorden</div>
+        </div>
+        <div
+          style="width:36px; height:36px; border-radius:9px; background:#ffedd5; color:#ea580c; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;">
+          <i class="ph ph-warning"></i></div>
+      </div>
+      <div class="inv-kpi-card" style="margin:0; padding:12px 14px; border-left:3px solid #ef4444;">
+        <div>
+          <div
+            style="font-size:10.5px; font-weight:800; color:#b91c1c; text-transform:uppercase; letter-spacing:0.5px;">
+            Agotados</div>
+          <div style="font-size:20px; font-weight:900; color:#dc2626; margin-top:3px;"
+            x-text="kpis.out_of_stock_count || 0">0</div>
+          <div style="font-size:10.5px; color:#64748b; margin-top:2px;">Existencia en cero</div>
+        </div>
+        <div
+          style="width:36px; height:36px; border-radius:9px; background:#fee2e2; color:#dc2626; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;">
+          <i class="ph ph-prohibit"></i></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 3. KANBAN / CARDS VIEW ===== -->
+  <div x-show="viewMode === 'kanban'">
+    <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(290px, 1fr)); gap:18px;">
+      <template x-for="p in filteredProducts" :key="p.id">
+        <div class="odoo-product-card" @click="openProductDetail(p)"
+          :style="!p.is_active ? 'opacity:0.8; border-style:dashed; background:#fbfbfb;' : ''">
+
+          <div>
+            <!-- Top Image, Info and Active Status Badge -->
+            <div style="display:flex; gap:12px; align-items:flex-start;">
+              <template x-if="p.image_url">
+                <img :src="p.image_url"
+                  style="width:48px; height:48px; border-radius:10px; object-fit:cover; border:1px solid #e2e8f0; flex-shrink:0;">
+              </template>
+              <template x-if="!p.image_url">
+                <div
+                  style="width:48px; height:48px; border-radius:10px; background:#f4eff3; color:#714B67; font-size:22px; display:flex; align-items:center; justify-content:center; flex-shrink:0; border:1px solid #e9d5ff;">
+                  <i class="ph ph-package"></i>
+                </div>
+              </template>
+
+              <div style="flex:1; overflow:hidden;">
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:4px;">
+                  <div
+                    style="font-weight:800; font-size:14px; color:#0f172a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"
+                    x-text="p.name"></div>
+                  <span x-show="!p.is_active"
+                    style="font-size:10px; font-weight:800; background:#fef3c7; color:#b45309; padding:1px 6px; border-radius:6px; flex-shrink:0;">Archivado</span>
+                </div>
+                <div style="font-size:11px; color:#64748b; margin-top:2px;" x-text="p.category_name || 'General'"></div>
+                <div style="font-size:10.5px; font-weight:800; color:#334155; margin-top:3px;"
+                  x-text="'SKU: ' + (p.internal_ref || 'N/A')"></div>
+              </div>
+            </div>
+
+            <!-- Price & Stock Pills -->
+            <div
+              style="display:flex; justify-content:space-between; align-items:center; margin-top:14px; padding-top:10px; border-top:1px solid #f1f5f9;">
+              <div>
+                <div style="font-size:10.5px; color:#64748b; font-weight:700;">PRECIO VENTA</div>
+                <div style="font-size:16px; font-weight:900; color:#0f172a;"
+                  x-text="'Q ' + Number(p.sale_price || 0).toFixed(2)"></div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-size:10.5px; color:#64748b; font-weight:700;">EXISTENCIA</div>
+                <span style="font-size:12px; font-weight:900; padding:2px 8px; border-radius:8px; display:inline-block;"
+                  :style="(p.stock || 0) <= 0 ? 'background:#fee2e2; color:#b91c1c;' : ((p.stock || 0) <= (p.min_stock || 5) ? 'background:#ffedd5; color:#c2410c;' : 'background:#dcfce7; color:#15803d;')"
+                  x-text="(p.stock || 0) + ' unid.'"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom Footer Action Buttons -->
+          <div
+            style="margin-top:12px; display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#64748b; border-top:1px solid #f8fafc; padding-top:8px;">
+            <span x-text="'Costo: Q ' + Number(p.cost_price || 0).toFixed(2)"></span>
+            <div style="display:flex; align-items:center; gap:6px;" x-show="canManageProducts">
+              <!-- Archivar / Desarchivar -->
+              <button type="button" class="btn btn-sm"
+                style="padding:3px 8px; font-size:11px; font-weight:700; border-radius:6px; border:1px solid #cbd5e1; background:#ffffff;"
+                :style="p.is_active ? 'color:#475569;' : 'color:#b45309; background:#fffbeb; border-color:#fde68a;'"
+                @click.stop="toggleArchiveProduct(p)"
+                :title="p.is_active ? 'Archivar producto (ocultar de ventas)' : 'Desarchivar producto (reactivar)'">
+                <i class="ph" :class="p.is_active ? 'ph-archive' : 'ph-archive-box'"></i>
+                <span x-text="p.is_active ? 'Archivar' : 'Reactivar'"></span>
+              </button>
+
+              <!-- Eliminar -->
+              <button type="button" class="btn btn-sm"
+                style="padding:3px 7px; font-size:11px; font-weight:700; border-radius:6px; border:1px solid #fecaca; background:#fef2f2; color:#dc2626;"
+                @click.stop="deleteProduct(p)" title="Eliminar producto del inventario">
+                <i class="ph ph-trash"></i>
+              </button>
+
+              <span style="font-weight:800; color:#714B67; margin-left:2px;">Editar &rarr;</span>
+            </div>
+          </div>
+
+        </div>
+      </template>
+    </div>
+
+    <!-- Empty State -->
+    <div x-show="filteredProducts.length === 0"
+      style="text-align:center; padding:60px 20px; color:#64748b; background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; margin-top:10px;">
+      <i class="ph ph-package" style="font-size:48px; color:#94a3b8;"></i>
+      <p style="margin-top:10px; font-weight:800; font-size:16px; color:#1e293b;">No se encontraron productos</p>
+      <p style="font-size:13px; color:#64748b; margin-top:4px;">Intenta cambiar el filtro de búsqueda o categoría.</p>
+    </div>
+  </div>
+
+  <!-- ===== 4. LIST TABLE VIEW ===== -->
+  <div x-show="viewMode === 'list'">
+    <div class="card p-0"
+      style="overflow:hidden; background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+      <div class="table-responsive">
+        <table class="table" style="width:100%; border-collapse:collapse;">
+          <thead>
+            <tr style="border-bottom:2px solid #e2e8f0; background:#f8fafc;">
+              <th
+                style="padding:14px 18px; text-align:left; color:#475569; font-size:11px; text-transform:uppercase; font-weight:800;">
+                Producto</th>
+              <th
+                style="padding:14px 18px; text-align:left; color:#475569; font-size:11px; text-transform:uppercase; font-weight:800;">
+                SKU / Código</th>
+              <th
+                style="padding:14px 18px; text-align:left; color:#475569; font-size:11px; text-transform:uppercase; font-weight:800;">
+                Categoría</th>
+              <th
+                style="padding:14px 18px; text-align:right; color:#475569; font-size:11px; text-transform:uppercase; font-weight:800;">
+                Costo (Q)</th>
+              <th
+                style="padding:14px 18px; text-align:right; color:#475569; font-size:11px; text-transform:uppercase; font-weight:800;">
+                Precio Venta (Q)</th>
+              <th
+                style="padding:14px 18px; text-align:center; color:#475569; font-size:11px; text-transform:uppercase; font-weight:800;">
+                Stock Actual</th>
+              <th
+                style="padding:14px 18px; text-align:center; color:#475569; font-size:11px; text-transform:uppercase; font-weight:800;">
+                Estado</th>
+              <th
+                style="padding:14px 18px; text-align:right; color:#475569; font-size:11px; text-transform:uppercase; font-weight:800;"
+                x-show="canManageProducts">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="p in filteredProducts" :key="p.id">
+              <tr style="border-bottom:1px solid #f1f5f9; transition:background 0.15s;"
+                :style="!p.is_active ? 'background:#fafafa;' : ''" onmouseover="this.style.background='#f8fafc'"
+                onmouseout="this.style.background=!p.is_active ? '#fafafa' : '#ffffff'">
+                <td style="padding:14px 18px; cursor:pointer;" @click="openProductDetail(p)">
+                  <div style="display:flex; align-items:center; gap:10px;">
+                    <div
+                      style="width:32px; height:32px; border-radius:8px; background:#f4eff3; color:#714B67; font-weight:800; font-size:14px; display:flex; align-items:center; justify-content:center;">
+                      <i class="ph ph-package"></i>
+                    </div>
+                    <span style="font-weight:700; color:#1e293b; font-size:13.5px;" x-text="p.name"></span>
+                  </div>
+                </td>
+                <td style="padding:14px 18px;"><span
+                    style="font-size:11px; font-weight:800; background:#f1f5f9; color:#334155; padding:3px 10px; border-radius:8px;"
+                    x-text="p.internal_ref || p.barcode || 'N/A'"></span></td>
+                <td style="padding:14px 18px; color:#475569; font-weight:600; font-size:13px;"
+                  x-text="p.category_name || 'General'"></td>
+                <td style="padding:14px 18px; text-align:right; color:#64748b; font-weight:600; font-size:13px;"
+                  x-text="'Q ' + Number(p.cost_price || 0).toFixed(2)"></td>
+                <td style="padding:14px 18px; text-align:right; font-weight:800; font-size:13.5px; color:#0f172a;"
+                  x-text="'Q ' + Number(p.sale_price || 0).toFixed(2)"></td>
+                <td style="padding:14px 18px; text-align:center;">
+                  <span style="font-size:11.5px; font-weight:900; padding:3px 10px; border-radius:10px;"
+                    :style="(p.stock || 0) <= 0 ? 'background:#fee2e2; color:#b91c1c;' : ((p.stock || 0) <= (p.min_stock || 5) ? 'background:#ffedd5; color:#c2410c;' : 'background:#dcfce7; color:#15803d;')"
+                    x-text="p.stock || 0"></span>
+                </td>
+                <td style="padding:14px 18px; text-align:center;">
+                  <span style="font-size:11px; font-weight:800; padding:3px 8px; border-radius:8px;"
+                    :style="p.is_active ? 'background:#dcfce7; color:#15803d;' : 'background:#fef3c7; color:#b45309;'"
+                    x-text="p.is_active ? 'Activo' : 'Archivado'"></span>
+                </td>
+                <td style="padding:14px 18px; text-align:right;" x-show="canManageProducts">
+                  <div style="display:inline-flex; align-items:center; gap:6px;">
+                    <!-- Editar -->
+                    <button class="btn btn-ghost btn-sm"
+                      style="background:#f1f5f9; color:#714B67; font-weight:800; border-radius:6px; padding:4px 10px; border:none; cursor:pointer;"
+                      @click="openProductDetail(p)" title="Editar producto">
+                      Editar
+                    </button>
+
+                    <!-- Archivar / Desarchivar -->
+                    <button class="btn btn-ghost btn-sm"
+                      style="background:#f8fafc; border:1px solid #cbd5e1; font-weight:700; border-radius:6px; padding:4px 8px; cursor:pointer;"
+                      :style="p.is_active ? 'color:#475569;' : 'color:#b45309; background:#fffbeb;'"
+                      @click="toggleArchiveProduct(p)"
+                      :title="p.is_active ? 'Archivar producto' : 'Reactivar producto'">
+                      <i class="ph" :class="p.is_active ? 'ph-archive' : 'ph-archive-box'"></i>
+                    </button>
+
+                    <!-- Eliminar -->
+                    <button class="btn btn-ghost btn-sm"
+                      style="background:#fef2f2; border:1px solid #fecaca; color:#dc2626; font-weight:700; border-radius:6px; padding:4px 8px; cursor:pointer;"
+                      @click="deleteProduct(p)" title="Eliminar producto">
+                      <i class="ph ph-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MODAL DE IMPORTACIÓN MASIVA CSV ===== -->
+  <div class="modal-backdrop" x-show="showImportModal"
+    style="position:fixed; inset:0; background:rgba(15,23,42,0.6); backdrop-filter:blur(4px); z-index:1500; align-items:center; justify-content:center; padding:16px;"
+    :style="{ display: showImportModal ? 'flex' : 'none' }" x-cloak>
+    <div class="card"
+      style="background:#ffffff; border-radius:16px; max-width:540px; width:100%; padding:24px; box-shadow:0 20px 40px rgba(0,0,0,0.2); animation:slideUp 0.2s ease-out;">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div
+            style="width:38px; height:38px; border-radius:10px; background:#ccfbf1; color:#0f766e; display:flex; align-items:center; justify-content:center; font-size:20px;">
+            <i class="ph ph-file-arrow-up"></i>
+          </div>
+          <div>
+            <h3 style="font-size:17px; font-weight:800; color:#0f172a; margin:0;">Importar Productos desde CSV</h3>
+            <p style="font-size:12px; color:#64748b; margin:2px 0 0 0;">Carga masiva rápida de catálogo con stock y
+              precios</p>
+          </div>
+        </div>
+        <button type="button" @click="showImportModal = false; importResult = null"
+          style="background:none; border:none; font-size:22px; color:#94a3b8; cursor:pointer;">&times;</button>
+      </div>
+
+      <!-- Paso 1: Descargar Plantilla -->
+      <div
+        style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:14px; margin-bottom:18px; display:flex; align-items:center; justify-content:space-between;">
+        <div>
+          <div style="font-size:12.5px; font-weight:800; color:#334155;">1. Descarga la plantilla oficial</div>
+          <div style="font-size:11.5px; color:#64748b;">Archivo CSV con las columnas requeridas para Excel</div>
+        </div>
+        <a href="/api/v1/products/template-csv" download class="btn btn-sm"
+          style="background:#714B67; color:#ffffff; font-weight:700; border-radius:6px; padding:6px 12px; font-size:12px; text-decoration:none; display:flex; align-items:center; gap:5px;">
+          <i class="ph ph-download-simple"></i> Plantilla .csv
+        </a>
+      </div>
+
+      <!-- Paso 2: Seleccionar archivo -->
+      <div style="margin-bottom:18px;">
+        <label style="font-size:12px; font-weight:800; color:#475569; display:block; margin-bottom:6px;">2. SELECCIONA
+          TU ARCHIVO CSV</label>
+        <input type="file" id="csvFileInput" accept=".csv, text/csv"
+          style="width:100%; padding:10px; border:1.5px dashed #cbd5e1; border-radius:10px; background:#f8fafc; font-size:13px; cursor:pointer;"
+          @change="selectedCsvFile = $event.target.files[0]">
+      </div>
+
+      <!-- Mensaje de resultado -->
+      <template x-if="importResult">
+        <div style="padding:12px 16px; border-radius:10px; margin-bottom:16px; font-size:13px;"
+          :style="importResult.status === 'success' ? 'background:#ecfdf5; border:1px solid #a7f3d0; color:#065f46;' : 'background:#fef2f2; border:1px solid #fecaca; color:#991b1b;'">
+          <div style="font-weight:800; margin-bottom:4px;"
+            x-text="importResult.status === 'success' ? '✅ Importación Exitosa' : '❌ Error al importar'"></div>
+          <div
+            x-text="'Se procesaron ' + (importResult.total_processed || 0) + ' productos (' + (importResult.created || 0) + ' nuevos, ' + (importResult.updated || 0) + ' actualizados)'">
+          </div>
+          <template x-if="importResult.errors && importResult.errors.length > 0">
+            <div style="margin-top:6px; font-size:11.5px;">
+              <div style="font-weight:700;">Observaciones:</div>
+              <ul style="margin:2px 0 0 16px; padding:0;">
+                <template x-for="err in importResult.errors">
+                  <li x-text="err"></li>
+                </template>
+              </ul>
+            </div>
+          </template>
+        </div>
+      </template>
+
+      <!-- Botones footer -->
+      <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
+        <button type="button" class="btn btn-secondary"
+          style="border:1px solid #cbd5e1; background:#ffffff; font-weight:700; border-radius:8px; padding:8px 16px; cursor:pointer;"
+          @click="showImportModal = false; importResult = null">Cancelar</button>
+        <button type="button" class="btn btn-primary"
+          style="background:#0f766e; color:#ffffff; font-weight:800; border-radius:8px; padding:8px 20px; border:none; cursor:pointer; display:flex; align-items:center; gap:6px;"
+          :disabled="!selectedCsvFile || isUploadingCsv" @click="uploadProductsCsv()">
+          <span x-show="!isUploadingCsv">Subir e Importar</span>
+          <span x-show="isUploadingCsv">Procesando...</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
 {% endblock %}
