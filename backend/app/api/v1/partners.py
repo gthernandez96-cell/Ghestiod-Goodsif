@@ -207,12 +207,13 @@ async def lookup_partner_by_nit(
     sat_result = await lookup_nit_sat(nit_raw)
     if sat_result.get("valid"):
         formatted_nit = sat_result.get("nit") or nit_raw
-        fiscal_name = sat_result.get("name") or "CONTRIBUYENTE REGISTRADO"
+        fiscal_name = sat_result.get("name")
+        found = bool(fiscal_name)
         address = sat_result.get("address") or "CIUDAD DE GUATEMALA"
         trade_name = sat_result.get("trade_name") or fiscal_name
 
         return {
-            "found": True,
+            "found": found,
             "valid": True,
             "nit": formatted_nit,
             "name": fiscal_name,
@@ -220,13 +221,14 @@ async def lookup_partner_by_nit(
             "email": "",
             "address": address,
             "source": sat_result.get("source", "sat_api"),
+            "message": sat_result.get("message"),
             "items": [{
                 "id": None,
                 "nit": formatted_nit,
                 "name": fiscal_name,
                 "email": "",
                 "address": address
-            }]
+            }] if fiscal_name else []
         }
 
     # 4. NIT no superó la validación oficial de Módulo 11 de la SAT

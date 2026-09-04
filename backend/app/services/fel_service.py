@@ -59,6 +59,7 @@ def validate_nit_modulo_11(nit_str: str) -> tuple[bool, str, str]:
 # Diccionario de referencia con NITs fiscales reales de Guatemala
 KNOWN_SAT_NITS = {
     "CF": {"name": "CONSUMIDOR FINAL", "address": "CIUDAD DE GUATEMALA", "trade_name": "Consumidor Final"},
+    "89533690": {"name": "GUSTAVO ADOLFO HERNANDEZ ROSALES", "address": "CIUDAD DE GUATEMALA", "trade_name": "Gustavo Hernández"},
     "333333": {"name": "CERVECERIA CENTRO AMERICANA, S.A.", "address": "3A AVENIDA NORTE FINAL, FINCA EL ZAPOTE, ZONA 2, GUATEMALA", "trade_name": "Cervecería Centro Americana"},
     "444444": {"name": "UNIPHARM, SOCIEDAD ANONIMA", "address": "CALZADA AGUILAR BATRES 38-40 ZONA 11, GUATEMALA", "trade_name": "Unipharm"},
     "7127998": {"name": "BANCO INDUSTRIAL, SOCIEDAD ANONIMA", "address": "7A AVENIDA 5-10 ZONA 4, CENTRO FINANCIERO TORRE 1, GUATEMALA", "trade_name": "Banco Industrial"},
@@ -130,16 +131,16 @@ async def lookup_nit_sat(nit: str) -> dict:
             "source": "sat_modulo11_failed"
         }
 
-    # 4. Consulta externa a API de Certificador / SAT (Digifact / Infile)
-    try:
-        api_url = f"https://felgta.digifact.com.gt/guest/api/v1/NIT?nit={clean_nit}"
-        async with httpx.AsyncClient(timeout=4.0) as client:
-            resp = await client.get(api_url, headers={"User-Agent": "POS-Empresarial/2.0"})
-            if resp.status_code == 200:
-                data = resp.json()
-                # Si Digifact devuelve lista con datos del contribuyente
-                if isinstance(data, dict) and "RESPONSE" in data and len(data["RESPONSE"]) > 0:
-                    sat_item = data["RESPONSE"][0]
+    # 4. Si el sistema tiene configurado certificador FEL (Digifact / Infile)
+    from app.core.config import settings
+    if settings.FEL_API_URL and settings.FEL_API_KEY:
+        try:
+            headers = {"Authorization": f"Bearer {settings.FEL_API_KEY}", "User-Agent": "POS-Empresarial/2.0"}
+            async with httpx.AsyncClient(timeout=4.0) as client:
+                resp = await client.get(f"{settings.FEL_API_URL.rstrip('/')}/NIT?nit={clean_nit}", headers=headers)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    sat_item = data.get("RESPONSE", [{}])[0] if isinstance(data, dict) else {}
                     sat_name = sat_item.get("NOMBRE") or sat_item.get("nombre")
                     if sat_name:
                         return {
@@ -149,33 +150,24 @@ async def lookup_nit_sat(nit: str) -> dict:
                             "name": sat_name.strip().upper(),
                             "trade_name": sat_item.get("NOMBRE_COMERCIAL") or sat_name.strip(),
                             "address": sat_item.get("DIRECCION") or "CIUDAD DE GUATEMALA",
-                            "source": "sat_digifact_live",
+                            "source": "sat_certifier_live",
                             "error": None
                         }
-    except Exception as e:
-        logger.debug(f"Consulta externa de NIT no completada ({e}), aplicando resolución SAT offline.")
+        except Exception as e:
+            logger.debug(f"Consulta externa a certificador FEL no completada: {e}")
 
-    # 5. Si el NIT pasa la prueba de Módulo 11 SAT y es válido matemáticamente
-    # Formatear nombre representativo de contribuyente registrado
-    last_two = clean_nit[-3:-1] if len(clean_nit) >= 3 else clean_nit
-    sample_entities = [
-        "CORPORACIÓN COMERCIAL GUATEMALA, S.A.",
-        "SERVICIOS Y DISTRIBUCIONES DE OCCIDENTE, S.A.",
-        "ALIMENTOS Y PRODUCTOS NACIONALES, S.A.",
-        "INVERSIONES EMPRESARIALES DEL VALLE, S.A.",
-        "LOGÍSTICA Y TRANSPORTES GUATEMALTECOS, S.A."
-    ]
-    idx = (int(last_two) if last_two.isdigit() else 0) % len(sample_entities)
-    resolved_name = sample_entities[idx]
-
+    # 5. Si el NIT pasa la prueba de Módulo 11 SAT y es matemáticamente válido
+    # pero aún no se encuentra registrado en la BD local ni se tiene certificador activo:
+    # Confirmar validez del NIT sin inventar nombres ficticios.
     return {
-        "found": True,
+        "found": False,
         "valid": True,
         "nit": formatted_nit,
-        "name": resolved_name,
-        "trade_name": resolved_name.title(),
+        "name": None,
+        "trade_name": None,
         "address": "CIUDAD DE GUATEMALA",
-        "source": "sat_algorithm_verified",
+        "source": "sat_modulo11_verified",
+        "message": f"NIT '{formatted_nit}' válido ante SAT. Ingrese el nombre para completar el registro.",
         "error": None
     }
 

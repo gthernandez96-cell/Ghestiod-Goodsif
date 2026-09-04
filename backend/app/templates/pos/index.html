@@ -3563,6 +3563,11 @@
                     <i class="ph-bold ph-check-circle"></i> Verificado SAT
                   </span>
                 </template>
+                <template x-if="satStatus === 'valid_unregistered'">
+                  <span style="font-size:11px; font-weight:800; color:#0284c7; display:inline-flex; align-items:center; gap:3px;">
+                    <i class="ph-bold ph-check"></i> NIT Válido (SAT)
+                  </span>
+                </template>
                 <template x-if="satStatus === 'invalid'">
                   <span style="font-size:11px; font-weight:800; color:#dc2626; display:inline-flex; align-items:center; gap:3px;">
                     <i class="ph-bold ph-warning-circle"></i> Inválido SAT
@@ -4332,13 +4337,18 @@ function posApp() {
         const res = await API.get('/partners/lookup-nit/' + encodeURIComponent(rawNit));
         if (res.valid) {
           this.newCustomerForm.nit = res.nit || rawNit;
-          this.newCustomerForm.name = res.name || (res.items && res.items[0]?.name) || '';
+          if (res.name) {
+            this.newCustomerForm.name = res.name;
+            this.satStatus = 'verified';
+            const srcMsg = res.source === 'local_database' ? 'Cliente local verificado' : 'Nombre fiscal verificado ante SAT';
+            this.toast('✓ ' + srcMsg, 'success');
+          } else {
+            this.satStatus = 'valid_unregistered';
+            this.toast('✓ NIT válido (Módulo 11 SAT). Ingrese el nombre para completar el registro.', 'info');
+          }
           if (res.address && !this.newCustomerForm.address) {
             this.newCustomerForm.address = res.address;
           }
-          this.satStatus = 'verified';
-          const srcMsg = res.source === 'local_database' ? 'Cliente local verificado' : 'Nombre fiscal verificado ante SAT';
-          this.toast('✓ ' + srcMsg, 'success');
         } else {
           this.satStatus = 'invalid';
           this.toast(res.error || 'NIT inválido según algoritmo SAT', 'warning');

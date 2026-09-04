@@ -744,17 +744,23 @@
         if (!rawNit) return;
         this.isCheckingSAT = true;
         try {
-          const res = await API.get('/fel/lookup-nit/' + encodeURIComponent(rawNit));
+          const res = await API.get('/partners/lookup-nit/' + encodeURIComponent(rawNit));
           if (res && res.valid) {
-            this.form.name = res.name || this.form.name;
-            if (res.trade_name) this.form.trade_name = res.trade_name;
-            if (res.address) this.form.address = res.address;
             this.form.nit = res.nit || rawNit;
-            if (res.name && (res.name.includes('S.A.') || res.name.includes('SOCIEDAD') || res.name.includes('LIMITADA'))) {
-              this.form.is_company = true;
+            if (res.name) {
+              this.form.name = res.name;
+              if (res.trade_name) this.form.trade_name = res.trade_name;
+              if (res.address) this.form.address = res.address;
+              if (res.name.includes('S.A.') || res.name.includes('SOCIEDAD') || res.name.includes('LIMITADA')) {
+                this.form.is_company = true;
+              }
+              const msg = res.source === 'local_database' 
+                ? '✓ Datos cargados de base de datos local' 
+                : '✓ Contribuyente verificado ante SAT: ' + res.name;
+              showToast(msg, 'success');
+            } else {
+              showToast('✓ NIT válido ante SAT (Módulo 11). Ingrese el nombre del contacto para guardarlo.', 'info');
             }
-            const msg = res.source === 'local_database' ? '✓ Datos cargados de base de datos local' : '✓ Contribuyente verificado exitosamente ante SAT';
-            showToast(msg, 'success');
           } else {
             showToast(res.error || 'NIT inválido según el algoritmo oficial SAT', 'warning');
           }
