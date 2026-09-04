@@ -298,16 +298,30 @@
               <div>
                 <label class="form-label-custom">NIT GUATEMALA (SAT) *</label>
                 <div style="display:flex; gap:10px;">
-                  <input type="text" class="form-control-custom" style="font-weight:800;" x-model="form.nit" placeholder="1234567-8 o CF">
+                  <input 
+                    type="text" 
+                    class="form-control-custom" 
+                    style="font-weight:800;" 
+                    x-model="form.nit" 
+                    placeholder="1234567-8 o CF"
+                    @keyup.enter.prevent="lookupSAT()"
+                  >
                   <button 
                     type="button" 
-                    style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; border-radius:8px; padding:0 16px; font-size:13px; font-weight:800; cursor:pointer; display:flex; align-items:center; gap:6px;"
+                    style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; border-radius:8px; padding:0 16px; font-size:13px; font-weight:800; cursor:pointer; display:flex; align-items:center; gap:6px; transition:all 0.15s;"
                     @click="lookupSAT()"
+                    :disabled="isCheckingSAT"
                   >
-                    <i class="ph ph-magnifying-glass"></i> Validar SAT
+                    <template x-if="isCheckingSAT">
+                      <i class="ph ph-spinner-gap" style="animation:spin 1s linear infinite;"></i>
+                    </template>
+                    <template x-if="!isCheckingSAT">
+                      <i class="ph ph-magnifying-glass"></i>
+                    </template>
+                    <span x-text="isCheckingSAT ? 'Consultando SAT...' : 'Validar SAT'"></span>
                   </button>
                 </div>
-                <div style="font-size:11px; color:#64748b; margin-top:4px;">Haz clic en Validar SAT para autocompletar la razón social y dirección fiscal.</div>
+                <div style="font-size:11px; color:#64748b; margin-top:4px;">Presiona Enter o haz clic en Validar SAT para autocompletar la razón social y dirección fiscal.</div>
               </div>
 
               <div>
@@ -723,19 +737,32 @@
         }
       },
 
+      isCheckingSAT: false,
+
       async lookupSAT() {
-        if (!this.form.nit) return;
+        const rawNit = (this.form.nit || '').trim();
+        if (!rawNit) return;
+        this.isCheckingSAT = true;
         try {
-          const res = await API.get('/fel/lookup-nit/' + this.form.nit);
+          const res = await API.get('/fel/lookup-nit/' + encodeURIComponent(rawNit));
           if (res && res.valid) {
-            this.form.name = res.name;
-            this.form.address = res.address;
-            this.form.nit = res.nit;
-            if (res.name.includes('S.A.') || res.name.includes('SOCIEDAD') || res.name.includes('LIMITADA')) {
+            this.form.name = res.name || this.form.name;
+            if (res.trade_name) this.form.trade_name = res.trade_name;
+            if (res.address) this.form.address = res.address;
+            this.form.nit = res.nit || rawNit;
+            if (res.name && (res.name.includes('S.A.') || res.name.includes('SOCIEDAD') || res.name.includes('LIMITADA'))) {
               this.form.is_company = true;
             }
+            const msg = res.source === 'local_database' ? '✓ Datos cargados de base de datos local' : '✓ Contribuyente verificado exitosamente ante SAT';
+            showToast(msg, 'success');
+          } else {
+            showToast(res.error || 'NIT inválido según el algoritmo oficial SAT', 'warning');
           }
-        } catch(e) {}
+        } catch(e) {
+          showToast('Error al conectar con el servicio de consulta SAT', 'error');
+        } finally {
+          this.isCheckingSAT = false;
+        }
       },
 
       openWhatsApp() {

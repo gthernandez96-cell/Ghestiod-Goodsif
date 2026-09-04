@@ -100,51 +100,54 @@ async def certify_sale(
     return result
 
 
+from app.services.fel_service import lookup_nit_sat
+
+
 @router.get("/lookup-nit/{nit}")
 async def lookup_nit(
     nit: str,
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    """Consulta de NIT SAT Guatemala para auto-completar Razón Social y Dirección."""
-    clean_nit = nit.strip().upper().replace(" ", "").replace("-", "")
+    """Consulta de NIT SAT Guatemala para auto-completar Razón Social y Dirección en emisión FEL."""
+    nit_raw = nit.strip()
+    clean_nit = nit_raw.upper().replace(" ", "").replace("-", "")
+
     if not clean_nit or clean_nit in ["CF", "CONSUMIDORFINAL", "C/F"]:
         return {
+            "found": True,
             "nit": "CF",
             "name": "CONSUMIDOR FINAL",
+            "trade_name": "Consumidor Final",
             "address": "CIUDAD DE GUATEMALA",
-            "valid": True
+            "valid": True,
+            "source": "cf",
         }
-    
-    # Buscar en tabla de clientes (partners)
+
+    # 1. Buscar en base de datos local
     from app.models.partner import Partner
-    stmt = select(Partner).where(Partner.vat.ilike(f"%{clean_nit}%"))
+    stmt = select(Partner).where(
+        Partner.company_id == current_user.company_id,
+        or_(
+            Partner.nit.ilike(nit_raw),
+            Partner.nit.ilike(clean_nit)
+        )
+    ).limit(1)
     res = await db.execute(stmt)
-    partner = res.scalars().first()
-    
+    partner = res.scalar_one_or_none()
+
     if partner:
         return {
-            "nit": partner.vat or nit,
+            "found": True,
+            "nit": partner.nit,
             "name": partner.name,
-            "address": partner.street or "CIUDAD DE GUATEMALA",
-            "valid": True
+            "trade_name": partner.trade_name or partner.name,
+            "address": partner.address or "CIUDAD DE GUATEMALA",
+            "valid": True,
+            "source": "local_database",
         }
-    
-    # Nombres de muestra para NITs nuevos válidos de la SAT
-    formatted_nit = f"{clean_nit[:-1]}-{clean_nit[-1]}" if len(clean_nit) > 1 else clean_nit
-    sample_names = [
-        "CORPORACION COMERCIAL GUATEMALA, S.A.",
-        "DISTRIBUIDORA DEL SUR, S.A.",
-        "ALIMENTOS Y BEBIDAS SOCIEDAD ANÓNIMA",
-        "COMERCIALIZADORA ZONA 10",
-        "INVERSIONES EMPRESARIALES DE GUATEMALA"
-    ]
-    name_idx = sum(ord(c) for c in clean_nit) % len(sample_names)
-    
-    return {
-        "nit": formatted_nit,
-        "name": sample_names[name_idx],
-        "address": "CIUDAD DE GUATEMALA, GUATEMALA",
-        "valid": True
-    }
+
+    # 2. Consultar ante SAT con Módulo 11
+    sat_res = await lookup_nit_sat(nit_raw)
+    return sat_res
 

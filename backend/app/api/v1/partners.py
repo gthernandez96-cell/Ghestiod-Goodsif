@@ -11,6 +11,7 @@ from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.partner import Partner, PartnerType, CreditStatus
 from app.models.sale import SaleOrder
+from app.services.fel_service import lookup_nit_sat
 
 router = APIRouter(prefix="/partners")
 
@@ -148,19 +149,34 @@ async def lookup_partner_by_nit(
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    """Buscar un cliente por NIT para facturación rápida en POS."""
-    nit_clean = nit.strip().replace("-", "").upper()
+    """
+    Buscar un cliente por NIT para facturación rápida en POS y emisión FEL.
+    1. Si es CF: retorna Consumidor Final de inmediato.
+    2. Si existe en la base de datos local de la empresa: retorna en 0ms.
+    3. Si no existe: consulta en tiempo real ante la SAT / Certificador FEL con validación de Módulo 11.
+    """
+    nit_raw = nit.strip()
+    nit_clean = nit_raw.replace("-", "").replace(" ", "").upper()
 
-    if nit_clean == "CF" or not nit_clean:
+    # 1. Consumidor Final
+    if nit_clean in ("CF", "CONSUMIDORFINAL", "C/F") or not nit_clean:
         return {
             "found": True,
-            "items": [{"nit": "CF", "name": "CONSUMIDOR FINAL", "email": "", "address": "CIUDAD"}]
+            "valid": True,
+            "nit": "CF",
+            "name": "CONSUMIDOR FINAL",
+            "trade_name": "Consumidor Final",
+            "email": "",
+            "address": "CIUDAD DE GUATEMALA",
+            "source": "cf",
+            "items": [{"nit": "CF", "name": "CONSUMIDOR FINAL", "email": "", "address": "CIUDAD DE GUATEMALA"}]
         }
 
+    # 2. Búsqueda en Base de Datos Local de la Empresa (Caché ultrarrápida)
     stmt = select(Partner).where(
         Partner.company_id == current_user.company_id,
         or_(
-            Partner.nit.ilike(nit.strip()),
+            Partner.nit.ilike(nit_raw),
             Partner.nit.ilike(nit_clean),
             func.replace(Partner.nit, "-", "").ilike(nit_clean)
         )
@@ -171,16 +187,61 @@ async def lookup_partner_by_nit(
     if partner:
         return {
             "found": True,
+            "valid": True,
+            "nit": partner.nit,
+            "name": partner.name,
+            "trade_name": partner.trade_name or partner.name,
+            "email": partner.email or "",
+            "address": partner.address or "CIUDAD DE GUATEMALA",
+            "source": "local_database",
             "items": [{
                 "id": str(partner.id),
                 "nit": partner.nit,
                 "name": partner.name,
                 "email": partner.email or "",
-                "address": partner.address or "",
+                "address": partner.address or "CIUDAD DE GUATEMALA",
             }]
         }
 
-    return {"found": False, "items": []}
+    # 3. Consulta en tiempo real con algoritmo Módulo 11 SAT y Certificador FEL
+    sat_result = await lookup_nit_sat(nit_raw)
+    if sat_result.get("valid"):
+        formatted_nit = sat_result.get("nit") or nit_raw
+        fiscal_name = sat_result.get("name") or "CONTRIBUYENTE REGISTRADO"
+        address = sat_result.get("address") or "CIUDAD DE GUATEMALA"
+        trade_name = sat_result.get("trade_name") or fiscal_name
+
+        return {
+            "found": True,
+            "valid": True,
+            "nit": formatted_nit,
+            "name": fiscal_name,
+            "trade_name": trade_name,
+            "email": "",
+            "address": address,
+            "source": sat_result.get("source", "sat_api"),
+            "items": [{
+                "id": None,
+                "nit": formatted_nit,
+                "name": fiscal_name,
+                "email": "",
+                "address": address
+            }]
+        }
+
+    # 4. NIT no superó la validación oficial de Módulo 11 de la SAT
+    return {
+        "found": False,
+        "valid": False,
+        "nit": sat_result.get("nit") or nit_raw,
+        "name": None,
+        "trade_name": None,
+        "email": "",
+        "address": None,
+        "error": sat_result.get("error") or "NIT inválido según algoritmo oficial de SAT",
+        "source": "sat_modulo11_failed",
+        "items": []
+    }
 
 
 @router.get("/credits")

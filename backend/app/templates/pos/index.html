@@ -3556,15 +3556,54 @@
         <div style="display:flex; flex-direction:column; gap:14px;">
           <div style="display:flex; gap:10px;">
             <div style="flex:1;">
-              <label class="opening-label">NIT</label>
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <label class="opening-label">NIT</label>
+                <template x-if="satStatus === 'verified'">
+                  <span style="font-size:11px; font-weight:800; color:#059669; display:inline-flex; align-items:center; gap:3px;">
+                    <i class="ph-bold ph-check-circle"></i> Verificado SAT
+                  </span>
+                </template>
+                <template x-if="satStatus === 'invalid'">
+                  <span style="font-size:11px; font-weight:800; color:#dc2626; display:inline-flex; align-items:center; gap:3px;">
+                    <i class="ph-bold ph-warning-circle"></i> Inválido SAT
+                  </span>
+                </template>
+                <template x-if="satStatus === 'cf'">
+                  <span style="font-size:11px; font-weight:800; color:#2563eb; display:inline-flex; align-items:center; gap:3px;">
+                    <i class="ph-bold ph-user"></i> C/F
+                  </span>
+                </template>
+              </div>
               <div style="display:flex; gap:6px;">
-                <input type="text" class="customer-search-input" placeholder="CF o Número de NIT" x-model="newCustomerForm.nit">
-                <button type="button" class="settings-btn" style="padding:6px 12px; font-size:12px;" @click="lookupSAT()">SAT</button>
+                <input 
+                  type="text" 
+                  class="customer-search-input" 
+                  placeholder="CF o Número de NIT" 
+                  x-model="newCustomerForm.nit"
+                  @blur="lookupSAT()"
+                  @keyup.enter.prevent="lookupSAT()"
+                  :style="satStatus === 'verified' ? 'border-color:#10b981; background:#f0fdf4;' : (satStatus === 'invalid' ? 'border-color:#ef4444; background:#fef2f2;' : '')"
+                >
+                <button 
+                  type="button" 
+                  class="settings-btn" 
+                  style="padding:6px 12px; font-size:12px; display:inline-flex; align-items:center; gap:4px; font-weight:700;" 
+                  @click="lookupSAT()"
+                  :disabled="isLookingUpSAT"
+                >
+                  <template x-if="isLookingUpSAT">
+                    <i class="ph ph-spinner-gap" style="animation:spin 1s linear infinite;"></i>
+                  </template>
+                  <template x-if="!isLookingUpSAT">
+                    <i class="ph-bold ph-magnifying-glass"></i>
+                  </template>
+                  <span>SAT</span>
+                </button>
               </div>
             </div>
             <div style="flex:2;">
               <label class="opening-label">Nombre / Razón Social *</label>
-              <input type="text" class="customer-search-input" placeholder="Nombre completo" x-model="newCustomerForm.name" required>
+              <input type="text" class="customer-search-input" placeholder="Nombre fiscal registrado" x-model="newCustomerForm.name" required>
             </div>
           </div>
 
@@ -4272,15 +4311,44 @@ function posApp() {
       this.toast('Cliente seleccionado: ' + this.customer.name, 'success');
     },
 
+    isLookingUpSAT: false,
+    satStatus: null, // null | 'verified' | 'invalid' | 'cf'
+
     async lookupSAT() {
-      if (!this.newCustomerForm.nit || this.newCustomerForm.nit === 'CF') return;
+      const rawNit = (this.newCustomerForm.nit || '').trim();
+      if (!rawNit) return;
+      const clean = rawNit.toUpperCase().replace(/[- ]/g, '');
+      if (clean === 'CF' || clean === 'C/F') {
+        this.newCustomerForm.nit = 'CF';
+        this.newCustomerForm.name = 'CONSUMIDOR FINAL';
+        this.satStatus = 'cf';
+        this.toast('Asignado a Consumidor Final', 'info');
+        return;
+      }
+
+      this.isLookingUpSAT = true;
+      this.satStatus = null;
       try {
-        const res = await API.get('/partners/lookup-nit/' + this.newCustomerForm.nit);
-        if (res.found && res.items.length > 0) {
-          this.newCustomerForm.name = res.items[0].name;
-          this.toast('Datos de SAT encontrados', 'success');
+        const res = await API.get('/partners/lookup-nit/' + encodeURIComponent(rawNit));
+        if (res.valid) {
+          this.newCustomerForm.nit = res.nit || rawNit;
+          this.newCustomerForm.name = res.name || (res.items && res.items[0]?.name) || '';
+          if (res.address && !this.newCustomerForm.address) {
+            this.newCustomerForm.address = res.address;
+          }
+          this.satStatus = 'verified';
+          const srcMsg = res.source === 'local_database' ? 'Cliente local verificado' : 'Nombre fiscal verificado ante SAT';
+          this.toast('✓ ' + srcMsg, 'success');
+        } else {
+          this.satStatus = 'invalid';
+          this.toast(res.error || 'NIT inválido según algoritmo SAT', 'warning');
         }
-      } catch(e) {}
+      } catch(e) {
+        this.satStatus = null;
+        this.toast('No se pudo verificar el NIT en este momento', 'warning');
+      } finally {
+        this.isLookingUpSAT = false;
+      }
     },
 
     async saveNewCustomer() {
@@ -5668,16 +5736,25 @@ function posApp() {
     },
 
     async lookupCustomer() {
-      if (!this.customer || !this.customer.nit || this.customer.nit === 'CF') return;
+      if (!this.customer || !this.customer.nit) return;
+      const rawNit = this.customer.nit.trim();
+      const clean = rawNit.toUpperCase().replace(/[- ]/g, '');
+      if (clean === 'CF' || clean === 'C/F') {
+        this.customer.nit = 'CF';
+        this.customer.name = 'CONSUMIDOR FINAL';
+        return;
+      }
       try {
-        const res = await API.get('/partners/lookup-nit/' + this.customer.nit);
-        if (res.found && res.items && res.items.length > 0) {
-          if (!this.customer) this.customer = { nit: 'CF', name: 'CONSUMIDOR FINAL' };
-          this.customer.name = res.items[0].name;
-          this.toast('Cliente: ' + this.customer.name, 'success');
+        const res = await API.get('/partners/lookup-nit/' + encodeURIComponent(rawNit));
+        if (res.valid) {
+          if (!this.customer) this.customer = { nit: rawNit, name: '' };
+          this.customer.nit = res.nit || rawNit;
+          this.customer.name = res.name || (res.items && res.items[0]?.name) || this.customer.name;
+          this.toast('✓ ' + (res.name || 'Cliente verificado ante SAT'), 'success');
+        } else if (res.error) {
+          this.toast(res.error, 'warning');
         }
       } catch(e) {}
-
     },
 
     addFirstResult() {
