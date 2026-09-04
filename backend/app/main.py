@@ -13,7 +13,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from jose import jwt, JWTError
 from contextlib import asynccontextmanager
 import logging
 
@@ -83,6 +84,70 @@ app = FastAPI(
 
 # ===== MIDDLEWARE =====
 from app.core.audit_middleware import AuditLogMiddleware
+
+@app.middleware("http")
+async def web_page_auth_guard(request: Request, call_next):
+    """Control de acceso para páginas web: redirige a /login si no hay sesión activa."""
+    path = request.url.path
+
+    # Prefijos públicos (API, estáticos, docs, PWA)
+    public_prefixes = (
+        "/static",
+        "/api",
+        "/docs",
+        "/redoc",
+        "/openapi.json",
+        "/manifest.json",
+        "/service-worker.js",
+        "/favicon.ico",
+    )
+    if any(path.startswith(prefix) for prefix in public_prefixes):
+        return await call_next(request)
+
+    # Validar sesión JWT mediante cookie access_token o cabecera Bearer
+    token = request.cookies.get("access_token")
+    if not token:
+        auth_hdr = request.headers.get("Authorization")
+        if auth_hdr and auth_hdr.startswith("Bearer "):
+            token = auth_hdr[7:]
+
+    is_authenticated = False
+    if token:
+        try:
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+            if payload.get("type") == "access" and payload.get("sub"):
+                is_authenticated = True
+        except Exception:
+            is_authenticated = False
+
+    # Endpoint de cierre de sesión
+    if path == "/logout":
+        resp = RedirectResponse(url="/login", status_code=302)
+        resp.delete_cookie("access_token", path="/")
+        return resp
+
+    # Si accede a la página de login
+    if path == "/login":
+        if is_authenticated:
+            return RedirectResponse(url="/dashboard", status_code=302)
+        return await call_next(request)
+
+    # Si accede a la raíz del sitio "/"
+    if path == "/":
+        if is_authenticated:
+            return RedirectResponse(url="/dashboard", status_code=302)
+        return RedirectResponse(url="/login", status_code=302)
+
+    # Cualquier otra página protegida (/dashboard, /pos, /inventory, etc.)
+    if not is_authenticated:
+        query = str(request.url.query)
+        next_target = path + (f"?{query}" if query else "")
+        login_url = f"/login?next={next_target}" if next_target != "/dashboard" else "/login"
+        resp = RedirectResponse(url=login_url, status_code=302)
+        resp.delete_cookie("access_token", path="/")
+        return resp
+
+    return await call_next(request)
 
 app.add_middleware(AuditLogMiddleware)
 app.add_middleware(

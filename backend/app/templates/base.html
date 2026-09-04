@@ -10,6 +10,18 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
 
+  <script>
+    (function() {
+      var token = localStorage.getItem('access_token');
+      var hasCookie = document.cookie.indexOf('access_token=') !== -1;
+      if (!token && !hasCookie) {
+        var next = window.location.pathname;
+        if (window.location.search) next += window.location.search;
+        window.location.replace(next && next !== '/dashboard' ? '/login?next=' + encodeURIComponent(next) : '/login');
+      }
+    })();
+  </script>
+
   <!-- CSS con Cache-Buster y Overrides Odoo -->
   <link rel="stylesheet" href="/static/css/main.css?v=20260819_touch_responsive">
 
@@ -627,8 +639,8 @@
 
         logout() {
           localStorage.clear();
-          document.cookie = "access_token=; path=/; max-age=0; SameSite=Lax";
-          window.location.href = '/login';
+          document.cookie = "access_token=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax";
+          window.location.href = '/logout';
         }
       }
     }

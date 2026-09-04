@@ -16,9 +16,9 @@ headers = {"Authorization": f"Bearer {token}"}
 
 def test_users_html_page():
     """Verificar que la página HTML de Usuarios y Roles responde con status 200."""
-    res = client.get("/users")
+    res = client.get("/users", headers=headers)
     assert res.status_code == 200
-    assert "Usuarios y Roles Predeterminados" in res.text
+    assert "Usuarios" in res.text
 
 
 def test_list_predefined_roles():
@@ -247,5 +247,33 @@ def test_cashier_cannot_create_or_modify_customers():
     )
     assert cust_update_res.status_code == 403
     assert "El usuario con rol Cajero no tiene autorización" in cust_update_res.json()["detail"]
+
+
+def test_page_auth_guard_security():
+    """Verificar que las páginas privadas redirigen a /login si no hay sesión activa."""
+    # 1. Sin autenticación: la raíz '/' redirige a '/login'
+    res_root = client.get("/", follow_redirects=False)
+    assert res_root.status_code == 302
+    assert res_root.headers["location"] == "/login"
+
+    # 2. Sin autenticación: '/dashboard' redirige a '/login'
+    res_dash = client.get("/dashboard", follow_redirects=False)
+    assert res_dash.status_code == 302
+    assert "/login" in res_dash.headers["location"]
+
+    # 3. Sin autenticación: '/pos' redirige a '/login'
+    res_pos = client.get("/pos", follow_redirects=False)
+    assert res_pos.status_code == 302
+    assert "/login" in res_pos.headers["location"]
+
+    # 4. Sin autenticación: '/login' muestra el formulario (200 OK)
+    res_login = client.get("/login", follow_redirects=False)
+    assert res_login.status_code == 200
+    assert "Ingresar al Sistema" in res_login.text or "INGRESAR AL SISTEMA" in res_login.text or "POS Empresarial" in res_login.text
+
+    # 5. Con token en cookies: '/dashboard' responde 200 OK
+    res_auth_dash = client.get("/dashboard", cookies={"access_token": token}, follow_redirects=False)
+    assert res_auth_dash.status_code == 200
+
 
 

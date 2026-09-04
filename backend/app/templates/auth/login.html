@@ -630,7 +630,7 @@
                 id="password"
                 :type="showPassword ? 'text' : 'password'" 
                 class="field-input" 
-                placeholder="••••••••"
+                placeholder="Escribe tu contraseña"
                 x-model="password"
                 autocomplete="current-password"
                 required
@@ -794,13 +794,13 @@
   <script>
     function loginApp() {
       return {
-        username: localStorage.getItem('saved_username') || 'admin@empresa.com',
+        username: localStorage.getItem('saved_username') || '',
         password: '',
         showPassword: false,
-        rememberMe: true,
+        rememberMe: false,
         isLoading: false,
         errorMessage: '',
-        activeRole: 'admin',
+        activeRole: '',
 
         showForgot: false,
         forgotEmail: '',
@@ -851,12 +851,20 @@
             localStorage.setItem('refresh_token', data.refresh_token);
             localStorage.setItem('user', JSON.stringify(data.user));
 
-            document.cookie = `access_token=${data.access_token}; path=/; max-age=86400; SameSite=Lax`;
+            const isHttps = window.location.protocol === 'https:';
+            document.cookie = `access_token=${data.access_token}; path=/; max-age=86400; SameSite=Lax${isHttps ? '; Secure' : ''}`;
 
             if (this.rememberMe && this.username) {
               localStorage.setItem('saved_username', this.username.trim());
             } else {
               localStorage.removeItem('saved_username');
+            }
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const nextUrl = urlParams.get('next');
+            if (nextUrl && nextUrl.startsWith('/') && nextUrl !== '/login') {
+              window.location.href = nextUrl;
+              return;
             }
 
             const roleCodes = data.user?.role_codes || [];

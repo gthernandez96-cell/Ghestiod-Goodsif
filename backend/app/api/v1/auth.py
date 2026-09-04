@@ -1,5 +1,5 @@
 """API v1 — Autenticación."""
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Response
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -36,6 +36,7 @@ class ChangePasswordRequest(BaseModel):
 
 @router.post("/login", response_model=LoginResponse)
 async def login(
+    response: Response,
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: AsyncSession = Depends(get_db),
 ):
@@ -62,6 +63,14 @@ async def login(
 
     access_token = create_access_token({"sub": str(user.id)})
     refresh_token = create_refresh_token({"sub": str(user.id)})
+
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        max_age=86400,
+        path="/",
+        samesite="lax",
+    )
 
     role_codes = [r.code for r in (user.roles or [])]
     is_admin_user = bool(user.is_superuser or "admin" in role_codes or "store_manager" in role_codes or user.username == "admin" or (user.email and "admin" in user.email))

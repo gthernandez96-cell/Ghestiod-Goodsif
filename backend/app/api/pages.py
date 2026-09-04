@@ -32,8 +32,15 @@ templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
 
 @router.get("/", response_class=HTMLResponse)
-async def redirect_to_dashboard(request: Request):
-    return RedirectResponse(url="/dashboard")
+async def redirect_to_home(request: Request):
+    return RedirectResponse(url="/login")
+
+
+@router.get("/logout", response_class=HTMLResponse)
+async def logout_page(request: Request):
+    response = RedirectResponse(url="/login", status_code=302)
+    response.delete_cookie("access_token", path="/")
+    return response
 
 
 @router.get("/login", response_class=HTMLResponse)
