@@ -295,7 +295,7 @@ async def get_cashier_performance(
     stmt = (
         select(
             User.id,
-            User.name,
+            User.full_name,
             User.username,
             User.email,
             func.count(SaleOrder.id).label("total_tickets"),
@@ -310,7 +310,7 @@ async def get_cashier_performance(
             SaleOrder.sale_date >= p_start,
             SaleOrder.state != SaleState.CANCELLED
         )
-        .group_by(User.id, User.name, User.username, User.email)
+        .group_by(User.id, User.full_name, User.username, User.email)
         .order_by(func.sum(SaleOrder.total).desc())
     )
 

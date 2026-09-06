@@ -10,6 +10,8 @@ from app.core.config import settings
 from app.core.database import AsyncSessionLocal
 from app.models.audit import AuditLog
 from app.models.user import User
+from app.models.company import Company
+from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +60,6 @@ class AuditLogMiddleware(BaseHTTPMiddleware):
                 try:
                     # Si obtuvimos user_id, buscar su company_id
                     if user_id:
-                        from sqlalchemy import select
                         stmt = select(User).where(User.id == user_id).limit(1)
                         res = await session.execute(stmt)
                         user = res.scalar_one_or_none()
@@ -67,7 +68,6 @@ class AuditLogMiddleware(BaseHTTPMiddleware):
 
                     # Si no hay company_id (ej. no autenticado o error), obtener el primero por defecto
                     if not company_id:
-                        from app.models.company import Company
                         res_c = await session.execute(select(Company.id).limit(1))
                         company_id = res_c.scalar_one_or_none()
 

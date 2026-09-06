@@ -172,19 +172,22 @@ async def lookup_partner_by_nit(
             "items": [{"nit": "CF", "name": "CONSUMIDOR FINAL", "email": "", "address": "CIUDAD DE GUATEMALA"}]
         }
 
-    # 2. Búsqueda en Base de Datos Local de la Empresa (Caché ultrarrápida)
+    # 2. Búsqueda en Base de Datos Local (Prioriza la empresa actual, pero aprovecha catálogo global de clientes)
     stmt = select(Partner).where(
-        Partner.company_id == current_user.company_id,
         or_(
             Partner.nit.ilike(nit_raw),
             Partner.nit.ilike(nit_clean),
             func.replace(Partner.nit, "-", "").ilike(nit_clean)
         )
+    ).order_by(
+        (Partner.company_id == current_user.company_id).desc(),
+        Partner.created_at.desc()
     ).limit(1)
     res = await db.execute(stmt)
     partner = res.scalar_one_or_none()
 
     if partner:
+        is_same_company = (partner.company_id == current_user.company_id)
         return {
             "found": True,
             "valid": True,
@@ -193,9 +196,9 @@ async def lookup_partner_by_nit(
             "trade_name": partner.trade_name or partner.name,
             "email": partner.email or "",
             "address": partner.address or "CIUDAD DE GUATEMALA",
-            "source": "local_database",
+            "source": "local_database" if is_same_company else "local_database_shared",
             "items": [{
-                "id": str(partner.id),
+                "id": str(partner.id) if is_same_company else None,
                 "nit": partner.nit,
                 "name": partner.name,
                 "email": partner.email or "",
