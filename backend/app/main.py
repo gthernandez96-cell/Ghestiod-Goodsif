@@ -90,7 +90,7 @@ async def web_page_auth_guard(request: Request, call_next):
     """Control de acceso para páginas web: redirige a /login si no hay sesión activa."""
     path = request.url.path
 
-    # Prefijos públicos (API, estáticos, docs, PWA)
+    # Prefijos públicos (API, estáticos, docs, PWA, health checks, tickets imprimibles)
     public_prefixes = (
         "/static",
         "/api",
@@ -100,6 +100,9 @@ async def web_page_auth_guard(request: Request, call_next):
         "/manifest.json",
         "/service-worker.js",
         "/favicon.ico",
+        "/health",
+        "/sales/",
+        "/cashier/",
     )
     if any(path.startswith(prefix) for prefix in public_prefixes):
         return await call_next(request)

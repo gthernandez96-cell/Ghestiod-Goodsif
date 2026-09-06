@@ -30,9 +30,8 @@ class Permission(BaseModel):
     """Permiso granular del sistema."""
     __tablename__ = "permissions"
 
-    company_id = Column(UUID(as_uuid=True), ForeignKey("companies.id"), nullable=False)
     name = Column(String(200), nullable=False)
-    code = Column(String(100), nullable=False)
+    code = Column(String(100), nullable=False, unique=True)
     module = Column(String(100), nullable=False)
     description = Column(Text)
 
@@ -60,7 +59,7 @@ class Role(BaseModel):
     is_system = Column(Boolean, default=False)  # Roles del sistema (no editables)
 
     # Relationships
-    permissions = relationship("Permission", secondary="role_permissions", back_populates="roles")
+    permissions = relationship("Permission", secondary="role_permissions", back_populates="roles", lazy="selectin")
     users = relationship("User", secondary="user_roles", back_populates="roles")
 
     def get_permission_codes(self) -> list[str]:
@@ -91,8 +90,8 @@ class User(BaseModel):
 
     # Relationships
     company = relationship("Company", back_populates="users")
-    roles = relationship("Role", secondary="user_roles", back_populates="users")
-    branches = relationship("Branch", secondary="user_branches")
+    roles = relationship("Role", secondary="user_roles", back_populates="users", lazy="selectin")
+    branches = relationship("Branch", secondary="user_branches", lazy="selectin")
     cashier_sessions = relationship("CashierSession", back_populates="user")
 
     def get_permissions(self) -> list[str]:

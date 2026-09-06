@@ -82,10 +82,14 @@ async def get_current_user(
         raise HTTPException(status_code=401, detail="ID de usuario inválido en token")
 
     from sqlalchemy.orm import selectinload
+    from app.models.user import Role
 
     result = await db.execute(
         select(User)
-        .options(selectinload(User.roles))
+        .options(
+            selectinload(User.roles).selectinload(Role.permissions),
+            selectinload(User.branches)
+        )
         .where(User.id == user_id, User.is_active == True)
     )
     user = result.scalar_one_or_none()
