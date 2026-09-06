@@ -120,8 +120,14 @@
     <button class="filter-pill" :class="filterType === 'in_transit' ? 'active' : ''" @click="filterType = 'in_transit'; applyFilters()" style="color:#d97706;">
       <span>🚚 En Tránsito</span>
     </button>
+    <button class="filter-pill" :class="filterType === 'partial' ? 'active' : ''" @click="filterType = 'partial'; applyFilters()" style="color:#b45309;">
+      <span>⚠️ Parcial / Discrepancias</span>
+    </button>
     <button class="filter-pill" :class="filterType === 'received' ? 'active' : ''" @click="filterType = 'received'; applyFilters()" style="color:#15803d;">
       <span>✅ Recibidos</span>
+    </button>
+    <button class="filter-pill" :class="filterType === 'cancelled' ? 'active' : ''" @click="filterType = 'cancelled'; applyFilters()" style="color:#b91c1c;">
+      <span>🚫 Anulados</span>
     </button>
 
     <!-- Right Controls: Resumen KPI Button -->
@@ -256,8 +262,8 @@
               <td style="padding:14px 18px; text-align:center;">
                 <span 
                   style="font-size:11.5px; font-weight:800; padding:4px 12px; border-radius:12px; display:inline-block;"
-                  :class="t.state === 'received' ? 'bg-emerald-100 text-emerald-800' : (t.state === 'sent' ? 'bg-amber-100 text-amber-800' : 'bg-purple-100 text-purple-800')"
-                  x-text="t.state === 'received' ? '✓ Recibido' : (t.state === 'sent' ? '🚚 En Tránsito' : '📄 Solicitud')"
+                  :class="t.state === 'received' ? 'bg-emerald-100 text-emerald-800' : (t.state === 'partial' ? 'bg-amber-100 text-amber-800' : (t.state === 'sent' || t.state === 'in_transit' ? 'bg-blue-100 text-blue-800' : (t.state === 'cancelled' ? 'bg-rose-100 text-rose-800' : 'bg-purple-100 text-purple-800')))"
+                  x-text="t.state === 'received' ? '✓ Recibido' : (t.state === 'partial' ? '⚠️ Parcial' : (t.state === 'sent' || t.state === 'in_transit' ? '🚚 En Tránsito' : (t.state === 'cancelled' ? '✕ Anulado' : '📄 Solicitud')))"
                 ></span>
               </td>
               <td style="padding:14px 18px; text-align:right;">
@@ -322,8 +328,12 @@
 
         if (this.filterType === 'in_transit') {
           list = list.filter(t => t.state === 'sent' || t.state === 'in_transit');
+        } else if (this.filterType === 'partial') {
+          list = list.filter(t => t.state === 'partial');
         } else if (this.filterType === 'received') {
           list = list.filter(t => t.state === 'received');
+        } else if (this.filterType === 'cancelled') {
+          list = list.filter(t => t.state === 'cancelled');
         }
 
         if (this.search) {

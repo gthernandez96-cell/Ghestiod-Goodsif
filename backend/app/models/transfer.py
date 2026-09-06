@@ -49,8 +49,10 @@ class Transfer(BaseModel):
 
     # Relationships
     lines = relationship("TransferLine", back_populates="transfer", lazy="selectin", cascade="all, delete-orphan")
-    origin_branch = relationship("Branch", foreign_keys=[origin_branch_id])
-    dest_branch = relationship("Branch", foreign_keys=[dest_branch_id])
+    origin_branch = relationship("Branch", foreign_keys=[origin_branch_id], lazy="selectin")
+    dest_branch = relationship("Branch", foreign_keys=[dest_branch_id], lazy="selectin")
+    origin_warehouse = relationship("Warehouse", foreign_keys=[origin_warehouse_id], lazy="selectin")
+    dest_warehouse = relationship("Warehouse", foreign_keys=[dest_warehouse_id], lazy="selectin")
 
     def __repr__(self):
         return f"<Transfer {self.number} {self.state}>"
