@@ -41,12 +41,13 @@ ssh -o StrictHostKeyChecking=no "root@${DROPLET_IP}" << 'ENDSSH'
 
 # Reiniciar servicio
 systemctl restart pos-empresarial
-sleep 4
+sleep 6
 systemctl is-active --quiet pos-empresarial && echo "✅ Servicio POS activo y funcionando" || (echo "❌ Error en el servicio" && exit 1)
 
 # Verificar respuesta local
 HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -L http://127.0.0.1:8000/login)
-echo "✅ Estado HTTP /login: $HTTP_CODE"
+HEALTH_CODE=$(curl -s -o /dev/null -w "%{http_code}" -L http://127.0.0.1:8000/health)
+echo "✅ Estado HTTP /login: $HTTP_CODE | /health: $HEALTH_CODE"
 ENDSSH
 
 echo "=================================================="
