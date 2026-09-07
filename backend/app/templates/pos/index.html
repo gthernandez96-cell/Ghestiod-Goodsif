@@ -169,7 +169,8 @@
   ============================================= */
   .pos-main-container {
     display: flex;
-    height: calc(100vh - 80px);
+    height: calc(100vh - 48px);
+    height: calc(100dvh - 48px);
     overflow: hidden;
   }
 
@@ -470,7 +471,9 @@
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
     grid-gap: 14px;
     align-content: start;
-    max-height: calc(100vh - 195px);
+    max-height: calc(100vh - 125px);
+    max-height: calc(100dvh - 125px);
+    -webkit-overflow-scrolling: touch;
   }
 
   .product-card-ref {
@@ -1502,6 +1505,535 @@
     background: #00796b;
   }
 
+  /* ==========================================================================
+     RESPONSIVE & TOUCH SCREENS / TABLETS / MOBILES ADAPTIVE SYSTEM
+     ========================================================================== */
+
+  /* 1. Touch Ergonomics & Elimination of Double-Tap Zoom Delay */
+  button, input, select, textarea, .product-card-ref, .cart-line-item, 
+  .cat-pill, .order-tab-pill, .numpad-btn, .pay-km-btn, .pay-method-select-card, 
+  .settings-btn, .settings-dropdown-item, .pos-mobile-cart-bar, .pos-mn-btn {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .numpad-btn, .pay-km-btn, .pay-action-btn, .btn-validate-payment, 
+  .cat-pill, .product-card-ref, .order-tab-pill, .pos-mn-btn {
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  /* Micro-interactions on active/tap */
+  .product-card-ref:active {
+    transform: scale(0.97);
+  }
+  .numpad-btn:active, .pay-km-btn:active, .cat-pill:active, .pos-mn-btn:active {
+    transform: scale(0.95);
+  }
+
+  /* Mobile components hidden on desktop */
+  .pos-mobile-cart-bar {
+    display: none;
+  }
+  .mobile-cart-top-bar {
+    display: none;
+  }
+  .pos-mobile-nav-pills {
+    display: none;
+  }
+
+  /* Success modal responsive layout classes */
+  .success-modal-layout {
+    display: flex;
+    height: calc(100vh - 52px);
+    height: calc(100dvh - 52px);
+    overflow: hidden;
+  }
+  .success-col-actions {
+    width: 48%;
+    background: #ffffff;
+    padding: 32px 40px;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    border-right: 1px solid #e2e8f0;
+    -webkit-overflow-scrolling: touch;
+  }
+  .success-col-preview {
+    flex: 1;
+    background: linear-gradient(135deg, #dde1e7, #c8cdd6);
+    padding: 28px 32px;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* 2. Tablets (769px to 1024px, e.g. iPads & All-in-One Touch screens) */
+  @media (min-width: 769px) and (max-width: 1024px) {
+    .pos-main-container {
+      height: calc(100vh - 48px);
+      height: calc(100dvh - 48px);
+    }
+    .pos-left-panel {
+      width: 320px !important;
+      flex-shrink: 0;
+    }
+    .product-grid-container {
+      grid-template-columns: repeat(auto-fill, minmax(135px, 1fr)) !important;
+      grid-gap: 10px !important;
+      padding: 10px 14px 20px 14px !important;
+    }
+    .card-img-wrapper {
+      height: 100px !important;
+    }
+    .pay-embed-grid {
+      grid-template-columns: 200px 240px 1fr !important;
+      gap: 10px !important;
+      padding: 12px 14px !important;
+    }
+    .pay-method-select-card {
+      padding: 10px 12px !important;
+    }
+    .pay-method-title {
+      font-size: 13px !important;
+    }
+    .numpad-btn {
+      height: 44px !important;
+      font-size: 15px !important;
+    }
+  }
+
+  /* 3. Mobile Phones & Handheld POS Devices (<= 768px) */
+  @media (max-width: 768px) {
+    .pos-topbar {
+      padding: 0 10px !important;
+      height: 48px !important;
+      gap: 8px !important;
+    }
+    .order-tabs-container {
+      max-width: 35% !important;
+      overflow-x: auto !important;
+      -webkit-overflow-scrolling: touch !important;
+      white-space: nowrap !important;
+      gap: 4px !important;
+    }
+    .order-tab-pill {
+      padding: 4px 8px !important;
+      font-size: 11.5px !important;
+      border-radius: 6px !important;
+    }
+    .new-sale-btn {
+      padding: 4px 8px !important;
+      font-size: 11.5px !important;
+    }
+    .new-sale-btn .lbl-desktop {
+      display: none !important;
+    }
+    .topbar-right {
+      gap: 6px !important;
+    }
+    .status-pill-online {
+      padding: 4px 8px !important;
+      font-size: 11px !important;
+    }
+    .settings-btn {
+      padding: 4px 8px !important;
+      font-size: 12px !important;
+    }
+    .settings-btn .lbl-desktop {
+      display: none !important;
+    }
+
+    /* Mobile segmented pills in top bar */
+    .pos-mobile-nav-pills {
+      display: inline-flex !important;
+      background: rgba(0, 0, 0, 0.25) !important;
+      border-radius: 20px !important;
+      padding: 2px !important;
+      gap: 2px !important;
+    }
+    .pos-mn-btn {
+      background: transparent !important;
+      border: none !important;
+      color: rgba(255, 255, 255, 0.85) !important;
+      padding: 5px 11px !important;
+      border-radius: 18px !important;
+      font-size: 12px !important;
+      font-weight: 700 !important;
+      cursor: pointer !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 4px !important;
+      touch-action: manipulation !important;
+      transition: all 0.15s ease !important;
+    }
+    .pos-mn-btn.active {
+      background: #ffffff !important;
+      color: #714B67 !important;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2) !important;
+    }
+    .pos-mn-badge {
+      background: #714B67 !important;
+      color: #ffffff !important;
+      border-radius: 10px !important;
+      padding: 0 6px !important;
+      font-size: 10px !important;
+      font-weight: 900 !important;
+    }
+    .pos-mn-btn.active .pos-mn-badge {
+      background: #714B67 !important;
+      color: #ffffff !important;
+    }
+
+    /* Single-Column Screen Switcher */
+    .pos-main-container {
+      height: calc(100vh - 48px) !important;
+      height: calc(100dvh - 48px) !important;
+      flex-direction: column !important;
+      position: relative !important;
+    }
+
+    /* In Catalog Mode: Hide Cart, Show Full Catalog */
+    .pos-main-container.mobile-tab-catalog:not(.mobile-in-payment) .pos-left-panel {
+      display: none !important;
+    }
+    .pos-main-container.mobile-tab-catalog:not(.mobile-in-payment) .pos-right-panel {
+      display: flex !important;
+      width: 100% !important;
+      flex: 1 !important;
+      height: 100% !important;
+    }
+
+    /* In Cart Mode: Hide Catalog, Show Full Cart */
+    .pos-main-container.mobile-tab-cart:not(.mobile-in-payment) .pos-left-panel {
+      display: flex !important;
+      width: 100% !important;
+      flex: 1 !important;
+      height: 100% !important;
+      border-right: none !important;
+    }
+    .pos-main-container.mobile-tab-cart:not(.mobile-in-payment) .pos-right-panel {
+      display: none !important;
+    }
+
+    /* In Payment Mode: Show Full Payment Screen */
+    .pos-main-container.mobile-in-payment .pos-left-panel {
+      display: none !important;
+    }
+    .pos-main-container.mobile-in-payment .pos-right-panel {
+      display: flex !important;
+      width: 100% !important;
+      flex: 1 !important;
+      height: 100% !important;
+    }
+
+    /* Mobile Return Bar in Cart Panel */
+    .mobile-cart-top-bar {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      background: #714B67 !important;
+      color: #ffffff !important;
+      padding: 10px 14px !important;
+      flex-shrink: 0 !important;
+    }
+    .mobile-back-catalog-btn {
+      background: rgba(255, 255, 255, 0.2) !important;
+      border: 1px solid rgba(255, 255, 255, 0.35) !important;
+      color: #ffffff !important;
+      padding: 7px 14px !important;
+      border-radius: 8px !important;
+      font-size: 13px !important;
+      font-weight: 800 !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 6px !important;
+      cursor: pointer !important;
+      touch-action: manipulation !important;
+    }
+    .mobile-cart-title {
+      font-weight: 800 !important;
+      font-size: 14px !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 6px !important;
+    }
+    .mobile-clear-cart-btn {
+      background: rgba(239, 68, 68, 0.25) !important;
+      border: 1px solid rgba(239, 68, 68, 0.45) !important;
+      color: #fecaca !important;
+      padding: 6px 10px !important;
+      border-radius: 8px !important;
+      font-size: 15px !important;
+      cursor: pointer !important;
+      touch-action: manipulation !important;
+    }
+
+    /* Catalog Top Bar & Search on Mobile */
+    .catalog-top-bar {
+      flex-direction: column !important;
+      align-items: stretch !important;
+      gap: 8px !important;
+      padding: 10px 12px 6px 12px !important;
+    }
+    .catalog-search-pill {
+      max-width: 100% !important;
+      width: 100% !important;
+    }
+    .catalog-search-pill input {
+      font-size: 16px !important; /* Prevents auto-zoom on iOS */
+      height: 44px !important;
+      padding: 8px 16px 8px 38px !important;
+    }
+    .category-pills-row {
+      width: 100% !important;
+      overflow-x: auto !important;
+      -webkit-overflow-scrolling: touch !important;
+      padding-bottom: 4px !important;
+    }
+    .cat-pill {
+      padding: 7px 14px !important;
+      font-size: 12.5px !important;
+      touch-action: manipulation !important;
+      flex-shrink: 0 !important;
+    }
+
+    /* Product Grid: 2 columns on mobile with bottom margin for floating cart dock */
+    .product-grid-container {
+      grid-template-columns: repeat(2, 1fr) !important;
+      grid-gap: 10px !important;
+      padding: 10px 10px 84px 10px !important;
+      max-height: none !important;
+    }
+    .card-img-wrapper {
+      height: 95px !important;
+      padding: 6px !important;
+    }
+    .card-bottom-info {
+      padding: 8px 10px 10px 10px !important;
+    }
+    .card-product-title {
+      font-size: 11.5px !important;
+      min-height: 28px !important;
+      line-height: 1.25 !important;
+    }
+    .card-price-text {
+      font-size: 13.5px !important;
+      font-weight: 800 !important;
+    }
+
+    /* Mobile Floating Bottom Cart Bar */
+    .pos-mobile-cart-bar {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      position: fixed !important;
+      bottom: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      height: 66px !important;
+      background: #ffffff !important;
+      border-top: 1.5px solid #e2e8f0 !important;
+      box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.12) !important;
+      padding: 8px 14px !important;
+      z-index: 1000 !important;
+      gap: 10px !important;
+    }
+    .pos-mcb-info {
+      display: flex !important;
+      align-items: center !important;
+      gap: 10px !important;
+      cursor: pointer !important;
+      flex: 1 !important;
+      min-width: 0 !important;
+    }
+    .pos-mcb-icon-wrap {
+      width: 44px !important;
+      height: 44px !important;
+      background: #fdf4ff !important;
+      border: 1.5px solid #e9d5ff !important;
+      border-radius: 10px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      position: relative !important;
+      color: #714B67 !important;
+      font-size: 22px !important;
+      flex-shrink: 0 !important;
+    }
+    .pos-mcb-count {
+      position: absolute !important;
+      top: -6px !important;
+      right: -6px !important;
+      background: #714B67 !important;
+      color: #ffffff !important;
+      font-size: 11px !important;
+      font-weight: 900 !important;
+      width: 20px !important;
+      height: 20px !important;
+      border-radius: 50% !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      border: 2px solid #ffffff !important;
+    }
+    .pos-mcb-text-block {
+      display: flex !important;
+      flex-direction: column !important;
+      min-width: 0 !important;
+    }
+    .pos-mcb-label {
+      font-size: 10.5px !important;
+      font-weight: 700 !important;
+      color: #64748b !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.3px !important;
+    }
+    .pos-mcb-total {
+      font-size: 17px !important;
+      font-weight: 900 !important;
+      color: #1e293b !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+    }
+    .pos-mcb-buttons {
+      display: flex !important;
+      align-items: center !important;
+      gap: 6px !important;
+      flex-shrink: 0 !important;
+    }
+    .pos-mcb-btn-cart {
+      background: #f1f5f9 !important;
+      color: #334155 !important;
+      border: 1px solid #cbd5e1 !important;
+      border-radius: 8px !important;
+      padding: 10px 12px !important;
+      font-size: 12.5px !important;
+      font-weight: 800 !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 5px !important;
+      cursor: pointer !important;
+      touch-action: manipulation !important;
+    }
+    .pos-mcb-btn-pay {
+      background: #0d9488 !important;
+      color: #ffffff !important;
+      border: none !important;
+      border-radius: 8px !important;
+      padding: 10px 14px !important;
+      font-size: 13.5px !important;
+      font-weight: 800 !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 5px !important;
+      cursor: pointer !important;
+      box-shadow: 0 2px 8px rgba(13, 148, 136, 0.3) !important;
+      touch-action: manipulation !important;
+    }
+    .pos-mcb-btn-pay:disabled {
+      background: #cbd5e1 !important;
+      box-shadow: none !important;
+      cursor: not-allowed !important;
+      opacity: 0.6 !important;
+    }
+
+    /* Mobile Payment Screen (pay-embed-grid stacks into 1 fluid column) */
+    .pay-embed-grid {
+      grid-template-columns: 1fr !important;
+      gap: 14px !important;
+      padding: 12px !important;
+      overflow-y: auto !important;
+      -webkit-overflow-scrolling: touch !important;
+    }
+    .pay-methods-stack {
+      display: grid !important;
+      grid-template-columns: repeat(2, 1fr) !important;
+      gap: 8px !important;
+    }
+    .pay-method-select-card {
+      padding: 10px 12px !important;
+    }
+    .pay-km-btn {
+      height: 48px !important;
+      font-size: 18px !important;
+    }
+    .pay-summary-panel {
+      height: auto !important;
+      padding: 14px !important;
+    }
+    .fel-field-input {
+      font-size: 16px !important; /* Prevents auto-zoom on iOS */
+    }
+    .btn-validate-payment {
+      height: 52px !important;
+      font-size: 16px !important;
+    }
+
+    /* Modal Cards on Mobile */
+    .cash-modal-card {
+      width: 95vw !important;
+      max-width: 95vw !important;
+      max-height: 88dvh !important;
+      margin: 10px auto !important;
+      overflow-y: auto !important;
+      padding: 16px !important;
+      -webkit-overflow-scrolling: touch !important;
+    }
+
+    /* Success Screen on Mobile */
+    .success-modal-layout {
+      flex-direction: column !important;
+      overflow-y: auto !important;
+      height: calc(100vh - 52px) !important;
+      height: calc(100dvh - 52px) !important;
+      -webkit-overflow-scrolling: touch !important;
+    }
+    .success-col-actions {
+      width: 100% !important;
+      padding: 20px 16px !important;
+      border-right: none !important;
+      border-bottom: 1px solid #e2e8f0 !important;
+      overflow-y: visible !important;
+    }
+    .success-col-preview {
+      width: 100% !important;
+      padding: 20px 16px 40px 16px !important;
+    }
+  }
+
+  /* Dark mode overrides for new responsive elements */
+  .dark-mode .pos-mobile-cart-bar {
+    background: #1e293b !important;
+    border-top-color: #334155 !important;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4) !important;
+  }
+  .dark-mode .pos-mcb-icon-wrap {
+    background: #334155 !important;
+    border-color: #475569 !important;
+    color: #f1f5f9 !important;
+  }
+  .dark-mode .pos-mcb-total {
+    color: #f8fafc !important;
+  }
+  .dark-mode .pos-mcb-btn-cart {
+    background: #334155 !important;
+    border-color: #475569 !important;
+    color: #f1f5f9 !important;
+  }
+  .dark-mode .mobile-cart-top-bar {
+    background: #18181b !important;
+  }
+  .dark-mode .pos-mn-btn.active {
+    background: #334155 !important;
+    color: #38bdf8 !important;
+  }
+
+
+
   /* Thermal Receipt Print Styles (80mm / 58mm) */
   @media print {
     body * {
@@ -1959,7 +2491,30 @@
           <span class="order-tab-close" @click.stop="closeOrder(idx)">&times;</span>
         </div>
       </template>
-      <button class="new-sale-btn" @click="addNewOrder()">+ Nueva Venta</button>
+      <button class="new-sale-btn" @click="addNewOrder()">
+        <span>+</span><span class="lbl-desktop"> Nueva Venta</span>
+      </button>
+    </div>
+
+    <!-- Mobile Segmented View Switcher (Visible on mobile/handheld screens) -->
+    <div class="pos-mobile-nav-pills">
+      <button 
+        type="button" 
+        class="pos-mn-btn" 
+        :class="mobileTab === 'catalog' && !showPaymentScreen ? 'active' : ''"
+        @click="mobileTab = 'catalog'; showPaymentScreen = false;"
+      >
+        <span>🛍️ Catálogo</span>
+      </button>
+      <button 
+        type="button" 
+        class="pos-mn-btn" 
+        :class="mobileTab === 'cart' || showPaymentScreen ? 'active' : ''"
+        @click="mobileTab = 'cart'"
+      >
+        <span>🛒 Carrito</span>
+        <span class="pos-mn-badge" x-text="cart.length" x-show="cart.length > 0"></span>
+      </button>
     </div>
 
     <div class="topbar-right">
@@ -1973,13 +2528,13 @@
         <template x-if="isSyncing">
           <span style="display:flex; align-items:center; gap:6px;">
             <span class="sync-spinner">🔄</span>
-            <span>Sincronizando...</span>
+            <span class="lbl-desktop">Sincronizando...</span>
           </span>
         </template>
         <template x-if="!isSyncing">
           <span style="display:flex; align-items:center; gap:6px;">
             <span x-text="online ? (pendingOfflineSalesCount > 0 ? '🟠' : '🟢') : '🔴'"></span>
-            <span x-text="online ? (pendingOfflineSalesCount > 0 ? pendingOfflineSalesCount + ' pend.' : 'En línea') : (pendingOfflineSalesCount > 0 ? 'Offline (' + pendingOfflineSalesCount + ')' : 'Offline')"></span>
+            <span class="lbl-desktop" x-text="online ? (pendingOfflineSalesCount > 0 ? pendingOfflineSalesCount + ' pend.' : 'En línea') : (pendingOfflineSalesCount > 0 ? 'Offline (' + pendingOfflineSalesCount + ')' : 'Offline')"></span>
           </span>
         </template>
       </div>
@@ -1992,12 +2547,14 @@
         :style="wholesaleMode ? 'background:#f0fdfa; color:#0f766e; border:1.5px solid #0d9488; font-weight:800; box-shadow:0 1px 4px rgba(13,148,136,0.2);' : 'background:#ffffff; color:#64748b; border:1px solid #cbd5e1; font-weight:700;'"
         title="Habilitar o deshabilitar ventas a mayoristas (vender por docena al precio mayorista)"
       >
-        <span x-text="wholesaleMode ? '📦 Mayorista: ACTIVO' : '📦 Ventas a Mayoristas'"></span>
+        <span class="lbl-desktop" x-text="wholesaleMode ? '📦 Mayorista: ACTIVO' : '📦 Ventas a Mayoristas'"></span>
+        <span class="lbl-mobile" style="display:none;" x-text="wholesaleMode ? '📦✓' : '📦'"></span>
       </button>
 
       <div class="settings-dropdown-wrapper" @click.outside="showSettingsDropdown = false">
         <button type="button" class="settings-btn" @click="showSettingsDropdown = !showSettingsDropdown">
-          ⚙️ Configuraciones ▾
+          <span class="lbl-desktop">⚙️ Configuraciones ▾</span>
+          <span class="lbl-mobile" style="display:none;">⚙️ ▾</span>
         </button>
 
         <div class="settings-dropdown-menu" x-show="showSettingsDropdown" x-transition style="display:none; min-width:280px;" x-cloak>
@@ -2144,10 +2701,25 @@
   <!-- 2. SHORTCUTS RIBBON eliminado — movido a Configuraciones ▾ -->
 
   <!-- 3. MAIN POS LAYOUT -->
-  <div class="pos-main-container">
+  <div class="pos-main-container" :class="{'mobile-tab-cart': mobileTab === 'cart', 'mobile-tab-catalog': mobileTab === 'catalog', 'mobile-in-payment': showPaymentScreen}">
 
     <!-- LEFT PANEL: CART & NUMPAD -->
     <div class="pos-left-panel" id="posCartContainer">
+      <!-- Mobile Cart Header (Visible on Mobile) -->
+      <div class="mobile-cart-top-bar" x-show="mobileTab === 'cart'">
+        <button type="button" class="mobile-back-catalog-btn" @click="mobileTab = 'catalog'">
+          <i class="ph ph-arrow-left"></i>
+          <span>← Catálogo</span>
+        </button>
+        <div class="mobile-cart-title">
+          <i class="ph ph-shopping-cart"></i>
+          <span>Carrito (<span x-text="cart.length"></span>)</span>
+        </div>
+        <button type="button" class="mobile-clear-cart-btn" @click="clearCartConfirm()" x-show="cart.length > 0" title="Vaciar Carrito">
+          <i class="ph ph-trash"></i>
+        </button>
+      </div>
+
       <!-- Customer Header -->
       <div class="customer-header-box" style="background:#ffffff; border-bottom:1px solid #e2e8f0; padding:10px 14px;">
         <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px; cursor:pointer;" @click="openCustomerModal()">
@@ -2422,6 +2994,36 @@
             <div style="font-size:12px; color:#94a3b8; margin-top:4px;">Los productos archivados o eliminados no se muestran en el Punto de Venta.</div>
           </div>
         </div>
+
+        <!-- Floating Mobile Cart Dock Bar (Visible on mobile/tablets when in catalog view) -->
+        <div class="pos-mobile-cart-bar" x-show="!showPaymentScreen" x-cloak>
+          <div class="pos-mcb-info" @click="mobileTab = 'cart'">
+            <div class="pos-mcb-icon-wrap">
+              <i class="ph ph-shopping-cart-simple"></i>
+              <span class="pos-mcb-count" x-text="cart.reduce((s, i) => s + Number(i.qty || 1), 0)">0</span>
+            </div>
+            <div class="pos-mcb-text-block">
+              <div class="pos-mcb-label">Total Carrito</div>
+              <div class="pos-mcb-total" x-text="'Q ' + formatPrice(grandTotal)">Q 0.00</div>
+            </div>
+          </div>
+          <div class="pos-mcb-buttons">
+            <button type="button" class="pos-mcb-btn-cart" @click="mobileTab = 'cart'">
+              <span>Ver Carrito</span>
+              <i class="ph ph-arrow-right"></i>
+            </button>
+            <button 
+              type="button" 
+              class="pos-mcb-btn-pay" 
+              :disabled="cart.length === 0" 
+              @click="goToPayment()"
+            >
+              <span>Cobrar</span>
+              <i class="ph ph-credit-card"></i>
+            </button>
+          </div>
+        </div>
+
       </div>
 
       <!-- ==============================================
@@ -2648,13 +3250,13 @@
       </div>
     </header>
 
-    <!-- Main Layout: 2 columnas -->
-    <div style="display:flex; height:calc(100vh - 52px); overflow:hidden;">
+    <!-- Main Layout: 2 columnas adaptables a móvil/tablet -->
+    <div class="success-modal-layout">
 
       <!-- ============================================================
            COLUMNA IZQUIERDA: Acciones de Post-Pago
       ============================================================ -->
-      <div style="width:48%; background:#ffffff; padding:32px 40px; display:flex; flex-direction:column; gap:0; overflow-y:auto; border-right:1px solid #e2e8f0;">
+      <div class="success-col-actions">
 
         <!-- Banner de Éxito Animado -->
         <div style="background:linear-gradient(135deg, #ecfdf5 0%, #f0fdf9 100%); border:1.5px solid #6ee7b7; border-radius:20px; padding:28px 24px; text-align:center; box-shadow:0 8px 24px rgba(16,185,129,0.12); margin-bottom:24px; position:relative; overflow:hidden;">
@@ -2782,7 +3384,7 @@
       <!-- ============================================================
            COLUMNA DERECHA: Vista Previa del Ticket Térmico
       ============================================================ -->
-      <div style="flex:1; background:linear-gradient(135deg, #dde1e7, #c8cdd6); padding:28px 32px; display:flex; justify-content:center; align-items:flex-start; overflow-y:auto;">
+      <div class="success-col-preview">
         
         <!-- Sombra de papel y ticket -->
         <div style="position:relative; width:100%; max-width:360px;">
@@ -4136,11 +4738,30 @@ function posApp() {
     liveClockDay: '',
     liveClockFullDate: '',
     isSyncing: false,
+    mobileTab: 'catalog', // 'catalog' | 'cart'
     orders: [{ cart: [], customer: { nit: 'CF', name: 'CONSUMIDOR FINAL' } }],
     activeOrderIdx: 0,
     cart: [],
     customer: { nit: 'CF', name: 'CONSUMIDOR FINAL' },
     barcodeBuffer: '',
+
+    switchMobileTab(tab) {
+      this.mobileTab = tab;
+      if (tab === 'catalog') {
+        this.showPaymentScreen = false;
+      }
+    },
+
+    clearCartConfirm() {
+      if (!this.cart || this.cart.length === 0) return;
+      if (confirm('¿Deseas vaciar todos los productos del carrito actual?')) {
+        this.cart = [];
+        if (this.orders && this.orders[this.activeOrderIdx]) {
+          this.orders[this.activeOrderIdx].cart = [];
+        }
+        this.toast('Carrito vaciado con éxito', 'info');
+      }
+    },
 
     lastCharTime: 0,
     selectedUomId: '',
@@ -5594,6 +6215,7 @@ function posApp() {
       this.payBuffer = '0.00';
       this.receivedAmount = 0;
       this.showPaymentScreen = true;
+      this.mobileTab = 'cart';
     },
 
     async confirmPayment() {
@@ -5701,6 +6323,7 @@ function posApp() {
       this.customer = { nit: 'CF', name: 'CONSUMIDOR FINAL' };
       this.showSuccessModal = false;
       this.showPaymentScreen = false;
+      this.mobileTab = 'catalog';
       this.selectedLineIdx = -1;
       this.numpadBuffer = '';
     },
@@ -5708,6 +6331,7 @@ function posApp() {
     addNewOrder() {
       this.orders.push({ cart: [], customer: { nit: 'CF', name: 'CONSUMIDOR FINAL' } });
       this.switchOrder(this.orders.length - 1);
+      this.mobileTab = 'catalog';
     },
 
     switchOrder(idx) {
