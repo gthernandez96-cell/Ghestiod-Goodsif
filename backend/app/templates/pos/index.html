@@ -121,16 +121,28 @@
     background: rgba(255, 255, 255, 0.2);
     color: #ffffff;
     border: 1px solid rgba(255, 255, 255, 0.3);
-    padding: 5px 14px;
+    padding: 6px 14px;
     border-radius: 8px;
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
-    display: flex;
+    display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
+    height: 34px;
+    box-sizing: border-box;
+    white-space: nowrap;
+    transition: all 0.15s ease;
   }
   .settings-btn:hover { background: rgba(255, 255, 255, 0.3); }
+
+  .lbl-desktop {
+    display: inline;
+  }
+  .lbl-mobile {
+    display: none;
+  }
 
   /* =============================================
      2. SHORTCUTS RIBBON BAR
@@ -1610,69 +1622,106 @@
     .pos-topbar {
       padding: 0 10px !important;
       height: 48px !important;
-      gap: 8px !important;
+      gap: 6px !important;
     }
     .order-tabs-container {
-      max-width: 35% !important;
+      max-width: 32% !important;
       overflow-x: auto !important;
       -webkit-overflow-scrolling: touch !important;
       white-space: nowrap !important;
       gap: 4px !important;
+      flex-shrink: 1 !important;
     }
     .order-tab-pill {
-      padding: 4px 8px !important;
-      font-size: 11.5px !important;
-      border-radius: 6px !important;
+      padding: 6px 10px !important;
+      font-size: 12px !important;
+      height: 34px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      border-radius: 8px !important;
     }
     .new-sale-btn {
-      padding: 4px 8px !important;
-      font-size: 11.5px !important;
-    }
-    .new-sale-btn .lbl-desktop {
-      display: none !important;
+      padding: 6px 10px !important;
+      font-size: 14px !important;
+      min-width: 36px !important;
+      height: 34px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      border-radius: 8px !important;
     }
     .topbar-right {
       gap: 6px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      flex-shrink: 0 !important;
     }
     .status-pill-online {
-      padding: 4px 8px !important;
-      font-size: 11px !important;
+      padding: 6px 10px !important;
+      font-size: 12px !important;
+      height: 34px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      border-radius: 17px !important;
     }
     .settings-btn {
-      padding: 4px 8px !important;
-      font-size: 12px !important;
+      padding: 6px 10px !important;
+      font-size: 13px !important;
+      min-width: 40px !important;
+      height: 34px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      border-radius: 8px !important;
+      box-sizing: border-box !important;
     }
-    .settings-btn .lbl-desktop {
+
+    .lbl-desktop {
       display: none !important;
+    }
+    .lbl-mobile {
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      font-size: 13px !important;
+      line-height: 1 !important;
     }
 
     /* Mobile segmented pills in top bar */
     .pos-mobile-nav-pills {
       display: inline-flex !important;
-      background: rgba(0, 0, 0, 0.25) !important;
+      background: rgba(0, 0, 0, 0.3) !important;
+      border: 1px solid rgba(255, 255, 255, 0.18) !important;
       border-radius: 20px !important;
       padding: 2px !important;
       gap: 2px !important;
+      flex-shrink: 0 !important;
     }
     .pos-mn-btn {
       background: transparent !important;
       border: none !important;
-      color: rgba(255, 255, 255, 0.85) !important;
-      padding: 5px 11px !important;
+      color: #ffffff !important;
+      opacity: 0.9 !important;
+      padding: 5px 12px !important;
       border-radius: 18px !important;
       font-size: 12px !important;
       font-weight: 700 !important;
       cursor: pointer !important;
-      display: flex !important;
+      display: inline-flex !important;
       align-items: center !important;
       gap: 4px !important;
       touch-action: manipulation !important;
       transition: all 0.15s ease !important;
     }
+    .pos-mn-btn:hover {
+      opacity: 1 !important;
+    }
     .pos-mn-btn.active {
       background: #ffffff !important;
       color: #714B67 !important;
-      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2) !important;
+      opacity: 1 !important;
+      box-shadow: 0 1px 5px rgba(0, 0, 0, 0.25) !important;
     }
     .pos-mn-badge {
       background: #714B67 !important;
@@ -1682,8 +1731,8 @@
       font-size: 10px !important;
       font-weight: 900 !important;
     }
-    .pos-mn-btn.active .pos-mn-badge {
-      background: #714B67 !important;
+    .pos-mn-btn:not(.active) .pos-mn-badge {
+      background: rgba(255, 255, 255, 0.3) !important;
       color: #ffffff !important;
     }
 
@@ -2526,15 +2575,18 @@
         title="Centro de Sincronización Offline (IndexedDB)"
       >
         <template x-if="isSyncing">
-          <span style="display:flex; align-items:center; gap:6px;">
+          <span style="display:inline-flex; align-items:center; gap:5px;">
             <span class="sync-spinner">🔄</span>
             <span class="lbl-desktop">Sincronizando...</span>
           </span>
         </template>
         <template x-if="!isSyncing">
-          <span style="display:flex; align-items:center; gap:6px;">
+          <span style="display:inline-flex; align-items:center; gap:5px;">
             <span x-text="online ? (pendingOfflineSalesCount > 0 ? '🟠' : '🟢') : '🔴'"></span>
             <span class="lbl-desktop" x-text="online ? (pendingOfflineSalesCount > 0 ? pendingOfflineSalesCount + ' pend.' : 'En línea') : (pendingOfflineSalesCount > 0 ? 'Offline (' + pendingOfflineSalesCount + ')' : 'Offline')"></span>
+            <template x-if="pendingOfflineSalesCount > 0">
+              <span class="lbl-mobile" style="font-weight:900; font-size:11px;" x-text="pendingOfflineSalesCount"></span>
+            </template>
           </span>
         </template>
       </div>
@@ -2544,17 +2596,17 @@
         type="button" 
         class="settings-btn" 
         @click="toggleWholesaleMode()"
-        :style="wholesaleMode ? 'background:#f0fdfa; color:#0f766e; border:1.5px solid #0d9488; font-weight:800; box-shadow:0 1px 4px rgba(13,148,136,0.2);' : 'background:#ffffff; color:#64748b; border:1px solid #cbd5e1; font-weight:700;'"
+        :style="wholesaleMode ? 'background:#0d9488; color:#ffffff; border:1px solid #0f766e; font-weight:800; box-shadow:0 2px 8px rgba(13,148,136,0.4);' : 'background:rgba(255,255,255,0.2); color:#ffffff; border:1px solid rgba(255,255,255,0.3); font-weight:700;'"
         title="Habilitar o deshabilitar ventas a mayoristas (vender por docena al precio mayorista)"
       >
         <span class="lbl-desktop" x-text="wholesaleMode ? '📦 Mayorista: ACTIVO' : '📦 Ventas a Mayoristas'"></span>
-        <span class="lbl-mobile" style="display:none;" x-text="wholesaleMode ? '📦✓' : '📦'"></span>
+        <span class="lbl-mobile" x-text="wholesaleMode ? '📦✓' : '📦'"></span>
       </button>
 
       <div class="settings-dropdown-wrapper" @click.outside="showSettingsDropdown = false">
-        <button type="button" class="settings-btn" @click="showSettingsDropdown = !showSettingsDropdown">
+        <button type="button" class="settings-btn" @click="showSettingsDropdown = !showSettingsDropdown" title="Configuraciones y Opciones">
           <span class="lbl-desktop">⚙️ Configuraciones ▾</span>
-          <span class="lbl-mobile" style="display:none;">⚙️ ▾</span>
+          <span class="lbl-mobile">⚙️ ▾</span>
         </button>
 
         <div class="settings-dropdown-menu" x-show="showSettingsDropdown" x-transition style="display:none; min-width:280px;" x-cloak>
