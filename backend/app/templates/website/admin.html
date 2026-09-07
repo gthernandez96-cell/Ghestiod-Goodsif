@@ -430,12 +430,6 @@
             <span>Contacto & WhatsApp</span>
           </button>
         </li>
-        <li>
-          <button type="button" class="sidebar-nav-btn" :class="activeTab === 'features' ? 'active' : ''" @click="activeTab = 'features'">
-            <i class="ph-bold ph-shield-check"></i>
-            <span>Funciones & Métricas</span>
-          </button>
-        </li>
       </ul>
     </div>
 
@@ -700,51 +694,6 @@
       </div>
     </div>
 
-    <!-- =========================================================== -->
-    <!-- TAB 5: FEATURES & STATS                                     -->
-    <!-- =========================================================== -->
-    <div x-show="activeTab === 'features'" x-cloak>
-      <div class="editor-card">
-        <div class="editor-card-title">
-          <i class="ph-bold ph-chart-bar"></i>
-          <span>Métricas de Impacto (Stats Bar)</span>
-        </div>
-
-        <p style="font-size:13px; color:#64748b; margin-bottom:16px;">
-          Estas cifras se muestran en la barra flotante de confianza debajo del Hero.
-        </p>
-
-        <div class="form-grid-2">
-          <template x-for="(st, idx) in (config.stats || [])" :key="idx">
-            <div class="sector-editor-box" style="margin-bottom:0; position:relative;">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                <span class="sector-tag-badge" x-text="'Métrica #' + (idx + 1)"></span>
-                <button type="button" @click="config.stats.splice(idx, 1)" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:15px;" title="Eliminar métrica">
-                  <i class="ph-bold ph-trash"></i>
-                </button>
-              </div>
-              <div class="form-group-item" style="margin-bottom:8px;">
-                <label class="field-label">Cifra / Número (ej. +500, 100%, 0 seg)</label>
-                <input type="text" class="field-text-input" x-model="st.value">
-              </div>
-              <div class="form-group-item">
-                <label class="field-label">Etiqueta Explicativa</label>
-                <input type="text" class="field-text-input" x-model="st.label">
-              </div>
-            </div>
-          </template>
-        </div>
-
-        <button 
-          type="button" 
-          class="btn-live-view" 
-          style="margin-top:16px;" 
-          @click="if(!config.stats) config.stats=[]; config.stats.push({value: '100%', label: 'Nueva Métrica'});"
-        >
-          <i class="ph-bold ph-plus-circle" style="color:#10b981;"></i> + Agregar Métrica
-        </button>
-      </div>
-    </div>
 
   </main>
 
