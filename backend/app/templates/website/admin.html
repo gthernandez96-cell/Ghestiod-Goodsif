@@ -1,0 +1,924 @@
+{% set show_layout = true %}
+{% extends "base.html" %}
+
+{% block title %}Gestor del Sitio Web & Portada — POS Empresarial ERP{% endblock %}
+
+{% block extra_css %}
+<style>
+  :root {
+    --odoo-purple: #714B67;
+    --odoo-purple-hover: #5d3d54;
+    --odoo-purple-light: #f7f2f6;
+  }
+
+  .web-admin-wrapper {
+    display: flex;
+    min-height: calc(100vh - 46px);
+    background: #f8fafc;
+    font-family: inherit;
+  }
+
+  /* =========================================
+     LEFT SIDEBAR: MODULES ACCESS & CMS TABS
+     ========================================= */
+  .web-sidebar {
+    width: 270px;
+    background: #ffffff;
+    border-right: 1px solid #e2e8f0;
+    padding: 20px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    flex-shrink: 0;
+  }
+
+  .sidebar-section-title {
+    font-size: 11px;
+    font-weight: 800;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    padding: 0 10px 6px 10px;
+  }
+
+  .sidebar-nav-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .sidebar-nav-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    border-radius: 9px;
+    font-size: 13.5px;
+    font-weight: 700;
+    text-decoration: none;
+    color: #475569;
+    transition: all 0.15s ease;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    width: 100%;
+    text-align: left;
+  }
+
+  .sidebar-nav-btn:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+  }
+
+  .sidebar-nav-btn.active {
+    background: var(--odoo-purple-light);
+    color: var(--odoo-purple);
+    font-weight: 800;
+  }
+
+  .sidebar-nav-btn i {
+    font-size: 17px;
+    flex-shrink: 0;
+  }
+
+  .sidebar-module-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: 9px;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    color: #64748b;
+    transition: all 0.15s ease;
+  }
+
+  .sidebar-module-link:hover {
+    background: #f8fafc;
+    color: var(--odoo-purple);
+  }
+
+  .sidebar-module-link i {
+    font-size: 16px;
+  }
+
+  /* =========================================
+     MAIN CONTENT AREA
+     ========================================= */
+  .web-main-content {
+    flex: 1;
+    padding: 26px 32px 60px 32px;
+    overflow-y: auto;
+    max-width: 1120px;
+  }
+
+  .web-header-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+  }
+
+  .web-header-title {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 20px;
+    font-weight: 900;
+    color: #0f172a;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .web-header-sub {
+    font-size: 13px;
+    color: #64748b;
+    margin-top: 3px;
+  }
+
+  .header-actions-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .btn-save-changes {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: var(--odoo-purple);
+    color: #ffffff;
+    border: none;
+    padding: 10px 22px;
+    border-radius: 10px;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 13.5px;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(113, 75, 103, 0.28);
+    transition: all 0.2s ease;
+  }
+
+  .btn-save-changes:hover:not(:disabled) {
+    background: var(--odoo-purple-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(113, 75, 103, 0.38);
+  }
+
+  .btn-live-view {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: #ffffff;
+    color: #334155;
+    border: 1.5px solid #cbd5e1;
+    padding: 9px 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+
+  .btn-live-view:hover {
+    background: #f8fafc;
+    border-color: #94a3b8;
+  }
+
+  .btn-reset-factory {
+    background: transparent;
+    color: #ef4444;
+    border: 1px dashed #fca5a5;
+    padding: 9px 14px;
+    border-radius: 10px;
+    font-size: 12.5px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-reset-factory:hover {
+    background: #fef2f2;
+    border-color: #ef4444;
+  }
+
+  /* Form Panels */
+  .editor-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 24px;
+    margin-bottom: 22px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+  }
+
+  .editor-card-title {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 16px;
+    font-weight: 800;
+    color: #0f172a;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #f1f5f9;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .form-grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px;
+  }
+
+  .form-group-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .field-label {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #475569;
+  }
+
+  .field-text-input {
+    width: 100%;
+    height: 40px;
+    padding: 0 12px;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 13.5px;
+    color: #1e293b;
+    outline: none;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+
+  .field-text-input:focus {
+    border-color: var(--odoo-purple);
+    box-shadow: 0 0 0 3px rgba(113, 75, 103, 0.15);
+  }
+
+  .field-textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 13.5px;
+    color: #1e293b;
+    outline: none;
+    min-height: 80px;
+    resize: vertical;
+    font-family: inherit;
+  }
+
+  .field-textarea:focus {
+    border-color: var(--odoo-purple);
+    box-shadow: 0 0 0 3px rgba(113, 75, 103, 0.15);
+  }
+
+  /* Sector Cards inside Editor */
+  .sector-editor-box {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 18px;
+    position: relative;
+    transition: all 0.2s;
+  }
+
+  .sector-editor-box:hover {
+    border-color: #cbd5e1;
+    background: #ffffff;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+  }
+
+  .sector-editor-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px dashed #cbd5e1;
+  }
+
+  .sector-tag-badge {
+    background: var(--odoo-purple-light);
+    color: var(--odoo-purple);
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  .image-preview-thumbnail {
+    width: 90px;
+    height: 60px;
+    border-radius: 8px;
+    object-fit: cover;
+    border: 1px solid #cbd5e1;
+  }
+
+  /* Notification Banner */
+  .status-toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: #10b981;
+    color: #ffffff;
+    padding: 14px 22px;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(16, 185, 129, 0.35);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13.5px;
+    font-weight: 700;
+    z-index: 9999;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="web-admin-wrapper" x-data="websiteAdmin()" x-init="init()">
+
+  <!-- ============================================================= -->
+  <!-- LEFT SIDEBAR: ERP MODULES ACCESS & CMS EDITING TABS          -->
+  <!-- ============================================================= -->
+  <aside class="web-sidebar">
+    
+    <!-- 1. ERP Module Direct Navigation -->
+    <div>
+      <div class="sidebar-section-title">Ingresar a Módulos ERP</div>
+      <div style="display:flex; flex-direction:column; gap:2px;">
+        <a href="/dashboard" class="sidebar-module-link">
+          <i class="ph-bold ph-squares-four" style="color:var(--odoo-purple);"></i>
+          <span>Tablero Principal</span>
+        </a>
+        <a href="/pos" class="sidebar-module-link">
+          <i class="ph-bold ph-shopping-cart" style="color:#7e22ce;"></i>
+          <span>Punto de Venta Touch</span>
+        </a>
+        <a href="/inventory" class="sidebar-module-link">
+          <i class="ph-bold ph-package" style="color:#f97316;"></i>
+          <span>Catálogo & Stock</span>
+        </a>
+        <a href="/customers" class="sidebar-module-link">
+          <i class="ph-bold ph-users" style="color:#06b6d4;"></i>
+          <span>Directorio Clientes</span>
+        </a>
+        <a href="/quotes" class="sidebar-module-link">
+          <i class="ph-bold ph-file-text" style="color:#0d9488;"></i>
+          <span>Cotizaciones</span>
+        </a>
+        <a href="/purchases" class="sidebar-module-link">
+          <i class="ph-bold ph-receipt" style="color:#6366f1;"></i>
+          <span>Compras & AP</span>
+        </a>
+        <a href="/transfers" class="sidebar-module-link">
+          <i class="ph-bold ph-arrows-left-right" style="color:#0d9488;"></i>
+          <span>Traslados de Bodega</span>
+        </a>
+        <a href="/accounting" class="sidebar-module-link">
+          <i class="ph-bold ph-scales" style="color:var(--odoo-purple);"></i>
+          <span>Contabilidad</span>
+        </a>
+        <a href="/reports" class="sidebar-module-link">
+          <i class="ph-bold ph-chart-line-up" style="color:#f59e0b;"></i>
+          <span>Reportes & SAT</span>
+        </a>
+      </div>
+    </div>
+
+    <hr style="border:none; border-top:1px solid #e2e8f0; margin:0;">
+
+    <!-- 2. Website CMS Tabs -->
+    <div>
+      <div class="sidebar-section-title">Secciones de la Página Web</div>
+      <ul class="sidebar-nav-list">
+        <li>
+          <button type="button" class="sidebar-nav-btn" :class="activeTab === 'hero' ? 'active' : ''" @click="activeTab = 'hero'">
+            <i class="ph-bold ph-megaphone"></i>
+            <span>Hero & Títulos</span>
+          </button>
+        </li>
+        <li>
+          <button type="button" class="sidebar-nav-btn" :class="activeTab === 'sectors' ? 'active' : ''" @click="activeTab = 'sectors'">
+            <i class="ph-bold ph-storefront"></i>
+            <span>Giros de Negocio ({{ '{{ config.sectors ? config.sectors.length : 0 }}' }})</span>
+          </button>
+        </li>
+        <li>
+          <button type="button" class="sidebar-nav-btn" :class="activeTab === 'images' ? 'active' : ''" @click="activeTab = 'images'">
+            <i class="ph-bold ph-image"></i>
+            <span>Banners & Fotos</span>
+          </button>
+        </li>
+        <li>
+          <button type="button" class="sidebar-nav-btn" :class="activeTab === 'contact' ? 'active' : ''" @click="activeTab = 'contact'">
+            <i class="ph-bold ph-whatsapp-logo" style="color:#25d366;"></i>
+            <span>Contacto & WhatsApp</span>
+          </button>
+        </li>
+        <li>
+          <button type="button" class="sidebar-nav-btn" :class="activeTab === 'features' ? 'active' : ''" @click="activeTab = 'features'">
+            <i class="ph-bold ph-shield-check"></i>
+            <span>Funciones & Métricas</span>
+          </button>
+        </li>
+      </ul>
+    </div>
+
+  </aside>
+
+  <!-- ============================================================= -->
+  <!-- MAIN CMS EDITOR AREA                                          -->
+  <!-- ============================================================= -->
+  <main class="web-main-content">
+
+    <!-- Top Action Card -->
+    <div class="web-header-card">
+      <div>
+        <div class="web-header-title">
+          <i class="ph-bold ph-globe" style="color:var(--odoo-purple); font-size:24px;"></i>
+          <span>Administrador de la Página Web & Portada</span>
+        </div>
+        <p class="web-header-sub">
+          Controla los textos, fotos de ferreterías, abarroterías, panaderías y WhatsApp que ven los usuarios antes de iniciar sesión.
+        </p>
+      </div>
+
+      <div class="header-actions-group">
+        <a href="/login" target="_blank" class="btn-live-view" title="Abrir página pública en pestaña nueva">
+          <i class="ph-bold ph-arrow-square-out"></i>
+          <span>Ver Sitio en Vivo</span>
+        </a>
+
+        <button type="button" class="btn-reset-factory" @click="resetToFactoryDefaults()" title="Restablecer textos e imágenes originales">
+          <i class="ph-bold ph-arrow-counter-clockwise"></i> Restaurar Fábrica
+        </button>
+
+        <button type="button" class="btn-save-changes" @click="saveWebsiteConfig()" :disabled="isSaving">
+          <i class="ph-bold ph-floppy-disk" x-show="!isSaving"></i>
+          <i class="ph-bold ph-spinner ph-spin" x-show="isSaving"></i>
+          <span x-text="isSaving ? 'Guardando...' : 'Guardar Cambios'"></span>
+        </button>
+      </div>
+    </div>
+
+    <!-- =========================================================== -->
+    <!-- TAB 1: HERO & GENERAL COPY                                  -->
+    <!-- =========================================================== -->
+    <div x-show="activeTab === 'hero'" x-cloak>
+      <div class="editor-card">
+        <div class="editor-card-title">
+          <i class="ph-bold ph-text-h-one"></i>
+          <span>Encabezado Principal (Hero Section)</span>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          <div class="form-grid-2">
+            <div class="form-group-item">
+              <label class="field-label">Nombre / Título de la Web</label>
+              <input type="text" class="field-text-input" x-model="config.site_title">
+            </div>
+            <div class="form-group-item">
+              <label class="field-label">Badge Destacado Superior</label>
+              <input type="text" class="field-text-input" x-model="config.hero_badge">
+            </div>
+          </div>
+
+          <div class="form-group-item">
+            <label class="field-label">Título Principal (H1)</label>
+            <input type="text" class="field-text-input" x-model="config.hero_title">
+          </div>
+
+          <div class="form-group-item">
+            <label class="field-label">Subtítulo / Propuesta de Valor</label>
+            <textarea class="field-textarea" x-model="config.hero_subtitle"></textarea>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-group-item">
+              <label class="field-label">Texto Botón de Acceso (Login)</label>
+              <input type="text" class="field-text-input" x-model="config.hero_cta_login">
+            </div>
+            <div class="form-group-item">
+              <label class="field-label">Texto Botón Secundario (Demo)</label>
+              <input type="text" class="field-text-input" x-model="config.hero_cta_demo">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =========================================================== -->
+    <!-- TAB 2: GIROS DE NEGOCIO (FERRETERIA, ABARROTERIA, ETC.)     -->
+    <!-- =========================================================== -->
+    <div x-show="activeTab === 'sectors'" x-cloak>
+      <div class="editor-card">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; padding-bottom:10px; border-bottom:1px solid #f1f5f9;">
+          <div class="editor-card-title" style="margin-bottom:0; border-bottom:none; padding-bottom:0;">
+            <i class="ph-bold ph-storefront"></i>
+            <span>Giros Comerciales Especializados</span>
+          </div>
+          <button type="button" class="btn-live-view" @click="addNewSector()">
+            <i class="ph-bold ph-plus-circle" style="color:#10b981;"></i> + Agregar Nuevo Giro
+          </button>
+        </div>
+
+        <p style="font-size:13px; color:#64748b; margin-bottom:20px;">
+          Cada sector cuenta con su propia tarjeta, foto, viñetas de capacidades y botón de contacto.
+        </p>
+
+        <!-- Sectors List -->
+        <template x-for="(sec, sIdx) in config.sectors" :key="sec.id || sIdx">
+          <div class="sector-editor-box">
+            
+            <div class="sector-editor-header">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <span class="sector-tag-badge" x-text="'Sector #' + (sIdx + 1)"></span>
+                <strong style="font-size:15px; color:#0f172a;" x-text="sec.name || 'Nuevo Giro'"></strong>
+              </div>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <button type="button" @click="removeSector(sIdx)" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:16px;" title="Eliminar este giro">
+                  <i class="ph-bold ph-trash"></i>
+                </button>
+              </div>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:14px;">
+              <div class="form-grid-2">
+                <div class="form-group-item">
+                  <label class="field-label">Nombre Comercial del Giro</label>
+                  <input type="text" class="field-text-input" x-model="sec.name">
+                </div>
+                <div class="form-group-item">
+                  <label class="field-label">Etiqueta / Badge de Especialidad</label>
+                  <input type="text" class="field-text-input" x-model="sec.badge">
+                </div>
+              </div>
+
+              <div class="form-group-item">
+                <label class="field-label">Descripción Detallada</label>
+                <textarea class="field-textarea" style="min-height:60px;" x-model="sec.description"></textarea>
+              </div>
+
+              <!-- Image for Sector -->
+              <div class="form-grid-2" style="align-items:center;">
+                <div class="form-group-item">
+                  <label class="field-label">URL de Imagen del Sector</label>
+                  <div style="display:flex; gap:8px;">
+                    <input type="text" class="field-text-input" x-model="sec.image_url">
+                    <label class="btn-live-view" style="cursor:pointer; white-space:nowrap;">
+                      <i class="ph-bold ph-upload-simple"></i> Subir
+                      <input type="file" accept="image/*" style="display:none;" @change="uploadImageForSector($event, sIdx)">
+                    </label>
+                  </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:12px;">
+                  <img :src="sec.image_url" class="image-preview-thumbnail" alt="Vista previa">
+                  <span style="font-size:12px; color:#64748b;">Vista previa de la tarjeta</span>
+                </div>
+              </div>
+
+              <!-- Features / Bullets -->
+              <div class="form-group-item">
+                <label class="field-label">Funciones Clave (Separadas por comas)</label>
+                <input 
+                  type="text" 
+                  class="field-text-input" 
+                  :value="(sec.features || []).join(', ')" 
+                  @input="sec.features = $event.target.value.split(',').map(s => s.trim()).filter(Boolean)"
+                  placeholder="ej. Venta por metros, Cotizaciones, Balanzas digitales"
+                >
+              </div>
+
+            </div>
+
+          </div>
+        </template>
+      </div>
+    </div>
+
+    <!-- =========================================================== -->
+    <!-- TAB 3: IMAGES & MULTIMEDIA                                  -->
+    <!-- =========================================================== -->
+    <div x-show="activeTab === 'images'" x-cloak>
+      <div class="editor-card">
+        <div class="editor-card-title">
+          <i class="ph-bold ph-image"></i>
+          <span>Banners & Multimedia del Sitio</span>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:20px;">
+          <!-- Hero Banner Image -->
+          <div class="form-group-item">
+            <label class="field-label">Imagen de Fondo / Hero Banner Principal</label>
+            <div style="display:flex; gap:10px; margin-bottom:10px;">
+              <input type="text" class="field-text-input" x-model="config.hero_image_url" placeholder="https://...">
+              <label class="btn-live-view" style="cursor:pointer; white-space:nowrap;">
+                <i class="ph-bold ph-upload-simple"></i> Subir desde Computadora
+                <input type="file" accept="image/*" style="display:none;" @change="uploadBannerImage($event)">
+              </label>
+            </div>
+            <div style="max-width:320px; border-radius:10px; overflow:hidden; border:1px solid #cbd5e1;">
+              <img :src="config.hero_image_url" style="width:100%; height:160px; object-fit:cover; display:block;" alt="Hero Preview">
+            </div>
+          </div>
+
+          <hr style="border:none; border-top:1px solid #f1f5f9;">
+
+          <!-- Logo -->
+          <div class="form-group-item">
+            <label class="field-label">Logo de la Empresa (Opcional)</label>
+            <div style="display:flex; gap:10px; margin-bottom:10px;">
+              <input type="text" class="field-text-input" x-model="config.logo_url" placeholder="https://... o deja en blanco para usar el icono estándar">
+              <label class="btn-live-view" style="cursor:pointer; white-space:nowrap;">
+                <i class="ph-bold ph-upload-simple"></i> Subir Logo
+                <input type="file" accept="image/*" style="display:none;" @change="uploadLogoImage($event)">
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =========================================================== -->
+    <!-- TAB 4: CONTACT & WHATSAPP                                   -->
+    <!-- =========================================================== -->
+    <div x-show="activeTab === 'contact'" x-cloak>
+      <div class="editor-card">
+        <div class="editor-card-title">
+          <i class="ph-bold ph-whatsapp-logo" style="color:#25d366;"></i>
+          <span>Canales de Contacto & WhatsApp</span>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          <div class="form-grid-2">
+            <div class="form-group-item">
+              <label class="field-label">Número de WhatsApp (con código de país sin +)</label>
+              <input type="text" class="field-text-input" x-model="config.whatsapp_number" placeholder="50255551234">
+            </div>
+            <div class="form-group-item">
+              <label class="field-label">Teléfono PBX de Contacto</label>
+              <input type="text" class="field-text-input" x-model="config.contact_phone" placeholder="+502 2200-0000">
+            </div>
+          </div>
+
+          <div class="form-group-item">
+            <label class="field-label">Mensaje Predeterminado de WhatsApp al hacer Clic</label>
+            <textarea class="field-textarea" style="min-height:70px;" x-model="config.whatsapp_message"></textarea>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-group-item">
+              <label class="field-label">Correo de Ventas / Información</label>
+              <input type="email" class="field-text-input" x-model="config.contact_email">
+            </div>
+            <div class="form-group-item">
+              <label class="field-label">Dirección Fiscal / Física</label>
+              <input type="text" class="field-text-input" x-model="config.contact_address">
+            </div>
+          </div>
+
+          <div class="form-group-item">
+            <label class="field-label">Texto de Copyright (Pie de Página)</label>
+            <input type="text" class="field-text-input" x-model="config.footer_text">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =========================================================== -->
+    <!-- TAB 5: FEATURES & STATS                                     -->
+    <!-- =========================================================== -->
+    <div x-show="activeTab === 'features'" x-cloak>
+      <div class="editor-card">
+        <div class="editor-card-title">
+          <i class="ph-bold ph-chart-bar"></i>
+          <span>Métricas de Impacto (Stats Bar)</span>
+        </div>
+
+        <p style="font-size:13px; color:#64748b; margin-bottom:16px;">
+          Estas cifras se muestran en la barra flotante de confianza debajo del Hero.
+        </p>
+
+        <div class="form-grid-2">
+          <template x-for="(st, idx) in (config.stats || [])" :key="idx">
+            <div class="sector-editor-box" style="margin-bottom:0;">
+              <div class="form-group-item" style="margin-bottom:8px;">
+                <label class="field-label" x-text="'Valor #' + (idx + 1)"></label>
+                <input type="text" class="field-text-input" x-model="st.value">
+              </div>
+              <div class="form-group-item">
+                <label class="field-label">Etiqueta Explicativa</label>
+                <input type="text" class="field-text-input" x-model="st.label">
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Notification Toast -->
+  <div class="status-toast" x-show="showToast" x-cloak x-transition>
+    <i class="ph-bold ph-check-circle" style="font-size:20px;"></i>
+    <span x-text="toastMessage"></span>
+  </div>
+
+</div>
+
+<!-- Logic -->
+<script>
+  function websiteAdmin() {
+    return {
+      activeTab: 'hero',
+      config: {},
+      isSaving: false,
+      showToast: false,
+      toastMessage: '',
+
+      async init() {
+        await this.loadConfig();
+      },
+
+      async loadConfig() {
+        try {
+          const res = await fetch('/api/v1/website/config');
+          if (res.ok) {
+            this.config = await res.json();
+          }
+        } catch (e) {
+          console.error("Error al cargar config web:", e);
+        }
+      },
+
+      addNewSector() {
+        if (!this.config.sectors) this.config.sectors = [];
+        this.config.sectors.push({
+          id: 'sector_' + Date.now(),
+          name: 'Nuevo Giro Comercial',
+          icon: 'ph-storefront',
+          badge: 'Especialidad',
+          image_url: 'https://images.unsplash.com/photo-1556742049-0a67c5574f73?auto=format&fit=crop&w=800&q=80',
+          description: 'Escribe aquí los beneficios y herramientas para este tipo de negocio.',
+          features: ['Control de existencias', 'Facturación rápida FEL']
+        });
+      },
+
+      removeSector(index) {
+        if (confirm('¿Deseas eliminar este giro comercial?')) {
+          this.config.sectors.splice(index, 1);
+        }
+      },
+
+      async uploadImageForSector(event, index) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+          const token = localStorage.getItem('access_token');
+          const res = await fetch('/api/v1/website/upload-image', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + (token || '') },
+            body: formData
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            this.config.sectors[index].image_url = data.url;
+            this.notify('Imagen subida correctamente');
+          } else {
+            alert('Error al subir imagen');
+          }
+        } catch (e) {
+          alert('Error de conexión al subir');
+        }
+      },
+
+      async uploadBannerImage(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+          const token = localStorage.getItem('access_token');
+          const res = await fetch('/api/v1/website/upload-image', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + (token || '') },
+            body: formData
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            this.config.hero_image_url = data.url;
+            this.notify('Banner actualizado');
+          }
+        } catch (e) {
+          alert('Error al subir banner');
+        }
+      },
+
+      async uploadLogoImage(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+          const token = localStorage.getItem('access_token');
+          const res = await fetch('/api/v1/website/upload-image', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + (token || '') },
+            body: formData
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            this.config.logo_url = data.url;
+            this.notify('Logo actualizado');
+          }
+        } catch (e) {
+          alert('Error al subir logo');
+        }
+      },
+
+      async saveWebsiteConfig() {
+        this.isSaving = true;
+        try {
+          const token = localStorage.getItem('access_token');
+          const res = await fetch('/api/v1/website/config', {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + (token || '')
+            },
+            body: JSON.stringify(this.config)
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            if (data.data) {
+              this.config = data.data;
+            }
+            this.notify('¡Configuración de la página web guardada exitosamente!');
+          } else {
+            alert('Error al guardar la configuración');
+          }
+        } catch (e) {
+          alert('Error al conectar con el servidor');
+        } finally {
+          this.isSaving = false;
+        }
+      },
+
+      async resetToFactoryDefaults() {
+        if (!confirm('¿Seguro que deseas restaurar los textos e imágenes originales de fábrica?')) return;
+
+        try {
+          const token = localStorage.getItem('access_token');
+          const res = await fetch('/api/v1/website/reset-defaults', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + (token || '') }
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            this.config = data.data;
+            this.notify('Valores de fábrica restablecidos exitosamente');
+          }
+        } catch (e) {
+          alert('Error al restablecer');
+        }
+      },
+
+      notify(msg) {
+        this.toastMessage = msg;
+        this.showToast = true;
+        setTimeout(() => {
+          this.showToast = false;
+        }, 3500);
+      }
+    };
+  }
+</script>
+{% endblock %}

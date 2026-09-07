@@ -21,6 +21,7 @@ from app.models.accounting import Account, JournalEntry, JournalEntryLine
 from app.models.audit import AuditLog
 from app.models.ap import SupplierBill
 from app.models.ar import CustomerInvoiceCredit, CustomerCreditPayment
+from app.models.website import WebsiteConfig
 
 __all__ = [
     "BaseModel",
@@ -41,6 +42,8 @@ __all__ = [
     "Account", "JournalEntry", "JournalEntryLine",
     "AuditLog",
     "SupplierBill",
-    "CustomerInvoiceCredit", "CustomerCreditPayment"
+    "CustomerInvoiceCredit", "CustomerCreditPayment",
+    "WebsiteConfig"
 ]
+
 

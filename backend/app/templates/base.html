@@ -302,10 +302,11 @@
             </div>
           </template>
 
-          <!-- 8. Configuración / Usuarios / Empresas (Administrador) -->
-          <template x-if="currentPage === 'settings' || currentPage === 'users' || currentPage === 'companies'">
+          <!-- 8. Configuración / Usuarios / Empresas / Sitio Web (Administrador) -->
+          <template x-if="currentPage === 'settings' || currentPage === 'users' || currentPage === 'companies' || currentPage === 'website'">
             <div style="display:flex; align-items:center; gap:6px;">
               <a href="/settings" class="nav-tab-pill" :class="window.location.pathname === '/settings' ? 'nav-tab-active' : 'nav-tab-inactive'">Ajustes ERP</a>
+              <a href="/website-admin" class="nav-tab-pill" :class="window.location.pathname.includes('/website') ? 'nav-tab-active' : 'nav-tab-inactive'">🌐 Sitio Web</a>
               <a href="/companies" class="nav-tab-pill" :class="window.location.pathname.includes('/companies') ? 'nav-tab-active' : 'nav-tab-inactive'">🏢 Empresas</a>
               <a href="/users" class="nav-tab-pill" :class="window.location.pathname.includes('/users') ? 'nav-tab-active' : 'nav-tab-inactive'">👤 Usuarios & Roles</a>
             </div>
@@ -611,6 +612,7 @@
           if (path.includes('/mfg')) return 'mfg';
           if (path.includes('/accounting')) return 'accounting';
           if (path.includes('/users')) return 'users';
+          if (path.includes('/website')) return 'website';
           if (path.includes('/settings')) return 'settings';
           return 'inventory';
         },
@@ -632,6 +634,7 @@
           if (path.includes('/mfg')) return 'Fabricación';
           if (path.includes('/accounting')) return 'Contabilidad';
           if (path.includes('/users')) return 'Usuarios & Roles';
+          if (path.includes('/website')) return 'Sitio Web & Portada';
           if (path.includes('/settings')) return 'Configuración';
           if (path.includes('/dashboard')) return 'Menú Principal';
           return 'POS Empresarial';

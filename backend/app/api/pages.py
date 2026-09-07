@@ -21,6 +21,7 @@ from app.models.cashier import CashierSession
 from app.models.company import Company, Branch
 from app.models.user import User
 from app.models.fel import FELDocument
+from app.models.website import WebsiteConfig, get_default_website_dict
 
 router = APIRouter()
 
@@ -32,8 +33,8 @@ templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
 
 @router.get("/", response_class=HTMLResponse)
-async def redirect_to_home(request: Request):
-    return RedirectResponse(url="/login")
+async def redirect_to_home(request: Request, db: AsyncSession = Depends(get_db)):
+    return await login_page(request, db)
 
 
 @router.get("/logout", response_class=HTMLResponse)
@@ -44,8 +45,21 @@ async def logout_page(request: Request):
 
 
 @router.get("/login", response_class=HTMLResponse)
-async def login_page(request: Request):
-    return templates.TemplateResponse(request=request, name="auth/login.html")
+async def login_page(request: Request, db: AsyncSession = Depends(get_db)):
+    try:
+        stmt = select(WebsiteConfig).order_by(WebsiteConfig.created_at.asc())
+        res = await db.execute(stmt)
+        config_obj = res.scalars().first()
+        web_config = config_obj.to_dict() if config_obj else get_default_website_dict()
+    except Exception:
+        web_config = get_default_website_dict()
+    return templates.TemplateResponse(request=request, name="auth/login.html", context={"web_config": web_config})
+
+
+@router.get("/website-admin", response_class=HTMLResponse)
+@router.get("/settings/website", response_class=HTMLResponse)
+async def website_admin_page(request: Request):
+    return templates.TemplateResponse(request=request, name="website/admin.html")
 
 
 @router.get("/dashboard", response_class=HTMLResponse)

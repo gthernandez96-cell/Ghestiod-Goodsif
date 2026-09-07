@@ -26,7 +26,8 @@ from app.core.redis import get_redis
 from app.api.v1 import (
     auth, branches, products, inventory, partners,
     cashier, sales, purchases, transfers, fel, reports, dashboard,
-    hr, mfg, accounting, audit, ap, ar, quotes, delivery, users
+    hr, mfg, accounting, audit, ap, ar, quotes, delivery, users,
+    website
 )
 
 # Importar router de páginas HTML
@@ -199,6 +200,7 @@ app.include_router(ar.router, prefix=api_prefix, tags=["Cuentas por Cobrar"])
 app.include_router(quotes.router, prefix=api_prefix, tags=["Cotizaciones"])
 app.include_router(delivery.router, prefix=api_prefix, tags=["Entregas"])
 app.include_router(users.router, prefix=api_prefix, tags=["Usuarios & Roles"])
+app.include_router(website.router, prefix=api_prefix, tags=["Sitio Web & Landing"])
 
 # ===== PAGE ROUTERS (HTML) =====
 app.include_router(pages.router, tags=["Páginas"])

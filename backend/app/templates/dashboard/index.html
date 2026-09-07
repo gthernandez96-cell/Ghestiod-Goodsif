@@ -452,6 +452,14 @@
           <div class="app-label">Configuración</div>
         </div>
 
+        <!-- 20. Sitio Web & Portada (Administrador) -->
+        <div class="app-launcher-card" x-show="isAdmin && matchesSearch('Sitio Web Portada Landing Pagina CMS')" @click="openApp('/website-admin')">
+          <div class="app-icon-wrapper" style="box-shadow:0 12px 28px rgba(113, 75, 103, 0.28); border:1.5px solid var(--odoo-purple); background:linear-gradient(135deg, #ffffff 0%, #fdf9fc 100%);">
+            <i class="ph-bold ph-globe" style="font-size:38px; color:var(--odoo-purple);"></i>
+          </div>
+          <div class="app-label" style="font-weight:800; color:var(--odoo-purple);">Sitio Web</div>
+        </div>
+
       </div>
     </div>
   </div>
