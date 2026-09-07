@@ -438,40 +438,60 @@
     }
 
     /* =========================================
-       STATS BAR
+       STATS BAR (100% CENTERED)
        ========================================= */
     .stats-bar-section {
       background: #ffffff;
       border-bottom: 1px solid var(--border-color);
       padding: 34px 24px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
     }
 
     .stats-grid {
-      max-width: 1240px;
+      max-width: 1200px;
+      width: 100%;
       margin: 0 auto;
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 24px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+      gap: 24px 56px;
       text-align: center;
     }
 
     .stat-card {
-      padding: 12px;
+      padding: 10px 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      min-width: 170px;
+      flex: 0 1 auto;
     }
 
     .stat-number {
       font-family: 'Montserrat', sans-serif;
-      font-size: 36px;
+      font-size: 34px;
       font-weight: 900;
       color: var(--odoo-purple);
       line-height: 1.1;
       margin-bottom: 6px;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .stat-label {
       font-size: 13.5px;
       font-weight: 700;
       color: #64748b;
+      text-align: center;
+      line-height: 1.35;
     }
 
     /* =========================================
@@ -1262,14 +1282,14 @@
   </section>
 
   <!-- ============================================================= -->
-  <!-- STATS BAR                                                     -->
+  <!-- STATS BAR (100% CENTERED)                                     -->
   <!-- ============================================================= -->
   <section class="stats-bar-section">
     <div class="stats-grid">
-      <template x-for="(st, idx) in config.stats" :key="idx">
-        <div class="stat-card">
-          <div class="stat-number" x-text="st.value"></div>
-          <div class="stat-label" x-text="st.label"></div>
+      <template x-for="(st, idx) in activeStats" :key="idx">
+        <div class="stat-card" x-show="st && (st.label || st.value)">
+          <div class="stat-number" x-text="st.value" x-show="st.value"></div>
+          <div class="stat-label" x-text="st.label" x-show="st.label"></div>
         </div>
       </template>
     </div>
@@ -1642,6 +1662,13 @@
         cleanWaNumber(num) {
           if (!num) return '50255551234';
           return num.replace(/\D/g, '');
+        },
+
+        get activeStats() {
+          const list = (this.config && Array.isArray(this.config.stats)) ? this.config.stats : [];
+          const filtered = list.filter(s => s && (String(s.value || '').trim() || String(s.label || '').trim()));
+          if (filtered.length > 0) return filtered;
+          return (window.INITIAL_WEB_CONFIG && window.INITIAL_WEB_CONFIG.stats) || [];
         },
 
         openLogin() {
