@@ -1007,13 +1007,17 @@
   }
 
   /* Closing Control Modal Design (Auto-Responsive to ANY window) */
+  /* Closing Control Modal Design (Auto-Responsive to ANY window) */
+  .closing-modal-backdrop {
+    z-index: 3000 !important;
+  }
   .closing-control-card {
     background: #ffffff;
     width: 100%;
-    max-width: 660px;
-    max-height: calc(100vh - 32px);
+    max-width: 620px;
+    max-height: calc(100vh - 28px);
     border-radius: 16px;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -1021,9 +1025,11 @@
     font-family: inherit;
     margin: auto;
     border: 1px solid rgba(226, 232, 240, 0.8);
+    position: relative;
+    z-index: 3001;
   }
   .closing-control-header {
-    padding: 14px 20px;
+    padding: 12px 18px;
     border-bottom: 1px solid #e2e8f0;
     display: flex;
     justify-content: space-between;
@@ -1032,42 +1038,103 @@
     flex-shrink: 0;
   }
   .closing-header-title {
-    font-size: 15.5px;
+    font-size: 15px;
     font-weight: 800;
     color: #0f172a;
   }
   .closing-header-status {
-    font-size: 13.5px;
+    font-size: 12.5px;
     font-weight: 800;
     color: #1e293b;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    padding: 3px 9px;
+    border-radius: 6px;
+  }
+  .closing-modal-close-btn {
+    background: none;
+    border: none;
+    font-size: 20px;
+    line-height: 1;
+    color: #64748b;
+    cursor: pointer;
+    padding: 3px 6px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+  }
+  .closing-modal-close-btn:hover {
+    background: #f1f5f9;
+    color: #0f172a;
   }
 
   .closing-control-body {
-    padding: 16px 20px;
+    padding: 14px 18px;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
     flex: 1;
     min-height: 0;
     overflow-y: auto;
     overscroll-behavior: contain;
   }
 
-  .closing-section-row {
+  /* Compact Sections */
+  .closing-card-section {
+    border-radius: 10px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .closing-card-cash {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+  }
+  .closing-card-credit {
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+  }
+  .closing-card-total {
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+  }
+  .closing-card-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 14px;
-    font-weight: 700;
-    color: #334155;
-    margin-bottom: 4px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    padding-bottom: 4px;
   }
+  .closing-card-header-title {
+    font-weight: 800;
+    font-size: 12.5px;
+    color: #1e293b;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .closing-card-credit .closing-card-header-title {
+    color: #92400e;
+  }
+  .closing-card-header-amount {
+    font-weight: 900;
+    font-size: 13.5px;
+  }
+  .text-success { color: #16a34a !important; }
+  .text-amber { color: #b45309 !important; }
+
   .closing-sub-list {
     display: flex;
     flex-direction: column;
-    gap: 5px;
-    padding-left: 6px;
-    font-size: 12.5px;
+    gap: 3px;
+    font-size: 12px;
     color: #64748b;
   }
   .closing-sub-item {
@@ -1075,28 +1142,57 @@
     justify-content: space-between;
     align-items: center;
   }
+  .closing-sub-item.highlight {
+    font-weight: 700;
+    color: #0f172a;
+  }
+  .closing-sub-item.total-expected {
+    border-top: 1px dashed #cbd5e1;
+    padding-top: 3px;
+    margin-top: 2px;
+    font-weight: 800;
+    color: #334155;
+  }
+  .closing-sub-item.difference {
+    font-weight: 800;
+  }
   .closing-sub-label {
     display: flex;
     align-items: center;
     gap: 6px;
-    color: #64748b;
   }
   .closing-sub-value {
-    font-weight: 600;
-    color: #475569;
+    font-weight: 700;
+    color: #334155;
   }
   .closing-divider {
     border-bottom: 1px solid #e2e8f0;
-    margin: 2px 0;
+    margin: 1px 0;
+  }
+
+  .closing-total-title {
+    font-weight: 800;
+    font-size: 12px;
+    color: #334155;
+    display: block;
+  }
+  .closing-total-subtitle {
+    font-size: 10.5px;
+    color: #64748b;
+  }
+  .closing-total-amount {
+    font-weight: 900;
+    font-size: 15.5px;
+    color: #714B67;
   }
 
   .closing-field-group {
     display: flex;
     flex-direction: column;
-    gap: 5px;
+    gap: 4px;
   }
   .closing-field-label {
-    font-size: 12.5px;
+    font-size: 12px;
     font-weight: 700;
     color: #475569;
   }
@@ -1114,11 +1210,11 @@
   }
   .closing-amount-input {
     width: 100%;
-    height: 42px;
+    height: 38px;
     border: 1px solid #cbd5e1;
     border-radius: 8px;
-    padding: 0 36px 0 14px;
-    font-size: 14.5px;
+    padding: 0 32px 0 12px;
+    font-size: 14px;
     font-weight: 600;
     color: #0f172a;
     outline: none;
@@ -1130,7 +1226,7 @@
   }
   .closing-clear-btn {
     position: absolute;
-    right: 10px;
+    right: 8px;
     background: none;
     border: none;
     font-size: 16px;
@@ -1139,18 +1235,19 @@
     line-height: 1;
   }
   .closing-icon-btn {
-    width: 42px;
-    height: 42px;
+    width: 38px;
+    height: 38px;
     background: #f1f5f9;
     border: 1px solid #cbd5e1;
     border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 16px;
+    font-size: 15px;
     color: #475569;
     cursor: pointer;
     transition: background 0.15s;
+    flex-shrink: 0;
   }
   .closing-icon-btn:hover {
     background: #e2e8f0;
@@ -1158,12 +1255,12 @@
 
   .closing-textarea {
     width: 100%;
-    height: 60px;
-    min-height: 45px;
+    height: 48px;
+    min-height: 40px;
     border: 1px solid #cbd5e1;
     border-radius: 8px;
-    padding: 8px 12px;
-    font-size: 12.5px;
+    padding: 6px 10px;
+    font-size: 12px;
     color: #0f172a;
     outline: none;
     resize: vertical;
@@ -1174,28 +1271,25 @@
   }
 
   .closing-control-footer {
-    padding: 12px 18px;
+    padding: 10px 16px;
     border-top: 1px solid #e2e8f0;
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column;
+    gap: 8px;
     background: #ffffff;
     flex-shrink: 0;
-    flex-wrap: nowrap;
-    gap: 8px;
-    overflow-x: auto;
   }
-  .closing-footer-left {
+  .closing-footer-main-row {
     display: flex;
+    align-items: center;
     gap: 8px;
-    flex-wrap: nowrap;
-    flex-shrink: 0;
+    width: 100%;
   }
-  .closing-footer-right {
+  .closing-footer-sec-row {
     display: flex;
+    align-items: center;
     gap: 8px;
-    flex-wrap: nowrap;
-    flex-shrink: 0;
+    width: 100%;
   }
 
   .btn-close-register-main {
@@ -1209,6 +1303,11 @@
     cursor: pointer;
     white-space: nowrap;
     transition: background 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    justify-content: center;
+    flex: 1;
   }
   .btn-close-register-main:hover {
     background: #5c2847;
@@ -1219,32 +1318,36 @@
     border: 1px solid #e2e8f0;
     border-radius: 8px;
     padding: 9px 14px;
-    font-size: 13px;
+    font-size: 12.5px;
     font-weight: 700;
     cursor: pointer;
     white-space: nowrap;
     transition: background 0.15s;
+    flex-shrink: 0;
   }
   .btn-close-register-discard:hover {
     background: #e2e8f0;
   }
   .btn-close-register-sec {
-    background: #f1f5f9;
-    color: #334155;
+    background: #f8fafc;
+    color: #475569;
     border: 1px solid #e2e8f0;
     border-radius: 8px;
-    padding: 9px 12px;
-    font-size: 12.5px;
+    padding: 7px 10px;
+    font-size: 12px;
     font-weight: 700;
     cursor: pointer;
     white-space: nowrap;
     display: flex;
     align-items: center;
-    gap: 6px;
+    justify-content: center;
+    gap: 5px;
     transition: background 0.15s;
+    flex: 1;
   }
   .btn-close-register-sec:hover {
     background: #e2e8f0;
+    color: #0f172a;
   }
 
   /* Responsive optimizations for small screens & compact heights */
@@ -1254,24 +1357,26 @@
       border-radius: 12px;
     }
     .closing-control-header {
-      padding: 10px 16px;
-    }
-    .closing-control-body {
-      padding: 10px 16px;
-      gap: 8px;
-    }
-    .closing-control-footer {
       padding: 9px 14px;
     }
+    .closing-control-body {
+      padding: 9px 14px;
+      gap: 7px;
+    }
+    .closing-control-footer {
+      padding: 8px 12px;
+      gap: 6px;
+    }
     .closing-textarea {
-      height: 46px;
+      height: 40px;
+      min-height: 36px;
     }
     .closing-amount-input {
-      height: 38px;
+      height: 36px;
     }
     .closing-icon-btn {
-      width: 38px;
-      height: 38px;
+      width: 36px;
+      height: 36px;
     }
   }
 
@@ -2028,12 +2133,34 @@
     }
 
     /* Mobile Payment Screen (pay-embed-grid stacks into 1 fluid column) */
+    .pos-main-container.mobile-in-payment .pos-right-panel {
+      display: flex !important;
+      width: 100% !important;
+      flex: 1 !important;
+      height: calc(100vh - 48px) !important;
+      height: calc(100dvh - 48px) !important;
+      overflow: hidden !important;
+      position: relative !important;
+    }
+    .payment-embed-wrapper {
+      height: 100% !important;
+      min-height: 0 !important;
+      flex: 1 !important;
+      display: flex !important;
+      flex-direction: column !important;
+      position: relative !important;
+      overflow: hidden !important;
+    }
     .pay-embed-grid {
       grid-template-columns: 1fr !important;
       gap: 14px !important;
-      padding: 12px !important;
+      padding: 12px 12px 96px 12px !important; /* Space for the sticky pay bar */
       overflow-y: auto !important;
       -webkit-overflow-scrolling: touch !important;
+      flex: 1 1 0% !important;
+      min-height: 0 !important;
+      max-height: calc(100vh - 100px) !important;
+      max-height: calc(100dvh - 100px) !important;
     }
     .pay-methods-stack {
       display: grid !important;
@@ -2044,8 +2171,8 @@
       padding: 10px 12px !important;
     }
     .pay-km-btn {
-      height: 48px !important;
-      font-size: 18px !important;
+      height: 44px !important;
+      font-size: 17px !important;
     }
     .pay-summary-panel {
       height: auto !important;
@@ -2057,6 +2184,174 @@
     .btn-validate-payment {
       height: 52px !important;
       font-size: 16px !important;
+    }
+
+    /* Mobile Sticky Pay Bar */
+    .mobile-pay-dock-footer {
+      position: fixed !important;
+      bottom: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      z-index: 2200 !important;
+      background: #ffffff !important;
+      border-top: 1.5px solid #e2e8f0 !important;
+      padding: 10px 16px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.12) !important;
+    }
+    .mobile-pay-dock-footer .mpd-left {
+      display: flex !important;
+      flex-direction: column !important;
+    }
+    .mobile-pay-dock-footer .mpd-label {
+      font-size: 11px !important;
+      font-weight: 700 !important;
+      color: #64748b !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.5px !important;
+    }
+    .mobile-pay-dock-footer .mpd-amount {
+      font-size: 20px !important;
+      font-weight: 900 !important;
+      color: #0f172a !important;
+      line-height: 1.1 !important;
+    }
+    .mobile-pay-dock-footer .mpd-btn-validate {
+      height: 48px !important;
+      padding: 0 24px !important;
+      border-radius: 10px !important;
+      border: none !important;
+      font-size: 15px !important;
+      font-weight: 800 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 6px !important;
+      cursor: pointer !important;
+      transition: all 0.15s !important;
+      touch-action: manipulation !important;
+    }
+    .mobile-pay-dock-footer .mpd-btn-validate:not(:disabled) {
+      background: #00897b !important;
+      color: #ffffff !important;
+      box-shadow: 0 4px 14px rgba(0, 137, 123, 0.4) !important;
+    }
+    .mobile-pay-dock-footer .mpd-btn-validate:not(:disabled):active {
+      transform: scale(0.98) !important;
+      background: #00796b !important;
+    }
+    .mobile-pay-dock-footer .mpd-btn-validate:disabled {
+      background: #cbd5e1 !important;
+      color: #64748b !important;
+      cursor: not-allowed !important;
+      opacity: 0.7 !important;
+    }
+
+    /* Closing Modal on Mobile (Ultra Compact & Ergonomic) */
+    .closing-modal-backdrop {
+      z-index: 3000 !important;
+      padding: 8px !important;
+    }
+    .closing-control-card {
+      width: 96vw !important;
+      max-width: 480px !important;
+      max-height: 94dvh !important;
+      max-height: 94vh !important;
+      margin: auto !important;
+      border-radius: 14px !important;
+      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.45) !important;
+    }
+    .closing-control-header {
+      padding: 9px 12px !important;
+    }
+    .closing-header-title {
+      font-size: 13.5px !important;
+      font-weight: 800 !important;
+    }
+    .closing-header-status {
+      font-size: 11px !important;
+      padding: 2px 7px !important;
+    }
+    .closing-control-body {
+      padding: 8px 11px !important;
+      gap: 6px !important;
+    }
+    .closing-card-section {
+      padding: 7px 9px !important;
+      gap: 4px !important;
+      border-radius: 8px !important;
+    }
+    .closing-card-header-title {
+      font-size: 11.5px !important;
+    }
+    .closing-card-header-amount {
+      font-size: 12px !important;
+    }
+    .closing-sub-list {
+      gap: 2px !important;
+      font-size: 11px !important;
+    }
+    .closing-total-title {
+      font-size: 11px !important;
+    }
+    .closing-total-subtitle {
+      font-size: 10px !important;
+    }
+    .closing-total-amount {
+      font-size: 14px !important;
+    }
+    .closing-field-group {
+      gap: 2px !important;
+    }
+    .closing-field-label {
+      font-size: 11px !important;
+    }
+    .closing-amount-input {
+      height: 35px !important;
+      font-size: 13px !important;
+      padding: 0 28px 0 10px !important;
+    }
+    .closing-icon-btn {
+      width: 35px !important;
+      height: 35px !important;
+      font-size: 14px !important;
+    }
+    .closing-textarea {
+      height: 36px !important;
+      min-height: 34px !important;
+      font-size: 11.5px !important;
+      padding: 5px 8px !important;
+    }
+    .closing-control-footer {
+      padding: 8px 11px !important;
+      gap: 6px !important;
+    }
+    .closing-footer-main-row {
+      display: grid !important;
+      grid-template-columns: 1fr auto !important;
+      gap: 6px !important;
+    }
+    .btn-close-register-main {
+      padding: 9px 10px !important;
+      font-size: 12px !important;
+    }
+    .btn-close-register-discard {
+      padding: 9px 10px !important;
+      font-size: 11.5px !important;
+    }
+    .closing-footer-sec-row {
+      display: grid !important;
+      grid-template-columns: 1fr 1fr !important;
+      gap: 6px !important;
+    }
+    .btn-close-register-sec {
+      padding: 7px 5px !important;
+      font-size: 10.5px !important;
+      text-overflow: ellipsis !important;
+      overflow: hidden !important;
+      white-space: nowrap !important;
     }
 
     /* Modal Cards on Mobile */
@@ -2118,7 +2413,152 @@
     color: #38bdf8 !important;
   }
 
+  /* =============================================
+     POS DASHBOARD RESPONSIVE & MOBILE STYLES
+  ============================================= */
+  .pos-dh-header {
+    background: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 12px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+  }
+  .pos-dh-title-bar {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    min-width: 0;
+  }
+  .pos-dh-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  .pos-dh-brand h1 {
+    font-size: 18px;
+    font-weight: 800;
+    color: #1e293b;
+    margin: 0;
+    white-space: nowrap;
+  }
+  .pos-dh-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    white-space: nowrap;
+  }
+  .pos-dh-nav::-webkit-scrollbar {
+    display: none;
+  }
+  .pos-dh-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+  .pos-dh-metrics-strip {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  .pos-dh-content {
+    padding: 28px 32px 84px 32px;
+    max-width: 1240px;
+    margin: 0 auto;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .pos-dh-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    gap: 12px;
+  }
+  .pos-dh-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 24px;
+    width: 100%;
+  }
 
+  @media (max-width: 768px) {
+    .pos-dh-header {
+      padding: 10px 14px !important;
+      flex-direction: column !important;
+      align-items: stretch !important;
+      gap: 10px !important;
+    }
+    .pos-dh-title-bar {
+      display: flex !important;
+      justify-content: space-between !important;
+      align-items: center !important;
+      width: 100% !important;
+      gap: 10px !important;
+    }
+    .pos-dh-brand h1 {
+      font-size: 16px !important;
+    }
+    .pos-dh-nav {
+      width: 100% !important;
+      padding-bottom: 2px !important;
+      gap: 6px !important;
+    }
+    .pos-dh-nav .nav-tab-pill {
+      padding: 6px 12px !important;
+      font-size: 12px !important;
+      flex-shrink: 0 !important;
+    }
+    .pos-dh-metrics-strip {
+      display: none !important; /* Resúmenes ocultos en modo móvil */
+    }
+    .pos-dh-content {
+      padding: 14px 12px 90px 12px !important;
+    }
+    .pos-dh-section-header {
+      flex-direction: column !important;
+      align-items: flex-start !important;
+      gap: 4px !important;
+      margin-bottom: 14px !important;
+    }
+    .pos-dh-section-header h2 {
+      font-size: 16px !important;
+    }
+    .pos-dh-section-header span {
+      font-size: 12px !important;
+    }
+    .pos-dh-grid {
+      grid-template-columns: 1fr !important;
+      gap: 14px !important;
+    }
+    .pos-dh-actions-desktop {
+      display: none !important;
+    }
+    .pos-dh-actions-mobile {
+      display: flex !important;
+      align-items: center !important;
+      gap: 8px !important;
+    }
+  }
+
+  @media (min-width: 769px) {
+    .pos-dh-actions-mobile {
+      display: none !important;
+    }
+    .mobile-pay-dock-footer {
+      display: none !important;
+    }
+  }
 
   /* Thermal Receipt Print Styles (80mm / 58mm) */
   @media print {
@@ -2175,8 +2615,15 @@
   .dark-mode .settings-dropdown-item { color: #e2e8f0 !important; }
   .dark-mode .settings-dropdown-item:hover { background: #475569 !important; }
   .dark-mode .dropdown-line-divider { border-color: #334155 !important; }
-  .dark-mode .cart-line-item { border-color: #334155 !important; }
   .dark-mode .cart-line-item.selected { background: #334155 !important; }
+  .dark-mode .mobile-pay-dock-footer {
+    background: #1e293b !important;
+    border-top-color: #334155 !important;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4) !important;
+  }
+  .dark-mode .mobile-pay-dock-footer .mpd-amount {
+    color: #f8fafc !important;
+  }
 
   /* =============================================
      ANIMATIONS & TOASTS
@@ -2224,31 +2671,50 @@
     x-cloak
   >
     <!-- TOP NAVIGATION BAR (ESTILO ODOO CONTROL PANEL) -->
-    <header style="background:#ffffff; border-bottom:1px solid #e2e8f0; padding:12px 28px; display:flex; align-items:center; justify-content:space-between; sticky:top; z-index:10; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+    <header class="pos-dh-header">
       
-      <!-- Left: Title & Subnav -->
-      <div style="display:flex; align-items:center; gap:28px;">
-        <div style="display:flex; align-items:center; gap:10px;">
+      <!-- Left: Title & Subnav on Desktop, Top Row on Mobile -->
+      <div class="pos-dh-title-bar">
+        <div class="pos-dh-brand">
           <a href="/dashboard" style="color:#714B67; font-size:22px; text-decoration:none; display:flex; align-items:center;" title="Volver al Módulo Principal">
             <i class="ph ph-squares-four"></i>
           </a>
-          <h1 style="font-size:18px; font-weight:800; color:#1e293b; margin:0;">Punto de Venta</h1>
+          <h1 style="font-size:18px; font-weight:800; color:#1e293b; margin:0; white-space:nowrap;">Punto de Venta</h1>
         </div>
 
-        <!-- Subnav tabs estilo Odoo 17 Pill Buttons -->
-        <nav style="display:flex; gap:8px;">
-          <span class="nav-tab-pill nav-tab-active">Puntos de Venta</span>
-          <span class="nav-tab-pill nav-tab-inactive" @click="window.location='/invoicing'">Pedidos</span>
-          <span class="nav-tab-pill nav-tab-inactive" @click="window.location='/pos/sessions'">Sesiones</span>
-          <span class="nav-tab-pill nav-tab-inactive" @click="window.location='/inventory'">Productos</span>
-          <span class="nav-tab-pill nav-tab-inactive" @click="window.location='/reports'">Reportes</span>
-        </nav>
+        <!-- Quick Mobile Actions (visible only on <= 768px) -->
+        <div class="pos-dh-actions-mobile">
+          <button 
+            type="button" 
+            x-show="!cashierSession || !cashierSession.id"
+            @click="showOpeningModal = true"
+            style="background:#714B67; color:#ffffff; border:none; padding:7px 14px; border-radius:8px; font-size:12.5px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:6px; box-shadow:0 2px 8px rgba(113, 75, 103, 0.25);"
+          >
+            <i class="ph ph-key"></i> Aperturar
+          </button>
+          <button 
+            type="button" 
+            x-show="cashierSession && cashierSession.id"
+            @click="showPosDashboard = false"
+            style="background:#714B67; color:#ffffff; border:none; padding:7px 14px; border-radius:8px; font-size:12.5px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:6px; box-shadow:0 2px 8px rgba(113, 75, 103, 0.25);"
+          >
+            <i class="ph ph-shopping-cart"></i> Continuar Venta
+          </button>
+        </div>
       </div>
 
-      <!-- Right: Main Action Buttons (Aperturar Caja arriba a la derecha!) -->
-      <div style="display:flex; align-items:center; gap:12px;">
-        
-        <!-- BOTÓN APERTURAR CAJA / NUEVA SESIÓN (ARRIBA A LA DERECHA) -->
+      <!-- Subnav tabs estilo Odoo 17 Pill Buttons (scrollable horizontalmente en movil) -->
+      <nav class="pos-dh-nav">
+        <span class="nav-tab-pill nav-tab-active">Puntos de Venta</span>
+        <span class="nav-tab-pill nav-tab-inactive" @click="window.location='/invoicing'">Pedidos</span>
+        <span class="nav-tab-pill nav-tab-inactive" @click="window.location='/pos/sessions'">Sesiones</span>
+        <span class="nav-tab-pill nav-tab-inactive" @click="window.location='/inventory'">Productos</span>
+        <span class="nav-tab-pill nav-tab-inactive" @click="window.location='/reports'">Reportes</span>
+      </nav>
+
+      <!-- Desktop Right Actions -->
+      <div class="pos-dh-actions pos-dh-actions-desktop">
+        <!-- BOTÓN APERTURAR CAJA / NUEVA SESIÓN -->
         <button 
           type="button" 
           x-show="!cashierSession || !cashierSession.id"
@@ -2283,10 +2749,10 @@
     </header>
 
     <!-- CONTENT BODY (DASHBOARD KANBAN & MÉTRICAS) -->
-    <div style="padding:28px 32px; max-width:1240px; margin:0 auto; width:100%;">
+    <div class="pos-dh-content">
       
-      <!-- TOP METRICS SUMMARY STRIP -->
-      <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:16px; margin-bottom:28px;">
+      <!-- TOP METRICS SUMMARY STRIP (OCULTO EN MODO MÓVIL) -->
+      <div class="pos-dh-metrics-strip hide-on-mobile">
         
         <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; padding:16px 20px; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
           <div style="font-size:11px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:0.5px;">Ventas Hoy</div>
@@ -2315,13 +2781,13 @@
       </div>
 
       <!-- TITLE & SECTION HEADER -->
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+      <div class="pos-dh-section-header">
         <h2 style="font-size:16px; font-weight:800; color:#1e293b; margin:0;">Puntos de Venta Registrados</h2>
         <span style="font-size:12px; color:#64748b; font-weight:500;">Selecciona un punto de venta para operar o aperturar caja</span>
       </div>
 
       <!-- KANBAN CARDS GRID (ESTILO ODOO ENTERPRISE) -->
-      <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(350px, 1fr)); gap:24px;">
+      <div class="pos-dh-grid">
         
         <!-- CARD 1: CAJA 01 - TIENDA PRINCIPAL -->
         <div style="background:#ffffff; border:1px solid #cbd5e1; border-radius:14px; box-shadow:0 4px 14px rgba(0,0,0,0.05); overflow:hidden; transition:all 0.2s;" onmouseover="this.style.boxShadow='0 8px 24px rgba(0,0,0,0.08)'" onmouseout="this.style.boxShadow='0 4px 14px rgba(0,0,0,0.05)'">
@@ -2452,6 +2918,30 @@
       </div>
 
     </div>
+
+    <!-- ===== MOBILE BOTTOM NAVIGATION DOCK ===== -->
+    <nav class="mobile-bottom-nav">
+      <a href="/dashboard" class="mobile-nav-btn">
+        <i class="ph ph-squares-four"></i>
+        <span>Inicio</span>
+      </a>
+      <a href="/pos" class="mobile-nav-btn active">
+        <i class="ph ph-shopping-cart"></i>
+        <span>POS</span>
+      </a>
+      <a href="/inventory" class="mobile-nav-btn">
+        <i class="ph ph-package"></i>
+        <span>Inventario</span>
+      </a>
+      <a href="/customers" class="mobile-nav-btn">
+        <i class="ph ph-users"></i>
+        <span>Clientes</span>
+      </a>
+      <a href="/quotes" class="mobile-nav-btn">
+        <i class="ph ph-file-text"></i>
+        <span>Cotizar</span>
+      </a>
+    </nav>
 
   </div>
 
@@ -2864,7 +3354,7 @@
             </div>
             <div class="cart-line-meta" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-top:4px;">
               <div>
-                <span x-text="item.qty + ' ' + (item.uom_symbol || 'Pz') + ' x Q' + formatPrice(item.unit_price)"></span>
+                <span x-text="((wholesaleMode || item.is_wholesale) && item.uom_symbol ? item.qty + ' ' + item.uom_symbol : item.qty) + ' x Q' + formatPrice(item.unit_price)"></span>
                 <template x-if="item.is_wholesale">
                   <span style="font-size:10.5px; color:#0d9488; font-weight:800; background:#f0fdfa; padding:1px 6px; border-radius:4px; border:1px solid #ccfbf1; margin-left:4px;" x-text="'(' + (Math.round((item.qty / (item.wholesale_ratio || 12)) * 10) / 10) + ' ' + (item.wholesale_uom_name || 'Caja') + ')'"></span>
                 </template>
@@ -3071,7 +3561,7 @@
                       title="Click para ver existencias por bodega"
                     ></span>
                   </div>
-                  <span class="card-price-text" x-text="'Q' + formatPrice(product.sale_price) + (product.uom_symbol ? ' / ' + product.uom_symbol : '')"></span>
+                  <span class="card-price-text" x-text="'Q' + formatPrice(product.sale_price) + (wholesaleMode && product.uom_symbol ? ' / ' + product.uom_symbol : '')"></span>
                 </div>
                 <!-- Badge de Mayoreo en Tarjeta visible únicamente cuando el Modo Mayorista está activado -->
                 <div x-show="wholesaleMode && product.wholesale_price && product.wholesale_price > 0" style="display:flex; justify-content:space-between; align-items:center; margin-top:5px; padding-top:4px; border-top:1px dashed #e2e8f0; font-size:11px;" x-cloak>
@@ -3123,7 +3613,7 @@
       <!-- ==============================================
            2. PAYMENT SCREEN VIEW (Visible when showPaymentScreen === true)
       =============================================== -->
-      <div class="payment-embed-wrapper" x-show="showPaymentScreen" style="display:flex; flex-direction:column; height:100%; background:#edf2f7;" x-cloak>
+      <div class="payment-embed-wrapper" x-show="showPaymentScreen" style="display:flex; flex-direction:column; height:100%; min-height:0; overflow:hidden; position:relative; flex:1; background:#edf2f7;" x-cloak>
         <!-- Header bar -->
         <div class="pay-embed-header">
           <div class="pay-embed-title">
@@ -3298,6 +3788,26 @@
               </button>
             </div>
           </div>
+        </div>
+
+        <!-- Mobile Sticky Pay Footer Bar (Always visible on mobile without scrolling!) -->
+        <div class="mobile-pay-dock-footer" x-show="showPaymentScreen && !showClosingModal && !showCashMoveModal && !showCashModal">
+          <div class="mpd-left">
+            <div class="mpd-label">Total a Cobrar</div>
+            <div class="mpd-amount" x-text="'Q ' + formatPrice(grandTotal)">Q 0.00</div>
+          </div>
+          <button
+            type="button"
+            class="mpd-btn-validate"
+            :disabled="faltaPorCobrar > 0"
+            @click="confirmPayment()"
+          >
+            <span x-show="faltaPorCobrar > 0" x-text="'Falta Q ' + formatPrice(faltaPorCobrar)">Falta</span>
+            <span x-show="faltaPorCobrar === 0" style="display:flex; align-items:center; gap:6px;">
+              <i class="ph ph-check-circle" style="font-size:20px;"></i>
+              <span>Validar Pago</span>
+            </span>
+          </button>
         </div>
 
       </div>
@@ -3982,25 +4492,28 @@
   </div>
 
   <!-- MODAL DE CIERRE DE CAJA REGISTRADORA (MATCHING USER REFERENCE DESIGN) -->
-  <div class="modal-backdrop" x-show="showClosingModal" style="display:none" x-cloak>
+  <div class="modal-backdrop closing-modal-backdrop" x-show="showClosingModal" style="display:none; z-index:3000;" x-cloak>
     <div class="closing-control-card">
 
       <!-- Header Bar -->
       <div class="closing-control-header">
         <div class="closing-header-title">Cierre de caja registradora</div>
-        <div class="closing-header-status" x-text="(sessionSalesCount || 0) + ' órdenes: ' + formatPrice(sessionSalesTotal || 0) + ' Q'"></div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <div class="closing-header-status" x-text="(sessionSalesCount || 0) + ' órdenes: ' + formatPrice(sessionSalesTotal || 0) + ' Q'"></div>
+          <button type="button" class="closing-modal-close-btn" @click="showClosingModal = false" aria-label="Cerrar modal">&times;</button>
+        </div>
       </div>
 
       <!-- Body -->
       <div class="closing-control-body">
         
         <!-- SECCIÓN 1: CUADRE DE EFECTIVO (GAVETA FÍSICA) -->
-        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:12px 14px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; border-bottom:1px solid #e2e8f0; padding-bottom:4px;">
-            <span style="font-weight:800; font-size:13px; color:#1e293b; display:flex; align-items:center; gap:6px;">
-              💵 1. Cuadre de Efectivo (Gaveta Física)
+        <div class="closing-card-section closing-card-cash">
+          <div class="closing-card-header">
+            <span class="closing-card-header-title">
+              💵 1. Cuadre de Efectivo (Gaveta)
             </span>
-            <span style="font-weight:900; font-size:13.5px; color:#16a34a;" x-text="formatPrice(sessionExpectedCash || 0) + ' Q'"></span>
+            <span class="closing-card-header-amount text-success" x-text="formatPrice(sessionExpectedCash || 0) + ' Q'"></span>
           </div>
           
           <div class="closing-sub-list">
@@ -4012,54 +4525,54 @@
               <span class="closing-sub-label">Entrada / Salida de Efectivo</span>
               <span class="closing-sub-value" x-text="(sessionCashMovementsNet >= 0 ? '+ ' : '- ') + formatPrice(Math.abs(sessionCashMovementsNet || 0)) + ' Q'"></span>
             </div>
-            <div class="closing-sub-item">
-              <span class="closing-sub-label" style="font-weight:700; color:#0f172a;">(+) Ventas al Contado (Efectivo)</span>
-              <span class="closing-sub-value" style="font-weight:800; color:#0f172a;" x-text="formatPrice(sessionCashSalesTotal || 0) + ' Q'"></span>
+            <div class="closing-sub-item highlight">
+              <span class="closing-sub-label">(+) Ventas al Contado (Efectivo)</span>
+              <span class="closing-sub-value" x-text="formatPrice(sessionCashSalesTotal || 0) + ' Q'"></span>
             </div>
-            <div class="closing-sub-item" style="border-top:1px dashed #cbd5e1; padding-top:4px; margin-top:2px;">
-              <span class="closing-sub-label" style="font-weight:800; color:#334155;">(=) Efectivo Total Esperado</span>
-              <span class="closing-sub-value" style="font-weight:900; color:#0f172a;" x-text="formatPrice(sessionExpectedCash || 0) + ' Q'"></span>
+            <div class="closing-sub-item total-expected">
+              <span class="closing-sub-label">(=) Efectivo Total Esperado</span>
+              <span class="closing-sub-value" x-text="formatPrice(sessionExpectedCash || 0) + ' Q'"></span>
             </div>
-            <div class="closing-sub-item">
-              <span class="closing-sub-label" style="font-weight:800;" :style="((closingAmountReal || 0) - (sessionExpectedCash || 0)) < 0 ? 'color:#dc2626;' : 'color:#16a34a;'">Diferencia de Efectivo</span>
-              <span class="closing-sub-value" style="font-weight:900;" :style="((closingAmountReal || 0) - (sessionExpectedCash || 0)) < 0 ? 'color:#dc2626;' : 'color:#16a34a;'" x-text="formatPrice((closingAmountReal || 0) - (sessionExpectedCash || 0)) + ' Q'"></span>
+            <div class="closing-sub-item difference">
+              <span class="closing-sub-label" :style="((closingAmountReal || 0) - (sessionExpectedCash || 0)) < 0 ? 'color:#dc2626;' : 'color:#16a34a;'">Diferencia de Efectivo</span>
+              <span class="closing-sub-value" :style="((closingAmountReal || 0) - (sessionExpectedCash || 0)) < 0 ? 'color:#dc2626;' : 'color:#16a34a;'" x-text="formatPrice((closingAmountReal || 0) - (sessionExpectedCash || 0)) + ' Q'"></span>
             </div>
           </div>
         </div>
 
-        <!-- SECCIÓN 2: VENTAS AL CRÉDITO Y NO EFECTIVO (SEPARADO) -->
-        <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:12px; padding:12px 14px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; border-bottom:1px solid #fde68a; padding-bottom:4px;">
-            <span style="font-weight:800; font-size:13px; color:#92400e; display:flex; align-items:center; gap:6px;">
-              💳 2. Ventas al Crédito (Cuentas por Cobrar)
+        <!-- SECCIÓN 2: VENTAS AL CRÉDITO Y NO EFECTIVO -->
+        <div class="closing-card-section closing-card-credit">
+          <div class="closing-card-header">
+            <span class="closing-card-header-title">
+              💳 2. Ventas al Crédito
             </span>
-            <span style="font-weight:900; font-size:13.5px; color:#b45309;" x-text="formatPrice(sessionCreditSalesTotal || 0) + ' Q'"></span>
+            <span class="closing-card-header-amount text-amber" x-text="formatPrice(sessionCreditSalesTotal || 0) + ' Q'"></span>
           </div>
           
           <div class="closing-sub-list">
             <div class="closing-sub-item">
-              <span class="closing-sub-label" style="color:#78350f;">Monto Facturado al Crédito</span>
-              <span class="closing-sub-value" style="font-weight:800; color:#b45309;" x-text="formatPrice(sessionCreditSalesTotal || 0) + ' Q'"></span>
+              <span class="closing-sub-label">Monto al Crédito (CxC)</span>
+              <span class="closing-sub-value" x-text="formatPrice(sessionCreditSalesTotal || 0) + ' Q'"></span>
             </div>
             <template x-if="sessionCardSalesTotal > 0">
               <div class="closing-sub-item">
-                <span class="closing-sub-label" style="color:#78350f;">Tarjetas / Transferencias</span>
-                <span class="closing-sub-value" style="font-weight:800; color:#2563eb;" x-text="formatPrice(sessionCardSalesTotal || 0) + ' Q'"></span>
+                <span class="closing-sub-label">Tarjetas / Transferencias</span>
+                <span class="closing-sub-value" style="color:#2563eb;" x-text="formatPrice(sessionCardSalesTotal || 0) + ' Q'"></span>
               </div>
             </template>
-            <div class="closing-sub-item" style="font-size:11px; color:#92400e; font-style:italic; margin-top:2px;">
-              * No altera el efectivo físico que debe haber en caja.
+            <div class="closing-sub-item" style="font-size:10.5px; color:#92400e; font-style:italic; margin-top:2px;">
+              * No altera el efectivo físico en gaveta.
             </div>
           </div>
         </div>
 
         <!-- SECCIÓN 3: TOTAL GENERAL FACTURADO -->
-        <div style="background:#f1f5f9; border:1px solid #cbd5e1; border-radius:10px; padding:10px 14px; display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+        <div class="closing-card-section closing-card-total">
           <div>
-            <span style="font-weight:800; font-size:12.5px; color:#334155;">Total Facturado en el Turno</span>
-            <div style="font-size:11px; color:#64748b;" x-text="(sessionSalesCount || 0) + ' órdenes registradas'"></div>
+            <span class="closing-total-title">Total Facturado en Turno</span>
+            <div class="closing-total-subtitle" x-text="(sessionSalesCount || 0) + ' órdenes registradas'"></div>
           </div>
-          <span style="font-weight:900; font-size:16px; color:#714B67;" x-text="formatPrice(sessionSalesTotal || 0) + ' Q'"></span>
+          <span class="closing-total-amount" x-text="formatPrice(sessionSalesTotal || 0) + ' Q'"></span>
         </div>
 
         <div class="closing-divider"></div>
@@ -4083,21 +4596,29 @@
 
         <!-- Nota de cierre Field -->
         <div class="closing-field-group">
-          <label class="closing-field-label">Nota de cierre</label>
+          <label class="closing-field-label">Nota de cierre (opcional)</label>
           <textarea class="closing-textarea" x-model="closingNote" placeholder="Agregar una nota de cierre..."></textarea>
         </div>
 
       </div>
 
-      <!-- Footer Bar (Una sola fila) -->
+      <!-- Footer Bar -->
       <div class="closing-control-footer">
-        <div class="closing-footer-left">
-          <button type="button" class="btn-close-register-main" @click="confirmCashClosing()">Cerrar caja registradora</button>
-          <button type="button" class="btn-close-register-discard" @click="showClosingModal = false">Descartar</button>
+        <div class="closing-footer-main-row">
+          <button type="button" class="btn-close-register-main" @click="confirmCashClosing()">
+            <i class="ph ph-lock-key"></i> Cerrar caja
+          </button>
+          <button type="button" class="btn-close-register-discard" @click="showClosingModal = false">
+            Descartar
+          </button>
         </div>
-        <div class="closing-footer-right">
-          <button type="button" class="btn-close-register-sec" @click="showCashMoveModal = true">Entrada/salida de efectivo</button>
-          <button type="button" class="btn-close-register-sec" @click="window.location='/pos/z-report'">Venta diaria</button>
+        <div class="closing-footer-sec-row">
+          <button type="button" class="btn-close-register-sec" @click="showCashMoveModal = true">
+            💵 Entrada/Salida
+          </button>
+          <button type="button" class="btn-close-register-sec" @click="window.location='/pos/z-report'">
+            📊 Venta diaria
+          </button>
         </div>
       </div>
 
@@ -4832,6 +5353,9 @@ function posApp() {
     liveClockDay: '',
     liveClockFullDate: '',
     isSyncing: false,
+    isSyncingStock: false,
+    _stockSyncInterval: null,
+    stockChannel: null,
     mobileTab: 'catalog', // 'catalog' | 'cart'
     orders: [{ cart: [], customer: { nit: 'CF', name: 'CONSUMIDOR FINAL' } }],
     activeOrderIdx: 0,
@@ -5599,6 +6123,7 @@ function posApp() {
       await this.loadPosMetrics();
       await this.loadCategories();
       await this.loadProducts();
+      this.initRealtimeStockSync();
 
       // 2. Sincronización en segundo plano si estamos en línea
       if (this.online && window.posDB) {
@@ -5750,6 +6275,96 @@ function posApp() {
       }
 
       this.products = [];
+    },
+
+    initRealtimeStockSync() {
+      // 1. Canal BroadcastChannel para sincronización instantánea entre pestañas del POS
+      if ('BroadcastChannel' in window) {
+        try {
+          this.stockChannel = new BroadcastChannel('pos_stock_channel');
+          this.stockChannel.onmessage = (ev) => {
+            if (ev.data && ev.data.type === 'STOCK_UPDATED') {
+              if (ev.data.delta && Array.isArray(ev.data.delta)) {
+                for (const item of ev.data.delta) {
+                  if (this.products && item.product_id) {
+                    const p = this.products.find(x => String(x.id) === String(item.product_id));
+                    if (p) {
+                      p.stock = Math.max(0, Number((p.stock || 0) - (item.qty || 0)).toFixed(2) * 1);
+                    }
+                  }
+                }
+              }
+              this.syncLiveStock().catch(() => {});
+            }
+          };
+        } catch(e) {
+          console.warn("BroadcastChannel error:", e);
+        }
+      }
+
+      // 2. Escucha de evento Storage para sincronización entre ventanas del navegador
+      window.addEventListener('storage', (e) => {
+        if (e.key === 'pos_stock_updated_timestamp') {
+          this.syncLiveStock().catch(() => {});
+        }
+      });
+
+      // 3. Sincronizar inmediatamente al enfocar o volver a la pestaña
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden && this.online) {
+          this.syncLiveStock().catch(() => {});
+        }
+      });
+      window.addEventListener('focus', () => {
+        if (this.online) {
+          this.syncLiveStock().catch(() => {});
+        }
+      });
+
+      // 4. Temporizador de actualización periódica en segundo plano (cada 6 segundos si la pestaña está activa)
+      if (this._stockSyncInterval) clearInterval(this._stockSyncInterval);
+      this._stockSyncInterval = setInterval(() => {
+        if (!document.hidden && this.online && !this.isSyncingStock) {
+          this.syncLiveStock().catch(() => {});
+        }
+      }, 6000);
+    },
+
+    async syncLiveStock() {
+      if (!this.online || this.isSyncingStock) return;
+      this.isSyncingStock = true;
+      try {
+        const warehouseId = localStorage.getItem('warehouse_id') || '';
+        let url = '/products/stock-levels';
+        if (warehouseId) {
+          url += `?warehouse_id=${encodeURIComponent(warehouseId)}`;
+        }
+        const res = await API.get(url);
+        if (res && res.stock && typeof res.stock === 'object') {
+          const stockMap = res.stock;
+          // Actualizar reactivamente this.products en memoria
+          if (this.products && Array.isArray(this.products)) {
+            for (let i = 0; i < this.products.length; i++) {
+              const p = this.products[i];
+              if (stockMap[p.id] !== undefined) {
+                p.stock = Number(stockMap[p.id]);
+              }
+            }
+          }
+          // Si hay modal de detalle de producto abierto, actualizarlo también
+          if (this.selectedStockProduct && stockMap[this.selectedStockProduct.id] !== undefined) {
+            this.selectedStockProduct.stock = Number(stockMap[this.selectedStockProduct.id]);
+          }
+          // Actualizar en IndexedDB
+          if (window.posDB && typeof window.posDB.updateStockMap === 'function') {
+            window.posDB.updateStockMap(stockMap).catch(() => {});
+          }
+        }
+      } catch(err) {
+        // Silencioso para no molestar al cajero
+      } finally {
+        this.isSyncingStock = false;
+      }
     },
 
     playAudioBeep() {
@@ -6390,6 +7005,36 @@ function posApp() {
           }
         }
 
+        // Actualizar existencias en memoria inmediatamente en la interfaz del POS
+        if (saleData && saleData.lines && this.products) {
+          for (const l of saleData.lines) {
+            if (l.product_id) {
+              const prod = this.products.find(p => String(p.id) === String(l.product_id));
+              if (prod) {
+                prod.stock = Math.max(0, Number((prod.stock || 0) - (l.qty || 0)).toFixed(2) * 1);
+              }
+            }
+          }
+        }
+
+        // Notificar a otras pestañas/ventanas del POS mediante BroadcastChannel y Storage
+        if (this.stockChannel && saleData && saleData.lines) {
+          try {
+            this.stockChannel.postMessage({
+              type: 'STOCK_UPDATED',
+              delta: saleData.lines.map(l => ({ product_id: l.product_id, qty: l.qty }))
+            });
+          } catch(e) {}
+        }
+        try {
+          localStorage.setItem('pos_stock_updated_timestamp', Date.now().toString());
+        } catch(e) {}
+
+        // Sincronizar en segundo plano con el servidor para cuadrar stock exacto
+        if (this.online) {
+          this.syncLiveStock().catch(() => {});
+        }
+
         if (this.paymentMethod === 'credit' && this.customer) {
           this.customer.balance = (this.customer.balance || 0) + this.grandTotal;
         }
@@ -6420,6 +7065,9 @@ function posApp() {
       this.mobileTab = 'catalog';
       this.selectedLineIdx = -1;
       this.numpadBuffer = '';
+      if (this.online) {
+        this.syncLiveStock().catch(() => {});
+      }
     },
 
     addNewOrder() {

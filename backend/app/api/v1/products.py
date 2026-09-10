@@ -561,6 +561,39 @@ async def get_inventory_kpis(
     }
 
 
+@router.get("/stock-levels")
+@router.get("/stock-sync")
+async def get_products_stock_levels(
+    warehouse_id: Optional[str] = Query(None),
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """Retorna mapeo ligero {product_id: stock} para sincronización automática en tiempo real del POS."""
+    quant_stmt = (
+        select(
+            StockQuant.product_id,
+            func.sum(StockQuant.qty_on_hand).label("total_stock")
+        )
+        .join(Product, Product.id == StockQuant.product_id)
+        .where(
+            Product.company_id == current_user.company_id,
+            Product.is_deleted == False,
+            Product.is_active == True,
+            Product.can_be_sold == True,
+        )
+    )
+    if warehouse_id and isinstance(warehouse_id, str) and warehouse_id.strip():
+        try:
+            quant_stmt = quant_stmt.where(StockQuant.warehouse_id == uuid.UUID(warehouse_id.strip()))
+        except (ValueError, AttributeError):
+            pass
+
+    quant_stmt = quant_stmt.group_by(StockQuant.product_id)
+    res = await db.execute(quant_stmt)
+    stock_map = {str(row[0]): float(row[1] or 0) for row in res.all()}
+    return {"stock": stock_map, "count": len(stock_map)}
+
+
 # ===== IMPORTACIÓN / EXPORTACIÓN CSV =====
 @router.get("/template-csv")
 async def download_product_csv_template():

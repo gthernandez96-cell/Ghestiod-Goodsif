@@ -1,9 +1,9 @@
-const CACHE_NAME = 'pos-empresarial-cache-v4';
+const CACHE_NAME = 'pos-empresarial-cache-v10';
 const ASSETS_TO_CACHE = [
   '/login',
   '/dashboard',
   '/pos',
-  '/static/css/main.css?v=20260813_odoo_pill_v2',
+  '/static/css/main.css?v=20260906_hide_uom_normal',
   '/static/js/app.js',
   '/static/js/api.js',
   '/static/js/db.js',

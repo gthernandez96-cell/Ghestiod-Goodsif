@@ -194,6 +194,26 @@ class POSIndexedDB {
     }
   }
 
+  async updateStockMap(stockMap) {
+    if (!stockMap || typeof stockMap !== 'object') return;
+    try {
+      const tx = await this._tx('products', 'readwrite');
+      const store = tx.objectStore('products');
+      const all = await this._getAll('products');
+      for (const p of (all || [])) {
+        if (p && p.id && stockMap[p.id] !== undefined) {
+          const newStk = Number(stockMap[p.id] || 0);
+          if (p.stock !== newStk) {
+            p.stock = newStk;
+            store.put(p);
+          }
+        }
+      }
+    } catch(e) {
+      console.warn("Error actualizando stock masivo en IndexedDB:", e);
+    }
+  }
+
   async saveCategories(categories) {
     const tx = await this._tx('categories', 'readwrite');
     const store = tx.objectStore('categories');

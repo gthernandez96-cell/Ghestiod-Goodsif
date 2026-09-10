@@ -87,3 +87,18 @@ def test_product_warehouses_stock_endpoint():
         assert "total_stock" in data
         assert "warehouses" in data
         assert isinstance(data["warehouses"], list)
+
+
+def test_product_live_stock_levels():
+    """Validar endpoint de stock en tiempo real para actualización automática del POS."""
+    res = client.get("/api/v1/products/stock-levels", headers=headers)
+    assert res.status_code == 200
+    data = res.json()
+    assert "stock" in data
+    assert isinstance(data["stock"], dict)
+    assert "count" in data
+
+    # Probar alias /stock-sync
+    res_sync = client.get("/api/v1/products/stock-sync", headers=headers)
+    assert res_sync.status_code == 200
+    assert "stock" in res_sync.json()
