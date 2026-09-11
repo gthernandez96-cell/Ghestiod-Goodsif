@@ -191,7 +191,9 @@ class FELService:
         """Generar y certificar un DTE para una venta."""
         if sale.branch_id:
             res = await self.db.execute(select(Branch).options(selectinload(Branch.company)).where(Branch.id == sale.branch_id))
-            sale.branch = res.scalar_one_or_none()
+            branch_obj = res.scalar_one_or_none()
+            if branch_obj:
+                sale.branch = branch_obj
 
         # Construir el XML del DTE
         xml_content = self._build_xml(sale)
@@ -308,7 +310,8 @@ class FELService:
             ET.SubElement(item, "dte:UnidadMedida").text = "UNI"
             ET.SubElement(item, "dte:Descripcion").text = line.product_name[:200]
             ET.SubElement(item, "dte:PrecioUnitario").text = str(line.unit_price)
-            ET.SubElement(item, "dte:Precio").text = str(line.subtotal)
+            gross_price = (Decimal(str(line.qty or 0)) * Decimal(str(line.unit_price or 0))).quantize(Decimal("0.0001"))
+            ET.SubElement(item, "dte:Precio").text = str(gross_price)
             ET.SubElement(item, "dte:Descuento").text = str(line.discount_amount)
 
             impuestos = ET.SubElement(item, "dte:Impuestos")

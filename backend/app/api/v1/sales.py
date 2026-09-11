@@ -38,6 +38,7 @@ class SaleLineIn(BaseModel):
     is_wholesale: Optional[bool] = False
     wholesale_ratio: Optional[Decimal] = None
     qty_in_base_units: Optional[bool] = True
+    includes_tax: Optional[bool] = True
 
 
 class SalePaymentIn(BaseModel):
@@ -123,22 +124,85 @@ async def create_sale(
                 "idempotent": True,
             }
 
-    # Validar y asegurar branch_uuid válido
+    # Validar y asegurar branch_uuid válido perteneciente a la empresa
+    valid_branch_id = None
     if branch_uuid:
-        b_chk = await db.execute(select(Branch.id).where(Branch.id == branch_uuid))
-        if not b_chk.scalar_one_or_none():
-            branch_uuid = None
-    if not branch_uuid:
-        b_res = await db.execute(select(Branch.id).limit(1))
-        branch_uuid = b_res.scalar_one_or_none()
+        b_chk = await db.execute(
+            select(Branch.id).where(Branch.id == branch_uuid, Branch.company_id == company_uuid)
+        )
+        valid_branch_id = b_chk.scalar_one_or_none()
+        if not valid_branch_id:
+            b_chk_any = await db.execute(select(Branch.id).where(Branch.id == branch_uuid))
+            valid_branch_id = b_chk_any.scalar_one_or_none()
 
-    # Validar y asegurar warehouse_uuid válido
+    if not valid_branch_id and session_uuid:
+        s_chk = await db.execute(
+            select(CashierSession.branch_id).where(CashierSession.id == session_uuid)
+        )
+        cand_branch = s_chk.scalar_one_or_none()
+        if cand_branch:
+            b_chk = await db.execute(select(Branch.id).where(Branch.id == cand_branch))
+            valid_branch_id = b_chk.scalar_one_or_none()
+
+    if not valid_branch_id:
+        b_res = await db.execute(
+            select(Branch.id)
+            .where(Branch.company_id == company_uuid, Branch.is_deleted == False)
+            .order_by(Branch.is_main.desc(), Branch.created_at.asc())
+            .limit(1)
+        )
+        valid_branch_id = b_res.scalar_one_or_none()
+
+    if not valid_branch_id:
+        b_res = await db.execute(
+            select(Branch.id).where(Branch.is_deleted == False).order_by(Branch.created_at.asc()).limit(1)
+        )
+        valid_branch_id = b_res.scalar_one_or_none()
+
+    branch_uuid = valid_branch_id
+
+    # Validar y asegurar warehouse_uuid válido perteneciente a la sucursal/empresa
     if warehouse_uuid:
-        w_chk = await db.execute(select(Warehouse.id).where(Warehouse.id == warehouse_uuid))
+        w_chk = await db.execute(
+            select(Warehouse.id)
+            .join(Branch, Warehouse.branch_id == Branch.id)
+            .where(
+                Warehouse.id == warehouse_uuid,
+                Branch.company_id == company_uuid,
+                Warehouse.is_active == True,
+                Warehouse.is_deleted == False
+            )
+        )
         if not w_chk.scalar_one_or_none():
             warehouse_uuid = None
+
+    # Si warehouse_uuid no es válido o era un ID de sucursal, buscar la bodega por defecto de la sucursal
+    if not warehouse_uuid and branch_uuid:
+        w_res = await db.execute(
+            select(Warehouse.id)
+            .where(
+                Warehouse.branch_id == branch_uuid,
+                Warehouse.is_active == True,
+                Warehouse.is_deleted == False
+            )
+            .order_by(Warehouse.is_default.desc(), Warehouse.created_at.asc())
+            .limit(1)
+        )
+        warehouse_uuid = w_res.scalar_one_or_none()
+
+    # Si aún no hay bodega, buscar cualquier bodega activa de la empresa
     if not warehouse_uuid:
-        w_res = await db.execute(select(Warehouse.id).limit(1))
+        w_res = await db.execute(
+            select(Warehouse.id)
+            .join(Branch, Warehouse.branch_id == Branch.id)
+            .where(
+                Branch.company_id == company_uuid,
+                Warehouse.is_active == True,
+                Warehouse.is_deleted == False
+            )
+            .order_by(Warehouse.is_default.desc(), Warehouse.created_at.asc())
+            .limit(1)
+        )
         warehouse_uuid = w_res.scalar_one_or_none()
 
     notes_content = data.notes or ""
@@ -183,7 +247,8 @@ async def create_sale(
             discount_pct=line_data.discount_pct,
             tax_rate=line_data.tax_rate,
         )
-        line.compute_totals()
+        inc_tax = line_data.includes_tax if line_data.includes_tax is not None else True
+        line.compute_totals(includes_tax=inc_tax)
         sale.lines.append(line)
 
         subtotal += line.subtotal
@@ -193,7 +258,7 @@ async def create_sale(
     sale.subtotal = subtotal
     sale.tax_amount = tax_amount
     sale.discount_amount = discount_amount
-    sale.total = subtotal + tax_amount
+    sale.total = sum(l.total for l in sale.lines)
 
     # Agregar pagos
     amount_paid = Decimal("0")
@@ -216,18 +281,33 @@ async def create_sale(
 
             cust.balance = c_balance + pay_data.amount
 
+        raw_pay_amount = Decimal(str(pay_data.amount or 0))
+        remaining_balance = max(Decimal("0"), sale.total - amount_paid)
+
+        # En pagos en efectivo, el monto aplicado a la venta se topa al saldo restante de la orden;
+        # cualquier excedente entregado por el cliente es cambio/vuelto devuelto al cliente de la gaveta.
+        if pay_data.payment_method == "cash" and raw_pay_amount > remaining_balance:
+            applied_amount = remaining_balance
+            change_amount = raw_pay_amount - remaining_balance
+            if not sale.extra:
+                sale.extra = {}
+            sale.extra["tendered_cash"] = float(raw_pay_amount)
+            sale.extra["change_amount"] = float(change_amount)
+        else:
+            applied_amount = raw_pay_amount
+
         payment = SalePayment(
             payment_method=pay_data.payment_method,
-            amount=pay_data.amount,
+            amount=applied_amount,
             reference=pay_data.reference,
             card_last4=pay_data.card_last4,
             session_id=session_uuid,
         )
         sale.payments.append(payment)
-        amount_paid += pay_data.amount
+        amount_paid += applied_amount
 
-    sale.amount_paid = amount_paid
-    sale.amount_due = max(Decimal("0"), sale.total - amount_paid)
+    sale.amount_paid = min(amount_paid, sale.total)
+    sale.amount_due = max(Decimal("0"), sale.total - sale.amount_paid)
 
     # Cambiar estado
     sale.state = SaleState.PAID if sale.amount_due == 0 else SaleState.CONFIRMED
@@ -270,8 +350,12 @@ async def create_sale(
 
     if session_obj:
         sale.cashier_session_id = session_obj.id
+        for p in sale.payments:
+            if not p.session_id:
+                p.session_id = session_obj.id
+
+        session_obj.total_sales = (session_obj.total_sales or Decimal("0")) + sale.total
         if cash_paid > 0:
-            session_obj.total_sales = (session_obj.total_sales or Decimal("0")) + cash_paid
             sale_move = CashMovement(
                 session_id=session_obj.id,
                 move_type=CashMovementType.SALE,

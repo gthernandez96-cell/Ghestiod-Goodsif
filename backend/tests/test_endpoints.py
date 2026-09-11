@@ -131,15 +131,44 @@ def test_partners_api():
 
 
 def test_dashboard_api():
-    kpis = client.get("/api/v1/dashboard/kpis", headers=headers)
-    assert kpis.status_code == 200
-    data = kpis.json()
-    assert "sales_today" in data
-    assert "low_stock" in data
+    for p in ["today", "week", "month", "year"]:
+        kpis = client.get(f"/api/v1/dashboard/kpis?period={p}", headers=headers)
+        assert kpis.status_code == 200
+        data = kpis.json()
+        assert "sales_today" in data
+        assert "low_stock" in data
+        assert "period" in data
 
-    chart = client.get("/api/v1/dashboard/sales-chart", headers=headers)
-    assert chart.status_code == 200
-    assert "labels" in chart.json()
+    custom_kpis = client.get("/api/v1/dashboard/kpis?period=custom&start_date=2026-09-01&end_date=2026-09-08", headers=headers)
+    assert custom_kpis.status_code == 200
+
+    # Sales chart test with days, period=today, period=week, period=year, period=custom
+    for p in ["today", "week", "month", "year"]:
+        chart = client.get(f"/api/v1/dashboard/sales-chart?period={p}", headers=headers)
+        assert chart.status_code == 200
+        chart_data = chart.json()
+        assert "labels" in chart_data
+        assert "data" in chart_data
+
+    chart_days = client.get("/api/v1/dashboard/sales-chart?days=7", headers=headers)
+    assert chart_days.status_code == 200
+    assert len(chart_days.json()["labels"]) == 7
+
+    # Breakdown endpoints with period
+    cat = client.get("/api/v1/dashboard/category-breakdown?period=week", headers=headers)
+    assert cat.status_code == 200
+    assert "labels" in cat.json()
+
+    pm = client.get("/api/v1/dashboard/payment-methods?period=week", headers=headers)
+    assert pm.status_code == 200
+    assert "labels" in pm.json()
+
+    hours = client.get("/api/v1/dashboard/sales-by-hour?period=today", headers=headers)
+    assert hours.status_code == 200
+    assert "labels" in hours.json()
+
+    prof = client.get("/api/v1/dashboard/profitability-and-runway?period=month", headers=headers)
+    assert prof.status_code == 200
 
 
 def test_ticket_and_zreport():
@@ -226,22 +255,22 @@ def test_pos_cashier_flow():
         }],
         "payments": [{
             "payment_method": "cash",
-            "amount": 22.4
+            "amount": 20.0
         }]
     }, headers=headers)
     assert sale_res.status_code == 200
     sale_data = sale_res.json()
-    assert sale_data["total"] == 22.4
+    assert sale_data["total"] == 20.0
     assert sale_data["fel_uuid"] is not None
 
     # 4. Verificar que se actualizó el total de ventas en la sesión
     act_res2 = client.get("/api/v1/cashier/sessions/active", headers=headers)
-    assert act_res2.json()["session"]["total_sales"] == 22.4
-    assert act_res2.json()["session"]["expected_cash"] == 522.4
+    assert act_res2.json()["session"]["total_sales"] == 20.0
+    assert act_res2.json()["session"]["expected_cash"] == 520.0
 
     # 5. Cierre de caja y Z-Report
     close_res = client.post(f"/api/v1/cashier/sessions/{sess_id}/close", json={
-        "closing_amount_real": 522.4,
+        "closing_amount_real": 520.0,
         "notes": "Cierre perfecto"
     }, headers=headers)
     assert close_res.status_code == 200
@@ -1070,18 +1099,368 @@ def test_void_sale_and_profitability_runway_suite():
     assert "vip_customers" in prof_data
 
 
+def test_kardex_stock_reconciliation():
+    """Validar detección de discrepancia entre stock y kardex, y reconciliación automática."""
+    # 1. Crear producto nuevo para la prueba
+    sku_code = f"TEST-KDX-{uuid.uuid4().hex[:6]}"
+    prod_res = client.post("/api/v1/products/", json={
+        "name": "Producto Prueba Kardex",
+        "internal_ref": sku_code,
+        "sale_price": 50.0,
+        "cost_price": 30.0,
+        "track_inventory": True
+    }, headers=headers)
+    assert prod_res.status_code == 200
+    prod_id = prod_res.json()["id"]
+
+    # 2. Ajustar existencia vía endpoint de stock
+    adj_res = client.post(f"/api/v1/products/{prod_id}/adjust-stock", json={
+        "new_qty": 10.0,
+        "reason": "conteo_fisico",
+        "notes": "Entrada inicial para test kardex"
+    }, headers=headers)
+    assert adj_res.status_code == 200
+
+    # 3. Consultar kardex y verificar balance
+    kdx_res = client.get(f"/api/v1/products/{prod_id}/kardex", headers=headers)
+    assert kdx_res.status_code == 200
+    kdx_data = kdx_res.json()
+    assert kdx_data["kardex_balance"] == 10.0
+    assert kdx_data["current_stock"] == 10.0
+    assert kdx_data["has_discrepancy"] is False
+
+    # 4. Sincronizar stock con Kardex vía endpoint dedicado
+    sync_res = client.post(f"/api/v1/products/{prod_id}/sync-kardex", headers=headers)
+    assert sync_res.status_code == 200
+    sync_data = sync_res.json()
+    assert sync_data["status"] == "success"
+    assert sync_data["new_stock"] == 10.0
 
 
+def test_dashboard_sales_by_hour_timezone():
+    """Validar que la gráfica de horas pico mapea correctamente las horas locales de Guatemala."""
+    # 1. Crear una venta POS en el momento actual
+    sale_payload = {
+        "branch_id": str(COMPANY_ID),
+        "warehouse_id": str(COMPANY_ID),
+        "customer_nit": "CF",
+        "customer_name": "CONSUMIDOR FINAL",
+        "sale_type": "pos",
+        "lines": [
+            {
+                "product_id": str(uuid.uuid4()),
+                "product_name": "Producto Horas Pico",
+                "qty": 1,
+                "unit_price": 75.50,
+                "cost_price": 40.00
+            }
+        ],
+        "payments": [
+            {
+                "payment_method": "cash",
+                "amount": 75.50
+            }
+        ],
+        "generate_fel": False
+    }
+    create_res = client.post("/api/v1/sales/", json=sale_payload, headers=headers)
+    assert create_res.status_code == 200
+
+    # 2. Consultar endpoint de Horarios Pico de Venta
+    res = client.get("/api/v1/dashboard/sales-by-hour?period=today", headers=headers)
+    assert res.status_code == 200
+    data = res.json()
+
+    assert "labels" in data
+    assert "sales" in data
+    assert "counts" in data
+    assert len(data["labels"]) >= 18  # Al menos jornada estándar 06:00 a 23:00
+
+    # 3. La suma total de ventas en el reporte de horas debe incluir la venta recién hecha
+    total_hourly_sales = sum(data["sales"])
+    assert total_hourly_sales >= 75.50
 
 
+def test_inventory_moves_and_kardex_view():
+    """Verifica que el Kardex general y por producto devuelva movimientos, balance y filtros correctamente."""
+    # 1. Crear producto
+    prod_sku = f"KDX-{uuid.uuid4().hex[:6]}"
+    prod_payload = {
+        "name": f"Producto Test Kardex {uuid.uuid4().hex[:4]}",
+        "internal_ref": prod_sku,
+        "sale_price": 45.0,
+        "cost_price": 25.0,
+        "stock": 0.0,
+        "min_stock": 5.0,
+        "is_active": True
+    }
+    create_res = client.post("/api/v1/products/", json=prod_payload, headers=headers)
+    assert create_res.status_code == 200
+    prod_data = create_res.json()
+    prod_id = prod_data["id"]
+
+    # 2. Registrar movimiento de ajuste de entrada en Kardex
+    wh_res = client.get("/api/v1/branches/warehouses", headers=headers)
+    assert wh_res.status_code == 200
+    wh_data = wh_res.json()
+    warehouses = wh_data.get("items", wh_data) if isinstance(wh_data, dict) else wh_data
+    wh_id = warehouses[0]["id"]
+
+    adj_res = client.post("/api/v1/inventory/adjust", json={
+        "warehouse_id": wh_id,
+        "product_id": prod_id,
+        "adjust_type": "in",
+        "qty": 20.0,
+        "reference": f"AJUSTE-{prod_sku}",
+        "notes": "Carga inicial Kardex de prueba"
+    }, headers=headers)
+    assert adj_res.status_code == 200
+
+    # 3. Consultar Kardex general /api/v1/inventory/moves
+    moves_res = client.get(f"/api/v1/inventory/moves?product_id={prod_id}", headers=headers)
+    assert moves_res.status_code == 200
+    moves_data = moves_res.json()
+
+    assert "items" in moves_data
+    assert "summary" in moves_data
+    assert moves_data["summary"]["total_moves"] >= 1
+    assert moves_data["summary"]["total_inflow"] >= 20.0
+
+    # Verificar datos enriquecidos del item
+    first_item = moves_data["items"][0]
+    assert "product_name" in first_item
+    assert "product_sku" in first_item
+    assert "is_inflow" in first_item
+    assert "warehouse_name" in first_item
+
+    # 4. Consultar con búsqueda por SKU
+    search_res = client.get(f"/api/v1/inventory/moves?search={prod_sku}", headers=headers)
+    assert search_res.status_code == 200
+    search_data = search_res.json()
+    assert len(search_data["items"]) >= 1
+    assert search_data["items"][0]["product_sku"] == prod_sku
+
+    # 5. Consultar Kardex individual del producto /api/v1/products/{id}/kardex
+    kardex_res = client.get(f"/api/v1/products/{prod_id}/kardex", headers=headers)
+    assert kardex_res.status_code == 200
+    kardex_data = kardex_res.json()
+    assert "kardex_balance" in kardex_data
+    assert "current_stock" in kardex_data
+    assert "has_discrepancy" in kardex_data
+    assert kardex_data["kardex_balance"] == 20.0
+    assert kardex_data["has_discrepancy"] is False
+
+    # 6. Probar endpoint de reconciliación /api/v1/products/{id}/sync-kardex
+    sync_res = client.post(f"/api/v1/products/{prod_id}/sync-kardex", headers=headers)
+    assert sync_res.status_code == 200
+    sync_data = sync_res.json()
+    assert sync_data["status"] == "success"
+    assert sync_data["reconciled_stock"] == 20.0
 
 
+def test_sales_detail_report_and_excel_export():
+    """Verifica que el reporte Detalle de Ventas entregue las 16 columnas requeridas y exporte a Excel y CSV."""
+    import openpyxl
+    import io
+
+    # 1. Crear producto para la venta
+    prod_sku = f"REP-{uuid.uuid4().hex[:6]}"
+    prod_barcode = f"740100{uuid.uuid4().hex[:6]}"
+    prod_res = client.post("/api/v1/products/", json={
+        "name": f"Gaseosa Naranja {uuid.uuid4().hex[:4]}",
+        "internal_ref": prod_sku,
+        "barcode": prod_barcode,
+        "sale_price": 10.0,
+        "cost_price": 6.0,
+        "stock": 50.0,
+        "is_active": True
+    }, headers=headers)
+    assert prod_res.status_code == 200
+    prod_id = prod_res.json()["id"]
+
+    # 2. Registrar venta en efectivo con cliente CF
+    sale_payload = {
+        "branch_id": str(COMPANY_ID),
+        "warehouse_id": str(COMPANY_ID),
+        "customer_nit": "CF",
+        "customer_name": "Consumidor Final",
+        "sale_type": "pos",
+        "lines": [
+            {
+                "product_id": prod_id,
+                "product_name": "Gaseosa Naranja",
+                "product_barcode": prod_barcode,
+                "qty": 3,
+                "unit_price": 10.0,
+                "cost_price": 6.0
+            }
+        ],
+        "payments": [
+            {
+                "payment_method": "cash",
+                "amount": 30.00
+            }
+        ],
+        "generate_fel": False
+    }
+    sale_res = client.post("/api/v1/sales/", json=sale_payload, headers=headers)
+    assert sale_res.status_code == 200
+
+    # 3. Consultar endpoint GET /api/v1/reports/sales-detail
+    detail_res = client.get(f"/api/v1/reports/sales-detail?search={prod_sku}", headers=headers)
+    assert detail_res.status_code == 200
+    detail_data = detail_res.json()
+
+    assert "items" in detail_data
+    assert "summary" in detail_data
+    assert len(detail_data["items"]) >= 1
+
+    row = detail_data["items"][0]
+    # Comprobar los 16 campos exactos
+    assert "fecha_factura" in row
+    assert "sucursal" in row
+    assert "categoria" in row
+    assert "codigo_de_barras" in row
+    assert "articulo" in row
+    assert "no_ticket" in row
+    assert "cantidad" in row
+    assert "pventa" in row
+    assert "costo" in row
+    assert "total_venta" in row
+    assert "excedente" in row
+    assert "tipo_de_venta" in row
+    assert "f_contado" in row
+    assert "f_credito" in row
+    assert "id_cliente" in row
+    assert "nombre_del_cliente" in row
+
+    # Verificación de cálculos y valores
+    assert row["cantidad"] == 3.0
+    assert row["pventa"] == 10.00
+    assert row["costo"] == 6.0
+    assert row["total_venta"] == 30.00
+    assert row["excedente"] == 12.00  # 30.00 - 18.00
+    assert row["tipo_de_venta"] == "Contado"
+    assert row["f_contado"] == 30.00
+    assert row["f_credito"] == 0.0
+    assert row["nombre_del_cliente"] == "CF"  # Debe normalizar a CF
+
+    # 4. Probar exportación a Excel nativo (.xlsx)
+    excel_res = client.get(f"/api/v1/reports/export-sales-detail-excel?search={prod_sku}", headers=headers)
+    assert excel_res.status_code == 200
+    assert "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" in excel_res.headers["content-type"]
+    assert "detalle_de_ventas_" in excel_res.headers["content-disposition"]
+    assert len(excel_res.content) > 1000
+
+    # Validar que openpyxl puede leer el archivo Excel y contiene los datos
+    wb = openpyxl.load_workbook(io.BytesIO(excel_res.content))
+    assert "Detalle de Ventas" in wb.sheetnames
+    ws = wb["Detalle de Ventas"]
+    # Verificar fila 4 de encabezados (16 columnas)
+    header_vals = [ws.cell(row=4, column=c).value for c in range(1, 17)]
+    assert "Fecha Factura" in header_vals
+    assert "Artículo" in header_vals
+    assert "Excedente (Q)" in header_vals
+    assert "Nombre del Cliente" in header_vals
+
+    # 5. Probar exportación a CSV
+    csv_res = client.get(f"/api/v1/reports/export-sales-detail-csv?search={prod_sku}", headers=headers)
+    assert csv_res.status_code == 200
+    assert "text/csv" in csv_res.headers["content-type"]
+    csv_text = csv_res.content.decode("utf-8")
+    assert "Fecha factura,Sucursal,categoria,codigo de barras,articulo" in csv_text
+    assert "Gaseosa Naranja" in csv_text
 
 
+def test_cashier_closure_exact_change_and_tendered_amount():
+    """
+    Test para validar que el cuadre de caja y conteo de efectivo cuadren exactamente
+    cuando un cliente paga en efectivo con un billete de mayor denominación (vuelto/cambio).
+    Ejemplo: Venta de Q20.44 pagada con billete de Q50.00 (Cambio Q29.56).
+    El efectivo neto ingresado a gaveta debe ser estrictamente Q20.44, y el esperado Fondo (100) + Venta (20.44) = Q120.44.
+    """
+    # 1. Obtener sucursal y bodega
+    b_res = client.get("/api/v1/branches/", headers=headers)
+    assert b_res.status_code == 200
+    branch_id = b_res.json()[0]["id"]
 
+    wh_res = client.get("/api/v1/warehouses/", headers=headers)
+    wh_id = wh_res.json()[0]["id"] if wh_res.status_code == 200 and wh_res.json() else branch_id
 
+    # Cerrar cualquier sesión previa que haya quedado abierta en la base de pruebas
+    prev_act = client.get("/api/v1/cashier/sessions/active", headers=headers)
+    if prev_act.status_code == 200 and prev_act.json().get("has_active_session"):
+        p_id = prev_act.json()["session"]["id"]
+        client.post(f"/api/v1/cashier/sessions/{p_id}/close", json={"closing_amount_real": 0.0}, headers=headers)
 
+    # 2. Abrir sesión con fondo de Q 100.00
+    open_res = client.post("/api/v1/cashier/open", json={
+        "branch_id": branch_id,
+        "opening_amount": 100.0,
+        "notes": "Turno de prueba cuadre con vuelto"
+    }, headers=headers)
+    assert open_res.status_code == 200
+    sess_id = open_res.json()["id"]
 
+    # 3. Crear producto de prueba con precio de Q 20.44
+    p_sku = f"CASH-{uuid.uuid4().hex[:6]}"
+    prod_res = client.post("/api/v1/products/", json={
+        "name": "Aceite Patrona Prueba Cuadre",
+        "sku": p_sku,
+        "barcode": f"BAR-{p_sku}",
+        "sale_price": 18.25,
+        "cost_price": 12.00,
+        "tax_rate": 12.00  # 18.25 + 2.19 = 20.44 total
+    }, headers=headers)
+    assert prod_res.status_code == 200
+    prod_id = prod_res.json()["id"]
+
+    # 4. Registrar venta en efectivo donde el cliente paga con billete de Q 50.00
+    sale_res = client.post("/api/v1/sales/", json={
+        "branch_id": branch_id,
+        "warehouse_id": wh_id,
+        "cashier_session_id": sess_id,
+        "customer_nit": "CF",
+        "customer_name": "CONSUMIDOR FINAL",
+        "lines": [{
+            "product_id": prod_id,
+            "product_name": "Aceite Patrona Prueba Cuadre",
+            "qty": 1.0,
+            "unit_price": 18.25,
+            "tax_rate": 12.00,
+            "includes_tax": False
+        }],
+        "payments": [{
+            "payment_method": "cash",
+            "amount": 50.0  # El cliente entregó billete de 50
+        }]
+    }, headers=headers)
+    assert sale_res.status_code == 200
+    sale_data = sale_res.json()
+    assert round(sale_data["total"], 2) == 20.44
+
+    # 5. Consultar sesión activa de caja
+    active_res = client.get(f"/api/v1/cashier/sessions/active?branch_id={branch_id}", headers=headers)
+    assert active_res.status_code == 200
+    session_info = active_res.json()["session"]
+
+    # Validaciones matemáticas exactas
+    assert session_info["total_sales"] == 20.44
+    assert session_info["total_cash_sales"] == 20.44  # NO debe ser 50.00
+    assert session_info["opening_balance"] == 100.00
+    # Efectivo esperado = 100 + 20.44 = 120.44 (NO 150.00)
+    assert session_info["expected_cash"] == 120.44
+
+    # 6. Realizar el Cierre de Caja contando Q 120.44
+    close_res = client.post(f"/api/v1/cashier/sessions/{sess_id}/close", json={
+        "closing_amount_real": 120.44,
+        "notes": "Cierre exacto"
+    }, headers=headers)
+    assert close_res.status_code == 200
+    close_data = close_res.json()
+    assert close_data["closing_balance_expected"] == 120.44
+    assert close_data["closing_balance_real"] == 120.44
+    assert close_data["difference"] == 0.00  # Cuadra al centavo!
 
 
 

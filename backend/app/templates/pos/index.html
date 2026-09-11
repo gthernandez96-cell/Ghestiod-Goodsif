@@ -6991,6 +6991,22 @@ function posApp() {
         const tenderedCash = this.paymentMethod === 'cash' ? (parseFloat(this.sumaPagado) || appliedPaymentAmount) : appliedPaymentAmount;
         const changeReturned = this.paymentMethod === 'cash' ? Math.max(0, parseFloat((tenderedCash - appliedPaymentAmount).toFixed(2))) : 0;
 
+        let paymentsPayload = [];
+        if (this.paymentMethod === 'split') {
+          const sCash = parseFloat(this.splitCashAmount) || 0;
+          const sCard = parseFloat(this.splitCardAmount) || 0;
+          paymentsPayload = [
+            { payment_method: 'cash', amount: sCash },
+            { payment_method: 'card', amount: sCard, reference: this.cardReference || null }
+          ];
+        } else {
+          paymentsPayload = [{
+            payment_method: this.paymentMethod,
+            amount: appliedPaymentAmount,
+            reference: this.cardReference || null
+          }];
+        }
+
         const saleData = {
           branch_id: currentBranchId,
           warehouse_id: this.currentWarehouseId || localStorage.getItem('warehouse_id') || null,
@@ -6998,6 +7014,7 @@ function posApp() {
           customer_id: this.customer?.id || null,
           customer_nit: this.customer?.nit || 'CF',
           customer_name: this.customer?.name || 'CONSUMIDOR FINAL',
+          sale_type: this.paymentMethod === 'credit' ? 'credit' : 'pos',
           lines: this.cart.map(item => ({
             product_id: item.product_id,
             product_name: item.product_name,
@@ -7007,12 +7024,9 @@ function posApp() {
             is_wholesale: !!item.is_wholesale,
             wholesale_ratio: item.wholesale_ratio || 12,
             qty_in_base_units: true,
+            includes_tax: true,
           })),
-          payments: [{
-            payment_method: this.paymentMethod,
-            amount: appliedPaymentAmount,
-            reference: this.cardReference || null
-          }],
+          payments: paymentsPayload,
           extra: {
             tendered_cash: tenderedCash,
             change_amount: changeReturned
@@ -7115,6 +7129,9 @@ function posApp() {
 
     startNewOrder() {
       this.cart = [];
+      this.paymentMethod = 'cash';
+      this.payBuffer = '0.00';
+      this.receivedAmount = 0;
       if (this.orders && this.orders[this.activeOrderIdx]) {
         this.orders[this.activeOrderIdx].cart = [];
         this.orders[this.activeOrderIdx].customer = { nit: 'CF', name: 'CONSUMIDOR FINAL' };

@@ -128,20 +128,33 @@ class SaleOrderLine(BaseModel):
     sale = relationship("SaleOrder", back_populates="lines")
     product = relationship("Product")
 
-    def compute_totals(self):
-        """Recalcular totales de la línea."""
+    def compute_totals(self, includes_tax: bool = True):
+        """Recalcular totales de la línea respetando si el precio unitario ya incluye impuestos (IVA)."""
         FOUR = Decimal("0.0001")
         qty_dec = Decimal(str(self.qty or 0))
         price_dec = Decimal(str(self.unit_price or 0))
         disc_pct_dec = Decimal(str(self.discount_pct or 0))
         tax_rate_dec = Decimal(str(self.tax_rate or 0))
 
-        base = qty_dec * price_dec
-        disc = base * (disc_pct_dec / Decimal("100"))
+        gross = qty_dec * price_dec
+        disc = gross * (disc_pct_dec / Decimal("100"))
         self.discount_amount = disc.quantize(FOUR)
-        self.subtotal = (base - disc).quantize(FOUR)
-        self.tax_amount = (self.subtotal * (tax_rate_dec / Decimal("100"))).quantize(FOUR)
-        self.total = (self.subtotal + self.tax_amount).quantize(FOUR)
+
+        if includes_tax:
+            # En Guatemala (SAT FEL), los precios de venta en mostrador/catálogo incluyen el 12% de IVA
+            line_net = gross - disc
+            tax_factor = Decimal("1") + (tax_rate_dec / Decimal("100"))
+            if tax_factor > 0:
+                self.subtotal = (line_net / tax_factor).quantize(FOUR)
+            else:
+                self.subtotal = line_net.quantize(FOUR)
+            self.tax_amount = (line_net - self.subtotal).quantize(FOUR)
+            self.total = line_net.quantize(FOUR)
+        else:
+            self.subtotal = (gross - disc).quantize(FOUR)
+            self.tax_amount = (self.subtotal * (tax_rate_dec / Decimal("100"))).quantize(FOUR)
+            self.total = (self.subtotal + self.tax_amount).quantize(FOUR)
+
 
     def __repr__(self):
         return f"<SaleLine {self.product_name} x{self.qty}>"
