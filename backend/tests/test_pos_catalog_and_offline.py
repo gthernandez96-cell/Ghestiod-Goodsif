@@ -102,3 +102,69 @@ def test_product_live_stock_levels():
     res_sync = client.get("/api/v1/products/stock-sync", headers=headers)
     assert res_sync.status_code == 200
     assert "stock" in res_sync.json()
+
+
+def test_pos_and_inventory_stock_consistency_and_ghost_warehouse_isolation():
+    """Garantizar que existencias en inventario, detalle y POS sean 100% idénticas y aislar bodegas fantasma."""
+    import uuid
+    import asyncio
+    from decimal import Decimal
+    from app.core.database import AsyncSessionLocal
+    from app.models.inventory import StockQuant
+
+    # 1. Crear producto y establecer stock inicial vía /adjust-stock
+    p_name = f"Test Consistency Product {uuid.uuid4().hex[:6]}"
+    res = client.post("/api/v1/products/", json={
+        "name": p_name,
+        "sale_price": 25.0,
+    }, headers=headers)
+    assert res.status_code in (200, 201)
+    prod_id = res.json()["id"]
+
+    adj_res = client.post(f"/api/v1/products/{prod_id}/adjust-stock", json={
+        "new_qty": 50.0,
+        "reason": "initial",
+        "notes": "Stock inicial prueba"
+    }, headers=headers)
+    assert adj_res.status_code in (200, 201)
+
+    # 2. Inyectar un quant en una bodega fantasma/inexistente (simulando residuo antiguo o huérfano)
+    ghost_wh_id = uuid.uuid4()
+    async def _inject_ghost():
+        async with AsyncSessionLocal() as session:
+            g_quant = StockQuant(
+                product_id=uuid.UUID(prod_id),
+                warehouse_id=ghost_wh_id,
+                qty_on_hand=Decimal("-10.0"),
+                qty_reserved=Decimal("0.0"),
+                avg_cost=Decimal("15.0")
+            )
+            session.add(g_quant)
+            await session.commit()
+    asyncio.run(_inject_ghost())
+
+    # 3. Consultar stock desde catálogo general (/products/?is_active=true)
+    cat_res = client.get(f"/api/v1/products/?search={p_name}", headers=headers)
+    assert cat_res.status_code == 200
+    cat_items = cat_res.json().get("items", [])
+    assert len(cat_items) == 1
+    # Debe ignorar la bodega fantasma y reportar exactamente 50.0 (no 40.0)
+    assert cat_items[0]["stock"] == 50.0
+
+    # 4. Consultar stock desde detalle de producto (/products/{id})
+    det_res = client.get(f"/api/v1/products/{prod_id}", headers=headers)
+    assert det_res.status_code == 200
+    assert det_res.json()["total_stock"] == 50.0
+
+    # 5. Consultar stock desde endpoint de sincronización POS (/products/stock-levels)
+    pos_res = client.get("/api/v1/products/stock-levels", headers=headers)
+    assert pos_res.status_code == 200
+    assert pos_res.json()["stock"].get(prod_id) == 50.0
+
+    # 6. Consultar stock desde catálogo POS (/products/pos-catalog)
+    pos_cat = client.get("/api/v1/products/pos-catalog", headers=headers)
+    assert pos_cat.status_code == 200
+    matched = [p for p in pos_cat.json().get("products", []) if p["id"] == prod_id]
+    assert len(matched) == 1
+    assert matched[0]["stock"] == 50.0
+

@@ -376,7 +376,12 @@ class POSIndexedDB {
 
   async syncCatalogFromServer(apiClient) {
     try {
-      const data = await apiClient.get('/products/pos-catalog');
+      const whId = localStorage.getItem('warehouse_id') || '';
+      let url = '/products/pos-catalog';
+      if (whId) {
+        url += `?warehouse_id=${encodeURIComponent(whId)}`;
+      }
+      const data = await apiClient.get(url);
       if (data && data.products) {
         await this.saveProducts(data.products);
         if (data.categories) {

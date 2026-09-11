@@ -3360,16 +3360,17 @@
                 </template>
               </div>
               <div style="display:flex; align-items:center; gap:8px;">
-                <button 
-                  type="button" 
-                  x-show="(wholesaleMode || item.is_wholesale) && item.wholesale_price && item.wholesale_price > 0"
-                  @click.stop="toggleLineWholesale(item)"
-                  style="font-size:10.5px; font-weight:800; padding:2px 8px; border-radius:6px; cursor:pointer; border:1px solid; transition:all 0.15s ease;"
-                  :style="item.is_wholesale ? 'background:#0d9488; color:#ffffff; border-color:#0f766e;' : 'background:#f0fdfa; color:#0d9488; border-color:#99f6e4;'"
-                  :title="item.is_wholesale ? 'Cambiar a venta unitaria al detalle' : 'Cambiar a venta mayorista por presentación'"
-                >
-                  <span x-text="item.is_wholesale ? '📦 ' + (item.wholesale_uom_symbol || 'Mayoreo') : '🔹 Menudeo'"></span>
-                </button>
+                <template x-if="(wholesaleMode && item.wholesale_price && item.wholesale_price > 0) || item.is_wholesale">
+                  <button 
+                    type="button" 
+                    @click.stop="toggleLineWholesale(item)"
+                    style="font-size:10.5px; font-weight:800; padding:2px 8px; border-radius:6px; cursor:pointer; border:1px solid; transition:all 0.15s ease;"
+                    :style="item.is_wholesale ? 'background:#0d9488; color:#ffffff; border-color:#0f766e;' : 'background:#f0fdfa; color:#0d9488; border-color:#99f6e4;'"
+                    :title="item.is_wholesale ? 'Cambiar a venta unitaria al detalle' : 'Cambiar a venta mayorista por presentación'"
+                  >
+                    <span x-text="item.is_wholesale ? '📦 ' + (item.wholesale_uom_symbol || 'Mayoreo') : '🔹 Menudeo'"></span>
+                  </button>
+                </template>
                 <span class="font-bold text-slate-800" x-text="'Q ' + formatPrice(item.total)"></span>
               </div>
             </div>
@@ -4906,10 +4907,12 @@
                     class="new-sale-btn"
                     style="padding:4px 12px; font-size:12px;"
                     :disabled="c.balance <= 0"
+                    x-show="canRegisterCreditPayment"
                     @click="openPayCreditModal(c)"
                   >
                     💰 Abonar
                   </button>
+                  <span style="color:#94a3b8; font-size:11px; font-style:italic;" x-show="!canRegisterCreditPayment">Solo consulta</span>
                 </td>
               </tr>
             </template>
@@ -4924,7 +4927,7 @@
   </div>
 
   <!-- SUB-MODAL REGISTRAR ABONO / PAGO A CRÉDITO -->
-  <div class="modal-backdrop" x-show="showPayCreditModal" style="display:none; z-index:1200;" x-cloak>
+  <div class="modal-backdrop" x-show="canRegisterCreditPayment && showPayCreditModal" style="display:none; z-index:1200;" x-cloak>
     <div class="cash-modal-card" style="max-width:460px; padding:20px;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
         <h3 style="font-size:16px; font-weight:800;">Registrar Abono / Pago de Cuota</h3>
@@ -5361,6 +5364,7 @@ function posApp() {
     activeOrderIdx: 0,
     cart: [],
     customer: { nit: 'CF', name: 'CONSUMIDOR FINAL' },
+    currentWarehouseId: localStorage.getItem('warehouse_id') || '',
     barcodeBuffer: '',
 
     switchMobileTab(tab) {
@@ -6119,7 +6123,13 @@ function posApp() {
         } catch(e) {}
       }
 
+      if (this.orders && this.orders[0]) {
+        this.orders[0].cart = this.cart;
+        this.orders[0].customer = this.customer;
+      }
+
       await this.checkCashierSession();
+      await this.loadCurrentWarehouse();
       await this.loadPosMetrics();
       await this.loadCategories();
       await this.loadProducts();
@@ -6183,6 +6193,30 @@ function posApp() {
       }
     },
 
+    async loadCurrentWarehouse() {
+      try {
+        const whRes = await API.get('/branches/warehouses');
+        const warehouses = Array.isArray(whRes) ? whRes : (whRes.items || whRes.warehouses || []);
+        if (warehouses && warehouses.length > 0) {
+          const branchId = (this.cashierSession && this.cashierSession.branch_id) || localStorage.getItem('branch_id');
+          let targetWh = null;
+          if (branchId) {
+            targetWh = warehouses.find(w => String(w.branch_id) === String(branchId) && w.is_default) ||
+                       warehouses.find(w => String(w.branch_id) === String(branchId));
+          }
+          if (!targetWh) {
+            targetWh = warehouses.find(w => w.is_default) || warehouses[0];
+          }
+          if (targetWh) {
+            this.currentWarehouseId = targetWh.id;
+            localStorage.setItem('warehouse_id', targetWh.id);
+          }
+        }
+      } catch (e) {
+        console.warn("No se pudo cargar la bodega actual del POS:", e);
+      }
+    },
+
     async loadPosMetrics() {
       try {
         const kpis = await API.get('/dashboard/kpis');
@@ -6232,7 +6266,11 @@ function posApp() {
       // 1. Si estamos en línea, consultar siempre API para tener el catálogo real y actualizado
       if (this.online) {
         try {
+          const warehouseId = this.currentWarehouseId || localStorage.getItem('warehouse_id') || '';
           let url = `/products/?is_active=true`;
+          if (warehouseId) {
+            url += `&warehouse_id=${encodeURIComponent(warehouseId)}`;
+          }
           if (this.search) {
             url += `&search=${encodeURIComponent(this.search)}`;
           }
@@ -6334,7 +6372,7 @@ function posApp() {
       if (!this.online || this.isSyncingStock) return;
       this.isSyncingStock = true;
       try {
-        const warehouseId = localStorage.getItem('warehouse_id') || '';
+        const warehouseId = this.currentWarehouseId || localStorage.getItem('warehouse_id') || '';
         let url = '/products/stock-levels';
         if (warehouseId) {
           url += `?warehouse_id=${encodeURIComponent(warehouseId)}`;
@@ -6861,6 +6899,15 @@ function posApp() {
 
     showCreditsModal: false,
     showPayCreditModal: false,
+    canRegisterCreditPayment: (() => {
+      try {
+        const u = JSON.parse(localStorage.getItem('user') || '{}');
+        if (u.is_superuser || u.is_admin || u.username === 'admin' || (u.email && u.email.includes('admin'))) return true;
+        const codes = (u.role_codes || (u.roles || []).map(r => r.code || r));
+        if (codes.includes('cashier') && !codes.includes('admin') && !codes.includes('store_manager') && !codes.includes('accountant')) return false;
+        return codes.includes('admin') || codes.includes('store_manager') || codes.includes('accountant');
+      } catch(e) { return false; }
+    })(),
     creditsList: [],
     creditsSummary: { total_credit_limit: 0, total_debt: 0, total_available: 0 },
     selectedCreditCustomer: null,
@@ -6890,6 +6937,9 @@ function posApp() {
     },
 
     openPayCreditModal(customer) {
+      if (!this.canRegisterCreditPayment) {
+        return this.toast('Acceso denegado: El usuario con rol Cajero no tiene autorización para registrar abonos de crédito', 'warning');
+      }
       this.selectedCreditCustomer = customer;
       this.creditPaymentForm = {
         amount: customer.balance || 0,
@@ -6900,6 +6950,9 @@ function posApp() {
     },
 
     async submitCreditPayment() {
+      if (!this.canRegisterCreditPayment) {
+        return this.toast('Acceso denegado: El usuario con rol Cajero no tiene autorización para registrar abonos de crédito', 'warning');
+      }
       if (!this.selectedCreditCustomer || !this.creditPaymentForm.amount || this.creditPaymentForm.amount <= 0) {
         return this.toast('Ingresa un monto válido para abonar', 'error');
       }
@@ -6909,12 +6962,7 @@ function posApp() {
         this.showPayCreditModal = false;
         await this.loadCustomerCredits();
       } catch(e) {
-        this.toast(`Abono de Q ${this.formatPrice(this.creditPaymentForm.amount)} registrado exitosamente`, 'success');
-        if (this.selectedCreditCustomer) {
-          this.selectedCreditCustomer.balance = Math.max(0, this.selectedCreditCustomer.balance - this.creditPaymentForm.amount);
-          this.selectedCreditCustomer.available_credit = this.selectedCreditCustomer.credit_limit - this.selectedCreditCustomer.balance;
-        }
-        this.showPayCreditModal = false;
+        this.toast('Error al registrar abono: ' + (e.message || e.detail || 'Operación denegada'), 'error');
       }
     },
 
@@ -6939,9 +6987,13 @@ function posApp() {
         const currentSessionId = (this.cashierSession && this.cashierSession.id && !String(this.cashierSession.id).startsWith('sess-')) ? this.cashierSession.id : null;
         const currentBranchId = (this.cashierSession && this.cashierSession.branch_id) || localStorage.getItem('branch_id') || '64736088-03dd-4abf-8d7c-88ec63992c86';
 
+        const appliedPaymentAmount = parseFloat(this.grandTotal.toFixed(2));
+        const tenderedCash = this.paymentMethod === 'cash' ? (parseFloat(this.sumaPagado) || appliedPaymentAmount) : appliedPaymentAmount;
+        const changeReturned = this.paymentMethod === 'cash' ? Math.max(0, parseFloat((tenderedCash - appliedPaymentAmount).toFixed(2))) : 0;
+
         const saleData = {
           branch_id: currentBranchId,
-          warehouse_id: localStorage.getItem('warehouse_id') || currentBranchId,
+          warehouse_id: this.currentWarehouseId || localStorage.getItem('warehouse_id') || null,
           cashier_session_id: currentSessionId,
           customer_id: this.customer?.id || null,
           customer_nit: this.customer?.nit || 'CF',
@@ -6958,9 +7010,13 @@ function posApp() {
           })),
           payments: [{
             payment_method: this.paymentMethod,
-            amount: this.sumaPagado || this.grandTotal,
+            amount: appliedPaymentAmount,
             reference: this.cardReference || null
           }],
+          extra: {
+            tendered_cash: tenderedCash,
+            change_amount: changeReturned
+          }
         };
 
         let result;
@@ -7059,6 +7115,10 @@ function posApp() {
 
     startNewOrder() {
       this.cart = [];
+      if (this.orders && this.orders[this.activeOrderIdx]) {
+        this.orders[this.activeOrderIdx].cart = [];
+        this.orders[this.activeOrderIdx].customer = { nit: 'CF', name: 'CONSUMIDOR FINAL' };
+      }
       this.customer = { nit: 'CF', name: 'CONSUMIDOR FINAL' };
       this.showSuccessModal = false;
       this.showPaymentScreen = false;
@@ -7071,15 +7131,28 @@ function posApp() {
     },
 
     addNewOrder() {
+      if (this.orders && this.orders[this.activeOrderIdx]) {
+        this.orders[this.activeOrderIdx].cart = this.cart;
+        this.orders[this.activeOrderIdx].customer = this.customer;
+      }
       this.orders.push({ cart: [], customer: { nit: 'CF', name: 'CONSUMIDOR FINAL' } });
       this.switchOrder(this.orders.length - 1);
       this.mobileTab = 'catalog';
     },
 
     switchOrder(idx) {
+      if (this.orders && this.orders[this.activeOrderIdx] && this.activeOrderIdx !== idx) {
+        this.orders[this.activeOrderIdx].cart = this.cart;
+        this.orders[this.activeOrderIdx].customer = this.customer;
+      }
       this.activeOrderIdx = idx;
-      this.cart = this.orders[idx].cart;
+      if (!this.orders[idx]) {
+        this.orders[idx] = { cart: [], customer: { nit: 'CF', name: 'CONSUMIDOR FINAL' } };
+      }
+      this.cart = this.orders[idx].cart || [];
       this.customer = this.orders[idx].customer || { nit: 'CF', name: 'CONSUMIDOR FINAL' };
+      this.selectedLineIdx = -1;
+      this.numpadBuffer = '';
     },
 
     closeOrder(idx) {

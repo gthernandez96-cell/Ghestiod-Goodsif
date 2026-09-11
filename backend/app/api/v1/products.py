@@ -343,18 +343,30 @@ async def list_products(
     result = await db.execute(stmt)
     products = result.scalars().all()
 
-    # Obtener stock global por producto
+    # Obtener stock global por producto (solo bodegas activas de la empresa)
     product_ids = [p.id for p in products]
     stock_map = {}
     if product_ids:
-        quant_stmt = select(
-            StockQuant.product_id,
-            func.sum(StockQuant.qty_on_hand).label("total_stock")
-        ).where(StockQuant.product_id.in_(product_ids))
+        quant_stmt = (
+            select(
+                StockQuant.product_id,
+                func.sum(StockQuant.qty_on_hand).label("total_stock")
+            )
+            .join(Warehouse, StockQuant.warehouse_id == Warehouse.id)
+            .join(Branch, Warehouse.branch_id == Branch.id)
+            .where(
+                StockQuant.product_id.in_(product_ids),
+                StockQuant.is_deleted == False,
+                Warehouse.is_active == True,
+                Warehouse.is_deleted == False,
+                Branch.company_id == current_user.company_id,
+                Branch.is_deleted == False,
+            )
+        )
 
         if warehouse_id and isinstance(warehouse_id, str) and warehouse_id.strip():
             try:
-                quant_stmt = quant_stmt.where(StockQuant.warehouse_id == uuid.UUID(warehouse_id))
+                quant_stmt = quant_stmt.where(StockQuant.warehouse_id == uuid.UUID(warehouse_id.strip()))
             except (ValueError, AttributeError):
                 pass
 
@@ -442,10 +454,22 @@ async def get_pos_catalog(
     product_ids = [p.id for p in products]
     stock_map = {}
     if product_ids:
-        quant_stmt = select(
-            StockQuant.product_id,
-            func.sum(StockQuant.qty_on_hand).label("total_stock")
-        ).where(StockQuant.product_id.in_(product_ids))
+        quant_stmt = (
+            select(
+                StockQuant.product_id,
+                func.sum(StockQuant.qty_on_hand).label("total_stock")
+            )
+            .join(Warehouse, StockQuant.warehouse_id == Warehouse.id)
+            .join(Branch, Warehouse.branch_id == Branch.id)
+            .where(
+                StockQuant.product_id.in_(product_ids),
+                StockQuant.is_deleted == False,
+                Warehouse.is_active == True,
+                Warehouse.is_deleted == False,
+                Branch.company_id == current_user.company_id,
+                Branch.is_deleted == False,
+            )
+        )
 
         if warehouse_id and isinstance(warehouse_id, str) and warehouse_id.strip():
             try:
@@ -517,10 +541,22 @@ async def get_inventory_kpis(
     product_ids = [p.id for p in products]
     stock_map = {}
     if product_ids:
-        quant_stmt = select(
-            StockQuant.product_id,
-            func.sum(StockQuant.qty_on_hand).label("total_stock")
-        ).where(StockQuant.product_id.in_(product_ids))
+        quant_stmt = (
+            select(
+                StockQuant.product_id,
+                func.sum(StockQuant.qty_on_hand).label("total_stock")
+            )
+            .join(Warehouse, StockQuant.warehouse_id == Warehouse.id)
+            .join(Branch, Warehouse.branch_id == Branch.id)
+            .where(
+                StockQuant.product_id.in_(product_ids),
+                StockQuant.is_deleted == False,
+                Warehouse.is_active == True,
+                Warehouse.is_deleted == False,
+                Branch.company_id == current_user.company_id,
+                Branch.is_deleted == False,
+            )
+        )
 
         if warehouse_id and isinstance(warehouse_id, str) and warehouse_id.strip():
             try:
@@ -575,11 +611,18 @@ async def get_products_stock_levels(
             func.sum(StockQuant.qty_on_hand).label("total_stock")
         )
         .join(Product, Product.id == StockQuant.product_id)
+        .join(Warehouse, StockQuant.warehouse_id == Warehouse.id)
+        .join(Branch, Warehouse.branch_id == Branch.id)
         .where(
             Product.company_id == current_user.company_id,
             Product.is_deleted == False,
             Product.is_active == True,
             Product.can_be_sold == True,
+            StockQuant.is_deleted == False,
+            Warehouse.is_active == True,
+            Warehouse.is_deleted == False,
+            Branch.company_id == current_user.company_id,
+            Branch.is_deleted == False,
         )
     )
     if warehouse_id and isinstance(warehouse_id, str) and warehouse_id.strip():
@@ -891,6 +934,20 @@ async def get_product(
             "is_main": getattr(wh, "is_default", False),
         })
 
+    # Balance acumulado real según Kardex
+    INFLOW_STRINGS = {"purchase", "transfer_in", "adj_in", "initial", "ret_sale"}
+    k_res = await db.execute(select(StockMove.move_type, StockMove.qty).where(StockMove.product_id == p_uuid))
+    k_moves = k_res.all()
+    kardex_stock = 0.0
+    for m_type_obj, m_qty in k_moves:
+        m_type_str = m_type_obj.value if hasattr(m_type_obj, "value") else str(m_type_obj)
+        if m_type_str in INFLOW_STRINGS:
+            kardex_stock += float(m_qty or 0)
+        else:
+            kardex_stock -= float(m_qty or 0)
+
+    has_kardex_discrepancy = (len(k_moves) > 0) and (abs(total_stock - kardex_stock) > 0.0001)
+
     return {
         "id": str(p.id),
         "name": p.name,
@@ -920,6 +977,8 @@ async def get_product(
         "stock_by_warehouse": quant_map,
         "warehouses": warehouse_list,
         "total_stock": total_stock,
+        "kardex_stock": kardex_stock if len(k_moves) > 0 else total_stock,
+        "has_kardex_discrepancy": has_kardex_discrepancy,
         "image_url": p.image_url,
     }
 
@@ -996,11 +1055,12 @@ async def get_product_warehouses_stock(
 @router.get("/{product_id}/kardex")
 async def get_product_kardex(
     product_id: str,
-    limit: int = Query(50, ge=1, le=200),
+    warehouse_id: Optional[str] = Query(None),
+    limit: int = Query(100, ge=1, le=500),
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    """Obtener el Kardex / movimientos de stock de un producto."""
+    """Obtener el Kardex / movimientos de stock de un producto con desglose de bodega y saldo acumulado."""
     try:
         p_uuid = uuid.UUID(product_id)
     except ValueError:
@@ -1008,10 +1068,16 @@ async def get_product_kardex(
 
     stmt = (
         select(StockMove)
+        .options(selectinload(StockMove.warehouse))
         .where(StockMove.product_id == p_uuid)
-        .order_by(StockMove.created_at.desc())
-        .limit(limit)
     )
+    if warehouse_id and isinstance(warehouse_id, str) and warehouse_id.strip():
+        try:
+            stmt = stmt.where(StockMove.warehouse_id == uuid.UUID(warehouse_id.strip()))
+        except ValueError:
+            pass
+
+    stmt = stmt.order_by(StockMove.created_at.desc(), StockMove.id.desc()).limit(limit)
     res = await db.execute(stmt)
     moves = res.scalars().all()
 
@@ -1021,6 +1087,8 @@ async def get_product_kardex(
             "id": str(m.id),
             "date": m.created_at.strftime("%d/%m/%Y %H:%M") if m.created_at else "",
             "move_type": m.move_type.value if hasattr(m.move_type, "value") else str(m.move_type),
+            "warehouse_id": str(m.warehouse_id) if m.warehouse_id else None,
+            "warehouse_name": m.warehouse.name if m.warehouse else "Bodega Central",
             "qty": float(m.qty or 0),
             "qty_before": float(m.qty_before or 0),
             "qty_after": float(m.qty_after or 0),
@@ -1028,7 +1096,149 @@ async def get_product_kardex(
             "reference": m.reference or "",
             "notes": m.notes or "",
         })
-    return {"items": items, "total": len(items)}
+
+    # Calcular saldo acumulado neto del Kardex
+    INFLOW_STRINGS = {"purchase", "transfer_in", "adj_in", "initial", "ret_sale"}
+    all_moves_stmt = select(StockMove.move_type, StockMove.qty).where(StockMove.product_id == p_uuid)
+    all_res = await db.execute(all_moves_stmt)
+    kardex_balance = 0.0
+    for m_type_obj, m_qty in all_res.all():
+        m_type_str = m_type_obj.value if hasattr(m_type_obj, "value") else str(m_type_obj)
+        if m_type_str in INFLOW_STRINGS:
+            kardex_balance += float(m_qty or 0)
+        else:
+            kardex_balance -= float(m_qty or 0)
+
+    # Stock actual en quants
+    quant_stmt = select(func.sum(StockQuant.qty_on_hand)).where(StockQuant.product_id == p_uuid)
+    quant_res = await db.execute(quant_stmt)
+    current_stock = float(quant_res.scalar() or 0.0)
+
+    has_discrepancy = abs(kardex_balance - current_stock) > 0.0001
+
+    return {
+        "items": items,
+        "total": len(items),
+        "kardex_balance": kardex_balance,
+        "current_stock": current_stock,
+        "has_discrepancy": has_discrepancy,
+    }
+
+
+@router.post("/{product_id}/sync-kardex")
+@router.post("/{product_id}/sync-kardex-stock")
+async def sync_product_stock_with_kardex(
+    product_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """Sincroniza y concilia las existencias de un producto (StockQuant) basándose estrictamente en su historial del Kardex."""
+    check_product_management_permission(current_user)
+    try:
+        p_uuid = uuid.UUID(product_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="ID de producto inválido")
+
+    prod_stmt = select(Product).where(Product.id == p_uuid, Product.company_id == current_user.company_id)
+    prod_res = await db.execute(prod_stmt)
+    prod = prod_res.scalar_one_or_none()
+    if not prod:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+
+    # Obtener bodegas válidas de la empresa
+    wh_stmt = (
+        select(Warehouse)
+        .join(Branch, Warehouse.branch_id == Branch.id)
+        .where(
+            Branch.company_id == current_user.company_id,
+            Warehouse.is_active == True,
+            Warehouse.is_deleted == False
+        )
+        .order_by(Warehouse.is_default.desc(), Warehouse.created_at.asc())
+    )
+    wh_res = await db.execute(wh_stmt)
+    valid_warehouses = wh_res.scalars().all()
+    if not valid_warehouses:
+        raise HTTPException(status_code=400, detail="No hay bodegas activas en la empresa")
+
+    valid_wh_ids = {w.id for w in valid_warehouses}
+    default_wh = valid_warehouses[0]
+
+    # Movimientos ordenados cronológicamente
+    moves_stmt = (
+        select(StockMove)
+        .where(StockMove.product_id == p_uuid)
+        .order_by(StockMove.created_at.asc(), StockMove.id.asc())
+    )
+    moves_res = await db.execute(moves_stmt)
+    all_moves = moves_res.scalars().all()
+
+    # Reasignar bodegas huérfanas o erróneas a la bodega por defecto
+    for m in all_moves:
+        if m.warehouse_id not in valid_wh_ids:
+            m.warehouse_id = default_wh.id
+
+    INFLOW_STRINGS = {"purchase", "transfer_in", "adj_in", "initial", "ret_sale"}
+
+    # Agrupar movimientos por bodega y recalcular la cadena continua qty_before / qty_after
+    moves_by_wh = {}
+    for m in all_moves:
+        moves_by_wh.setdefault(m.warehouse_id, []).append(m)
+
+    total_net_stock = Decimal("0")
+
+    for wh in valid_warehouses:
+        wh_moves = moves_by_wh.get(wh.id, [])
+        running_stock = Decimal("0")
+
+        for m in wh_moves:
+            m_type_val = m.move_type.value if hasattr(m.move_type, "value") else str(m.move_type)
+            is_in = m_type_val in INFLOW_STRINGS
+            qty = Decimal(str(m.qty or 0))
+
+            m.qty_before = running_stock
+            if is_in:
+                running_stock += qty
+            else:
+                running_stock -= qty
+            m.qty_after = running_stock
+
+        quant_stmt = select(StockQuant).where(
+            StockQuant.product_id == p_uuid,
+            StockQuant.warehouse_id == wh.id
+        )
+        quant_res = await db.execute(quant_stmt)
+        quant = quant_res.scalar_one_or_none()
+
+        if not quant:
+            quant = StockQuant(
+                product_id=p_uuid,
+                warehouse_id=wh.id,
+                qty_on_hand=running_stock,
+                qty_reserved=Decimal("0"),
+                qty_incoming=Decimal("0"),
+                avg_cost=Decimal("0"),
+            )
+            db.add(quant)
+        else:
+            quant.qty_on_hand = running_stock
+
+        total_net_stock += running_stock
+
+    await db.commit()
+
+    return {
+        "success": True,
+        "status": "success",
+        "product_id": str(prod.id),
+        "product_name": prod.name,
+        "new_stock": float(total_net_stock),
+        "total_stock": float(total_net_stock),
+        "reconciled_stock": float(total_net_stock),
+        "reconciled_moves_count": len(all_moves),
+        "message": f"Stock conciliado exitosamente con el Kardex. Existencia actual: {float(total_net_stock):.2f} unidades."
+    }
+
 
 
 @router.post("/{product_id}/adjust-stock")
