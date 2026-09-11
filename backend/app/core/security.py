@@ -14,7 +14,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 # OAuth2 scheme
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=False)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -62,13 +62,30 @@ def decode_token(token: str) -> dict:
 
 
 async def get_current_user(
-    token: str = Depends(oauth2_scheme),
+    request: Request,
+    token: Optional[str] = Depends(oauth2_scheme),
     db: AsyncSession = Depends(get_db),
 ):
-    """Dependency para obtener usuario autenticado."""
+    """Dependency para obtener usuario autenticado desde header Bearer, cookie o query param."""
     from app.models.user import User
 
-    payload = decode_token(token)
+    raw_token = token
+    if not raw_token:
+        raw_token = request.cookies.get("access_token")
+    if not raw_token:
+        raw_token = request.query_params.get("token")
+
+    if not raw_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    if raw_token.startswith("Bearer "):
+        raw_token = raw_token[7:].strip()
+
+    payload = decode_token(raw_token)
     if payload.get("type") != "access":
         raise HTTPException(status_code=401, detail="Token de tipo incorrecto")
 

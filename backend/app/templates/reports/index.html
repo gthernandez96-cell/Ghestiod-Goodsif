@@ -192,14 +192,18 @@
     <button class="report-tab-pill" :class="activeReport === 'fel' ? 'active' : ''" @click="activeReport = 'fel'">
       <i class="ph ph-file-text"></i> 4. Libro Oficial de Ventas FEL SAT
     </button>
-    <button class="report-tab-pill" :class="activeReport === 'payments' ? 'active' : ''" @click="activeReport = 'payments'">
+    <button class="report-tab-pill" :class="activeReport === 'payments' ? 'active' : ''" @click="selectReport('payments')">
       <i class="ph ph-credit-card"></i> 5. Métodos de Pago
+    </button>
+    <button class="report-tab-pill" :class="activeReport === 'sales_detail' ? 'active' : ''" @click="selectReport('sales_detail')">
+      <i class="ph ph-receipt"></i> 6. Detalle de Ventas (Auditoría / Excel)
     </button>
 
     <!-- Right Controls: Resumen Button (al par derecho) -->
-    <div style="margin-left:auto; display:flex; align-items:center; gap:10px; position:relative;">
+    <div class="hide-on-mobile" style="margin-left:auto; display:flex; align-items:center; gap:10px; position:relative;">
       <button
         type="button"
+        class="hide-on-mobile"
         @click="showKpis = !showKpis"
         style="
           display:inline-flex; align-items:center; gap:7px;
@@ -225,6 +229,7 @@
 
       <!-- Floating Popover Dropdown Panel (Exacto a Inventarios y AP, alineado a la derecha) -->
       <div
+        class="hide-on-mobile"
         x-show="showKpis"
         @click.outside="showKpis = false"
         x-transition:enter="transition ease-out duration-200"
@@ -559,12 +564,270 @@
     </div>
   </div>
 
+  <!-- ===== REPORTE 6: DETALLE DE VENTAS (AUDITORÍA LÍNEA POR LÍNEA & EXCEL) ===== -->
+  <div class="card p-0" x-show="activeReport === 'sales_detail'" style="background:#ffffff; border:1px solid #e2e8f0; border-radius:14px; box-shadow:0 1px 4px rgba(0,0,0,0.03); overflow:hidden;" x-cloak>
+    
+    <!-- Header bar -->
+    <div style="padding:18px 24px; border-bottom:1px solid #e2e8f0; background:#f8fafc; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px;">
+      <div>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div style="width:36px; height:36px; border-radius:10px; background:#714B67; color:#ffffff; display:flex; align-items:center; justify-content:center; font-size:20px;">
+            <i class="ph-bold ph-receipt"></i>
+          </div>
+          <div>
+            <h3 style="margin:0; font-size:16px; font-weight:800; color:#0f172a;">Detalle de Ventas por Artículo & Cliente</h3>
+            <div style="font-size:12px; color:#64748b; margin-top:2px;">Auditoría línea por línea de transacciones con precios, costos, márgenes y tipos de pago</div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Export buttons -->
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <button type="button" class="btn btn-secondary btn-sm" @click="loadSalesDetail()"
+          style="display:flex; align-items:center; gap:6px; font-weight:700; border-radius:8px; padding:8px 14px; border:1px solid #cbd5e1; background:#ffffff; color:#334155; cursor:pointer;">
+          <i class="ph ph-arrows-clockwise" :class="{ 'ph-spin': isLoadingSalesDetail }"></i>
+          <span>Refrescar</span>
+        </button>
+        <button type="button" class="btn btn-secondary btn-sm" @click="downloadSalesDetailCSV()"
+          style="display:flex; align-items:center; gap:6px; font-weight:700; border-radius:8px; padding:8px 14px; border:1px solid #cbd5e1; background:#ffffff; color:#334155; cursor:pointer;">
+          <i class="ph ph-file-csv" style="color:#0284c7;"></i>
+          <span>Exportar CSV</span>
+        </button>
+        <button type="button" class="btn btn-primary btn-sm" @click="downloadSalesDetailExcel()"
+          style="display:flex; align-items:center; gap:6px; font-weight:800; border-radius:8px; padding:8px 16px; background:#107c41; color:#ffffff; border:none; cursor:pointer; box-shadow:0 2px 6px rgba(16,124,65,0.3);">
+          <i class="ph-bold ph-file-xls" style="font-size:16px;"></i>
+          <span>Exportar a Excel (.xlsx)</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Filters Bar -->
+    <div style="padding:14px 24px; border-bottom:1px solid #f1f5f9; background:#ffffff; display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+      <!-- Search Input -->
+      <div style="position:relative; flex:1; min-width:240px;">
+        <i class="ph ph-magnifying-glass" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#94a3b8; font-size:16px;"></i>
+        <input type="text" x-model="salesDetailSearch" @input.debounce.300ms="loadSalesDetail()"
+          placeholder="Buscar por artículo, código de barras, no. ticket, cliente o NIT..."
+          style="width:100%; padding:8px 12px 8px 36px; border:1px solid #cbd5e1; border-radius:8px; font-size:12.5px; color:#1e293b; background:#f8fafc; outline:none;"
+          onfocus="this.style.borderColor='#714B67'; this.style.background='#ffffff'"
+          onblur="this.style.borderColor='#cbd5e1'; this.style.background='#f8fafc'">
+      </div>
+
+      <!-- Sucursal Selector -->
+      <div style="min-width:180px;">
+        <select x-model="salesDetailBranchId" @change="loadSalesDetail()"
+          style="width:100%; padding:8px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:12.5px; color:#1e293b; background:#f8fafc; font-weight:600; cursor:pointer;">
+          <option value="">🏢 Todas las Sucursales</option>
+          <template x-for="b in branches" :key="b.id">
+            <option :value="b.id" x-text="b.name"></option>
+          </template>
+        </select>
+      </div>
+
+      <!-- Tipo de Venta Filter Pills -->
+      <div style="display:flex; align-items:center; gap:6px;">
+        <button type="button" @click="salesDetailPaymentType = 'all'; loadSalesDetail()"
+          :style="salesDetailPaymentType === 'all' ? 'background:#714B67; color:#ffffff; border-color:#714B67;' : 'background:#ffffff; color:#64748b; border-color:#cbd5e1;'"
+          style="padding:5px 12px; border-radius:16px; font-size:11.5px; font-weight:700; border:1px solid; cursor:pointer;">
+          Todos
+        </button>
+        <button type="button" @click="salesDetailPaymentType = 'cash'; loadSalesDetail()"
+          :style="salesDetailPaymentType === 'cash' ? 'background:#059669; color:#ffffff; border-color:#059669;' : 'background:#ffffff; color:#059669; border-color:#a7f3d0;'"
+          style="padding:5px 12px; border-radius:16px; font-size:11.5px; font-weight:700; border:1px solid; cursor:pointer;">
+          💵 Contado
+        </button>
+        <button type="button" @click="salesDetailPaymentType = 'credit'; loadSalesDetail()"
+          :style="salesDetailPaymentType === 'credit' ? 'background:#d97706; color:#ffffff; border-color:#d97706;' : 'background:#ffffff; color:#d97706; border-color:#fde68a;'"
+          style="padding:5px 12px; border-radius:16px; font-size:11.5px; font-weight:700; border:1px solid; cursor:pointer;">
+          📑 Crédito
+        </button>
+      </div>
+    </div>
+
+    <!-- Summary KPI Mini-Cards -->
+    <div style="padding:14px 24px; background:#fbfcfe; border-bottom:1px solid #e2e8f0; display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:12px;">
+      <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:10px; padding:10px 14px;">
+        <div style="font-size:11px; font-weight:700; color:#64748b; text-transform:uppercase;">Líneas & Unidades</div>
+        <div style="font-size:18px; font-weight:800; color:#0f172a; margin-top:2px;">
+          <span x-text="salesDetailSummary.total_qty || 0">0</span> <span style="font-size:12px; font-weight:600; color:#64748b;">unid.</span>
+        </div>
+        <div style="font-size:11px; color:#94a3b8;" x-text="(salesDetailSummary.total_records || 0) + ' registros listados'"></div>
+      </div>
+
+      <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:10px; padding:10px 14px;">
+        <div style="font-size:11px; font-weight:700; color:#714B67; text-transform:uppercase;">Facturación Total</div>
+        <div style="font-size:18px; font-weight:800; color:#714B67; margin-top:2px;">
+          Q <span x-text="Number(salesDetailSummary.total_sales || 0).toLocaleString('es-GT', {minimumFractionDigits:2, maximumFractionDigits:2})">0.00</span>
+        </div>
+        <div style="font-size:11px; color:#64748b;">Venta bruta total</div>
+      </div>
+
+      <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:10px; padding:10px 14px;">
+        <div style="font-size:11px; font-weight:700; color:#475569; text-transform:uppercase;">Costo de Mercadería</div>
+        <div style="font-size:18px; font-weight:800; color:#475569; margin-top:2px;">
+          Q <span x-text="Number(salesDetailSummary.total_cost || 0).toLocaleString('es-GT', {minimumFractionDigits:2, maximumFractionDigits:2})">0.00</span>
+        </div>
+        <div style="font-size:11px; color:#94a3b8;">Costo inventario vendido</div>
+      </div>
+
+      <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:10px; padding:10px 14px;">
+        <div style="font-size:11px; font-weight:700; color:#059669; text-transform:uppercase;">Excedente (Margen Bruto)</div>
+        <div style="font-size:18px; font-weight:800; color:#059669; margin-top:2px;">
+          Q <span x-text="Number(salesDetailSummary.total_surplus || 0).toLocaleString('es-GT', {minimumFractionDigits:2, maximumFractionDigits:2})">0.00</span>
+        </div>
+        <div style="font-size:11px; color:#059669; font-weight:700;" x-text="(salesDetailSummary.margin_pct || 0) + '% margen'"></div>
+      </div>
+
+      <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:10px; padding:10px 14px;">
+        <div style="font-size:11px; font-weight:700; color:#0284c7; text-transform:uppercase;">Contado vs Crédito</div>
+        <div style="font-size:13px; font-weight:800; color:#0f172a; margin-top:4px;">
+          💵 Q <span x-text="Number(salesDetailSummary.total_cash || 0).toFixed(2)">0.00</span>
+        </div>
+        <div style="font-size:12px; font-weight:800; color:#d97706; margin-top:2px;">
+          📑 Q <span x-text="Number(salesDetailSummary.total_credit || 0).toFixed(2)">0.00</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 16-Column Sales Detail Table -->
+    <div style="overflow-x:auto; max-height:650px;">
+      <table class="report-table" style="font-size:12px; width:100%; min-width:1400px;">
+        <thead style="position:sticky; top:0; z-index:10; background:#f8fafc;">
+          <tr>
+            <th style="padding:10px 14px; white-space:nowrap;">Fecha Factura</th>
+            <th style="padding:10px 14px; white-space:nowrap;">Sucursal</th>
+            <th style="padding:10px 14px; white-space:nowrap;">Categoría</th>
+            <th style="padding:10px 14px; white-space:nowrap;">Código de Barras</th>
+            <th style="padding:10px 14px; white-space:nowrap; min-width:180px;">Artículo</th>
+            <th style="padding:10px 14px; white-space:nowrap;">No. Ticket</th>
+            <th style="padding:10px 14px; white-space:nowrap; text-align:right;">Cantidad</th>
+            <th style="padding:10px 14px; white-space:nowrap; text-align:right;">P. Venta</th>
+            <th style="padding:10px 14px; white-space:nowrap; text-align:right;">Costo</th>
+            <th style="padding:10px 14px; white-space:nowrap; text-align:right;">Total Venta</th>
+            <th style="padding:10px 14px; white-space:nowrap; text-align:right;">Excedente</th>
+            <th style="padding:10px 14px; white-space:nowrap; text-align:center;">Tipo de Venta</th>
+            <th style="padding:10px 14px; white-space:nowrap; text-align:right;">F. Contado</th>
+            <th style="padding:10px 14px; white-space:nowrap; text-align:right;">F. Crédito</th>
+            <th style="padding:10px 14px; white-space:nowrap;">ID Cliente</th>
+            <th style="padding:10px 14px; white-space:nowrap; min-width:150px;">Nombre del Cliente</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="(row, idx) in salesDetailData" :key="idx">
+            <tr style="border-bottom:1px solid #f1f5f9; transition:background 0.1s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#ffffff'">
+              <!-- 1. Fecha Factura -->
+              <td style="padding:9px 14px; white-space:nowrap; font-weight:600; color:#334155;">
+                <span x-text="row.fecha_factura"></span>
+              </td>
+
+              <!-- 2. Sucursal -->
+              <td style="padding:9px 14px; white-space:nowrap;">
+                <span style="background:#f1f5f9; color:#475569; padding:2px 8px; border-radius:4px; font-weight:700; font-size:11px;" x-text="row.sucursal"></span>
+              </td>
+
+              <!-- 3. Categoría -->
+              <td style="padding:9px 14px; white-space:nowrap; color:#64748b;">
+                <span x-text="row.categoria"></span>
+              </td>
+
+              <!-- 4. Código de Barras -->
+              <td style="padding:9px 14px; font-family:monospace; color:#475569; white-space:nowrap;">
+                <span x-text="row.codigo_de_barras || '—'"></span>
+              </td>
+
+              <!-- 5. Artículo -->
+              <td style="padding:9px 14px; font-weight:700; color:#0f172a;">
+                <span x-text="row.articulo"></span>
+              </td>
+
+              <!-- 6. No. Ticket -->
+              <td style="padding:9px 14px; font-family:monospace; font-weight:800; color:#714B67; white-space:nowrap;">
+                <span x-text="row.no_ticket"></span>
+              </td>
+
+              <!-- 7. Cantidad -->
+              <td style="padding:9px 14px; text-align:right; font-weight:800; color:#0f172a; white-space:nowrap;">
+                <span x-text="row.cantidad"></span>
+              </td>
+
+              <!-- 8. P. Venta -->
+              <td style="padding:9px 14px; text-align:right; color:#334155; white-space:nowrap;">
+                Q <span x-text="Number(row.pventa).toFixed(2)"></span>
+              </td>
+
+              <!-- 9. Costo -->
+              <td style="padding:9px 14px; text-align:right; color:#64748b; white-space:nowrap;">
+                Q <span x-text="Number(row.costo).toFixed(2)"></span>
+              </td>
+
+              <!-- 10. Total Venta -->
+              <td style="padding:9px 14px; text-align:right; font-weight:800; color:#0f172a; white-space:nowrap;">
+                Q <span x-text="Number(row.total_venta).toFixed(2)"></span>
+              </td>
+
+              <!-- 11. Excedente -->
+              <td style="padding:9px 14px; text-align:right; font-weight:800; color:#059669; white-space:nowrap;">
+                Q <span x-text="Number(row.excedente).toFixed(2)"></span>
+              </td>
+
+              <!-- 12. Tipo de Venta -->
+              <td style="padding:9px 14px; text-align:center; white-space:nowrap;">
+                <span :style="row.tipo_de_venta === 'Contado' ? 'background:#ecfdf5; color:#065f46; border:1px solid #a7f3d0;' : 'background:#fffbeb; color:#b45309; border:1px solid #fde68a;'"
+                  style="padding:2px 8px; border-radius:12px; font-size:11px; font-weight:800; display:inline-block;"
+                  x-text="row.tipo_de_venta"></span>
+              </td>
+
+              <!-- 13. F. Contado -->
+              <td style="padding:9px 14px; text-align:right; color:#047857; font-weight:700; white-space:nowrap;">
+                Q <span x-text="Number(row.f_contado).toFixed(2)"></span>
+              </td>
+
+              <!-- 14. F. Crédito -->
+              <td style="padding:9px 14px; text-align:right; color:#b45309; font-weight:700; white-space:nowrap;">
+                Q <span x-text="Number(row.f_credito).toFixed(2)"></span>
+              </td>
+
+              <!-- 15. ID Cliente -->
+              <td style="padding:9px 14px; font-family:monospace; color:#475569; white-space:nowrap;">
+                <span x-text="row.id_cliente"></span>
+              </td>
+
+              <!-- 16. Nombre del Cliente -->
+              <td style="padding:9px 14px; color:#1e293b; font-weight:600;">
+                <template x-if="row.nombre_del_cliente === 'CF'">
+                  <span style="background:#f1f5f9; color:#475569; padding:2px 6px; border-radius:4px; font-weight:800; font-size:11px;">CF</span>
+                </template>
+                <template x-if="row.nombre_del_cliente !== 'CF'">
+                  <span x-text="row.nombre_del_cliente"></span>
+                </template>
+              </td>
+            </tr>
+          </template>
+
+          <tr x-show="!isLoadingSalesDetail && salesDetailData.length === 0">
+            <td colspan="16" style="text-align:center; padding:48px 20px; color:#64748b;">
+              <div style="font-size:15px; font-weight:800; color:#334155; margin-bottom:4px;">No hay registros de ventas para los filtros seleccionados</div>
+              <div style="font-size:12px; color:#94a3b8;">Prueba ajustando el rango de fechas, sucursal o término de búsqueda.</div>
+            </td>
+          </tr>
+
+          <tr x-show="isLoadingSalesDetail">
+            <td colspan="16" style="text-align:center; padding:40px; color:#714B67; font-weight:700;">
+              <i class="ph-bold ph-arrows-clockwise ph-spin" style="font-size:24px; display:block; margin-bottom:8px;"></i>
+              Cargando detalle de ventas...
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
 </div>
 
 <script>
   function reportsBIModule() {
     return {
-      activeReport: 'sales',
+      activeReport: (new URLSearchParams(window.location.search).get('tab') || 'sales'),
       showKpis: false,
       activePreset: 'this_month',
       startDate: '',
@@ -584,9 +847,165 @@
       inventoryValuation: [],
       felLedger: [],
       paymentMethods: [],
+      branches: [],
+      salesDetailData: [],
+      salesDetailSummary: {
+        total_records: 0,
+        total_qty: 0,
+        total_sales: 0,
+        total_cost: 0,
+        total_surplus: 0,
+        total_cash: 0,
+        total_credit: 0,
+        margin_pct: 0
+      },
+      salesDetailSearch: '',
+      salesDetailBranchId: '',
+      salesDetailPaymentType: 'all',
+      isLoadingSalesDetail: false,
 
       async init() {
+        await this.loadBranches();
         this.setPreset('this_month');
+        if (this.activeReport === 'sales_detail') {
+          await this.loadSalesDetail();
+        }
+      },
+
+      selectReport(tab) {
+        this.activeReport = tab;
+        const url = new URL(window.location.href);
+        if (tab === 'sales') {
+          url.searchParams.delete('tab');
+        } else {
+          url.searchParams.set('tab', tab);
+        }
+        window.history.pushState({}, '', url.toString());
+        if (tab === 'sales_detail' && this.salesDetailData.length === 0) {
+          this.loadSalesDetail();
+        }
+      },
+
+      async loadBranches() {
+        try {
+          const res = await API.get('/branches/');
+          this.branches = Array.isArray(res) ? res : (res.items || res.branches || []);
+        } catch(e) {
+          this.branches = [];
+        }
+      },
+
+      async loadSalesDetail() {
+        this.isLoadingSalesDetail = true;
+        try {
+          let url = `/reports/sales-detail?start_date=${this.startDate}&end_date=${this.endDate}`;
+          if (this.salesDetailBranchId) {
+            url += `&branch_id=${encodeURIComponent(this.salesDetailBranchId)}`;
+          }
+          if (this.salesDetailPaymentType && this.salesDetailPaymentType !== 'all') {
+            url += `&payment_type=${encodeURIComponent(this.salesDetailPaymentType)}`;
+          }
+          if (this.salesDetailSearch) {
+            url += `&search=${encodeURIComponent(this.salesDetailSearch)}`;
+          }
+          const res = await API.get(url);
+          this.salesDetailData = res.items || [];
+          this.salesDetailSummary = res.summary || {
+            total_records: 0,
+            total_qty: 0,
+            total_sales: 0,
+            total_cost: 0,
+            total_surplus: 0,
+            total_cash: 0,
+            total_credit: 0,
+            margin_pct: 0
+          };
+        } catch(e) {
+          console.error("Error al cargar detalle de ventas:", e);
+          this.salesDetailData = [];
+        } finally {
+          this.isLoadingSalesDetail = false;
+        }
+      },
+
+      async downloadSalesDetailExcel() {
+        const token = localStorage.getItem('access_token') || '';
+        let url = `/api/v1/reports/export-sales-detail-excel?start_date=${this.startDate}&end_date=${this.endDate}`;
+        if (this.salesDetailBranchId) {
+          url += `&branch_id=${encodeURIComponent(this.salesDetailBranchId)}`;
+        }
+        if (this.salesDetailPaymentType && this.salesDetailPaymentType !== 'all') {
+          url += `&payment_type=${encodeURIComponent(this.salesDetailPaymentType)}`;
+        }
+        if (this.salesDetailSearch) {
+          url += `&search=${encodeURIComponent(this.salesDetailSearch)}`;
+        }
+        if (token) {
+          url += `&token=${encodeURIComponent(token)}`;
+        }
+
+        try {
+          const res = await fetch(url, {
+            headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+          });
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({ detail: 'Error al exportar archivo' }));
+            alert(err.detail || 'Error al exportar Excel');
+            return;
+          }
+          const blob = await res.blob();
+          const downloadUrl = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = downloadUrl;
+          a.download = `Detalle_Ventas_${this.startDate}_${this.endDate}.xlsx`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          window.URL.revokeObjectURL(downloadUrl);
+        } catch (e) {
+          console.error("Error al descargar Excel:", e);
+          window.open(url, '_blank');
+        }
+      },
+
+      async downloadSalesDetailCSV() {
+        const token = localStorage.getItem('access_token') || '';
+        let url = `/api/v1/reports/export-sales-detail-csv?start_date=${this.startDate}&end_date=${this.endDate}`;
+        if (this.salesDetailBranchId) {
+          url += `&branch_id=${encodeURIComponent(this.salesDetailBranchId)}`;
+        }
+        if (this.salesDetailPaymentType && this.salesDetailPaymentType !== 'all') {
+          url += `&payment_type=${encodeURIComponent(this.salesDetailPaymentType)}`;
+        }
+        if (this.salesDetailSearch) {
+          url += `&search=${encodeURIComponent(this.salesDetailSearch)}`;
+        }
+        if (token) {
+          url += `&token=${encodeURIComponent(token)}`;
+        }
+
+        try {
+          const res = await fetch(url, {
+            headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+          });
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({ detail: 'Error al exportar archivo' }));
+            alert(err.detail || 'Error al exportar CSV');
+            return;
+          }
+          const blob = await res.blob();
+          const downloadUrl = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = downloadUrl;
+          a.download = `Detalle_Ventas_${this.startDate}_${this.endDate}.csv`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          window.URL.revokeObjectURL(downloadUrl);
+        } catch (e) {
+          console.error("Error al descargar CSV:", e);
+          window.open(url, '_blank');
+        }
       },
 
       setPreset(preset) {
@@ -617,14 +1036,18 @@
       },
 
       async reloadAllData() {
-        await Promise.all([
+        const tasks = [
           this.loadKPIs(),
           this.loadSales(),
           this.loadTopProducts(),
           this.loadInventoryValuation(),
           this.loadFelLedger(),
           this.loadPaymentMethods()
-        ]);
+        ];
+        if (this.activeReport === 'sales_detail') {
+          tasks.push(this.loadSalesDetail());
+        }
+        await Promise.all(tasks);
       },
 
       async loadKPIs() {
@@ -677,6 +1100,11 @@
       },
 
       exportCurrentReportToCSV() {
+        if (this.activeReport === 'sales_detail') {
+          this.downloadSalesDetailExcel();
+          return;
+        }
+
         let csvContent = "data:text/csv;charset=utf-8,";
         let filename = `reporte_${this.activeReport}_${this.startDate}_${this.endDate}.csv`;
 
