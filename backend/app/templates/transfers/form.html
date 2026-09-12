@@ -243,7 +243,7 @@
             <select class="form-control-tr" style="font-weight:700;" x-model="form.origin_warehouse_id" @change="onOriginWarehouseChange()">
               <option value="">Selecciona bodega de salida...</option>
               <template x-for="w in warehouses" :key="'orig_' + w.id">
-                <option :value="w.id" x-text="w.name + ' (' + (w.branch_name || 'Sucursal') + ')'"></option>
+                <option :value="w.id" x-text="w.name + ' (' + (w.branch_name || 'Sucursal') + ')' + (w.code ? ' — ' + w.code : '')"></option>
               </template>
             </select>
           </div>
@@ -268,7 +268,7 @@
             <select class="form-control-tr" style="font-weight:700;" x-model="form.dest_warehouse_id">
               <option value="">Selecciona bodega receptora...</option>
               <template x-for="w in warehouses" :key="'dest_' + w.id">
-                <option :value="w.id" x-text="w.name + ' (' + (w.branch_name || 'Sucursal') + ')'"></option>
+                <option :value="w.id" x-text="w.name + ' (' + (w.branch_name || 'Sucursal') + ')' + (w.code ? ' — ' + w.code : '')"></option>
               </template>
             </select>
           </div>

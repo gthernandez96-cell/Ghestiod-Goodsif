@@ -676,9 +676,44 @@
 
       <!-- TAB 3: KARDEX DE MOVIMIENTOS -->
       <div x-show="activeTab === 'kardex'">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-          <div style="font-size:14px; font-weight:800; color:#1e293b;">Historial de Movimientos de Inventario (Kardex)</div>
-          <div style="font-size:12px; color:#64748b;" x-text="kardexMoves.length + ' movimientos registrados'"></div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+          <div>
+            <div style="font-size:14px; font-weight:800; color:#1e293b;">Historial de Movimientos de Inventario (Kardex)</div>
+            <div style="font-size:12px; color:#64748b;" x-text="kardexMoves.length + ' movimientos registrados' + (kardexBalance !== null ? ' · Saldo Kardex: ' + kardexBalance + ' unidades' : '')"></div>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <button 
+              type="button" 
+              class="inv-secondary-btn" 
+              @click="syncStockWithKardex()" 
+              :disabled="isSyncingKardex"
+              title="Sincronizar existencias físicas con el saldo del Kardex"
+              style="display:inline-flex; align-items:center; gap:6px; background:#714B67; color:#ffffff; border:none; padding:8px 14px; border-radius:8px; font-size:12.5px; font-weight:800; cursor:pointer;"
+            >
+              <i class="ph ph-arrows-clockwise" :class="isSyncingKardex ? 'spin' : ''" style="font-size:16px;"></i>
+              <span x-text="isSyncingKardex ? 'Sincronizando...' : '🔄 Sincronizar Stock con Kardex'"></span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Alerta de Discrepancia Kardex vs Stock -->
+        <div x-show="hasKardexDiscrepancy" style="background:#fffbeb; border:1px solid #fde68a; border-radius:10px; padding:12px 16px; margin-bottom:16px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;" x-cloak>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <i class="ph ph-warning-circle" style="font-size:24px; color:#d97706;"></i>
+            <div>
+              <div style="font-size:13px; font-weight:800; color:#92400e;">Diferencia entre Existencia y Kardex detectada</div>
+              <div style="font-size:12px; color:#b45309;">
+                La tarjeta muestra <strong x-text="(form.total_stock || 0) + ' unidades'"></strong>, pero el saldo real del Kardex es de <strong x-text="(kardexBalance || 0) + ' unidades'"></strong>.
+              </div>
+            </div>
+          </div>
+          <button 
+            type="button" 
+            @click="syncStockWithKardex()"
+            style="background:#d97706; color:#ffffff; border:none; border-radius:6px; padding:6px 14px; font-size:12px; font-weight:800; cursor:pointer; white-space:nowrap;"
+          >
+            Corregir y Sincronizar
+          </button>
         </div>
 
         <template x-if="kardexMoves.length === 0">
@@ -689,12 +724,13 @@
         </template>
 
         <template x-if="kardexMoves.length > 0">
-          <div style="border:1px solid #e2e8f0; border-radius:12px; overflow:hidden;">
-            <table style="width:100%; border-collapse:collapse; font-size:13px;">
+          <div style="border:1px solid #e2e8f0; border-radius:12px; overflow-x:auto;">
+            <table style="width:100%; border-collapse:collapse; font-size:13px; min-width:650px;">
               <thead style="background:#f8fafc; color:#475569; font-weight:800; border-bottom:1px solid #e2e8f0;">
                 <tr>
                   <th style="padding:12px 16px; text-align:left;">Fecha</th>
                   <th style="padding:12px 16px; text-align:left;">Tipo de Movimiento</th>
+                  <th style="padding:12px 16px; text-align:left;">Bodega</th>
                   <th style="padding:12px 16px; text-align:right;">Cantidad</th>
                   <th style="padding:12px 16px; text-align:right;">Stock Ant.</th>
                   <th style="padding:12px 16px; text-align:right;">Stock Post.</th>
@@ -708,11 +744,12 @@
                     <td style="padding:12px 16px;">
                       <span 
                         style="padding:3px 8px; border-radius:8px; font-size:11px; font-weight:800;"
-                        :style="m.move_type.includes('in') || m.move_type === 'purchase' ? 'background:#dcfce7; color:#15803d;' : 'background:#fee2e2; color:#b91c1c;'"
+                        :style="m.move_type.includes('in') || m.move_type === 'purchase' || m.move_type === 'ret_sale' ? 'background:#dcfce7; color:#15803d;' : 'background:#fee2e2; color:#b91c1c;'"
                         x-text="m.move_type"
                       ></span>
                     </td>
-                    <td style="padding:12px 16px; text-align:right; font-weight:800;" :style="m.move_type.includes('in') || m.move_type === 'purchase' ? 'color:#15803d;' : 'color:#b91c1c;'" x-text="(m.move_type.includes('in') || m.move_type === 'purchase' ? '+' : '-') + m.qty"></td>
+                    <td style="padding:12px 16px; color:#475569; font-weight:700;" x-text="m.warehouse_name || 'Bodega Central'"></td>
+                    <td style="padding:12px 16px; text-align:right; font-weight:800;" :style="m.move_type.includes('in') || m.move_type === 'purchase' || m.move_type === 'ret_sale' ? 'color:#15803d;' : 'color:#b91c1c;'" x-text="(m.move_type.includes('in') || m.move_type === 'purchase' || m.move_type === 'ret_sale' ? '+' : '-') + m.qty"></td>
                     <td style="padding:12px 16px; text-align:right; color:#64748b;" x-text="m.qty_before"></td>
                     <td style="padding:12px 16px; text-align:right; font-weight:800; color:#0f172a;" x-text="m.qty_after"></td>
                     <td style="padding:12px 16px; color:#475569;" x-text="m.reference + (m.notes ? ' · ' + m.notes : '')"></td>
@@ -837,6 +874,9 @@
       suppliers: [],
       uoms: [],
       kardexMoves: [],
+      kardexBalance: null,
+      hasKardexDiscrepancy: false,
+      isSyncingKardex: false,
       form: {
         id: null,
         name: '',
@@ -902,11 +942,30 @@
         await this.loadCategories();
         await this.loadSuppliers();
         await this.loadUOMs();
+        await this.loadWarehouses();
         if (this.productId !== 'new') {
           await this.loadProductData();
         } else {
           await this.fetchNextSku();
         }
+      },
+
+      async loadWarehouses() {
+        try {
+          const res = await API.get('/branches/warehouses');
+          if (res && Array.isArray(res)) {
+            if (!this.form.warehouses || this.form.warehouses.length === 0) {
+              this.form.warehouses = res.map(w => ({
+                warehouse_id: w.id,
+                warehouse_name: w.name,
+                warehouse_code: w.code,
+                branch_name: w.branch_name,
+                qty_on_hand: 0,
+                is_main: w.is_default,
+              }));
+            }
+          }
+        } catch(e) {}
       },
 
       async fetchNextSku() {
@@ -977,8 +1036,29 @@
         try {
           const res = await API.get(`/products/${this.productId}/kardex`);
           this.kardexMoves = res.items || [];
+          if (res.kardex_balance !== undefined) {
+            this.kardexBalance = res.kardex_balance;
+            this.hasKardexDiscrepancy = !!res.has_discrepancy;
+          }
         } catch(e) {
           this.kardexMoves = [];
+        }
+      },
+
+      async syncStockWithKardex() {
+        if (this.productId === 'new' || this.isSyncingKardex) return;
+        this.isSyncingKardex = true;
+        try {
+          const res = await API.post(`/products/${this.productId}/sync-kardex`);
+          if (res && res.success) {
+            await this.loadProductData();
+            await this.loadProductKardex();
+            alert(`✅ ${res.message || 'Stock sincronizado correctamente con el Kardex'}`);
+          }
+        } catch(err) {
+          alert('Error al sincronizar con Kardex: ' + (err.detail || err.message || err));
+        } finally {
+          this.isSyncingKardex = false;
         }
       },
 

@@ -8,6 +8,105 @@
   /* =============================================
      EXECUTIVE INVENTORY & CATALOG CRM STYLES
   ============================================= */
+  .inv-header-bar {
+    margin: -20px -24px 20px -24px;
+    padding: 14px 24px;
+    background: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 14px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  }
+
+  .inv-header-main-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .inv-header-title-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .inv-header-title {
+    font-size: 15px;
+    font-weight: 800;
+    color: #1e293b;
+    margin: 0;
+    padding: 0;
+  }
+
+  .inv-header-actions-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .inv-btn-new {
+    background: #714B67;
+    color: #ffffff;
+    font-weight: 800;
+    border-radius: 8px;
+    padding: 8px 16px;
+    border: none;
+    box-shadow: 0 2px 8px rgba(113, 75, 103, 0.25);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    text-decoration: none;
+    font-size: 13px;
+    white-space: nowrap;
+    transition: all 0.15s ease;
+  }
+
+  .inv-btn-new:hover {
+    background: #5d3d54;
+    color: #ffffff;
+  }
+
+  .inv-secondary-actions-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .inv-sec-btn {
+    background: #ffffff !important;
+    color: #0f766e !important;
+    border: 1.5px solid #0d9488 !important;
+    font-weight: 700 !important;
+    border-radius: 8px !important;
+    padding: 6px 12px !important;
+    font-size: 12px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    cursor: pointer !important;
+    text-decoration: none !important;
+    white-space: nowrap !important;
+    min-height: 34px !important;
+  }
+
+  .inv-sec-btn.export {
+    color: #334155 !important;
+    border-color: #cbd5e1 !important;
+  }
+
+  .view-switcher-group {
+    display: flex;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #ffffff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  }
+
   .inv-kpi-card {
     background: #ffffff;
     border: 1px solid #e2e8f0;
@@ -48,7 +147,7 @@
     position: relative;
     display: flex;
     align-items: center;
-    width: 380px;
+    width: 340px;
     max-width: 100%;
   }
 
@@ -84,6 +183,8 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
 
   .filter-pill:hover {
@@ -109,11 +210,242 @@
     transition: all 0.15s;
     background: #ffffff;
     color: #64748b;
+    min-height: 34px;
   }
 
   .view-switcher-btn.active {
     background: #714B67 !important;
     color: #ffffff !important;
+  }
+
+  /* Filters & Segmentations */
+  .inv-filter-section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .inv-pills-scroll {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding-bottom: 2px;
+  }
+
+  .inv-pills-scroll::-webkit-scrollbar {
+    display: none;
+  }
+
+  .inv-filter-label {
+    font-size: 12px;
+    font-weight: 800;
+    color: #64748b;
+    flex-shrink: 0;
+  }
+
+  .pill-count {
+    background: rgba(0, 0, 0, 0.08);
+    padding: 1px 6px;
+    border-radius: 10px;
+    font-size: 11px;
+    margin-left: 2px;
+  }
+
+  .pill-divider {
+    width: 1px;
+    height: 20px;
+    background: #cbd5e1;
+    margin: 0 4px;
+    flex-shrink: 0;
+  }
+
+  .inv-selects-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .inv-select-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .inv-select-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #64748b;
+    white-space: nowrap;
+  }
+
+  .inv-select-control {
+    padding: 5px 10px;
+    font-size: 12px;
+    font-weight: 700;
+    border-radius: 8px;
+    max-width: 200px;
+  }
+
+  /* Card Footer */
+  .inv-card-footer {
+    margin-top: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11.5px;
+    color: #64748b;
+    border-top: 1px solid #f8fafc;
+    padding-top: 8px;
+    gap: 8px;
+  }
+
+  .inv-cost-text {
+    font-size: 11.5px;
+    font-weight: 700;
+    color: #64748b;
+    white-space: nowrap;
+  }
+
+  .inv-card-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .btn-card-archive {
+    padding: 4px 8px !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    border-radius: 6px !important;
+    border: 1px solid #cbd5e1 !important;
+    background: #ffffff !important;
+    min-height: 30px !important;
+    max-height: 32px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+    cursor: pointer;
+  }
+
+  .btn-card-delete {
+    padding: 4px 8px !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    border-radius: 6px !important;
+    border: 1px solid #fecaca !important;
+    background: #fef2f2 !important;
+    color: #dc2626 !important;
+    min-height: 30px !important;
+    max-height: 32px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer;
+  }
+
+  .btn-card-edit {
+    padding: 4px 10px !important;
+    font-size: 11px !important;
+    font-weight: 800 !important;
+    border-radius: 6px !important;
+    border: 1px solid #e9d5ff !important;
+    background: #f4eff3 !important;
+    color: #714B67 !important;
+    min-height: 30px !important;
+    max-height: 32px !important;
+    text-decoration: none !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 3px !important;
+    cursor: pointer;
+    white-space: nowrap !important;
+  }
+
+  /* Mobile Responsive Adaptations (<= 768px) */
+  @media screen and (max-width: 768px) {
+    .inv-header-bar {
+      margin: -14px -12px 14px -12px !important;
+      padding: 12px 14px !important;
+      flex-direction: column !important;
+      align-items: stretch !important;
+      gap: 10px !important;
+      border-radius: 0 0 10px 10px !important;
+    }
+
+    .inv-header-main-row {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      width: 100% !important;
+    }
+
+    .inv-header-title {
+      font-size: 16px !important;
+    }
+
+    .inv-btn-new {
+      padding: 6px 12px !important;
+      font-size: 12px !important;
+      min-height: 34px !important;
+    }
+
+    .inv-secondary-actions-row {
+      display: grid !important;
+      grid-template-columns: 1fr 1fr !important;
+      gap: 8px !important;
+      width: 100% !important;
+    }
+
+    .inv-sec-btn {
+      width: 100% !important;
+      justify-content: center !important;
+      padding: 6px 8px !important;
+      font-size: 11.5px !important;
+      min-height: 34px !important;
+    }
+
+    .odoo-search-container {
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+
+    .inv-selects-row {
+      display: grid !important;
+      grid-template-columns: 1fr 1fr !important;
+      gap: 8px !important;
+      width: 100% !important;
+    }
+
+    .inv-select-group {
+      width: 100% !important;
+      flex-direction: column !important;
+      align-items: stretch !important;
+      gap: 3px !important;
+    }
+
+    .inv-select-control {
+      width: 100% !important;
+      max-width: 100% !important;
+      font-size: 13px !important;
+      min-height: 38px !important;
+    }
+
+    .odoo-product-card {
+      padding: 14px !important;
+    }
+
+    .inv-card-footer {
+      padding-top: 8px !important;
+      margin-top: 10px !important;
+    }
   }
 </style>
 {% endblock %}
@@ -127,7 +459,7 @@
       filteredProducts: [],
       categories: [],
       warehouses: [],
-      selectedWarehouseId: '',
+      selectedWarehouseId: (new URLSearchParams(window.location.search).get('warehouse_id') || ''),
       statusFilter: 'active', // 'active' | 'archived' | 'all'
       filterType: 'all',
       selectedCategoryId: '',
@@ -137,7 +469,27 @@
       selectedCsvFile: null,
       isUploadingCsv: false,
       importResult: null,
-      canManageProducts: true,
+      currentTab: (new URLSearchParams(window.location.search).get('tab') || 'catalog'),
+      kardexMoves: [],
+      kardexSummary: { total_moves: 0, total_inflow: 0, total_outflow: 0, net_qty: 0 },
+      kardexFilterMoveType: 'all',
+      kardexSearch: '',
+      kardexSelectedWarehouseId: (new URLSearchParams(window.location.search).get('warehouse_id') || ''),
+      kardexSelectedProductId: (new URLSearchParams(window.location.search).get('product_id') || ''),
+      isLoadingKardex: false,
+      selectedProductKardexData: null,
+      isSyncingMainKardex: false,
+
+      // Modal Kardex de un producto específico
+      showKardexModal: false,
+      modalProduct: null,
+      modalKardexMoves: [],
+      modalKardexBalance: null,
+      modalCurrentStock: null,
+      modalHasDiscrepancy: false,
+      isLoadingModalKardex: false,
+      isSyncingModalKardex: false,
+
       kpis: {
         total_products: 0,
         total_valuation: 0,
@@ -152,6 +504,9 @@
         try { await this.loadKPIs(); } catch (e) { }
         try { await this.loadCategories(); } catch (e) { }
         try { await this.loadProducts(); } catch (e) { }
+        if (this.currentTab === 'kardex') {
+          await this.loadKardexMoves();
+        }
       },
 
       async checkUserPermissions() {
@@ -176,10 +531,33 @@
         try {
           const res = await API.get('/branches/warehouses');
           this.warehouses = Array.isArray(res) ? res : (res.items || res.warehouses || []);
+          const urlParams = new URLSearchParams(window.location.search);
+          const urlWh = urlParams.get('warehouse_id');
+          if (urlWh && this.warehouses.some(w => String(w.id) === String(urlWh))) {
+            this.selectedWarehouseId = urlWh;
+            this.kardexSelectedWarehouseId = urlWh;
+          }
         } catch (e) {
           console.warn("No se pudieron cargar las bodegas:", e);
           this.warehouses = [];
         }
+      },
+
+      onWarehouseFilterChange() {
+        const url = new URL(window.location);
+        if (this.selectedWarehouseId) {
+          url.searchParams.set('warehouse_id', this.selectedWarehouseId);
+        } else {
+          url.searchParams.delete('warehouse_id');
+        }
+        window.history.replaceState({}, '', url);
+        this.loadProducts();
+        this.loadKPIs();
+      },
+
+      getSelectedWarehouseName() {
+        const wh = this.warehouses.find(w => String(w.id) === String(this.selectedWarehouseId));
+        return wh ? `${wh.name} (${wh.code || ''})` : '';
       },
 
       async loadKPIs() {
@@ -316,6 +694,166 @@
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+      },
+
+      switchTab(tab) {
+        this.currentTab = tab;
+        const url = new URL(window.location.href);
+        if (tab === 'catalog') {
+          url.searchParams.delete('tab');
+        } else {
+          url.searchParams.set('tab', tab);
+        }
+        window.history.pushState({}, '', url.toString());
+        if (tab === 'kardex' && this.kardexMoves.length === 0) {
+          this.loadKardexMoves();
+        }
+      },
+
+      async loadKardexMoves() {
+        this.isLoadingKardex = true;
+        try {
+          let url = '/inventory/moves?limit=250';
+          if (this.kardexSelectedWarehouseId) {
+            url += `&warehouse_id=${encodeURIComponent(this.kardexSelectedWarehouseId)}`;
+          }
+          if (this.kardexSelectedProductId) {
+            url += `&product_id=${encodeURIComponent(this.kardexSelectedProductId)}`;
+          }
+          if (this.kardexFilterMoveType && this.kardexFilterMoveType !== 'all') {
+            url += `&move_type=${encodeURIComponent(this.kardexFilterMoveType)}`;
+          }
+          if (this.kardexSearch) {
+            url += `&search=${encodeURIComponent(this.kardexSearch)}`;
+          }
+          const res = await API.get(url);
+          this.kardexMoves = res.items || (Array.isArray(res) ? res : []);
+          this.kardexSummary = res.summary || {
+            total_moves: this.kardexMoves.length,
+            total_inflow: this.kardexMoves.filter(m => m.is_inflow).reduce((acc, m) => acc + (m.qty || 0), 0),
+            total_outflow: this.kardexMoves.filter(m => !m.is_inflow).reduce((acc, m) => acc + (m.qty || 0), 0),
+            net_qty: 0
+          };
+          this.kardexSummary.net_qty = Math.round((this.kardexSummary.total_inflow - this.kardexSummary.total_outflow) * 100) / 100;
+
+          if (this.kardexSelectedProductId) {
+            try {
+              const kRes = await API.get(`/products/${this.kardexSelectedProductId}/kardex`);
+              this.selectedProductKardexData = kRes;
+            } catch(e) {
+              this.selectedProductKardexData = null;
+            }
+          } else {
+            this.selectedProductKardexData = null;
+          }
+        } catch (e) {
+          console.error("Error al cargar movimientos de Kardex:", e);
+          this.kardexMoves = [];
+        } finally {
+          this.isLoadingKardex = false;
+        }
+      },
+
+      async onKardexProductSelect() {
+        await this.loadKardexMoves();
+      },
+
+      async syncKardexStockInMainView() {
+        if (!this.kardexSelectedProductId) return;
+        this.isSyncingMainKardex = true;
+        try {
+          const res = await API.post(`/products/${this.kardexSelectedProductId}/sync-kardex`);
+          if (res) {
+            showToast('Stock reconciliado con el Kardex exitosamente', 'success');
+            await this.loadKardexMoves();
+            await this.loadProducts();
+          }
+        } catch(e) {
+          alert('Error al reconciliar stock: ' + (e.message || e));
+        } finally {
+          this.isSyncingMainKardex = false;
+        }
+      },
+
+      async openProductKardex(p) {
+        this.modalProduct = p;
+        this.showKardexModal = true;
+        this.isLoadingModalKardex = true;
+        this.modalKardexMoves = [];
+        this.modalKardexBalance = null;
+        this.modalCurrentStock = p.stock || 0;
+        this.modalHasDiscrepancy = false;
+        try {
+          const res = await API.get(`/products/${p.id}/kardex`);
+          this.modalKardexMoves = res.items || [];
+          this.modalKardexBalance = res.kardex_balance !== undefined ? res.kardex_balance : null;
+          this.modalCurrentStock = res.current_stock !== undefined ? res.current_stock : (p.stock || 0);
+          this.modalHasDiscrepancy = !!res.has_discrepancy;
+        } catch (e) {
+          console.error("Error al cargar Kardex del producto:", e);
+        } finally {
+          this.isLoadingModalKardex = false;
+        }
+      },
+
+      async syncModalKardex() {
+        if (!this.modalProduct) return;
+        this.isSyncingModalKardex = true;
+        try {
+          const res = await API.post(`/products/${this.modalProduct.id}/sync-kardex`);
+          if (res) {
+            this.modalProduct.stock = res.reconciled_stock;
+            this.modalCurrentStock = res.reconciled_stock;
+            this.modalKardexBalance = res.reconciled_stock;
+            this.modalHasDiscrepancy = false;
+            const idx = this.products.findIndex(pr => pr.id === this.modalProduct.id);
+            if (idx !== -1) {
+              this.products[idx].stock = res.reconciled_stock;
+              this.applyFilters();
+            }
+            showToast('Stock reconciliado con el Kardex exitosamente', 'success');
+          }
+        } catch (e) {
+          alert('Error al reconciliar stock: ' + (e.message || e));
+        } finally {
+          this.isSyncingModalKardex = false;
+        }
+      },
+
+      exportKardexCSV() {
+        if (!this.kardexMoves || this.kardexMoves.length === 0) {
+          alert('No hay movimientos de Kardex para exportar.');
+          return;
+        }
+        let csv = 'Fecha,Producto,SKU,Bodega,Tipo Movimiento,Referencia,Cantidad Entrada,Cantidad Salida,Stock Anterior,Stock Posterior,Costo Unitario,Notas\n';
+        this.kardexMoves.forEach(m => {
+          const qtyIn = m.is_inflow ? m.qty : 0;
+          const qtyOut = !m.is_inflow ? m.qty : 0;
+          csv += `"${m.date || ''}","${(m.product_name || '').replace(/"/g, '""')}","${m.product_sku || ''}","${m.warehouse_name || ''}","${m.move_type || ''}","${m.reference || ''}",${qtyIn},${qtyOut},${m.qty_before || 0},${m.qty_after || 0},${m.unit_cost || 0},"${(m.notes || '').replace(/"/g, '""')}"\n`;
+        });
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.setAttribute('download', `kardex_inventario_${new Date().toISOString().slice(0, 10)}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      },
+
+      getMovementBadge(type) {
+        const badges = {
+          'purchase': { label: '📥 Compra Proveedor', bg: '#dcfce7', color: '#15803d', border: '#bbf7d0' },
+          'initial': { label: '✨ Inv. Inicial', bg: '#f0fdf4', color: '#166534', border: '#bbf7d0' },
+          'adj_in': { label: '➕ Ajuste Entrada', bg: '#ecfdf5', color: '#047857', border: '#a7f3d0' },
+          'ret_sale': { label: '↩️ Dev. Venta', bg: '#e0f2fe', color: '#0369a1', border: '#bae6fd' },
+          'transfer_in': { label: '🔄 Traslado Entrada', bg: '#f0f9ff', color: '#0284c7', border: '#bae6fd' },
+          'sale': { label: '🛒 Venta POS', bg: '#fee2e2', color: '#b91c1c', border: '#fecaca' },
+          'adj_out': { label: '➖ Ajuste Salida', bg: '#fff7ed', color: '#c2410c', border: '#fed7aa' },
+          'waste': { label: '🗑️ Desperdicio', bg: '#fef2f2', color: '#991b1b', border: '#fecaca' },
+          'expired': { label: '⌛ Vencimiento', bg: '#fef3c7', color: '#b45309', border: '#fde68a' },
+          'transfer_out': { label: '📤 Traslado Salida', bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe' },
+        };
+        return badges[type] || { label: type, bg: '#f1f5f9', color: '#475569', border: '#cbd5e1' };
       }
     };
   }
@@ -330,33 +868,38 @@
 
 <div x-data="inventoryPage">
 
-  <!-- ===== TOP HEADER BAR ===== -->
-  <div
-    style="margin:-20px -24px 20px -24px; padding:14px 24px; background:#ffffff; border-bottom:1px solid #e2e8f0; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+  <!-- ==================== PESTAÑA 1: CATÁLOGO GENERAL ==================== -->
+  <div x-show="currentTab === 'catalog'">
 
-    <!-- Left: Actions & Title -->
-    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-      <template x-if="canManageProducts">
-        <a href="/inventory/new" class="btn btn-primary"
-          style="background:#714B67; color:#ffffff; font-weight:800; border-radius:8px; padding:8px 18px; border:none; box-shadow:0 2px 8px rgba(113,75,103,0.25); display:flex; align-items:center; gap:6px; cursor:pointer; text-decoration:none;">
-          <i class="ph ph-plus" style="font-weight:800;"></i> Nuevo Producto
-        </a>
-      </template>
-      <template x-if="canManageProducts">
-        <button class="btn btn-secondary"
-          style="background:#ffffff; color:#0f766e; border:1.5px solid #0d9488; font-weight:700; border-radius:8px; padding:7px 14px; font-size:12.5px; display:flex; align-items:center; gap:6px; cursor:pointer;"
-          @click="showImportModal = true">
-          <i class="ph ph-file-arrow-up" style="font-size:16px; color:#0d9488;"></i> Importar CSV
-        </button>
-      </template>
-      <a href="/api/v1/products/export-csv" class="btn btn-secondary"
-        style="background:#ffffff; color:#334155; border:1px solid #cbd5e1; font-weight:700; border-radius:8px; padding:7px 14px; font-size:12.5px; display:flex; align-items:center; gap:6px; cursor:pointer; text-decoration:none;"
-        download>
-        <i class="ph ph-file-arrow-down" style="font-size:16px; color:#0d9488;"></i> Exportar Excel / CSV
-      </a>
-      <div
-        style="font-size:15px; font-weight:800; color:#1e293b; display:flex; align-items:center; gap:8px; margin-left:4px;">
-        <span>Catálogo de Inventarios</span>
+  <!-- ===== TOP HEADER BAR ===== -->
+  <div class="inv-header-bar">
+
+    <!-- Top / Main Row: Title on Left, View Switcher + New Product on Right -->
+    <div class="inv-header-main-row">
+      <div class="inv-header-title-box">
+        <h1 class="inv-header-title">Catálogo de Inventarios</h1>
+      </div>
+
+      <div class="inv-header-actions-box">
+        <!-- View Switcher -->
+        <div class="view-switcher-group">
+          <button class="view-switcher-btn" :class="viewMode === 'kanban' ? 'active' : ''" @click="viewMode = 'kanban'"
+            title="Vista Tarjetas">
+            <i class="ph ph-squares-four"></i>
+          </button>
+          <button class="view-switcher-btn" :class="viewMode === 'list' ? 'active' : ''" @click="viewMode = 'list'"
+            title="Vista Tabla" style="border-left:1px solid #cbd5e1;">
+            <i class="ph ph-list-bullets"></i>
+          </button>
+        </div>
+
+        <!-- New Product Button -->
+        <template x-if="canManageProducts">
+          <a href="/inventory/new" class="btn btn-primary inv-btn-new">
+            <i class="ph ph-plus" style="font-weight:800;"></i>
+            <span>Nuevo Producto</span>
+          </a>
+        </template>
       </div>
     </div>
 
@@ -370,91 +913,101 @@
         x-show="search.length > 0" @click="search = ''; loadProducts()"></i>
     </div>
 
-    <!-- Right: View Switcher -->
-    <div style="display:flex; align-items:center; gap:10px;">
-      <div
-        style="display:flex; border:1px solid #cbd5e1; border-radius:8px; overflow:hidden; background:#ffffff; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
-        <button class="view-switcher-btn" :class="viewMode === 'kanban' ? 'active' : ''" @click="viewMode = 'kanban'"
-          title="Vista Tarjetas">
-          <i class="ph ph-squares-four"></i>
+    <!-- Secondary Actions (Import / Export CSV) -->
+    <div class="inv-secondary-actions-row">
+      <template x-if="canManageProducts">
+        <button class="btn btn-secondary inv-sec-btn"
+          @click="showImportModal = true">
+          <i class="ph ph-file-arrow-up" style="font-size:15px; color:#0d9488;"></i> <span>Importar CSV</span>
         </button>
-        <button class="view-switcher-btn" :class="viewMode === 'list' ? 'active' : ''" @click="viewMode = 'list'"
-          title="Vista Tabla" style="border-left:1px solid #cbd5e1;">
-          <i class="ph ph-list-bullets"></i>
-        </button>
-      </div>
+      </template>
+      <a href="/api/v1/products/export-csv" class="btn btn-secondary inv-sec-btn export" download>
+        <i class="ph ph-file-arrow-down" style="font-size:15px; color:#0d9488;"></i> <span>Exportar Excel / CSV</span>
+      </a>
     </div>
 
   </div>
 
 
   <!-- ===== 2. SEGMENTATION & FILTER PILLS ===== -->
-  <div style="position:relative; display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:20px;">
+  <div class="inv-filter-section">
 
-    <!-- Status Filters -->
-    <span style="font-size:12px; font-weight:800; color:#64748b;">ESTADO:</span>
-    <button class="filter-pill" :class="statusFilter === 'active' ? 'active' : ''"
-      @click="statusFilter = 'active'; loadProducts()">
-      <span>Activos</span>
-    </button>
-    <button class="filter-pill" :class="statusFilter === 'archived' ? 'active' : ''"
-      @click="statusFilter = 'archived'; loadProducts()" style="color:#d97706;">
-      <span>📁 Archivados</span>
-    </button>
-    <button class="filter-pill" :class="statusFilter === 'all' ? 'active' : ''"
-      @click="statusFilter = 'all'; loadProducts()">
-      <span>Todos</span>
-      <span style="background:rgba(0,0,0,0.08); padding:1px 6px; border-radius:10px; font-size:11px;"
-        x-text="products.length"></span>
-    </button>
+    <!-- Status & Stock Filters Scrollable Row (Swipeable on touch screens) -->
+    <div class="inv-pills-scroll">
+      <!-- Status Filters -->
+      <span class="inv-filter-label hide-on-mobile">ESTADO:</span>
+      <button class="filter-pill" :class="statusFilter === 'active' ? 'active' : ''"
+        @click="statusFilter = 'active'; loadProducts()">
+        <span>Activos</span>
+      </button>
+      <button class="filter-pill" :class="statusFilter === 'archived' ? 'active' : ''"
+        @click="statusFilter = 'archived'; loadProducts()" style="color:#d97706;">
+        <span>📁 Archivados</span>
+      </button>
+      <button class="filter-pill" :class="statusFilter === 'all' ? 'active' : ''"
+        @click="statusFilter = 'all'; loadProducts()">
+        <span>Todos</span>
+        <span class="pill-count" x-text="products.length"></span>
+      </button>
 
-    <div style="width:1px; height:20px; background:#cbd5e1; margin:0 4px;"></div>
+      <div class="pill-divider"></div>
 
-    <!-- Stock Filters -->
-    <button class="filter-pill" :class="filterType === 'in_stock' ? 'active' : ''"
-      @click="filterType = filterType === 'in_stock' ? 'all' : 'in_stock'; applyFilters()">
-      <span>🟢 Con Stock</span>
-    </button>
-    <button class="filter-pill" :class="filterType === 'low_stock' ? 'active' : ''"
-      @click="filterType = filterType === 'low_stock' ? 'all' : 'low_stock'; applyFilters()" style="color:#c2410c;">
-      <span>⚠️ Stock Bajo</span>
-    </button>
-    <button class="filter-pill" :class="filterType === 'out_of_stock' ? 'active' : ''"
-      @click="filterType = filterType === 'out_of_stock' ? 'all' : 'out_of_stock'; applyFilters()"
-      style="color:#dc2626;">
-      <span>🔴 Agotados</span>
-    </button>
-
-    <!-- Warehouse selector -->
-    <div style="display:flex; align-items:center; gap:6px;">
-      <span style="font-size:12px; font-weight:700; color:#64748b;">🏢 Bodega:</span>
-      <select class="form-control"
-        style="padding:5px 10px; font-size:12px; font-weight:700; border-radius:8px; max-width:180px;"
-        x-model="selectedWarehouseId" @change="loadProducts(); loadKPIs();">
-        <option value="">Todas las bodegas</option>
-        <template x-for="wh in warehouses" :key="wh.id">
-          <option :value="wh.id" x-text="wh.name + (wh.branch ? ' (' + wh.branch.name + ')' : '')"></option>
-        </template>
-      </select>
+      <!-- Stock Filters -->
+      <button class="filter-pill" :class="filterType === 'in_stock' ? 'active' : ''"
+        @click="filterType = filterType === 'in_stock' ? 'all' : 'in_stock'; applyFilters()">
+        <span>🟢 Con Stock</span>
+      </button>
+      <button class="filter-pill" :class="filterType === 'low_stock' ? 'active' : ''"
+        @click="filterType = filterType === 'low_stock' ? 'all' : 'low_stock'; applyFilters()" style="color:#c2410c;">
+        <span>⚠️ Stock Bajo</span>
+      </button>
+      <button class="filter-pill" :class="filterType === 'out_of_stock' ? 'active' : ''"
+        @click="filterType = filterType === 'out_of_stock' ? 'all' : 'out_of_stock'; applyFilters()"
+        style="color:#dc2626;">
+        <span>🔴 Agotados</span>
+      </button>
     </div>
 
-    <!-- Category selector -->
-    <div style="display:flex; align-items:center; gap:6px;">
-      <span style="font-size:12px; font-weight:700; color:#64748b;">Categoría:</span>
-      <select class="form-control" style="padding:5px 10px; font-size:12px; font-weight:700; border-radius:8px;"
-        x-model="selectedCategoryId" @change="applyFilters()">
-        <option value="">Todas las categorías</option>
-        <template x-for="cat in categories" :key="cat.id">
-          <option :value="cat.id" x-text="cat.name"></option>
-        </template>
-      </select>
-    </div>
+    <!-- Warehouse & Category Selects -->
+    <div class="inv-selects-row">
+      <!-- Warehouse selector -->
+      <div class="inv-select-group">
+        <label class="inv-select-label">🏢 Bodega:</label>
+        <select class="form-control inv-select-control"
+          x-model="selectedWarehouseId" @change="onWarehouseFilterChange()">
+          <option value="">Todas las bodegas</option>
+          <template x-for="wh in warehouses" :key="wh.id">
+            <option :value="wh.id" :selected="String(wh.id) === String(selectedWarehouseId)" x-text="wh.name + (wh.branch_name ? ' (' + wh.branch_name + ')' : '') + (wh.code ? ' — ' + wh.code : '')"></option>
+          </template>
+        </select>
+      </div>
 
-    <!-- Divider -->
-    <div style="width:1px; height:20px; background:#e2e8f0;"></div>
+      <!-- Active Warehouse Filter Pill -->
+      <template x-if="selectedWarehouseId">
+        <div style="display:inline-flex; align-items:center; gap:6px; background:#f4eff3; border:1px solid #d8b4e2; color:#714B67; padding:4px 10px; border-radius:20px; font-size:12px; font-weight:800; white-space:nowrap;">
+          <i class="ph ph-warehouse" style="font-size:14px;"></i>
+          <span x-text="getSelectedWarehouseName()"></span>
+          <button type="button" @click="selectedWarehouseId = ''; onWarehouseFilterChange()" style="background:none; border:none; color:#714B67; cursor:pointer; font-weight:900; font-size:14px; padding:0 2px; line-height:1;" title="Quitar filtro de bodega">&times;</button>
+        </div>
+      </template>
+
+      <!-- Category selector -->
+      <div class="inv-select-group">
+        <label class="inv-select-label">🏷️ Categoría:</label>
+        <select class="form-control inv-select-control"
+          x-model="selectedCategoryId" @change="applyFilters()">
+          <option value="">Todas las categorías</option>
+          <template x-for="cat in categories" :key="cat.id">
+            <option :value="cat.id" x-text="cat.name"></option>
+          </template>
+        </select>
+      </div>
+
+      <!-- Divider -->
+      <div class="hide-on-mobile" style="width:1px; height:20px; background:#e2e8f0;"></div>
 
     <!-- Premium KPI Toggle Button — al par de Categorías -->
-    <button type="button" @click="showKpis = !showKpis" style="
+    <button type="button" class="hide-on-mobile" @click="showKpis = !showKpis" style="
           display:inline-flex; align-items:center; gap:7px;
           padding:6px 14px;
           background:linear-gradient(135deg, #714B67 0%, #9b6b8f 100%);
@@ -472,7 +1025,7 @@
     </button>
 
     <!-- Floating KPI Dropdown Panel (alineado a la derecha) -->
-    <div x-show="showKpis" @click.outside="showKpis = false" x-transition:enter="transition ease-out duration-200"
+    <div class="hide-on-mobile" x-show="showKpis" @click.outside="showKpis = false" x-transition:enter="transition ease-out duration-200"
       x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
       x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 scale-100"
       x-transition:leave-end="opacity-0 scale-95" style="
@@ -592,28 +1145,43 @@
           </div>
 
           <!-- Bottom Footer Action Buttons -->
-          <div
-            style="margin-top:12px; display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#64748b; border-top:1px solid #f8fafc; padding-top:8px;">
-            <span x-text="'Costo: Q ' + Number(p.cost_price || 0).toFixed(2)"></span>
-            <div style="display:flex; align-items:center; gap:6px;" x-show="canManageProducts">
-              <!-- Archivar / Desarchivar -->
-              <button type="button" class="btn btn-sm"
-                style="padding:3px 8px; font-size:11px; font-weight:700; border-radius:6px; border:1px solid #cbd5e1; background:#ffffff;"
-                :style="p.is_active ? 'color:#475569;' : 'color:#b45309; background:#fffbeb; border-color:#fde68a;'"
-                @click.stop="toggleArchiveProduct(p)"
-                :title="p.is_active ? 'Archivar producto (ocultar de ventas)' : 'Desarchivar producto (reactivar)'">
-                <i class="ph" :class="p.is_active ? 'ph-archive' : 'ph-archive-box'"></i>
-                <span x-text="p.is_active ? 'Archivar' : 'Reactivar'"></span>
+          <div class="inv-card-footer">
+            <span class="inv-cost-text" x-text="'Costo: Q ' + Number(p.cost_price || 0).toFixed(2)"></span>
+            <div style="display:inline-flex; align-items:center; gap:6px;">
+              <!-- Botón Kardex accesible para cualquier rol -->
+              <button 
+                type="button" 
+                class="btn btn-sm" 
+                @click.stop="openProductKardex(p)"
+                style="background:#f4eff3; color:#714B67; border:1px solid #d8b4e2; font-weight:800; border-radius:6px; padding:4px 9px; font-size:11px; display:inline-flex; align-items:center; gap:4px; cursor:pointer;"
+                title="Consultar Kardex y movimientos de este producto"
+              >
+                <i class="ph ph-chart-line-up"></i>
+                <span>Kardex</span>
               </button>
 
-              <!-- Eliminar -->
-              <button type="button" class="btn btn-sm"
-                style="padding:3px 7px; font-size:11px; font-weight:700; border-radius:6px; border:1px solid #fecaca; background:#fef2f2; color:#dc2626;"
-                @click.stop="deleteProduct(p)" title="Eliminar producto del inventario">
-                <i class="ph ph-trash"></i>
-              </button>
+              <div class="inv-card-actions" x-show="canManageProducts">
+                <!-- Archivar / Desarchivar -->
+                <button type="button" class="btn btn-sm btn-card-archive"
+                  :style="p.is_active ? 'color:#475569;' : 'color:#b45309; background:#fffbeb; border-color:#fde68a;'"
+                  @click.stop="toggleArchiveProduct(p)"
+                  :title="p.is_active ? 'Archivar producto (ocultar de ventas)' : 'Desarchivar producto (reactivar)'">
+                  <i class="ph" :class="p.is_active ? 'ph-archive' : 'ph-archive-box'"></i>
+                  <span x-text="p.is_active ? 'Archivar' : 'Reactivar'"></span>
+                </button>
 
-              <span style="font-weight:800; color:#714B67; margin-left:2px;">Editar &rarr;</span>
+                <!-- Eliminar -->
+                <button type="button" class="btn btn-sm btn-card-delete"
+                  @click.stop="deleteProduct(p)" title="Eliminar producto del inventario">
+                  <i class="ph ph-trash"></i>
+                </button>
+
+                <!-- Editar -->
+                <a :href="'/inventory/' + p.id" class="btn btn-sm btn-card-edit" @click.stop title="Editar producto">
+                  <span>Editar</span>
+                  <i class="ph ph-arrow-right"></i>
+                </a>
+              </div>
             </div>
           </div>
 
@@ -660,8 +1228,8 @@
                 style="padding:14px 18px; text-align:center; color:#475569; font-size:11px; text-transform:uppercase; font-weight:800;">
                 Estado</th>
               <th
-                style="padding:14px 18px; text-align:right; color:#475569; font-size:11px; text-transform:uppercase; font-weight:800;"
-                x-show="canManageProducts">Acciones</th>
+                style="padding:14px 18px; text-align:right; color:#475569; font-size:11px; text-transform:uppercase; font-weight:800;">
+                Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -697,30 +1265,42 @@
                     :style="p.is_active ? 'background:#dcfce7; color:#15803d;' : 'background:#fef3c7; color:#b45309;'"
                     x-text="p.is_active ? 'Activo' : 'Archivado'"></span>
                 </td>
-                <td style="padding:14px 18px; text-align:right;" x-show="canManageProducts">
+                <td style="padding:14px 18px; text-align:right;">
                   <div style="display:inline-flex; align-items:center; gap:6px;">
-                    <!-- Editar -->
+                    <!-- Botón Kardex para todos -->
                     <button class="btn btn-ghost btn-sm"
-                      style="background:#f1f5f9; color:#714B67; font-weight:800; border-radius:6px; padding:4px 10px; border:none; cursor:pointer;"
-                      @click="openProductDetail(p)" title="Editar producto">
-                      Editar
+                      style="background:#f4eff3; color:#714B67; font-weight:800; border-radius:6px; padding:4px 8px; border:1px solid #d8b4e2; cursor:pointer; font-size:11.5px; display:inline-flex; align-items:center; gap:4px;"
+                      @click.stop="openProductKardex(p)" title="Ver Kardex">
+                      <i class="ph ph-chart-line-up"></i>
+                      <span>Kardex</span>
                     </button>
 
-                    <!-- Archivar / Desarchivar -->
-                    <button class="btn btn-ghost btn-sm"
-                      style="background:#f8fafc; border:1px solid #cbd5e1; font-weight:700; border-radius:6px; padding:4px 8px; cursor:pointer;"
-                      :style="p.is_active ? 'color:#475569;' : 'color:#b45309; background:#fffbeb;'"
-                      @click="toggleArchiveProduct(p)"
-                      :title="p.is_active ? 'Archivar producto' : 'Reactivar producto'">
-                      <i class="ph" :class="p.is_active ? 'ph-archive' : 'ph-archive-box'"></i>
-                    </button>
+                    <template x-if="canManageProducts">
+                      <div style="display:inline-flex; align-items:center; gap:6px;">
+                        <!-- Editar -->
+                        <button class="btn btn-ghost btn-sm"
+                          style="background:#f1f5f9; color:#714B67; font-weight:800; border-radius:6px; padding:4px 10px; border:none; cursor:pointer;"
+                          @click="openProductDetail(p)" title="Editar producto">
+                          Editar
+                        </button>
 
-                    <!-- Eliminar -->
-                    <button class="btn btn-ghost btn-sm"
-                      style="background:#fef2f2; border:1px solid #fecaca; color:#dc2626; font-weight:700; border-radius:6px; padding:4px 8px; cursor:pointer;"
-                      @click="deleteProduct(p)" title="Eliminar producto">
-                      <i class="ph ph-trash"></i>
-                    </button>
+                        <!-- Archivar / Desarchivar -->
+                        <button class="btn btn-ghost btn-sm"
+                          style="background:#f8fafc; border:1px solid #cbd5e1; font-weight:700; border-radius:6px; padding:4px 8px; cursor:pointer;"
+                          :style="p.is_active ? 'color:#475569;' : 'color:#b45309; background:#fffbeb;'"
+                          @click="toggleArchiveProduct(p)"
+                          :title="p.is_active ? 'Archivar producto' : 'Reactivar producto'">
+                          <i class="ph" :class="p.is_active ? 'ph-archive' : 'ph-archive-box'"></i>
+                        </button>
+
+                        <!-- Eliminar -->
+                        <button class="btn btn-ghost btn-sm"
+                          style="background:#fef2f2; border:1px solid #fecaca; color:#dc2626; font-weight:700; border-radius:6px; padding:4px 8px; cursor:pointer;"
+                          @click="deleteProduct(p)" title="Eliminar producto">
+                          <i class="ph ph-trash"></i>
+                        </button>
+                      </div>
+                    </template>
                   </div>
                 </td>
               </tr>
@@ -730,6 +1310,506 @@
       </div>
     </div>
   </div>
+  </div> <!-- FIN PESTAÑA 1: CATÁLOGO GENERAL -->
+
+  <!-- ==================== PESTAÑA 2: KARDEX GENERAL Y AUDITORÍA ==================== -->
+  <div x-show="currentTab === 'kardex'" x-cloak>
+    <!-- Top Header Bar -->
+    <div style="background:#ffffff; border-radius:12px; border:1px solid #e2e8f0; padding:18px 24px; margin-bottom:20px; box-shadow:0 1px 3px rgba(0,0,0,0.03); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px;">
+      <div>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div style="width:38px; height:38px; border-radius:10px; background:linear-gradient(135deg, #714B67 0%, #53334c 100%); color:#ffffff; display:flex; align-items:center; justify-content:center; font-size:20px; box-shadow:0 4px 10px rgba(113,75,103,0.25);">
+            <i class="ph-bold ph-chart-line-up"></i>
+          </div>
+          <div>
+            <h1 style="font-size:20px; font-weight:800; color:#1e293b; margin:0; letter-spacing:-0.3px;">Kardex General y Auditoría de Movimientos</h1>
+            <p style="font-size:12.5px; color:#64748b; margin:2px 0 0 0;">Historial cronológico completo de entradas, salidas, ventas y ajustes con trazabilidad contable</p>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <button class="btn btn-secondary btn-sm" @click="switchTab('catalog')"
+          style="display:flex; align-items:center; gap:6px; font-weight:700; border-radius:8px; padding:9px 15px; border:1px solid #cbd5e1; background:#ffffff; color:#334155; cursor:pointer;">
+          <i class="ph ph-squares-four"></i>
+          <span>Ver Catálogo General</span>
+        </button>
+        <button class="btn btn-secondary btn-sm" @click="loadKardexMoves()"
+          style="display:flex; align-items:center; gap:6px; font-weight:700; border-radius:8px; padding:9px 15px; border:1px solid #cbd5e1; background:#ffffff; color:#334155; cursor:pointer;">
+          <i class="ph ph-arrows-clockwise" :class="{ 'ph-spin': isLoadingKardex }"></i>
+          <span>Refrescar</span>
+        </button>
+        <button class="btn btn-primary btn-sm" @click="exportKardexCSV()"
+          style="display:flex; align-items:center; gap:6px; font-weight:700; border-radius:8px; padding:9px 16px; background:#714B67; color:#ffffff; border:none; cursor:pointer; box-shadow:0 2px 6px rgba(113,75,103,0.3);">
+          <i class="ph ph-file-csv"></i>
+          <span>Exportar Kardex CSV</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- KPI Cards Row -->
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:16px; margin-bottom:20px;">
+      <!-- Total Movimientos -->
+      <div style="background:#ffffff; border-radius:12px; border:1px solid #e2e8f0; padding:16px 20px; box-shadow:0 1px 3px rgba(0,0,0,0.02); display:flex; align-items:center; justify-content:space-between;">
+        <div>
+          <div style="font-size:11.5px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:0.5px;">Movimientos Registrados</div>
+          <div style="font-size:24px; font-weight:800; color:#0f172a; margin-top:4px;" x-text="kardexSummary.total_moves">0</div>
+          <div style="font-size:11px; color:#94a3b8; margin-top:2px;">En el periodo / filtro actual</div>
+        </div>
+        <div style="width:44px; height:44px; border-radius:12px; background:#f4eff3; color:#714B67; display:flex; align-items:center; justify-content:center; font-size:22px;">
+          <i class="ph-bold ph-arrows-left-right"></i>
+        </div>
+      </div>
+
+      <!-- Entradas / Ingresos -->
+      <div style="background:#ffffff; border-radius:12px; border:1px solid #e2e8f0; padding:16px 20px; box-shadow:0 1px 3px rgba(0,0,0,0.02); display:flex; align-items:center; justify-content:space-between;">
+        <div>
+          <div style="font-size:11.5px; font-weight:700; color:#059669; text-transform:uppercase; letter-spacing:0.5px;">Total Entradas (+)</div>
+          <div style="font-size:24px; font-weight:800; color:#059669; margin-top:4px;">
+            <span x-text="kardexSummary.total_inflow">0</span> <span style="font-size:14px; font-weight:600; color:#64748b;">unid.</span>
+          </div>
+          <div style="font-size:11px; color:#94a3b8; margin-top:2px;">Compras, inventario inicial, ajustes +</div>
+        </div>
+        <div style="width:44px; height:44px; border-radius:12px; background:#ecfdf5; color:#059669; display:flex; align-items:center; justify-content:center; font-size:22px;">
+          <i class="ph-bold ph-arrow-down-left"></i>
+        </div>
+      </div>
+
+      <!-- Salidas / Ventas -->
+      <div style="background:#ffffff; border-radius:12px; border:1px solid #e2e8f0; padding:16px 20px; box-shadow:0 1px 3px rgba(0,0,0,0.02); display:flex; align-items:center; justify-content:space-between;">
+        <div>
+          <div style="font-size:11.5px; font-weight:700; color:#dc2626; text-transform:uppercase; letter-spacing:0.5px;">Total Salidas (-)</div>
+          <div style="font-size:24px; font-weight:800; color:#dc2626; margin-top:4px;">
+            <span x-text="kardexSummary.total_outflow">0</span> <span style="font-size:14px; font-weight:600; color:#64748b;">unid.</span>
+          </div>
+          <div style="font-size:11px; color:#94a3b8; margin-top:2px;">Ventas POS, bajas, ajustes -</div>
+        </div>
+        <div style="width:44px; height:44px; border-radius:12px; background:#fef2f2; color:#dc2626; display:flex; align-items:center; justify-content:center; font-size:22px;">
+          <i class="ph-bold ph-arrow-up-right"></i>
+        </div>
+      </div>
+
+      <!-- Movimiento Neto -->
+      <div style="background:#ffffff; border-radius:12px; border:1px solid #e2e8f0; padding:16px 20px; box-shadow:0 1px 3px rgba(0,0,0,0.02); display:flex; align-items:center; justify-content:space-between;">
+        <div>
+          <div style="font-size:11.5px; font-weight:700; color:#4f46e5; text-transform:uppercase; letter-spacing:0.5px;">Balance Neto</div>
+          <div style="font-size:24px; font-weight:800; margin-top:4px;" :style="kardexSummary.net_qty >= 0 ? 'color:#4f46e5;' : 'color:#b91c1c;'">
+            <span x-text="(kardexSummary.net_qty >= 0 ? '+' : '') + kardexSummary.net_qty">0</span> <span style="font-size:14px; font-weight:600; color:#64748b;">unid.</span>
+          </div>
+          <div style="font-size:11px; color:#94a3b8; margin-top:2px;">Entradas menos Salidas</div>
+        </div>
+        <div style="width:44px; height:44px; border-radius:12px; background:#eef2ff; color:#4f46e5; display:flex; align-items:center; justify-content:center; font-size:22px;">
+          <i class="ph-bold ph-scales"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filters Bar -->
+    <div style="background:#ffffff; border-radius:12px; border:1px solid #e2e8f0; padding:16px 20px; margin-bottom:20px; box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+      <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+        <!-- Search Input -->
+        <div style="position:relative; flex:1; min-width:240px;">
+          <i class="ph ph-magnifying-glass" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#94a3b8; font-size:16px;"></i>
+          <input type="text" x-model="kardexSearch" @input.debounce.300ms="loadKardexMoves()"
+            placeholder="Buscar por producto, SKU, ref. documento o nota..."
+            style="width:100%; padding:9px 12px 9px 38px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; color:#1e293b; background:#f8fafc; outline:none; transition:border 0.2s;"
+            onfocus="this.style.borderColor='#714B67'; this.style.background='#ffffff'"
+            onblur="this.style.borderColor='#cbd5e1'; this.style.background='#f8fafc'">
+          <button x-show="kardexSearch" @click="kardexSearch = ''; loadKardexMoves()"
+            style="position:absolute; right:10px; top:50%; transform:translateY(-50%); border:none; background:transparent; color:#94a3b8; cursor:pointer; font-size:14px;">
+            <i class="ph-bold ph-x"></i>
+          </button>
+        </div>
+
+        <!-- Product Selector Dropdown -->
+        <div style="min-width:220px; max-width:280px; flex:1;">
+          <select x-model="kardexSelectedProductId" @change="onKardexProductSelect()"
+            style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; color:#1e293b; background:#f8fafc; font-weight:600; cursor:pointer;">
+            <option value="">🔍 Todos los Productos</option>
+            <template x-for="p in products" :key="p.id">
+              <option :value="p.id" x-text="(p.name || '') + ' (' + (p.internal_ref || 'ID:' + p.id) + ')'"></option>
+            </template>
+          </select>
+        </div>
+
+        <!-- Warehouse Selector Dropdown -->
+        <div style="min-width:180px;">
+          <select x-model="kardexSelectedWarehouseId" @change="loadKardexMoves()"
+            style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; color:#1e293b; background:#f8fafc; font-weight:600; cursor:pointer;">
+            <option value="">🏢 Todas las Bodegas</option>
+            <template x-for="w in warehouses" :key="w.id">
+              <option :value="w.id" :selected="String(w.id) === String(kardexSelectedWarehouseId)" x-text="w.name + (w.branch_name ? ' (' + w.branch_name + ')' : '') + (w.code ? ' — ' + w.code : '')"></option>
+            </template>
+          </select>
+        </div>
+      </div>
+
+      <!-- Movement Type Filters (Pills) -->
+      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:14px; padding-top:12px; border-top:1px solid #f1f5f9;">
+        <span style="font-size:12px; font-weight:700; color:#64748b; margin-right:4px;">Tipo de Movimiento:</span>
+        <button type="button" @click="kardexFilterMoveType = 'all'; loadKardexMoves()"
+          :style="kardexFilterMoveType === 'all' ? 'background:#714B67; color:#ffffff; border-color:#714B67;' : 'background:#ffffff; color:#64748b; border-color:#e2e8f0;'"
+          style="padding:5px 12px; border-radius:20px; font-size:12px; font-weight:700; border:1px solid; cursor:pointer; transition:all 0.15s;">
+          Todos
+        </button>
+        <button type="button" @click="kardexFilterMoveType = 'in'; loadKardexMoves()"
+          :style="kardexFilterMoveType === 'in' ? 'background:#059669; color:#ffffff; border-color:#059669;' : 'background:#ffffff; color:#059669; border-color:#a7f3d0;'"
+          style="padding:5px 12px; border-radius:20px; font-size:12px; font-weight:700; border:1px solid; cursor:pointer; transition:all 0.15s;">
+          📥 Solo Entradas (+)
+        </button>
+        <button type="button" @click="kardexFilterMoveType = 'out'; loadKardexMoves()"
+          :style="kardexFilterMoveType === 'out' ? 'background:#dc2626; color:#ffffff; border-color:#dc2626;' : 'background:#ffffff; color:#dc2626; border-color:#fecaca;'"
+          style="padding:5px 12px; border-radius:20px; font-size:12px; font-weight:700; border:1px solid; cursor:pointer; transition:all 0.15s;">
+          📤 Solo Salidas (-)
+        </button>
+        <button type="button" @click="kardexFilterMoveType = 'sale'; loadKardexMoves()"
+          :style="kardexFilterMoveType === 'sale' ? 'background:#b91c1c; color:#ffffff; border-color:#b91c1c;' : 'background:#ffffff; color:#64748b; border-color:#e2e8f0;'"
+          style="padding:5px 12px; border-radius:20px; font-size:12px; font-weight:700; border:1px solid; cursor:pointer; transition:all 0.15s;">
+          🛒 Ventas POS
+        </button>
+        <button type="button" @click="kardexFilterMoveType = 'purchase'; loadKardexMoves()"
+          :style="kardexFilterMoveType === 'purchase' ? 'background:#15803d; color:#ffffff; border-color:#15803d;' : 'background:#ffffff; color:#64748b; border-color:#e2e8f0;'"
+          style="padding:5px 12px; border-radius:20px; font-size:12px; font-weight:700; border:1px solid; cursor:pointer; transition:all 0.15s;">
+          📦 Compras Proveedor
+        </button>
+        <button type="button" @click="kardexFilterMoveType = 'adjustment'; loadKardexMoves()"
+          :style="kardexFilterMoveType === 'adjustment' ? 'background:#4338ca; color:#ffffff; border-color:#4338ca;' : 'background:#ffffff; color:#64748b; border-color:#e2e8f0;'"
+          style="padding:5px 12px; border-radius:20px; font-size:12px; font-weight:700; border:1px solid; cursor:pointer; transition:all 0.15s;">
+          ⚖️ Ajustes de Stock
+        </button>
+      </div>
+    </div>
+
+    <!-- Audit Box for Selected Product (when single product is filtered) -->
+    <template x-if="kardexSelectedProductId && selectedProductKardexData">
+      <div style="background:#ffffff; border-radius:12px; border:1px solid #e2e8f0; padding:18px 24px; margin-bottom:20px; box-shadow:0 2px 5px rgba(0,0,0,0.03);">
+        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px;">
+          <div style="display:flex; align-items:center; gap:14px;">
+            <div style="width:48px; height:48px; border-radius:10px; background:#f1f5f9; display:flex; align-items:center; justify-content:center; overflow:hidden; border:1px solid #e2e8f0;">
+              <template x-if="selectedProductKardexData.product?.image_url">
+                <img :src="selectedProductKardexData.product.image_url" style="width:100%; height:100%; object-fit:cover;">
+              </template>
+              <template x-if="!selectedProductKardexData.product?.image_url">
+                <i class="ph-bold ph-package" style="font-size:24px; color:#94a3b8;"></i>
+              </template>
+            </div>
+            <div>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <h3 style="margin:0; font-size:16px; font-weight:800; color:#0f172a;" x-text="selectedProductKardexData.product?.name"></h3>
+                <span style="background:#f1f5f9; color:#475569; font-size:11px; font-weight:700; padding:2px 8px; border-radius:4px;" x-text="'SKU: ' + (selectedProductKardexData.product?.internal_ref || 'N/A')"></span>
+              </div>
+              <div style="font-size:12px; color:#64748b; margin-top:3px; display:flex; gap:16px;">
+                <span>Precio Venta: <strong style="color:#0f172a;" x-text="'Q ' + (selectedProductKardexData.product?.sale_price || 0).toFixed(2)"></strong></span>
+                <span>Costo: <strong style="color:#0f172a;" x-text="'Q ' + (selectedProductKardexData.product?.cost_price || 0).toFixed(2)"></strong></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Discrepancy & Sync Status -->
+          <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
+            <div style="display:flex; gap:12px;">
+              <div style="text-align:right; border-right:1px solid #e2e8f0; padding-right:14px;">
+                <div style="font-size:11px; font-weight:700; color:#64748b; text-transform:uppercase;">Stock en Catálogo</div>
+                <div style="font-size:18px; font-weight:800; color:#0f172a;" x-text="(selectedProductKardexData.current_stock || 0) + ' unid.'"></div>
+              </div>
+              <div style="text-align:right; padding-right:6px;">
+                <div style="font-size:11px; font-weight:700; color:#64748b; text-transform:uppercase;">Balance Histórico Kardex</div>
+                <div style="font-size:18px; font-weight:800; color:#714B67;" x-text="(selectedProductKardexData.kardex_balance || 0) + ' unid.'"></div>
+              </div>
+            </div>
+
+            <div>
+              <template x-if="selectedProductKardexData.has_discrepancy">
+                <button type="button" @click="syncKardexStockInMainView()" :disabled="isSyncingMainKardex"
+                  style="background:#fef2f2; border:1.5px solid #ef4444; color:#b91c1c; font-weight:800; font-size:12px; border-radius:8px; padding:8px 14px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; box-shadow:0 1px 3px rgba(239,68,68,0.2);">
+                  <i class="ph-bold ph-arrows-clockwise" :class="{ 'ph-spin': isSyncingMainKardex }"></i>
+                  <span x-show="!isSyncingMainKardex">⚠️ Descuadre Detectado — Sincronizar Stock</span>
+                  <span x-show="isSyncingMainKardex">Reconciliando...</span>
+                </button>
+              </template>
+              <template x-if="!selectedProductKardexData.has_discrepancy">
+                <div style="background:#ecfdf5; border:1px solid #a7f3d0; color:#065f46; font-weight:700; font-size:12px; border-radius:8px; padding:8px 14px; display:inline-flex; align-items:center; gap:6px;">
+                  <i class="ph-bold ph-check-circle" style="color:#059669; font-size:16px;"></i>
+                  <span>Stock 100% Conciliado con Kardex</span>
+                </div>
+              </template>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- Kardex Moves Table Card -->
+    <div style="background:#ffffff; border-radius:12px; border:1px solid #e2e8f0; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+      <!-- Table Header Bar -->
+      <div style="padding:14px 20px; border-bottom:1px solid #e2e8f0; display:flex; align-items:center; justify-content:space-between; background:#fafafa;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:13px; font-weight:800; color:#334155;">Lista de Transacciones y Asientos de Kardex</span>
+          <span style="font-size:11px; font-weight:700; background:#e2e8f0; color:#475569; padding:2px 8px; border-radius:12px;" x-text="kardexMoves.length + ' movimientos'"></span>
+        </div>
+        <div x-show="isLoadingKardex" style="font-size:12px; color:#714B67; font-weight:700; display:flex; align-items:center; gap:6px;">
+          <i class="ph-bold ph-arrows-clockwise ph-spin"></i> Cargando movimientos...
+        </div>
+      </div>
+
+      <div style="overflow-x:auto;">
+        <table style="width:100%; border-collapse:collapse; text-align:left; font-size:12.5px;">
+          <thead>
+            <tr style="background:#f8fafc; border-bottom:2px solid #e2e8f0; color:#475569; font-size:11px; text-transform:uppercase; font-weight:800; letter-spacing:0.4px;">
+              <th style="padding:12px 16px;">Fecha y Hora</th>
+              <th style="padding:12px 16px;">Producto</th>
+              <th style="padding:12px 16px;">Bodega</th>
+              <th style="padding:12px 16px;">Tipo de Asiento</th>
+              <th style="padding:12px 16px;">Referencia</th>
+              <th style="padding:12px 16px; text-align:right;">Cantidad</th>
+              <th style="padding:12px 16px; text-align:right;">Stock Posterior</th>
+              <th style="padding:12px 16px; text-align:right;">Costo Unit.</th>
+              <th style="padding:12px 16px;">Notas / Glosa</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="m in kardexMoves" :key="m.id">
+              <tr style="border-bottom:1px solid #f1f5f9; transition:background 0.15s;" onmouseover="this.style.background='#fbfcfe'" onmouseout="this.style.background='#ffffff'">
+                <!-- Fecha -->
+                <td style="padding:12px 16px; white-space:nowrap; color:#334155; font-weight:600;">
+                  <div style="display:flex; align-items:center; gap:6px;">
+                    <i class="ph ph-calendar-blank" style="color:#94a3b8;"></i>
+                    <span x-text="m.date"></span>
+                  </div>
+                </td>
+
+                <!-- Producto -->
+                <td style="padding:12px 16px;">
+                  <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="width:34px; height:34px; border-radius:6px; background:#f1f5f9; display:flex; align-items:center; justify-content:center; overflow:hidden; border:1px solid #e2e8f0; flex-shrink:0;">
+                      <template x-if="m.product_image">
+                        <img :src="m.product_image" style="width:100%; height:100%; object-fit:cover;">
+                      </template>
+                      <template x-if="!m.product_image">
+                        <i class="ph ph-package" style="color:#94a3b8; font-size:18px;"></i>
+                      </template>
+                    </div>
+                    <div>
+                      <div style="font-weight:700; color:#0f172a; line-height:1.2;" x-text="m.product_name"></div>
+                      <div style="font-size:11px; color:#64748b; margin-top:2px;" x-text="'SKU: ' + (m.product_sku || 'N/A')"></div>
+                    </div>
+                  </div>
+                </td>
+
+                <!-- Bodega -->
+                <td style="padding:12px 16px; color:#475569; font-weight:600;">
+                  <div style="display:inline-flex; align-items:center; gap:5px; background:#f1f5f9; padding:3px 8px; border-radius:6px; font-size:11.5px;">
+                    <i class="ph ph-warehouse" style="color:#64748b;"></i>
+                    <span x-text="m.warehouse_name || 'Central'"></span>
+                  </div>
+                </td>
+
+                <!-- Tipo Movimiento Badge -->
+                <td style="padding:12px 16px; white-space:nowrap;">
+                  <span :style="{
+                    background: getMovementBadge(m.move_type).bg,
+                    color: getMovementBadge(m.move_type).color,
+                    border: '1px solid ' + getMovementBadge(m.move_type).border,
+                    borderRadius: '6px',
+                    padding: '3px 8px',
+                    fontSize: '11.5px',
+                    fontWeight: '700',
+                    display: 'inline-block'
+                  }" x-text="getMovementBadge(m.move_type).label"></span>
+                </td>
+
+                <!-- Referencia -->
+                <td style="padding:12px 16px; font-family:monospace; font-size:12px; color:#334155; font-weight:600;">
+                  <span x-text="m.reference || '—'"></span>
+                </td>
+
+                <!-- Cantidad -->
+                <td style="padding:12px 16px; text-align:right; font-weight:800; white-space:nowrap;">
+                  <span :style="m.is_inflow ? 'color:#059669;' : 'color:#dc2626;'"
+                    x-text="(m.is_inflow ? '+' : '-') + Math.abs(m.qty) + ' unid.'"></span>
+                </td>
+
+                <!-- Stock Posterior -->
+                <td style="padding:12px 16px; text-align:right; font-weight:700; color:#1e293b; white-space:nowrap;">
+                  <span x-text="(m.qty_after !== undefined && m.qty_after !== null) ? (m.qty_after + ' unid.') : '—'"></span>
+                </td>
+
+                <!-- Costo Unitario -->
+                <td style="padding:12px 16px; text-align:right; color:#475569; font-weight:600; white-space:nowrap;">
+                  <span x-text="m.unit_cost ? ('Q ' + Number(m.unit_cost).toFixed(2)) : '—'"></span>
+                </td>
+
+                <!-- Observaciones -->
+                <td style="padding:12px 16px; color:#64748b; font-size:11.5px; max-width:220px; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;" :title="m.notes || ''">
+                  <span x-text="m.notes || 'Sin observaciones'"></span>
+                </td>
+              </tr>
+            </template>
+
+            <!-- Empty State -->
+            <tr x-show="!isLoadingKardex && kardexMoves.length === 0">
+              <td colspan="9" style="text-align:center; padding:48px 20px;">
+                <div style="width:56px; height:56px; border-radius:50%; background:#f1f5f9; display:inline-flex; align-items:center; justify-content:center; color:#94a3b8; font-size:26px; margin-bottom:12px;">
+                  <i class="ph ph-chart-line-up"></i>
+                </div>
+                <div style="font-size:15px; font-weight:800; color:#334155; margin-bottom:4px;">No se encontraron movimientos de Kardex</div>
+                <div style="font-size:12.5px; color:#64748b; max-width:380px; margin:0 auto;">
+                  Prueba cambiando los filtros de bodega, producto o tipo de movimiento.
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <!-- ==================== FIN PESTAÑA 2: KARDEX ==================== -->
+
+  <!-- ==================== MODAL DE KARDEX 360° POR PRODUCTO ==================== -->
+  <div class="modal-backdrop" x-show="showKardexModal"
+    style="position:fixed; inset:0; background:rgba(15,23,42,0.6); backdrop-filter:blur(4px); z-index:1600; align-items:center; justify-content:center; padding:16px;"
+    :style="{ display: showKardexModal ? 'flex' : 'none' }" x-cloak>
+    <div class="card"
+      style="background:#ffffff; border-radius:16px; max-width:860px; width:100%; max-height:90vh; display:flex; flex-direction:column; padding:0; box-shadow:0 20px 40px rgba(0,0,0,0.25); overflow:hidden; animation:slideUp 0.2s ease-out;">
+      
+      <!-- Modal Header -->
+      <div style="padding:18px 24px; border-bottom:1px solid #e2e8f0; display:flex; align-items:center; justify-content:space-between; background:#fafafa;">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="width:40px; height:40px; border-radius:10px; background:#714B67; color:#ffffff; display:flex; align-items:center; justify-content:center; font-size:22px; box-shadow:0 2px 8px rgba(113,75,103,0.3);">
+            <i class="ph-bold ph-chart-line-up"></i>
+          </div>
+          <div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <h3 style="font-size:17px; font-weight:800; color:#0f172a; margin:0;" x-text="'Kardex: ' + (modalProduct?.name || 'Producto')"></h3>
+              <span style="font-size:11px; font-weight:700; background:#e2e8f0; color:#475569; padding:2px 8px; border-radius:4px;" x-text="'SKU: ' + (modalProduct?.internal_ref || 'N/A')"></span>
+            </div>
+            <p style="font-size:12px; color:#64748b; margin:2px 0 0 0;">Auditoría de existencias y trazabilidad de entradas/salidas</p>
+          </div>
+        </div>
+        <button type="button" @click="showKardexModal = false"
+          style="background:none; border:none; font-size:24px; color:#94a3b8; cursor:pointer; padding:4px 8px; border-radius:6px;"
+          onmouseover="this.style.color='#0f172a'; this.style.background='#f1f5f9'"
+          onmouseout="this.style.color='#94a3b8'; this.style.background='none'">&times;</button>
+      </div>
+
+      <!-- Modal Body (Scrollable) -->
+      <div style="padding:20px 24px; overflow-y:auto; flex:1;">
+        <!-- Stock Comparison & Reconciliation Card -->
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:16px 20px; margin-bottom:20px;">
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:16px; align-items:center;">
+            <!-- Stock en Catálogo -->
+            <div>
+              <div style="font-size:11px; font-weight:700; color:#64748b; text-transform:uppercase;">Stock en Catálogo</div>
+              <div style="font-size:22px; font-weight:800; color:#0f172a; margin-top:2px;">
+                <span x-text="modalCurrentStock !== null ? modalCurrentStock : (modalProduct?.stock || 0)">0</span> <span style="font-size:13px; font-weight:600; color:#64748b;">unid.</span>
+              </div>
+              <div style="font-size:11px; color:#94a3b8;">Existencia registrada en BD</div>
+            </div>
+
+            <!-- Balance Kardex -->
+            <div>
+              <div style="font-size:11px; font-weight:700; color:#714B67; text-transform:uppercase;">Balance Acumulado Kardex</div>
+              <div style="font-size:22px; font-weight:800; color:#714B67; margin-top:2px;">
+                <span x-text="modalKardexBalance !== null ? modalKardexBalance : '—'">—</span> <span style="font-size:13px; font-weight:600; color:#714B67;">unid.</span>
+              </div>
+              <div style="font-size:11px; color:#94a3b8;">Sumatoria de entradas y salidas</div>
+            </div>
+
+            <!-- Reconciliation Status / Button -->
+            <div style="text-align:right;">
+              <template x-if="modalHasDiscrepancy">
+                <div>
+                  <button type="button" @click="syncModalKardex()" :disabled="isSyncingModalKardex"
+                    style="background:#fef2f2; border:1.5px solid #ef4444; color:#b91c1c; font-weight:800; font-size:12px; border-radius:8px; padding:8px 14px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; box-shadow:0 1px 3px rgba(239,68,68,0.2);">
+                    <i class="ph-bold ph-arrows-clockwise" :class="{ 'ph-spin': isSyncingModalKardex }"></i>
+                    <span x-show="!isSyncingModalKardex">⚠️ Corregir Descuadre de Stock</span>
+                    <span x-show="isSyncingModalKardex">Sincronizando...</span>
+                  </button>
+                  <div style="font-size:10.5px; color:#ef4444; margin-top:4px; font-weight:600;">Actualiza el stock al balance real</div>
+                </div>
+              </template>
+              <template x-if="!modalHasDiscrepancy && modalKardexBalance !== null">
+                <div style="background:#ecfdf5; border:1px solid #a7f3d0; color:#065f46; font-weight:700; font-size:12px; border-radius:8px; padding:8px 12px; display:inline-flex; align-items:center; gap:6px;">
+                  <i class="ph-bold ph-check-circle" style="color:#059669; font-size:16px;"></i>
+                  <span>Stock 100% Conciliado</span>
+                </div>
+              </template>
+            </div>
+          </div>
+        </div>
+
+        <!-- History Moves Table -->
+        <div style="border:1px solid #e2e8f0; border-radius:10px; overflow:hidden;">
+          <div style="background:#f8fafc; padding:10px 16px; border-bottom:1px solid #e2e8f0; font-size:12px; font-weight:800; color:#334155; display:flex; justify-content:space-between; align-items:center;">
+            <span>Movimientos Cronológicos del Producto</span>
+            <span style="font-size:11px; font-weight:700; color:#64748b;" x-text="modalKardexMoves.length + ' registros'"></span>
+          </div>
+
+          <div style="max-height:360px; overflow-y:auto;">
+            <table style="width:100%; border-collapse:collapse; font-size:12px; text-align:left;">
+              <thead style="position:sticky; top:0; background:#f1f5f9; border-bottom:1px solid #cbd5e1; z-index:10;">
+                <tr style="font-size:11px; font-weight:800; color:#475569; text-transform:uppercase;">
+                  <th style="padding:10px 14px;">Fecha</th>
+                  <th style="padding:10px 14px;">Tipo Asiento</th>
+                  <th style="padding:10px 14px;">Referencia</th>
+                  <th style="padding:10px 14px; text-align:right;">Cantidad</th>
+                  <th style="padding:10px 14px; text-align:right;">Saldo Posterior</th>
+                  <th style="padding:10px 14px; text-align:right;">Costo Unit.</th>
+                  <th style="padding:10px 14px;">Notas</th>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-for="m in modalKardexMoves" :key="m.id">
+                  <tr style="border-bottom:1px solid #f1f5f9;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#ffffff'">
+                    <td style="padding:10px 14px; white-space:nowrap; font-weight:600; color:#334155;" x-text="m.date"></td>
+                    <td style="padding:10px 14px; white-space:nowrap;">
+                      <span :style="{
+                        background: getMovementBadge(m.move_type).bg,
+                        color: getMovementBadge(m.move_type).color,
+                        border: '1px solid ' + getMovementBadge(m.move_type).border,
+                        borderRadius: '4px',
+                        padding: '2px 6px',
+                        fontSize: '11px',
+                        fontWeight: '700'
+                      }" x-text="getMovementBadge(m.move_type).label"></span>
+                    </td>
+                    <td style="padding:10px 14px; font-family:monospace; font-size:11.5px; color:#334155; font-weight:600;" x-text="m.reference || '—'"></td>
+                    <td style="padding:10px 14px; text-align:right; font-weight:800; white-space:nowrap;">
+                      <span :style="m.is_inflow ? 'color:#059669;' : 'color:#dc2626;'"
+                        x-text="(m.is_inflow ? '+' : '-') + Math.abs(m.qty) + ' unid.'"></span>
+                    </td>
+                    <td style="padding:10px 14px; text-align:right; font-weight:700; color:#1e293b;" x-text="(m.qty_after !== undefined && m.qty_after !== null) ? (m.qty_after + ' unid.') : '—'"></td>
+                    <td style="padding:10px 14px; text-align:right; color:#64748b;" x-text="m.unit_cost ? ('Q ' + Number(m.unit_cost).toFixed(2)) : '—'"></td>
+                    <td style="padding:10px 14px; color:#64748b; font-size:11px;" x-text="m.notes || '—'"></td>
+                  </tr>
+                </template>
+                <tr x-show="!isLoadingModalKardex && modalKardexMoves.length === 0">
+                  <td colspan="7" style="text-align:center; padding:32px 14px; color:#94a3b8;">
+                    <i class="ph ph-files" style="font-size:24px; display:block; margin-bottom:6px;"></i>
+                    No hay movimientos registrados para este producto.
+                  </td>
+                </tr>
+                <tr x-show="isLoadingModalKardex">
+                  <td colspan="7" style="text-align:center; padding:32px 14px; color:#714B67; font-weight:700;">
+                    <i class="ph-bold ph-arrows-clockwise ph-spin" style="font-size:20px; display:block; margin-bottom:6px;"></i>
+                    Cargando historial de Kardex...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div style="padding:14px 24px; border-top:1px solid #e2e8f0; display:flex; justify-content:flex-end; gap:10px; background:#fafafa;">
+        <button type="button" class="btn btn-secondary" @click="showKardexModal = false"
+          style="border:1px solid #cbd5e1; background:#ffffff; font-weight:700; border-radius:8px; padding:8px 18px; cursor:pointer;">
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+  <!-- ==================== FIN MODAL DE KARDEX 360° ==================== -->
 
   <!-- ===== MODAL DE IMPORTACIÓN MASIVA CSV ===== -->
   <div class="modal-backdrop" x-show="showImportModal"
