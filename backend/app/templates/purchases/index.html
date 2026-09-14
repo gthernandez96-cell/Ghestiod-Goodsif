@@ -102,6 +102,47 @@
     box-shadow: 0 2px 6px rgba(2, 132, 199, 0.25);
   }
 
+  /* Sub-tabs Navegación (Órdenes vs Previsión IA) */
+  .po-tab-container {
+    display: inline-flex;
+    align-items: center;
+    background: #f1f5f9;
+    padding: 3px;
+    border-radius: 20px;
+    border: 1px solid #e2e8f0;
+    gap: 3px;
+  }
+  .po-tab-pill {
+    padding: 6px 14px !important;
+    border-radius: 18px !important;
+    font-size: 12.5px !important;
+    font-weight: 700 !important;
+    border: none !important;
+    outline: none !important;
+    cursor: pointer !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    transition: all 0.15s ease !important;
+    background: transparent;
+    color: #64748b;
+    -webkit-appearance: none;
+    appearance: none;
+    line-height: 1.4;
+  }
+  .po-tab-pill:hover {
+    color: #1e293b;
+  }
+  .po-tab-pill.active {
+    background: #714B67 !important;
+    color: #ffffff !important;
+    font-weight: 800 !important;
+    box-shadow: 0 2px 8px rgba(113, 75, 103, 0.25) !important;
+  }
+  .po-tab-pill.active i {
+    color: #ffffff !important;
+  }
+
   .ai-briefing-box {
     background: linear-gradient(135deg, #fdf4f9 0%, #f0f9ff 100%);
     border: 1.5px solid #e0e7ff;
@@ -183,26 +224,31 @@
     
     <!-- Left: Navigation Tabs (Órdenes vs Previsión IA) -->
     <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-      <div style="display:inline-flex; background:#f1f5f9; padding:3px; border-radius:10px; border:1px solid #e2e8f0;">
+      <div class="po-tab-container">
         <button 
           type="button" 
+          class="po-tab-pill"
+          :class="currentTab === 'orders' ? 'active' : ''"
           @click="switchTab('orders')"
-          style="padding:6px 14px; border-radius:8px; font-size:12.5px; border:none; cursor:pointer; display:flex; align-items:center; gap:6px; transition:all 0.15s;"
-          :style="currentTab === 'orders' ? 'background:#ffffff; color:#714B67; font-weight:800; box-shadow:0 2px 6px rgba(0,0,0,0.08);' : 'background:transparent; color:#64748b; font-weight:700;'"
         >
-          <i class="ph ph-receipt" style="font-size:16px;"></i> Órdenes de Compra
+          <i class="ph ph-receipt" style="font-size:16px;"></i>
+          <span>Órdenes de Compra</span>
         </button>
 
         <button 
           type="button" 
+          class="po-tab-pill"
+          :class="currentTab === 'forecast' ? 'active' : ''"
           @click="switchTab('forecast')"
-          style="padding:6px 14px; border-radius:8px; font-size:12.5px; border:none; cursor:pointer; display:flex; align-items:center; gap:6px; transition:all 0.15s;"
-          :style="currentTab === 'forecast' ? 'background:#ffffff; color:#0284c7; font-weight:800; box-shadow:0 2px 6px rgba(2,132,199,0.15);' : 'background:transparent; color:#64748b; font-weight:700;'"
         >
-          <i class="ph ph-sparkle" style="font-size:16px; color:#0284c7;"></i>
+          <i class="ph ph-sparkle" style="font-size:16px;" :style="currentTab === 'forecast' ? 'color:#ffffff;' : 'color:#0284c7;'"></i>
           <span>Previsión & Reorden IA</span>
           <template x-if="forecastSummary && forecastSummary.critical_count > 0">
-            <span style="background:#ef4444; color:#ffffff; font-size:10px; font-weight:900; padding:1px 6px; border-radius:10px; line-height:1.2;" x-text="forecastSummary.critical_count"></span>
+            <span 
+              style="font-size:10px; font-weight:900; padding:1px 6px; border-radius:10px; line-height:1.2;"
+              :style="currentTab === 'forecast' ? 'background:#ffffff; color:#714B67;' : 'background:#ef4444; color:#ffffff;'"
+              x-text="forecastSummary.critical_count"
+            ></span>
           </template>
         </button>
       </div>
