@@ -2191,7 +2191,7 @@
       opacity: 0.6 !important;
     }
 
-    /* Mobile Payment Screen (pay-embed-grid stacks into 1 fluid column) */
+    /* Mobile Payment Screen (Ultra-compact all-in-one screen) */
     .pos-main-container.mobile-in-payment .pos-right-panel {
       display: flex !important;
       width: 100% !important;
@@ -2210,39 +2210,171 @@
       position: relative !important;
       overflow: hidden !important;
     }
+    .pay-embed-header {
+      padding: 6px 12px !important;
+      min-height: 38px !important;
+      height: 38px !important;
+      background: #ffffff !important;
+      border-bottom: 1px solid #e2e8f0 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+    }
+    .pay-embed-title {
+      font-size: 14px !important;
+      font-weight: 800 !important;
+      gap: 6px !important;
+    }
+    .btn-return-catalog {
+      padding: 4px 10px !important;
+      font-size: 11px !important;
+      border-radius: 14px !important;
+    }
     .pay-embed-grid {
       grid-template-columns: 1fr !important;
-      gap: 14px !important;
-      padding: 12px 12px 96px 12px !important; /* Space for the sticky pay bar */
+      gap: 6px !important;
+      padding: 8px 10px 68px 10px !important; /* Space for sticky pay bar */
       overflow-y: auto !important;
       -webkit-overflow-scrolling: touch !important;
       flex: 1 1 0% !important;
       min-height: 0 !important;
-      max-height: calc(100vh - 100px) !important;
-      max-height: calc(100dvh - 100px) !important;
+      max-height: calc(100vh - 90px) !important;
+      max-height: calc(100dvh - 90px) !important;
+    }
+    .pay-col-heading {
+      display: none !important;
     }
     .pay-methods-stack {
       display: grid !important;
-      grid-template-columns: repeat(2, 1fr) !important;
-      gap: 8px !important;
+      grid-template-columns: repeat(4, 1fr) !important;
+      gap: 4px !important;
     }
     .pay-method-select-card {
-      padding: 10px 12px !important;
+      padding: 4px 2px !important;
+      height: 34px !important;
+      border-radius: 8px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      border: 1.5px solid #e2e8f0 !important;
+      background: #ffffff !important;
+      cursor: pointer !important;
+    }
+    .pay-method-select-card.active {
+      border-color: #714B67 !important;
+      background: #faf5ff !important;
+      box-shadow: 0 1px 4px rgba(113, 75, 103, 0.15) !important;
+    }
+    .pay-method-left {
+      gap: 3px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }
+    .pay-method-emoji {
+      font-size: 13px !important;
+    }
+    .pay-method-title {
+      font-size: 11px !important;
+      font-weight: 800 !important;
+      color: #1e293b !important;
+      white-space: nowrap !important;
+    }
+    .pay-method-select-card.active .pay-method-title {
+      color: #714B67 !important;
+    }
+    .pay-method-badge {
+      display: none !important;
+    }
+    .pay-amount-box {
+      min-height: 32px !important;
+      height: 32px !important;
+      padding: 2px 12px !important;
+      margin-bottom: 4px !important;
+      border-radius: 8px !important;
+      background: #ffffff !important;
+    }
+    .pay-amount-curr {
+      font-size: 15px !important;
+    }
+    .pay-amount-val {
+      font-size: 19px !important;
+    }
+    .pay-keypad-matrix {
+      gap: 3px !important;
+      margin-bottom: 4px !important;
     }
     .pay-km-btn {
-      height: 44px !important;
-      font-size: 17px !important;
+      height: 32px !important;
+      font-size: 16px !important;
+      font-weight: 800 !important;
+      border-radius: 8px !important;
+    }
+    .pay-btn-exact {
+      height: 28px !important;
+      font-size: 12px !important;
+      font-weight: 800 !important;
+      border-radius: 8px !important;
+      margin-bottom: 2px !important;
     }
     .pay-summary-panel {
+      background: transparent !important;
+      border: none !important;
+      box-shadow: none !important;
+      padding: 0 !important;
       height: auto !important;
-      padding: 14px !important;
+      margin: 0 !important;
+    }
+    .pay-sec-label:not(.fel-sec-label) {
+      display: none !important;
+    }
+    .pay-sum-row {
+      display: none !important;
+    }
+    .pay-sum-divider {
+      display: none !important;
+    }
+    .pay-change-box {
+      padding: 4px 10px !important;
+      margin-top: 2px !important;
+      margin-bottom: 2px !important;
+      border-radius: 8px !important;
+      height: 28px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+    }
+    .pay-change-box .pca-label {
+      font-size: 10px !important;
+      font-weight: 800 !important;
+    }
+    .pay-change-box .pca-amount {
+      font-size: 15px !important;
+      font-weight: 900 !important;
+    }
+    .fel-sec-label {
+      display: block !important;
+      font-size: 10px !important;
+      font-weight: 800 !important;
+      color: #64748b !important;
+      letter-spacing: 0.5px !important;
+      text-transform: uppercase !important;
+      margin: 2px 0 1px 0 !important;
+    }
+    .fel-fields-container {
+      display: grid !important;
+      grid-template-columns: 85px 1fr !important;
+      gap: 6px !important;
+      margin: 1px 0 0 0 !important;
     }
     .fel-field-input {
-      font-size: 16px !important; /* Prevents auto-zoom on iOS */
+      height: 28px !important;
+      font-size: 12px !important;
+      padding: 2px 8px !important;
+      border-radius: 8px !important;
     }
-    .btn-validate-payment {
-      height: 52px !important;
-      font-size: 16px !important;
+    .pay-col .btn-validate-payment {
+      display: none !important; /* Duplicate of mobile dock button */
     }
 
     /* Mobile Sticky Pay Bar */
@@ -2254,35 +2386,36 @@
       z-index: 2200 !important;
       background: #ffffff !important;
       border-top: 1.5px solid #e2e8f0 !important;
-      padding: 10px 16px !important;
+      padding: 4px 12px !important;
       display: flex !important;
       align-items: center !important;
       justify-content: space-between !important;
       box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.12) !important;
+      height: 50px !important;
     }
     .mobile-pay-dock-footer .mpd-left {
       display: flex !important;
       flex-direction: column !important;
     }
     .mobile-pay-dock-footer .mpd-label {
-      font-size: 11px !important;
+      font-size: 10px !important;
       font-weight: 700 !important;
       color: #64748b !important;
       text-transform: uppercase !important;
       letter-spacing: 0.5px !important;
     }
     .mobile-pay-dock-footer .mpd-amount {
-      font-size: 20px !important;
+      font-size: 17px !important;
       font-weight: 900 !important;
       color: #0f172a !important;
       line-height: 1.1 !important;
     }
     .mobile-pay-dock-footer .mpd-btn-validate {
-      height: 48px !important;
-      padding: 0 24px !important;
-      border-radius: 10px !important;
+      height: 38px !important;
+      padding: 0 16px !important;
+      border-radius: 8px !important;
       border: none !important;
-      font-size: 15px !important;
+      font-size: 13.5px !important;
       font-weight: 800 !important;
       display: flex !important;
       align-items: center !important;
@@ -3806,12 +3939,13 @@
 
               <!-- Monto de Cambio / Vuelto (Cuando el dinero recibido es mayor al cobro) -->
               <div 
+                class="pay-change-box"
                 x-show="changeAmount > 0" 
                 style="background:#ecfdf5; border:1.5px solid #10b981; border-radius:10px; padding:10px 14px; margin-top:8px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 2px 8px rgba(16,185,129,0.15);"
               >
-                <div>
-                  <div style="font-size:11px; font-weight:800; color:#065f46; text-transform:uppercase; letter-spacing:0.5px;">Cambio a Entregar</div>
-                  <div style="font-size:22px; font-weight:900; color:#047857; line-height:1.2; margin-top:2px;" x-text="'Q ' + formatPrice(changeAmount)">Q 0.00</div>
+                <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+                  <div class="pca-label" style="font-size:11px; font-weight:800; color:#065f46; text-transform:uppercase; letter-spacing:0.5px;">Cambio a Entregar:</div>
+                  <div class="pca-amount" style="font-size:20px; font-weight:900; color:#047857; line-height:1;" x-text="'Q ' + formatPrice(changeAmount)">Q 0.00</div>
                 </div>
               </div>
 
@@ -3821,19 +3955,19 @@
                 <strong style="color:#059669;">Q 0.00 (Exacto)</strong>
               </div>
 
-              <div class="pay-sec-label" style="margin-top: 18px;">DATOS DE FACTURACIÓN (FEL)</div>
+              <div class="pay-sec-label fel-sec-label" style="margin-top: 18px;">DATOS DE FACTURACIÓN (FEL)</div>
 
               <div class="fel-fields-container">
                 <input
                   type="text"
                   class="fel-field-input"
-                  placeholder="CF"
+                  placeholder="NIT: CF"
                   x-model="customer.nit"
                 >
                 <input
                   type="text"
                   class="fel-field-input"
-                  placeholder="Ciudad"
+                  placeholder="Nombre: Consumidor Final"
                   x-model="customer.name"
                 >
               </div>
@@ -3853,8 +3987,11 @@
         <!-- Mobile Sticky Pay Footer Bar (Always visible on mobile without scrolling!) -->
         <div class="mobile-pay-dock-footer" x-show="showPaymentScreen && !showClosingModal && !showCashMoveModal && !showCashModal">
           <div class="mpd-left">
-            <div class="mpd-label">Total a Cobrar</div>
-            <div class="mpd-amount" x-text="'Q ' + formatPrice(grandTotal)">Q 0.00</div>
+            <div class="mpd-label" x-text="changeAmount > 0 ? 'Total / Vuelto' : 'Total a Cobrar'">Total a Cobrar</div>
+            <div style="display:flex; align-items:baseline; gap:6px;">
+              <div class="mpd-amount" x-text="'Q ' + formatPrice(grandTotal)">Q 0.00</div>
+              <span x-show="changeAmount > 0" style="color:#059669; font-weight:800; font-size:13px;" x-text="'(Vuelto Q ' + formatPrice(changeAmount) + ')'"></span>
+            </div>
           </div>
           <button
             type="button"
@@ -3864,7 +4001,7 @@
           >
             <span x-show="faltaPorCobrar > 0" x-text="'Falta Q ' + formatPrice(faltaPorCobrar)">Falta</span>
             <span x-show="faltaPorCobrar === 0" style="display:flex; align-items:center; gap:6px;">
-              <i class="ph ph-check-circle" style="font-size:20px;"></i>
+              <i class="ph ph-check-circle" style="font-size:18px;"></i>
               <span>Validar Pago</span>
             </span>
           </button>
