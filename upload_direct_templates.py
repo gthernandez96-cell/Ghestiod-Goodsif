@@ -22,15 +22,15 @@ files_to_sync = [
     "backend/app/templates/dashboard/index.html",
 ]
 
-with httpx.Client(verify=False, timeout=60.0) as client:
+with httpx.Client(verify=False, timeout=120.0) as client:
     for rel_path in files_to_sync:
         local_path = os.path.join(os.path.dirname(__file__), rel_path)
         with open(local_path, "rb") as f:
             content = f.read()
         remote_url = f"{base_url}/files/path/home/{username}/pos-empresarial/{rel_path}"
         r = client.post(remote_url, files={"content": (os.path.basename(rel_path), content, "text/plain")}, headers=headers)
-        print(f"Uploaded {rel_path}: {r.status_code}")
+        print(f"Uploaded {rel_path}: {r.status_code}", flush=True)
 
     # Reload webapp
     r_reload = client.post(f"{base_url}/webapps/{domain}/reload/", headers=headers)
-    print(f"Reload webapp {domain}: {r_reload.status_code}")
+    print(f"Reload webapp {domain}: {r_reload.status_code}", flush=True)

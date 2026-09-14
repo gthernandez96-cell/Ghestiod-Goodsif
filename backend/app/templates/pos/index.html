@@ -2557,24 +2557,140 @@
       -webkit-overflow-scrolling: touch !important;
     }
 
-    /* Success Screen on Mobile */
+    /* Success Screen on Mobile (Ultra-compact single screen) */
     .success-modal-layout {
       flex-direction: column !important;
-      overflow-y: auto !important;
-      height: calc(100vh - 52px) !important;
-      height: calc(100dvh - 52px) !important;
-      -webkit-overflow-scrolling: touch !important;
+      overflow: hidden !important;
+      height: calc(100vh - 40px) !important;
+      height: calc(100dvh - 40px) !important;
+    }
+    .success-top-bar {
+      height: 40px !important;
+      padding: 0 12px !important;
+    }
+    .success-top-bar .success-order-pill {
+      padding: 2px 8px !important;
+      font-size: 11px !important;
+    }
+    .success-top-bar .success-brand {
+      font-size: 14px !important;
+    }
+    .success-top-bar .success-user-info {
+      display: none !important;
     }
     .success-col-actions {
       width: 100% !important;
-      padding: 20px 16px !important;
-      border-right: none !important;
-      border-bottom: 1px solid #e2e8f0 !important;
-      overflow-y: visible !important;
+      height: 100% !important;
+      padding: 8px 12px 10px 12px !important;
+      border: none !important;
+      overflow-y: auto !important;
+      -webkit-overflow-scrolling: touch !important;
+      display: flex !important;
+      flex-direction: column !important;
+      box-sizing: border-box !important;
     }
     .success-col-preview {
-      width: 100% !important;
-      padding: 20px 16px 40px 16px !important;
+      display: none !important;
+    }
+    .success-banner-card {
+      padding: 8px 12px !important;
+      margin-bottom: 5px !important;
+      border-radius: 12px !important;
+      box-shadow: 0 2px 8px rgba(16,185,129,0.08) !important;
+    }
+    .success-check-icon {
+      width: 32px !important;
+      height: 32px !important;
+      font-size: 16px !important;
+      margin-bottom: 3px !important;
+      box-shadow: 0 2px 6px rgba(16,185,129,0.3) !important;
+    }
+    .success-title {
+      font-size: 16px !important;
+      margin: 0 0 2px 0 !important;
+    }
+    .success-amount {
+      font-size: 24px !important;
+      line-height: 1.1 !important;
+    }
+    .success-method-badge {
+      margin-top: 3px !important;
+      padding: 2px 8px !important;
+      font-size: 10.5px !important;
+      border-radius: 8px !important;
+    }
+    .success-change-card {
+      padding: 5px 12px !important;
+      margin-bottom: 5px !important;
+      border-radius: 8px !important;
+      height: 28px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+    }
+    .success-change-card .scc-label {
+      font-size: 10px !important;
+    }
+    .success-change-card .scc-amount {
+      font-size: 16px !important;
+    }
+    .success-split-card {
+      padding: 5px 8px !important;
+      margin-bottom: 5px !important;
+      border-radius: 8px !important;
+    }
+    .success-actions-group {
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 5px !important;
+      margin-bottom: 6px !important;
+    }
+    .btn-print-receipt {
+      padding: 4px 10px !important;
+      height: 36px !important;
+      border-radius: 8px !important;
+      gap: 8px !important;
+    }
+    .btn-print-receipt .bpr-icon {
+      width: 26px !important;
+      height: 26px !important;
+      font-size: 14px !important;
+      border-radius: 6px !important;
+    }
+    .btn-print-receipt .bpr-title {
+      font-size: 12.5px !important;
+    }
+    .btn-print-receipt .bpr-subtitle {
+      display: none !important;
+    }
+    .btn-print-receipt .bpr-arrow {
+      font-size: 15px !important;
+    }
+    .success-input-group {
+      display: flex !important;
+      gap: 4px !important;
+      align-items: stretch !important;
+    }
+    .success-action-input {
+      height: 32px !important;
+      padding: 2px 8px !important;
+      font-size: 12px !important;
+      border-radius: 8px !important;
+    }
+    .success-action-btn {
+      height: 32px !important;
+      padding: 0 12px !important;
+      font-size: 12px !important;
+      border-radius: 8px !important;
+    }
+    .btn-new-order {
+      height: 44px !important;
+      padding: 0 16px !important;
+      font-size: 15px !important;
+      font-weight: 800 !important;
+      border-radius: 10px !important;
+      margin-top: auto !important;
+      box-shadow: 0 4px 14px rgba(113,75,103,0.35) !important;
     }
   }
 
@@ -4027,25 +4143,25 @@
     <canvas id="confettiCanvas" style="position:fixed; inset:0; pointer-events:none; z-index:9998; width:100%; height:100%;"></canvas>
 
     <!-- Top Navigation Bar -->
-    <header style="height:52px; background:#ffffff; border-bottom:1px solid #e2e8f0; display:flex; align-items:center; justify-content:space-between; padding:0 24px; flex-shrink:0; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+    <header class="success-top-bar" style="height:52px; background:#ffffff; border-bottom:1px solid #e2e8f0; display:flex; align-items:center; justify-content:space-between; padding:0 24px; flex-shrink:0; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
       <div style="display:flex; align-items:center; gap:14px;">
         <!-- Número de orden pill -->
-        <div style="background:linear-gradient(135deg, #fdf4ff, #f0f4ff); border:1px solid #e9d5ff; color:#714B67; padding:5px 14px; border-radius:20px; font-weight:800; font-size:12.5px; display:flex; align-items:center; gap:6px;">
+        <div class="success-order-pill" style="background:linear-gradient(135deg, #fdf4ff, #f0f4ff); border:1px solid #e9d5ff; color:#714B67; padding:5px 14px; border-radius:20px; font-weight:800; font-size:12.5px; display:flex; align-items:center; gap:6px;">
           <span>🧾</span>
           <span x-text="'Orden #' + (lastSale?.number || 'POS-0001')">Orden #POS-0001</span>
         </div>
         <!-- Estado FEL -->
-        <div x-show="lastSale?.fel_uuid" style="background:#ecfdf5; border:1px solid #a7f3d0; color:#065f46; padding:5px 12px; border-radius:20px; font-weight:700; font-size:11.5px; display:flex; align-items:center; gap:5px;">
+        <div class="success-fel-pill" x-show="lastSale?.fel_uuid" style="background:#ecfdf5; border:1px solid #a7f3d0; color:#065f46; padding:5px 12px; border-radius:20px; font-weight:700; font-size:11.5px; display:flex; align-items:center; gap:5px;">
           <span>✅</span>
           <span>FEL Certificado</span>
         </div>
       </div>
 
       <!-- Centro: Branding -->
-      <div style="font-size:20px; font-weight:900; color:#714B67; letter-spacing:-0.5px;">POS Empresarial</div>
+      <div class="success-brand" style="font-size:20px; font-weight:900; color:#714B67; letter-spacing:-0.5px;">POS Empresarial</div>
 
       <!-- Derecha: Info usuario -->
-      <div style="display:flex; align-items:center; gap:10px;">
+      <div class="success-user-info" style="display:flex; align-items:center; gap:10px;">
         <div style="width:32px; height:32px; background:linear-gradient(135deg, #714B67, #9c5c8a); color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800;" x-text="userInitials">AD</div>
         <div style="font-size:12px; font-weight:700; color:#334155;" x-text="userName">Administrador</div>
       </div>
@@ -4060,34 +4176,34 @@
       <div class="success-col-actions">
 
         <!-- Banner de Éxito Animado -->
-        <div style="background:linear-gradient(135deg, #ecfdf5 0%, #f0fdf9 100%); border:1.5px solid #6ee7b7; border-radius:20px; padding:28px 24px; text-align:center; box-shadow:0 8px 24px rgba(16,185,129,0.12); margin-bottom:24px; position:relative; overflow:hidden;">
+        <div class="success-banner-card" style="background:linear-gradient(135deg, #ecfdf5 0%, #f0fdf9 100%); border:1.5px solid #6ee7b7; border-radius:20px; padding:28px 24px; text-align:center; box-shadow:0 8px 24px rgba(16,185,129,0.12); margin-bottom:24px; position:relative; overflow:hidden;">
           <!-- Decorative blobs -->
           <div style="position:absolute; top:-20px; right:-20px; width:80px; height:80px; background:rgba(16,185,129,0.1); border-radius:50%;"></div>
           <div style="position:absolute; bottom:-15px; left:-15px; width:60px; height:60px; background:rgba(16,185,129,0.08); border-radius:50%;"></div>
           
           <!-- Icono check animado -->
-          <div style="width:64px; height:64px; background:linear-gradient(135deg, #10b981, #059669); color:#ffffff; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:32px; margin-bottom:14px; box-shadow:0 8px 20px rgba(16,185,129,0.4); position:relative; z-index:1;">
+          <div class="success-check-icon" style="width:64px; height:64px; background:linear-gradient(135deg, #10b981, #059669); color:#ffffff; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:32px; margin-bottom:14px; box-shadow:0 8px 20px rgba(16,185,129,0.4); position:relative; z-index:1;">
             ✓
           </div>
-          <h2 style="font-size:26px; font-weight:900; color:#065f46; margin:0 0 6px 0; position:relative; z-index:1;">¡Pago Exitoso!</h2>
-          <div style="font-size:36px; font-weight:900; color:#047857; position:relative; z-index:1;" x-text="'Q ' + formatPrice(lastSale?.total || grandTotal)">Q 0.00</div>
+          <h2 class="success-title" style="font-size:26px; font-weight:900; color:#065f46; margin:0 0 6px 0; position:relative; z-index:1;">¡Pago Exitoso!</h2>
+          <div class="success-amount" style="font-size:36px; font-weight:900; color:#047857; position:relative; z-index:1;" x-text="'Q ' + formatPrice(lastSale?.total || grandTotal)">Q 0.00</div>
           
           <!-- Método de pago badge -->
-          <div style="margin-top:10px; display:inline-flex; align-items:center; gap:6px; background:#ffffff; border:1px solid #d1fae5; border-radius:12px; padding:6px 14px; font-size:12px; font-weight:700; color:#065f46; position:relative; z-index:1;">
+          <div class="success-method-badge" style="margin-top:10px; display:inline-flex; align-items:center; gap:6px; background:#ffffff; border:1px solid #d1fae5; border-radius:12px; padding:6px 14px; font-size:12px; font-weight:700; color:#065f46; position:relative; z-index:1;">
             <span x-text="paymentMethod === 'cash' ? '💵 Efectivo' : (paymentMethod === 'card' ? '💳 Tarjeta' : (paymentMethod === 'split' ? '💳+💵 Pago Combinado' : (paymentMethod === 'credit' ? '📑 Crédito' : '💵 Efectivo')))">💵 Efectivo</span>
           </div>
         </div>
 
         <!-- Resumen de Cambio (si aplica efectivo) -->
-        <div x-show="paymentMethod === 'cash' && changeAmount > 0" style="display:flex; justify-content:space-between; align-items:center; background:#eff6ff; border:1px solid #bfdbfe; border-radius:12px; padding:16px 20px; margin-bottom:20px;">
-          <div>
-            <div style="font-size:11px; font-weight:700; color:#1d4ed8; text-transform:uppercase; letter-spacing:0.5px;">Cambio a Devolver</div>
-            <div style="font-size:28px; font-weight:900; color:#1e40af; margin-top:2px;" x-text="'Q ' + formatPrice(changeAmount)">Q 0.00</div>
+        <div class="success-change-card" x-show="paymentMethod === 'cash' && changeAmount > 0" style="display:flex; justify-content:space-between; align-items:center; background:#eff6ff; border:1px solid #bfdbfe; border-radius:12px; padding:16px 20px; margin-bottom:20px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+            <div class="scc-label" style="font-size:11px; font-weight:700; color:#1d4ed8; text-transform:uppercase; letter-spacing:0.5px;">Cambio a Devolver:</div>
+            <div class="scc-amount" style="font-size:24px; font-weight:900; color:#1e40af;" x-text="'Q ' + formatPrice(changeAmount)">Q 0.00</div>
           </div>
         </div>
 
         <!-- Resumen de Pago Dividido -->
-        <div x-show="paymentMethod === 'split'" style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:12px; padding:16px 20px; margin-bottom:20px;">
+        <div class="success-split-card" x-show="paymentMethod === 'split'" style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:12px; padding:16px 20px; margin-bottom:20px;">
           <div style="font-size:11px; font-weight:800; color:#15803d; text-transform:uppercase; margin-bottom:10px;">Desglose Pago Combinado</div>
           <div style="display:flex; gap:12px;">
             <div style="flex:1; background:#ffffff; border:1px solid #d1fae5; border-radius:8px; padding:10px 12px;">
@@ -4102,30 +4218,32 @@
         </div>
 
         <!-- Acciones de Compartir y Envío -->
-        <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:24px;">
+        <div class="success-actions-group" style="display:flex; flex-direction:column; gap:12px; margin-bottom:24px;">
 
           <!-- Imprimir Recibo -->
           <button 
             type="button" 
+            class="btn-print-receipt"
             @click="printReceiptNow()" 
             style="width:100%; background:#f8fafc; color:#1e293b; border:1.5px solid #cbd5e1; border-radius:12px; padding:14px 20px; font-size:14px; font-weight:700; display:flex; align-items:center; gap:12px; cursor:pointer; transition:all 0.2s;"
             onmouseover="this.style.background='#e2e8f0'; this.style.borderColor='#94a3b8'; this.style.transform='translateY(-1px)';"
             onmouseout="this.style.background='#f8fafc'; this.style.borderColor='#cbd5e1'; this.style.transform='none';"
           >
-            <div style="width:38px; height:38px; background:#714B67; color:white; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;">
+            <div class="bpr-icon" style="width:38px; height:38px; background:#714B67; color:white; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;">
               <i class="ph ph-printer"></i>
             </div>
             <div style="text-align:left;">
-              <div style="font-weight:800;">Imprimir Recibo Térmico</div>
-              <div style="font-size:11.5px; color:#64748b; font-weight:500;">Impresora POS 80mm / 58mm</div>
+              <div class="bpr-title" style="font-weight:800;">Imprimir Recibo Térmico</div>
+              <div class="bpr-subtitle" style="font-size:11.5px; color:#64748b; font-weight:500;">Impresora POS 80mm / 58mm</div>
             </div>
-            <i class="ph ph-arrow-right" style="margin-left:auto; color:#94a3b8; font-size:18px;"></i>
+            <i class="ph ph-arrow-right bpr-arrow" style="margin-left:auto; color:#94a3b8; font-size:18px;"></i>
           </button>
 
           <!-- Enviar por Email -->
-          <div style="display:flex; gap:8px; align-items:stretch;">
+          <div class="success-input-group" style="display:flex; gap:8px; align-items:stretch;">
             <input 
               type="email" 
+              class="success-action-input"
               x-model="customerEmailInput" 
               placeholder="correo@cliente.com" 
               style="flex:1; border:1.5px solid #cbd5e1; border-radius:12px; padding:12px 16px; font-size:13.5px; outline:none; color:#1e293b; transition:border-color 0.15s;"
@@ -4134,6 +4252,7 @@
             >
             <button 
               type="button" 
+              class="success-action-btn email-btn"
               @click="sendEmailInvoice()" 
               style="background:#6366f1; color:#ffffff; border:none; border-radius:12px; padding:0 20px; display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px; font-weight:700; transition:all 0.15s; white-space:nowrap;"
               onmouseover="this.style.background='#4f46e5'"
@@ -4145,9 +4264,10 @@
           </div>
 
           <!-- Enviar por WhatsApp -->
-          <div style="display:flex; gap:8px; align-items:stretch;">
+          <div class="success-input-group" style="display:flex; gap:8px; align-items:stretch;">
             <input 
               type="text" 
+              class="success-action-input"
               x-model="customerPhoneInput" 
               placeholder="+502 5555 1234" 
               style="flex:1; border:1.5px solid #cbd5e1; border-radius:12px; padding:12px 16px; font-size:13.5px; outline:none; color:#1e293b; transition:border-color 0.15s;"
@@ -4156,6 +4276,7 @@
             >
             <button 
               type="button" 
+              class="success-action-btn wa-btn"
               @click="shareWhatsAppInvoice()" 
               style="background:#16a34a; color:#ffffff; border:none; border-radius:12px; padding:0 20px; display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px; font-weight:700; transition:all 0.15s; white-space:nowrap;"
               onmouseover="this.style.background='#15803d'"
@@ -4171,13 +4292,14 @@
         <!-- Botón Nueva Orden (Principal CTA) -->
         <button 
           type="button" 
+          class="btn-new-order"
           @click="startNewOrder()" 
           style="width:100%; background:linear-gradient(135deg, #714B67, #9c5c8a); color:#ffffff; border:none; border-radius:14px; padding:18px; font-size:16px; font-weight:800; cursor:pointer; text-align:center; box-shadow:0 6px 20px rgba(113,75,103,0.4); transition:all 0.2s; display:flex; align-items:center; justify-content:center; gap:10px;"
           onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 10px 28px rgba(113,75,103,0.5)';"
           onmouseout="this.style.transform='none'; this.style.boxShadow='0 6px 20px rgba(113,75,103,0.4)';"
         >
           <i class="ph ph-plus-circle" style="font-size:22px;"></i>
-          Nueva Orden
+          <span>Nueva Orden</span>
         </button>
 
       </div>
