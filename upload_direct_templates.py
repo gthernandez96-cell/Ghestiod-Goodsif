@@ -22,6 +22,7 @@ files_to_sync = [
     "backend/app/templates/purchases/index.html",
     "backend/app/templates/purchases/form.html",
     "backend/app/templates/dashboard/index.html",
+    "backend/app/templates/warehouses/index.html",
 ]
 
 with httpx.Client(verify=False, timeout=120.0) as client:

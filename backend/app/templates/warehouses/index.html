@@ -153,7 +153,16 @@
   <div style="margin:-20px -24px 20px -24px; padding:12px 24px; background:#ffffff; border-bottom:1px solid #e2e8f0; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
     
     <!-- Left: Actions & Breadcrumbs -->
-    <div style="display:flex; align-items:center; gap:12px;">
+    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+      <button 
+        type="button"
+        @click="openNewBranchModal()"
+        class="btn btn-secondary" 
+        style="background:#0284c7; color:#ffffff; font-weight:800; border-radius:8px; padding:7px 16px; border:none; box-shadow:0 2px 8px rgba(2,132,199,0.25); display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px;" 
+      >
+        <i class="ph ph-storefront" style="font-weight:800;"></i> Nueva Sucursal
+      </button>
+
       <a 
         href="/warehouses/new"
         class="btn btn-primary" 
@@ -164,7 +173,7 @@
 
       <div style="font-size:15px; font-weight:800; color:#1e293b; display:flex; align-items:center; gap:6px; margin-left:4px;">
         <span style="color:#64748b; font-weight:600;">Inventario /</span>
-        <span>Centros Logísticos & Bodegas</span>
+        <span>Centros Logísticos, Bodegas & Sucursales</span>
       </div>
     </div>
 
@@ -464,6 +473,65 @@
     </div>
   </div>
 
+  <!-- Modal Crear Nueva Sucursal -->
+  <div class="modal-backdrop" x-show="showBranchModal" style="display:none;" x-cloak>
+    <div class="modal" style="max-width:520px; background:#ffffff; border-radius:14px; padding:24px; box-shadow:0 16px 40px rgba(0,0,0,0.18);">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:14px; margin-bottom:18px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div style="width:38px; height:38px; border-radius:10px; background:#e0f2fe; color:#0284c7; display:flex; align-items:center; justify-content:center; font-size:20px;">
+            <i class="ph ph-storefront"></i>
+          </div>
+          <div>
+            <h3 style="font-size:16px; font-weight:800; color:#1e293b; margin:0;">Crear Nueva Sucursal</h3>
+            <div style="font-size:11.5px; color:#64748b;">Punto de Venta / Centro de Operaciones</div>
+          </div>
+        </div>
+        <button style="border:none; background:none; font-size:22px; cursor:pointer; color:#94a3b8;" @click="showBranchModal = false">&times;</button>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:16px;">
+        <div>
+          <label style="font-size:11.5px; font-weight:800; color:#475569; display:block; margin-bottom:5px; text-transform:uppercase;">NOMBRE DE LA SUCURSAL *</label>
+          <input type="text" class="form-control" style="width:100%; padding:9px 12px; font-weight:700;" x-model="branchForm.name" placeholder="Ej: Sucursal Sur, Sucursal Zona 10">
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+          <div>
+            <label style="font-size:11.5px; font-weight:800; color:#475569; display:block; margin-bottom:5px; text-transform:uppercase;">CÓDIGO INTERNO *</label>
+            <input type="text" class="form-control" style="width:100%; padding:9px 12px; font-weight:800; font-family:monospace;" x-model="branchForm.code" placeholder="SUC-03">
+          </div>
+
+          <div>
+            <label style="font-size:11.5px; font-weight:800; color:#475569; display:block; margin-bottom:5px; text-transform:uppercase;">CIUDAD</label>
+            <input type="text" class="form-control" style="width:100%; padding:9px 12px; font-weight:700;" x-model="branchForm.city" placeholder="Guatemala">
+          </div>
+        </div>
+
+        <div>
+          <label style="font-size:11.5px; font-weight:800; color:#475569; display:block; margin-bottom:5px; text-transform:uppercase;">DIRECCIÓN</label>
+          <input type="text" class="form-control" style="width:100%; padding:9px 12px;" x-model="branchForm.address" placeholder="Ej: Calzada Roosevelt 12-40, Zona 11">
+        </div>
+
+        <div>
+          <label style="font-size:11.5px; font-weight:800; color:#475569; display:block; margin-bottom:5px; text-transform:uppercase;">TELÉFONO</label>
+          <input type="text" class="form-control" style="width:100%; padding:9px 12px;" x-model="branchForm.phone" placeholder="Ej: 2233-4455">
+        </div>
+
+        <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:10px 14px; font-size:12px; color:#166534; display:flex; align-items:center; gap:8px;">
+          <i class="ph ph-check-circle" style="font-size:16px;"></i>
+          <span>El sistema creará automáticamente la <strong>Bodega Principal</strong> para esta sucursal.</span>
+        </div>
+      </div>
+
+      <div style="margin-top:24px; display:flex; justify-content:flex-end; gap:10px;">
+        <button type="button" class="btn btn-secondary" style="border-radius:8px; padding:8px 18px; font-weight:700;" @click="showBranchModal = false">Cancelar</button>
+        <button type="button" class="btn btn-primary" style="background:#0284c7; color:#ffffff; border:none; border-radius:8px; padding:8px 22px; font-weight:800; box-shadow:0 2px 8px rgba(2,132,199,0.3);" @click="saveBranch()">
+          Crear Sucursal
+        </button>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <script>
@@ -484,6 +552,14 @@
         address: '',
         is_default: false
       },
+      showBranchModal: false,
+      branchForm: {
+        name: '',
+        code: '',
+        city: 'Guatemala',
+        address: '',
+        phone: ''
+      },
 
       get totalUnitsInStock() {
         return this.warehouses.reduce((acc, w) => acc + (w.total_stock || 0), 0);
@@ -492,6 +568,10 @@
       async init() {
         await this.loadBranches();
         await this.loadWarehouses();
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('action') === 'new-branch') {
+          this.openNewBranchModal();
+        }
       },
 
       async loadBranches() {
@@ -499,6 +579,33 @@
           const res = await API.get('/branches/');
           this.branches = res || [];
         } catch(e) {}
+      },
+
+      openNewBranchModal() {
+        this.branchForm = {
+          name: '',
+          code: 'SUC-0' + (this.branches.length + 1),
+          city: 'Guatemala',
+          address: '',
+          phone: ''
+        };
+        this.showBranchModal = true;
+      },
+
+      async saveBranch() {
+        if (!this.branchForm.name || !this.branchForm.code) {
+          return alert('El nombre y código de sucursal son obligatorios.');
+        }
+        try {
+          await API.post('/branches/', this.branchForm);
+          this.showBranchModal = false;
+          await this.loadBranches();
+          await this.loadWarehouses();
+          alert('¡Sucursal creada exitosamente con su bodega por defecto!');
+          window.location.reload();
+        } catch(e) {
+          alert('Error al crear sucursal: ' + (e.message || e));
+        }
       },
 
       async loadWarehouses() {
@@ -514,10 +621,10 @@
           this.filteredWarehouses = this.warehouses;
           return;
         }
-        const q = this.search.toLowerCase();
-        this.filteredWarehouses = this.warehouses.filter(w =>
-          w.name.toLowerCase().includes(q) ||
-          w.code.toLowerCase().includes(q) ||
+        const q = this.search.toLowerCase().trim();
+        this.filteredWarehouses = this.warehouses.filter(w => 
+          w.name.toLowerCase().includes(q) || 
+          w.code.toLowerCase().includes(q) || 
           (w.branch_name && w.branch_name.toLowerCase().includes(q))
         );
       },
