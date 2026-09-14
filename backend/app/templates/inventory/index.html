@@ -568,13 +568,21 @@
 
       async loadWarehouses() {
         try {
-          const res = await API.get('/branches/warehouses');
+          const activeBranchId = localStorage.getItem('branch_id') || '';
+          let url = '/branches/warehouses';
+          if (activeBranchId) {
+            url += `?branch_id=${encodeURIComponent(activeBranchId)}`;
+          }
+          const res = await API.get(url);
           this.warehouses = Array.isArray(res) ? res : (res.items || res.warehouses || []);
           const urlParams = new URLSearchParams(window.location.search);
           const urlWh = urlParams.get('warehouse_id');
           if (urlWh && this.warehouses.some(w => String(w.id) === String(urlWh))) {
             this.selectedWarehouseId = urlWh;
             this.kardexSelectedWarehouseId = urlWh;
+          } else {
+            this.selectedWarehouseId = '';
+            this.kardexSelectedWarehouseId = '';
           }
         } catch (e) {
           console.warn("No se pudieron cargar las bodegas:", e);
@@ -601,9 +609,16 @@
 
       async loadKPIs() {
         try {
-          let url = '/products/kpis';
+          const activeBranchId = localStorage.getItem('branch_id') || '';
+          let params = [];
           if (this.selectedWarehouseId) {
-            url += `?warehouse_id=${encodeURIComponent(this.selectedWarehouseId)}`;
+            params.push(`warehouse_id=${encodeURIComponent(this.selectedWarehouseId)}`);
+          } else if (activeBranchId) {
+            params.push(`branch_id=${encodeURIComponent(activeBranchId)}`);
+          }
+          let url = '/products/kpis';
+          if (params.length > 0) {
+            url += '?' + params.join('&');
           }
           const res = await API.get(url);
           if (res) this.kpis = res;
@@ -619,18 +634,22 @@
 
       async loadProducts() {
         try {
-          let url = '/products/?';
+          const activeBranchId = localStorage.getItem('branch_id') || '';
+          let params = [];
           if (this.statusFilter === 'active') {
-            url += 'is_active=true';
+            params.push('is_active=true');
           } else if (this.statusFilter === 'archived') {
-            url += 'is_active=false';
+            params.push('is_active=false');
           }
           if (this.selectedWarehouseId) {
-            url += `&warehouse_id=${encodeURIComponent(this.selectedWarehouseId)}`;
+            params.push(`warehouse_id=${encodeURIComponent(this.selectedWarehouseId)}`);
+          } else if (activeBranchId) {
+            params.push(`branch_id=${encodeURIComponent(activeBranchId)}`);
           }
           if (this.search) {
-            url += `&search=${encodeURIComponent(this.search)}`;
+            params.push(`search=${encodeURIComponent(this.search)}`);
           }
+          let url = '/products/?' + params.join('&');
           const res = await API.get(url);
           this.products = res.items || (Array.isArray(res) ? res : []);
           this.applyFilters();
@@ -752,9 +771,12 @@
       async loadKardexMoves() {
         this.isLoadingKardex = true;
         try {
+          const activeBranchId = localStorage.getItem('branch_id') || '';
           let url = '/inventory/moves?limit=250';
           if (this.kardexSelectedWarehouseId) {
             url += `&warehouse_id=${encodeURIComponent(this.kardexSelectedWarehouseId)}`;
+          } else if (activeBranchId) {
+            url += `&branch_id=${encodeURIComponent(activeBranchId)}`;
           }
           if (this.kardexSelectedProductId) {
             url += `&product_id=${encodeURIComponent(this.kardexSelectedProductId)}`;

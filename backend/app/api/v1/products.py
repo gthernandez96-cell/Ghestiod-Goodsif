@@ -299,12 +299,13 @@ async def list_products(
     search: Optional[str] = Query(None),
     category_id: Optional[str] = Query(None),
     supplier_id: Optional[str] = Query(None),
+    branch_id: Optional[str] = Query(None),
     warehouse_id: Optional[str] = Query(None),
     is_active: Optional[bool] = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    """Listar productos con filtrado y stock global/por bodega."""
+    """Listar productos con filtrado y stock global/por bodega/por sucursal."""
     stmt = select(Product).options(
         selectinload(Product.category),
         selectinload(Product.uom),
@@ -343,7 +344,7 @@ async def list_products(
     result = await db.execute(stmt)
     products = result.scalars().all()
 
-    # Obtener stock global por producto (solo bodegas activas de la empresa)
+    # Obtener stock global por producto (filtrado por sucursal o bodega si se especifica)
     product_ids = [p.id for p in products]
     stock_map = {}
     if product_ids:
@@ -363,6 +364,12 @@ async def list_products(
                 Branch.is_deleted == False,
             )
         )
+
+        if branch_id and isinstance(branch_id, str) and branch_id.strip():
+            try:
+                quant_stmt = quant_stmt.where(Branch.id == uuid.UUID(branch_id.strip()))
+            except (ValueError, AttributeError):
+                pass
 
         if warehouse_id and isinstance(warehouse_id, str) and warehouse_id.strip():
             try:
@@ -415,6 +422,7 @@ async def list_products(
 
 @router.get("/pos-catalog")
 async def get_pos_catalog(
+    branch_id: Optional[str] = Query(None),
     warehouse_id: Optional[str] = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
@@ -470,6 +478,12 @@ async def get_pos_catalog(
                 Branch.is_deleted == False,
             )
         )
+
+        if branch_id and isinstance(branch_id, str) and branch_id.strip():
+            try:
+                quant_stmt = quant_stmt.where(Branch.id == uuid.UUID(branch_id.strip()))
+            except (ValueError, AttributeError):
+                pass
 
         if warehouse_id and isinstance(warehouse_id, str) and warehouse_id.strip():
             try:
@@ -529,6 +543,7 @@ async def get_pos_catalog(
 
 @router.get("/kpis")
 async def get_inventory_kpis(
+    branch_id: Optional[str] = Query(None),
     warehouse_id: Optional[str] = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
@@ -557,6 +572,12 @@ async def get_inventory_kpis(
                 Branch.is_deleted == False,
             )
         )
+
+        if branch_id and isinstance(branch_id, str) and branch_id.strip():
+            try:
+                quant_stmt = quant_stmt.where(Branch.id == uuid.UUID(branch_id.strip()))
+            except (ValueError, AttributeError):
+                pass
 
         if warehouse_id and isinstance(warehouse_id, str) and warehouse_id.strip():
             try:
@@ -600,6 +621,7 @@ async def get_inventory_kpis(
 @router.get("/stock-levels")
 @router.get("/stock-sync")
 async def get_products_stock_levels(
+    branch_id: Optional[str] = Query(None),
     warehouse_id: Optional[str] = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
@@ -625,6 +647,12 @@ async def get_products_stock_levels(
             Branch.is_deleted == False,
         )
     )
+    if branch_id and isinstance(branch_id, str) and branch_id.strip():
+        try:
+            quant_stmt = quant_stmt.where(Branch.id == uuid.UUID(branch_id.strip()))
+        except (ValueError, AttributeError):
+            pass
+
     if warehouse_id and isinstance(warehouse_id, str) and warehouse_id.strip():
         try:
             quant_stmt = quant_stmt.where(StockQuant.warehouse_id == uuid.UUID(warehouse_id.strip()))

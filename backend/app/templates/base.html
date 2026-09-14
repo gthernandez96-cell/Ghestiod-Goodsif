@@ -23,7 +23,7 @@
   </script>
 
   <!-- CSS con Cache-Buster y Overrides Odoo -->
-  <link rel="stylesheet" href="/static/css/main.css?v=20260819_touch_responsive">
+  <link rel="stylesheet" href="/static/css/main.css?v=20260906_hide_uom_normal">
 
   <style>
     /* ==========================================================
@@ -111,9 +111,15 @@
         font-size: 16px !important;
         min-height: 40px;
       }
-      .btn {
+      .btn:not(.btn-sm):not(.card-action-btn):not(.table-action-btn):not(.view-switcher-btn):not(.inv-sec-btn) {
         min-height: 42px !important;
         padding: 8px 16px !important;
+      }
+      .btn-sm, .card-action-btn, .table-action-btn {
+        min-height: 30px !important;
+        max-height: 34px !important;
+        padding: 4px 8px !important;
+        font-size: 11.5px !important;
       }
     }
 
@@ -184,7 +190,42 @@
       font-size: 20px;
     }
 
+    /* =========================================================
+       TABLET RESPONSIVE STYLES (768px - 1024px)
+       ========================================================= */
+    @media screen and (max-width: 1024px) {
+      .table-responsive {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+      }
+      .grid-responsive-tablet {
+        grid-template-columns: repeat(2, 1fr) !important;
+      }
+    }
+
+    .show-on-mobile,
+    .show-on-mobile-inline,
+    .show-on-mobile-flex,
+    .show-on-mobile-block {
+      display: none !important;
+    }
+
+    /* =========================================================
+       SMARTPHONES & SMALL TOUCH SCREENS (<= 768px)
+       ========================================================= */
     @media screen and (max-width: 768px) {
+      .show-on-mobile {
+        display: block !important;
+      }
+      .show-on-mobile-inline {
+        display: inline !important;
+      }
+      .show-on-mobile-flex {
+        display: flex !important;
+      }
+      .show-on-mobile-block {
+        display: block !important;
+      }
       .mobile-bottom-nav {
         display: flex !important;
       }
@@ -204,6 +245,95 @@
       }
       .grid-responsive {
         grid-template-columns: 1fr !important;
+      }
+
+      /* Universal Subheader / Control Panel Bar across all modules */
+      div[style*="margin:-20px -24px"],
+      div[style*="margin: -20px -24px"],
+      .module-header-bar {
+        margin: -14px -12px 14px -12px !important;
+        padding: 12px 14px !important;
+        width: calc(100% + 24px) !important;
+        max-width: calc(100% + 24px) !important;
+        box-sizing: border-box !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 12px !important;
+      }
+
+      /* Full width search inputs on mobile */
+      .odoo-search-container,
+      .po-search-container,
+      .tr-search-container,
+      .topbar-search,
+      div[style*="width:380px"],
+      div[style*="width: 380px"],
+      div[style*="width:320px"],
+      div[style*="width: 320px"] {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+      }
+
+      /* Ocultar completamente los resúmenes y KPIs en modo móvil (<= 768px) */
+      div[x-show*="showKpis"],
+      div[x-show="showKpis"],
+      div[x-show="showKpis == true"],
+      button[style*="linear-gradient(135deg, #714B67 0%, #9b6b8f 100%)"],
+      button[style*="linear-gradient(135deg, rgb(113, 75, 103) 0%, rgb(155, 107, 143) 100%)"],
+      button[\@click*="showKpis"],
+      button[\\@click*="showKpis"],
+      button:has(span[x-text*="Resumen"]),
+      button:has(span[x-text*="showKpis"]),
+      .kpi-toggle-btn,
+      .hide-kpis-on-mobile,
+      .inv-kpi-card,
+      .crm-kpi-card,
+      .quote-kpi-card,
+      .po-kpi-card,
+      .bi-kpi-card,
+      .tr-kpi-card,
+      .acc-kpi-card,
+      .user-kpi-card {
+        display: none !important;
+      }
+
+      /* Topbar Dropdown Drawers */
+      .topbar-alerts-drawer {
+        right: -30px !important;
+        width: min(320px, 92vw) !important;
+      }
+      .topbar-branch-drawer {
+        right: -20px !important;
+        width: min(260px, 90vw) !important;
+      }
+      .topbar-user-drawer {
+        right: 0 !important;
+        width: min(220px, 90vw) !important;
+      }
+
+      /* Compact table rows on mobile */
+      .table th, .table td,
+      .quote-table th, .quote-table td,
+      .acc-table th, .acc-table td,
+      .ap-table th, .ap-table td,
+      .report-table th, .report-table td {
+        padding: 9px 10px !important;
+        font-size: 12px !important;
+      }
+
+      /* Touch targets for primary action items and tabs */
+      .btn:not(.btn-sm):not(.card-action-btn):not(.table-action-btn):not(.view-switcher-btn):not(.inv-sec-btn),
+      .filter-pill, .status-filter-btn, .acc-tab-btn, .report-tab-pill {
+        min-height: 38px !important;
+        touch-action: manipulation;
+      }
+
+      /* Settings Sheet */
+      .settings-sheet {
+        padding: 18px 14px !important;
+        margin: 0 0 24px 0 !important;
+        border-radius: 10px !important;
       }
     }
   </style>
@@ -274,22 +404,31 @@
             <div style="display:flex; align-items:center; gap:6px;">
               <a href="/quotes" class="nav-tab-pill nav-tab-active">Cotizaciones</a>
               <a href="/quotes/new" class="nav-tab-pill nav-tab-inactive">+ Nueva Cotización</a>
-              <a href="/pos" class="nav-tab-pill nav-tab-inactive">Punto de Venta</a>
+              <a href="/pos" class="nav-tab-pill nav-tab-inactive hide-on-mobile">Punto de Venta</a>
             </div>
           </template>
 
           <!-- 5. Compras / AP Tabs (Administrador) -->
           <template x-if="currentPage === 'purchases' || currentPage === 'ap'">
             <div style="display:flex; align-items:center; gap:6px;">
-              <a href="/purchases" class="nav-tab-pill" :class="window.location.pathname.includes('/purchases') ? 'nav-tab-active' : 'nav-tab-inactive'">Órdenes de Compra</a>
-              <a href="/ap" class="nav-tab-pill" :class="window.location.pathname.includes('/ap') ? 'nav-tab-active' : 'nav-tab-inactive'">Cuentas por Pagar (AP)</a>
+              <a href="/purchases" class="nav-tab-pill" :class="window.location.pathname.includes('/purchases') ? 'nav-tab-active' : 'nav-tab-inactive'">
+                <span class="hide-on-mobile">Órdenes de Compra</span>
+                <span class="show-on-mobile-inline">Órdenes</span>
+              </a>
+              <a href="/ap" class="nav-tab-pill" :class="window.location.pathname.includes('/ap') ? 'nav-tab-active' : 'nav-tab-inactive'">
+                <span class="hide-on-mobile">Cuentas por Pagar (AP)</span>
+                <span class="show-on-mobile-inline">Cuentas por Pagar</span>
+              </a>
             </div>
           </template>
 
           <!-- 6. Cuentas por Cobrar (AR - Administrador) -->
           <template x-if="currentPage === 'ar'">
             <div style="display:flex; align-items:center; gap:6px;">
-              <a href="/ar" class="nav-tab-pill nav-tab-active">💰 Cuentas por Cobrar (AR)</a>
+              <a href="/ar" class="nav-tab-pill nav-tab-active">
+                <span class="hide-on-mobile">💰 Cuentas por Cobrar (AR)</span>
+                <span class="show-on-mobile-inline">💰 Cuentas por Cobrar</span>
+              </a>
               <a href="/customers" class="nav-tab-pill nav-tab-inactive">Directorio de Clientes</a>
             </div>
           </template>
@@ -298,7 +437,8 @@
           <template x-if="currentPage === 'accounting' || currentPage === 'reports'">
             <div style="display:flex; align-items:center; gap:6px;">
               <a href="/accounting" class="nav-tab-pill" :class="window.location.pathname.includes('/accounting') ? 'nav-tab-active' : 'nav-tab-inactive'">Libro Diario</a>
-              <a href="/reports" class="nav-tab-pill" :class="window.location.pathname.includes('/reports') ? 'nav-tab-active' : 'nav-tab-inactive'">Reportes SAT & BI</a>
+              <a href="/reports" class="nav-tab-pill" :class="window.location.pathname.includes('/reports') && !window.location.search.includes('tab=sales_detail') ? 'nav-tab-active' : 'nav-tab-inactive'">Reportes SAT & BI</a>
+              <a href="/reports?tab=sales_detail" class="nav-tab-pill" :class="window.location.search.includes('tab=sales_detail') ? 'nav-tab-active' : 'nav-tab-inactive'">📊 Detalle de Ventas</a>
             </div>
           </template>
 
@@ -339,6 +479,7 @@
           <div 
             x-show="openAlerts" 
             @click.outside="openAlerts = false"
+            class="topbar-alerts-drawer"
             style="position:absolute; top:38px; right:0; width:340px; background:#ffffff; border:1px solid #cbd5e1; border-radius:12px; box-shadow:0 12px 30px rgba(0,0,0,0.15); padding:12px 0; z-index:1000;" 
             x-cloak
           >
@@ -387,21 +528,23 @@
         <!-- Branch Switcher Dropdown (Cambio de Sucursal en Vivo) -->
         <div style="position:relative;" x-data="{ openBranchMenu: false }">
           <div 
-            @click="openBranchMenu = !openBranchMenu"
-            style="display:flex; align-items:center; gap:6px; background:#f8fafc; border:1px solid #cbd5e1; color:#1e293b; padding:4px 10px; border-radius:10px; font-size:11.5px; font-weight:800; cursor:pointer; transition:all 0.15s;"
+            @click="availableBranches.length > 1 ? openBranchMenu = !openBranchMenu : null"
+            style="display:flex; align-items:center; gap:6px; background:#f8fafc; border:1px solid #cbd5e1; color:#1e293b; padding:4px 10px; border-radius:10px; font-size:11.5px; font-weight:800; transition:all 0.15s;"
+            :style="availableBranches.length > 1 ? 'cursor:pointer;' : 'cursor:default; opacity:0.95;'"
             onmouseover="this.style.background='#f1f5f9'"
             onmouseout="this.style.background='#f8fafc'"
-            title="Cambiar Sucursal Activa"
+            :title="availableBranches.length > 1 ? 'Cambiar Sucursal Activa' : 'Sucursal / Caja Asignada'"
           >
             <span>🏪</span>
-            <span x-text="activeBranchName || 'Sucursal Principal'"></span>
-            <i class="ph ph-caret-down" style="font-size:12px; color:#64748b;"></i>
+            <span class="branch-title-text hide-on-mobile" x-text="activeBranchName || 'Sucursal Principal'"></span>
+            <i class="ph ph-caret-down" style="font-size:12px; color:#64748b;" x-show="availableBranches.length > 1"></i>
           </div>
 
           <!-- Dropdown List of Branches -->
           <div 
             x-show="openBranchMenu" 
             @click.outside="openBranchMenu = false"
+            class="topbar-branch-drawer"
             style="position:absolute; top:36px; right:0; width:260px; background:#ffffff; border:1px solid #cbd5e1; border-radius:10px; box-shadow:0 12px 30px rgba(0,0,0,0.15); padding:6px 0; z-index:1000;" 
             x-cloak
           >
@@ -431,7 +574,7 @@
         <!-- POS Quick Link Button -->
         <a 
           href="/pos" 
-          class="btn btn-sm" 
+          class="btn btn-sm hide-on-mobile" 
           style="background:var(--odoo-purple); color:#ffffff; font-weight:800; border-radius:8px; padding:5px 12px; font-size:12px; text-decoration:none; display:flex; align-items:center; gap:4px;"
           title="Ir al POS"
         >
@@ -451,6 +594,7 @@
           <div 
             x-show="openUserMenu" 
             @click.away="openUserMenu = false"
+            class="topbar-user-drawer"
             style="position:absolute; top:36px; right:0; width:220px; background:#ffffff; border:1px solid #cbd5e1; border-radius:10px; box-shadow:0 10px 25px rgba(0,0,0,0.12); padding:8px 0; z-index:900;" 
             x-cloak
           >
@@ -562,15 +706,31 @@
           try {
             const res = await fetch('/api/v1/auth/public-branches');
             if (res.ok) {
-              this.availableBranches = await res.json();
-              if (this.availableBranches.length > 0 && !this.activeBranchId) {
+              const allBranches = await res.json();
+              const u = this.currentUser || JSON.parse(localStorage.getItem('user') || '{}');
+              const codes = u.role_codes || (u.roles || []).map(r => r.code || r);
+              const isCashierOnly = codes.includes('cashier') && !codes.includes('admin') && !codes.includes('store_manager');
+
+              if (isCashierOnly && u.current_branch_id) {
+                this.availableBranches = allBranches.filter(b => b.id === u.current_branch_id);
+                if (this.availableBranches.length === 0 && allBranches.length > 0) {
+                  this.availableBranches = [allBranches[0]];
+                }
                 this.activeBranchId = this.availableBranches[0].id;
                 this.activeBranchName = this.availableBranches[0].name;
                 localStorage.setItem('branch_id', this.activeBranchId);
                 localStorage.setItem('branch_name', this.activeBranchName);
-              } else if (this.activeBranchId) {
-                const match = this.availableBranches.find(b => b.id === this.activeBranchId);
-                if (match) this.activeBranchName = match.name;
+              } else {
+                this.availableBranches = allBranches;
+                if (this.availableBranches.length > 0 && !this.activeBranchId) {
+                  this.activeBranchId = this.availableBranches[0].id;
+                  this.activeBranchName = this.availableBranches[0].name;
+                  localStorage.setItem('branch_id', this.activeBranchId);
+                  localStorage.setItem('branch_name', this.activeBranchName);
+                } else if (this.activeBranchId) {
+                  const match = this.availableBranches.find(b => b.id === this.activeBranchId);
+                  if (match) this.activeBranchName = match.name;
+                }
               }
             }
           } catch(e) {}
@@ -582,6 +742,7 @@
           localStorage.setItem('branch_id', b.id);
           localStorage.setItem('branch_name', b.name);
           localStorage.setItem('active_branch', b.name);
+          localStorage.removeItem('warehouse_id');
           
           // Notificar y recargar datos de la sucursal
           const toastEl = document.createElement('div');
@@ -590,7 +751,11 @@
           document.body.appendChild(toastEl);
           setTimeout(() => {
             toastEl.remove();
-            window.location.reload();
+            if (window.location.search && window.location.search.includes('warehouse_id')) {
+              window.location.href = window.location.pathname;
+            } else {
+              window.location.reload();
+            }
           }, 600);
         },
 

@@ -6585,9 +6585,12 @@ function posApp() {
       if (this.online) {
         try {
           const warehouseId = this.currentWarehouseId || localStorage.getItem('warehouse_id') || '';
+          const branchId = (this.cashierSession && this.cashierSession.branch_id) || localStorage.getItem('branch_id') || '';
           let url = `/products/?is_active=true`;
           if (warehouseId) {
             url += `&warehouse_id=${encodeURIComponent(warehouseId)}`;
+          } else if (branchId) {
+            url += `&branch_id=${encodeURIComponent(branchId)}`;
           }
           if (this.search) {
             url += `&search=${encodeURIComponent(this.search)}`;
@@ -6691,9 +6694,12 @@ function posApp() {
       this.isSyncingStock = true;
       try {
         const warehouseId = this.currentWarehouseId || localStorage.getItem('warehouse_id') || '';
+        const branchId = (this.cashierSession && this.cashierSession.branch_id) || localStorage.getItem('branch_id') || '';
         let url = '/products/stock-levels';
         if (warehouseId) {
           url += `?warehouse_id=${encodeURIComponent(warehouseId)}`;
+        } else if (branchId) {
+          url += `?branch_id=${encodeURIComponent(branchId)}`;
         }
         const res = await API.get(url);
         if (res && res.stock && typeof res.stock === 'object') {

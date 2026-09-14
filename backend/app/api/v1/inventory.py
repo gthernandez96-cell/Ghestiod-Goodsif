@@ -29,6 +29,7 @@ class StockAdjustIn(BaseModel):
 
 @router.get("/stock")
 async def list_stock(
+    branch_id: Optional[str] = Query(None),
     warehouse_id: Optional[str] = Query(None),
     product_id: Optional[str] = Query(None),
     db: AsyncSession = Depends(get_db),
@@ -38,8 +39,15 @@ async def list_stock(
     stmt = (
         select(StockQuant)
         .options(selectinload(StockQuant.product), selectinload(StockQuant.warehouse))
+        .join(Warehouse, StockQuant.warehouse_id == Warehouse.id)
         .where(StockQuant.is_deleted == False)
     )
+
+    if branch_id and branch_id.strip():
+        try:
+            stmt = stmt.where(Warehouse.branch_id == uuid.UUID(branch_id.strip()))
+        except ValueError:
+            pass
 
     if warehouse_id:
         try:
@@ -75,52 +83,126 @@ async def list_stock(
 
 @router.get("/moves")
 async def list_moves(
+    branch_id: Optional[str] = Query(None),
     warehouse_id: Optional[str] = Query(None),
     product_id: Optional[str] = Query(None),
-    limit: int = Query(50, le=200),
+    move_type: Optional[str] = Query(None),
+    search: Optional[str] = Query(None),
+    limit: int = Query(100, ge=1, le=500),
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    """Kardex: Listar movimientos de inventario."""
+    """Kardex: Listar movimientos de inventario con filtros y resumen cuantitativo."""
     stmt = (
         select(StockMove)
         .options(selectinload(StockMove.product), selectinload(StockMove.warehouse))
-        .order_by(StockMove.created_at.desc())
-        .limit(limit)
+        .join(Product, StockMove.product_id == Product.id)
+        .outerjoin(Warehouse, StockMove.warehouse_id == Warehouse.id)
+        .where(Product.company_id == current_user.company_id)
+        .order_by(StockMove.created_at.desc(), StockMove.id.desc())
     )
 
-    if warehouse_id:
+    if branch_id and branch_id.strip():
         try:
-            stmt = stmt.where(StockMove.warehouse_id == uuid.UUID(warehouse_id))
+            stmt = stmt.where(Warehouse.branch_id == uuid.UUID(branch_id.strip()))
         except ValueError:
             pass
 
-    if product_id:
+    if warehouse_id and warehouse_id.strip():
         try:
-            stmt = stmt.where(StockMove.product_id == uuid.UUID(product_id))
+            stmt = stmt.where(StockMove.warehouse_id == uuid.UUID(warehouse_id.strip()))
         except ValueError:
             pass
 
+    if product_id and product_id.strip():
+        try:
+            stmt = stmt.where(StockMove.product_id == uuid.UUID(product_id.strip()))
+        except ValueError:
+            pass
+
+    if move_type and move_type.strip() and move_type.strip() != "all":
+        m_val = move_type.strip()
+        # Mapear filtros amigables si el usuario pasa grupo o tipo exacto
+        if m_val == "in":
+            stmt = stmt.where(StockMove.move_type.in_([
+                StockMoveType.PURCHASE, StockMoveType.INITIAL, StockMoveType.ADJUSTMENT_IN,
+                StockMoveType.RETURN_SALE, StockMoveType.TRANSFER_IN
+            ]))
+        elif m_val == "out":
+            stmt = stmt.where(StockMove.move_type.in_([
+                StockMoveType.SALE, StockMoveType.ADJUSTMENT_OUT, StockMoveType.WASTE,
+                StockMoveType.EXPIRED, StockMoveType.TRANSFER_OUT
+            ]))
+        else:
+            try:
+                stmt = stmt.where(StockMove.move_type == StockMoveType(m_val))
+            except Exception:
+                pass
+
+    if search and search.strip():
+        term = f"%{search.strip()}%"
+        stmt = stmt.where(
+            or_(
+                Product.name.ilike(term),
+                Product.internal_ref.ilike(term),
+                Product.barcode.ilike(term),
+                StockMove.reference.ilike(term),
+                StockMove.notes.ilike(term),
+            )
+        )
+
+    stmt = stmt.limit(limit)
     res = await db.execute(stmt)
     moves = res.scalars().all()
 
-    return [
-        {
+    INFLOW_TYPES = {"purchase", "initial", "adj_in", "ret_sale", "transfer_in"}
+
+    items = []
+    total_inflow = 0.0
+    total_outflow = 0.0
+
+    for m in moves:
+        m_type_str = m.move_type.value if hasattr(m.move_type, "value") else str(m.move_type)
+        qty_val = float(m.qty or 0)
+        is_in = m_type_str in INFLOW_TYPES
+
+        if is_in:
+            total_inflow += qty_val
+        else:
+            total_outflow += qty_val
+
+        items.append({
             "id": str(m.id),
-            "date": m.created_at.isoformat() if m.created_at else None,
+            "date": m.created_at.strftime("%d/%m/%Y %H:%M") if m.created_at else "",
+            "created_at_iso": m.created_at.isoformat() if m.created_at else None,
+            "product_id": str(m.product_id) if m.product_id else None,
             "product_name": m.product.name if m.product else "N/A",
-            "warehouse_name": m.warehouse.name if m.warehouse else "N/A",
-            "move_type": m.move_type.value if hasattr(m.move_type, 'value') else str(m.move_type),
+            "product_sku": m.product.internal_ref or m.product.barcode or "" if m.product else "",
+            "product_image": m.product.image_url if m.product else None,
+            "warehouse_id": str(m.warehouse_id) if m.warehouse_id else None,
+            "warehouse_name": m.warehouse.name if m.warehouse else "Bodega Central",
+            "move_type": m_type_str,
+            "is_inflow": is_in,
             "reference": m.reference or "",
-            "qty": float(m.qty or 0),
+            "reference_id": str(m.reference_id) if m.reference_id else None,
+            "qty": qty_val,
             "qty_before": float(m.qty_before or 0),
             "qty_after": float(m.qty_after or 0),
             "unit_cost": float(m.unit_cost or 0),
             "total_cost": float(m.total_cost or 0),
             "notes": m.notes or "",
+        })
+
+    return {
+        "items": items,
+        "total": len(items),
+        "summary": {
+            "total_moves": len(items),
+            "total_inflow": round(total_inflow, 2),
+            "total_outflow": round(total_outflow, 2),
+            "net_qty": round(total_inflow - total_outflow, 2),
         }
-        for m in moves
-    ]
+    }
 
 
 @router.post("/adjust")
