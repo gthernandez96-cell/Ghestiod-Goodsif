@@ -135,6 +135,9 @@
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
     transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
     cursor: pointer;
+    box-sizing: border-box;
+    overflow: hidden;
+    position: relative;
   }
 
   .odoo-product-card:hover {
@@ -293,24 +296,39 @@
     max-width: 200px;
   }
 
-  /* Card Footer */
+  /* Card Footer & Actions */
   .inv-card-footer {
     margin-top: 12px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 11.5px;
-    color: #64748b;
-    border-top: 1px solid #f8fafc;
-    padding-top: 8px;
+    border-top: 1px solid #f1f5f9;
+    padding-top: 10px;
     gap: 8px;
+    width: 100%;
+    box-sizing: border-box;
   }
 
-  .inv-cost-text {
-    font-size: 11.5px;
-    font-weight: 700;
-    color: #64748b;
-    white-space: nowrap;
+  .btn-card-kardex {
+    background: #f4eff3 !important;
+    color: #714B67 !important;
+    border: 1px solid #d8b4e2 !important;
+    font-weight: 800 !important;
+    border-radius: 6px !important;
+    padding: 4px 9px !important;
+    font-size: 11px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+    cursor: pointer;
+    min-height: 30px !important;
+    max-height: 32px !important;
+    transition: all 0.15s ease;
+  }
+
+  .btn-card-kardex:hover {
+    background: #ebddec !important;
+    border-color: #714B67 !important;
   }
 
   .inv-card-actions {
@@ -322,22 +340,29 @@
 
   .btn-card-archive {
     padding: 4px 8px !important;
-    font-size: 11px !important;
+    font-size: 13px !important;
     font-weight: 700 !important;
     border-radius: 6px !important;
     border: 1px solid #cbd5e1 !important;
     background: #ffffff !important;
     min-height: 30px !important;
     max-height: 32px !important;
+    min-width: 32px !important;
     display: inline-flex !important;
     align-items: center !important;
-    gap: 4px !important;
+    justify-content: center !important;
     cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .btn-card-archive:hover {
+    background: #f8fafc !important;
+    border-color: #94a3b8 !important;
   }
 
   .btn-card-delete {
     padding: 4px 8px !important;
-    font-size: 12px !important;
+    font-size: 13px !important;
     font-weight: 700 !important;
     border-radius: 6px !important;
     border: 1px solid #fecaca !important;
@@ -345,15 +370,22 @@
     color: #dc2626 !important;
     min-height: 30px !important;
     max-height: 32px !important;
+    min-width: 32px !important;
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
     cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .btn-card-delete:hover {
+    background: #fee2e2 !important;
+    border-color: #f87171 !important;
   }
 
   .btn-card-edit {
     padding: 4px 10px !important;
-    font-size: 11px !important;
+    font-size: 11.5px !important;
     font-weight: 800 !important;
     border-radius: 6px !important;
     border: 1px solid #e9d5ff !important;
@@ -364,9 +396,16 @@
     text-decoration: none !important;
     display: inline-flex !important;
     align-items: center !important;
-    gap: 3px !important;
+    gap: 4px !important;
     cursor: pointer;
     white-space: nowrap !important;
+    transition: all 0.15s ease;
+  }
+
+  .btn-card-edit:hover {
+    background: #ebddec !important;
+    border-color: #714B67 !important;
+    color: #53334b !important;
   }
 
   /* Mobile Responsive Adaptations (<= 768px) */
@@ -1094,7 +1133,7 @@
 
   <!-- ===== 3. KANBAN / CARDS VIEW ===== -->
   <div x-show="viewMode === 'kanban'">
-    <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(290px, 1fr)); gap:18px;">
+    <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:18px;">
       <template x-for="p in filteredProducts" :key="p.id">
         <div class="odoo-product-card" @click="openProductDetail(p)"
           :style="!p.is_active ? 'opacity:0.8; border-style:dashed; background:#fbfbfb;' : ''">
@@ -1127,17 +1166,19 @@
               </div>
             </div>
 
-            <!-- Price & Stock Pills -->
+            <!-- Price & Stock Section -->
             <div
-              style="display:flex; justify-content:space-between; align-items:center; margin-top:14px; padding-top:10px; border-top:1px solid #f1f5f9;">
+              style="display:flex; justify-content:space-between; align-items:flex-end; margin-top:14px; padding-top:10px; border-top:1px solid #f1f5f9;">
               <div>
-                <div style="font-size:10.5px; color:#64748b; font-weight:700;">PRECIO VENTA</div>
-                <div style="font-size:16px; font-weight:900; color:#0f172a;"
+                <div style="font-size:10px; color:#64748b; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;">Precio Venta</div>
+                <div style="font-size:16px; font-weight:900; color:#0f172a; line-height:1.2; margin-top:1px;"
                   x-text="'Q ' + Number(p.sale_price || 0).toFixed(2)"></div>
+                <div style="font-size:11px; color:#64748b; font-weight:600; margin-top:3px;"
+                  x-text="'Costo: Q ' + Number(p.cost_price || 0).toFixed(2)"></div>
               </div>
               <div style="text-align:right;">
-                <div style="font-size:10.5px; color:#64748b; font-weight:700;">EXISTENCIA</div>
-                <span style="font-size:12px; font-weight:900; padding:2px 8px; border-radius:8px; display:inline-block;"
+                <div style="font-size:10px; color:#64748b; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:3px;">Existencia</div>
+                <span style="font-size:12px; font-weight:900; padding:3px 10px; border-radius:8px; display:inline-block;"
                   :style="(p.stock || 0) <= 0 ? 'background:#fee2e2; color:#b91c1c;' : ((p.stock || 0) <= (p.min_stock || 5) ? 'background:#ffedd5; color:#c2410c;' : 'background:#dcfce7; color:#15803d;')"
                   x-text="(p.stock || 0) + ' unid.'"></span>
               </div>
@@ -1146,42 +1187,38 @@
 
           <!-- Bottom Footer Action Buttons -->
           <div class="inv-card-footer">
-            <span class="inv-cost-text" x-text="'Costo: Q ' + Number(p.cost_price || 0).toFixed(2)"></span>
-            <div style="display:inline-flex; align-items:center; gap:6px;">
-              <!-- Botón Kardex accesible para cualquier rol -->
-              <button 
-                type="button" 
-                class="btn btn-sm" 
-                @click.stop="openProductKardex(p)"
-                style="background:#f4eff3; color:#714B67; border:1px solid #d8b4e2; font-weight:800; border-radius:6px; padding:4px 9px; font-size:11px; display:inline-flex; align-items:center; gap:4px; cursor:pointer;"
-                title="Consultar Kardex y movimientos de este producto"
-              >
-                <i class="ph ph-chart-line-up"></i>
-                <span>Kardex</span>
+            <!-- Botón Kardex a la izquierda -->
+            <button 
+              type="button" 
+              class="btn btn-sm btn-card-kardex" 
+              @click.stop="openProductKardex(p)"
+              title="Consultar Kardex y movimientos de este producto"
+            >
+              <i class="ph ph-chart-line-up"></i>
+              <span>Kardex</span>
+            </button>
+
+            <!-- Acciones a la derecha perfectamente alineadas al marco -->
+            <div class="inv-card-actions" x-show="canManageProducts">
+              <!-- Archivar / Desarchivar -->
+              <button type="button" class="btn btn-sm btn-card-archive"
+                :style="p.is_active ? 'color:#475569;' : 'color:#b45309; background:#fffbeb; border-color:#fde68a;'"
+                @click.stop="toggleArchiveProduct(p)"
+                :title="p.is_active ? 'Archivar producto (ocultar de ventas)' : 'Desarchivar producto (reactivar)'">
+                <i class="ph" :class="p.is_active ? 'ph-archive' : 'ph-archive-box'"></i>
               </button>
 
-              <div class="inv-card-actions" x-show="canManageProducts">
-                <!-- Archivar / Desarchivar -->
-                <button type="button" class="btn btn-sm btn-card-archive"
-                  :style="p.is_active ? 'color:#475569;' : 'color:#b45309; background:#fffbeb; border-color:#fde68a;'"
-                  @click.stop="toggleArchiveProduct(p)"
-                  :title="p.is_active ? 'Archivar producto (ocultar de ventas)' : 'Desarchivar producto (reactivar)'">
-                  <i class="ph" :class="p.is_active ? 'ph-archive' : 'ph-archive-box'"></i>
-                  <span x-text="p.is_active ? 'Archivar' : 'Reactivar'"></span>
-                </button>
+              <!-- Eliminar -->
+              <button type="button" class="btn btn-sm btn-card-delete"
+                @click.stop="deleteProduct(p)" title="Eliminar producto del inventario">
+                <i class="ph ph-trash"></i>
+              </button>
 
-                <!-- Eliminar -->
-                <button type="button" class="btn btn-sm btn-card-delete"
-                  @click.stop="deleteProduct(p)" title="Eliminar producto del inventario">
-                  <i class="ph ph-trash"></i>
-                </button>
-
-                <!-- Editar -->
-                <a :href="'/inventory/' + p.id" class="btn btn-sm btn-card-edit" @click.stop title="Editar producto">
-                  <span>Editar</span>
-                  <i class="ph ph-arrow-right"></i>
-                </a>
-              </div>
+              <!-- Editar -->
+              <a :href="'/inventory/' + p.id" class="btn btn-sm btn-card-edit" @click.stop title="Editar producto">
+                <i class="ph ph-pencil-simple"></i>
+                <span>Editar</span>
+              </a>
             </div>
           </div>
 
