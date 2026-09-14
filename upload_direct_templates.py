@@ -8,6 +8,9 @@ headers = {"Authorization": f"Token {token}"}
 domain = f"{username}.pythonanywhere.com"
 
 files_to_sync = [
+    "backend/app/api/v1/forecast.py",
+    "backend/app/api/v1/__init__.py",
+    "backend/app/main.py",
     "backend/app/api/v1/products.py",
     "backend/app/api/v1/inventory.py",
     "backend/app/templates/base.html",

@@ -1,7 +1,7 @@
 {% set show_layout = true %}
 {% extends "base.html" %}
 
-{% block title %}Compras y Adquisiciones — POS Empresarial{% endblock %}
+{% block title %}Compras y Previsión Inteligente — POS Empresarial{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -73,6 +73,98 @@
     border-color: #714B67;
     box-shadow: 0 2px 8px rgba(113, 75, 103, 0.25);
   }
+
+  .forecast-pill {
+    padding: 5px 12px;
+    border-radius: 16px;
+    font-size: 11.5px;
+    font-weight: 800;
+    cursor: pointer;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    color: #475569;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .forecast-pill.active {
+    background: #0284c7;
+    color: #ffffff;
+    border-color: #0284c7;
+    box-shadow: 0 2px 6px rgba(2, 132, 199, 0.25);
+  }
+
+  .ai-briefing-box {
+    background: linear-gradient(135deg, #fdf4f9 0%, #f0f9ff 100%);
+    border: 1.5px solid #e0e7ff;
+    border-radius: 14px;
+    padding: 16px 20px;
+    margin-bottom: 22px;
+    box-shadow: 0 2px 10px rgba(113, 75, 103, 0.05);
+  }
+
+  /* Mobile Responsive */
+  .po-mobile-cards {
+    display: none;
+  }
+  @media (max-width: 768px) {
+    .po-header-bar {
+      margin: -12px -12px 14px -12px !important;
+      padding: 12px !important;
+      gap: 10px !important;
+      flex-direction: column !important;
+      align-items: stretch !important;
+    }
+    .po-header-main-row {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      width: 100% !important;
+      gap: 8px !important;
+    }
+    .po-pills-scroll {
+      display: flex !important;
+      align-items: center !important;
+      gap: 6px !important;
+      overflow-x: auto !important;
+      padding-bottom: 6px !important;
+      margin-bottom: 14px !important;
+      scrollbar-width: none !important;
+      -webkit-overflow-scrolling: touch !important;
+      flex-wrap: nowrap !important;
+    }
+    .po-pills-scroll::-webkit-scrollbar {
+      display: none !important;
+    }
+    .po-pills-scroll .filter-pill {
+      flex-shrink: 0 !important;
+      padding: 5px 12px !important;
+      font-size: 11.5px !important;
+    }
+    .po-search-container {
+      width: 100% !important;
+    }
+    .po-table-desktop {
+      display: none !important;
+    }
+    .po-mobile-cards {
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 10px !important;
+    }
+    .po-card-item {
+      background: #ffffff;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 14px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+  }
 </style>
 {% endblock %}
 
@@ -80,197 +172,536 @@
 <div x-data="purchasesPage()" x-init="init()">
   
   <!-- ===== TOP HEADER BAR ===== -->
-  <div style="margin:-20px -24px 20px -24px; padding:14px 24px; background:#ffffff; border-bottom:1px solid #e2e8f0; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+  <div class="po-header-bar" style="margin:-20px -24px 20px -24px; padding:14px 24px; background:#ffffff; border-bottom:1px solid #e2e8f0; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; box-shadow:0 1px 3px rgba(0,0,0,0.02);">
     
-    <!-- Left: Actions & Title -->
-    <div style="display:flex; align-items:center; gap:12px;">
-      <a href="/purchases/new" class="btn btn-primary" style="background:#714B67; color:#ffffff; font-weight:800; border-radius:8px; padding:8px 20px; border:none; box-shadow:0 2px 8px rgba(113,75,103,0.25); display:flex; align-items:center; gap:6px; cursor:pointer; text-decoration:none;">
-        <i class="ph ph-plus" style="font-weight:800;"></i> Nueva Orden de Compra
-      </a>
-      <div style="font-size:15px; font-weight:800; color:#1e293b; display:flex; align-items:center; gap:8px; margin-left:6px;">
-        <span>Compras & Abastecimiento (RFQs)</span>
+    <!-- Left: Navigation Tabs (Órdenes vs Previsión IA) -->
+    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+      <div style="display:inline-flex; background:#f1f5f9; padding:3px; border-radius:10px; border:1px solid #e2e8f0;">
+        <button 
+          type="button" 
+          @click="switchTab('orders')"
+          style="padding:6px 14px; border-radius:8px; font-size:12.5px; border:none; cursor:pointer; display:flex; align-items:center; gap:6px; transition:all 0.15s;"
+          :style="currentTab === 'orders' ? 'background:#ffffff; color:#714B67; font-weight:800; box-shadow:0 2px 6px rgba(0,0,0,0.08);' : 'background:transparent; color:#64748b; font-weight:700;'"
+        >
+          <i class="ph ph-receipt" style="font-size:16px;"></i> Órdenes de Compra
+        </button>
+
+        <button 
+          type="button" 
+          @click="switchTab('forecast')"
+          style="padding:6px 14px; border-radius:8px; font-size:12.5px; border:none; cursor:pointer; display:flex; align-items:center; gap:6px; transition:all 0.15s;"
+          :style="currentTab === 'forecast' ? 'background:#ffffff; color:#0284c7; font-weight:800; box-shadow:0 2px 6px rgba(2,132,199,0.15);' : 'background:transparent; color:#64748b; font-weight:700;'"
+        >
+          <i class="ph ph-sparkle" style="font-size:16px; color:#0284c7;"></i>
+          <span>Previsión & Reorden IA</span>
+          <template x-if="forecastSummary && forecastSummary.critical_count > 0">
+            <span style="background:#ef4444; color:#ffffff; font-size:10px; font-weight:900; padding:1px 6px; border-radius:10px; line-height:1.2;" x-text="forecastSummary.critical_count"></span>
+          </template>
+        </button>
       </div>
+
+      <a x-show="currentTab === 'orders'" href="/purchases/new" class="btn btn-primary" style="background:#714B67; color:#ffffff; font-weight:800; border-radius:8px; padding:7px 16px; border:none; box-shadow:0 2px 8px rgba(113,75,103,0.25); display:flex; align-items:center; gap:6px; cursor:pointer; text-decoration:none; font-size:13px;">
+        <i class="ph ph-plus" style="font-weight:800;"></i> <span class="hide-on-mobile">Nueva Orden de Compra</span><span class="show-on-mobile-inline">Nueva Orden</span>
+      </a>
     </div>
 
-    <!-- Center: Search Input -->
+    <!-- Center/Right Search Input (para órdenes o para inventario según tab) -->
     <div class="po-search-container">
-      <i class="ph ph-magnifying-glass" style="position:absolute; left:12px; color:#714B67; font-size:17px; font-weight:800; pointer-events:none;"></i>
+      <i class="ph ph-magnifying-glass" style="position:absolute; left:12px; color:var(--odoo-purple, #714B67); font-size:17px; font-weight:800; pointer-events:none;"></i>
       <input
         type="text"
         class="po-search-input"
-        placeholder="Buscar por OC, Proveedor..."
+        :placeholder="currentTab === 'orders' ? 'Buscar por OC, Proveedor...' : 'Buscar producto en previsión...'"
         x-model="search"
-        @input.debounce.250ms="applyFilters()"
+        @input.debounce.250ms="currentTab === 'orders' ? applyFilters() : applyForecastFilters()"
       >
-      <i class="ph ph-x-circle" style="position:absolute; right:12px; color:#94a3b8; font-size:17px; cursor:pointer;" x-show="search.length > 0" @click="search = ''; applyFilters()"></i>
+      <i class="ph ph-x-circle" style="position:absolute; right:12px; color:#94a3b8; font-size:17px; cursor:pointer;" x-show="search.length > 0" @click="search = ''; currentTab === 'orders' ? applyFilters() : applyForecastFilters()"></i>
     </div>
 
   </div>
 
-  <!-- ===== 2. SEGMENTATION & FILTER PILLS WITH RESUMEN BUTTON ===== -->
-  <div style="position:relative; display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:20px;">
-    <span style="font-size:12px; font-weight:800; color:#64748b; margin-right:4px;">FILTRAR:</span>
-    <button class="filter-pill" :class="filterType === 'all' ? 'active' : ''" @click="filterType = 'all'; applyFilters()">
-      <span>Todas</span>
-      <span style="background:rgba(0,0,0,0.08); padding:1px 6px; border-radius:10px; font-size:11px;" x-text="purchases.length"></span>
-    </button>
-    <button class="filter-pill" :class="filterType === 'pending' ? 'active' : ''" @click="filterType = 'pending'; applyFilters()" style="color:#c2410c;">
-      <span>⏳ Pendientes de Recepción</span>
-    </button>
-    <button class="filter-pill" :class="filterType === 'received' ? 'active' : ''" @click="filterType = 'received'; applyFilters()" style="color:#15803d;">
-      <span>✅ Mercadería Recibida</span>
-    </button>
-
-    <!-- Right Controls: Resumen KPI Button -->
-    <div style="margin-left:auto; display:flex; align-items:center; gap:10px; position:relative;">
-      <button
-        type="button"
-        @click="showKpis = !showKpis"
-        style="
-          display:inline-flex; align-items:center; gap:7px;
-          padding:6px 14px;
-          background:linear-gradient(135deg, #714B67 0%, #9b6b8f 100%);
-          border:none; border-radius:20px;
-          font-size:11.5px; font-weight:800; color:#ffffff;
-          cursor:pointer; transition:all 0.22s cubic-bezier(0.4,0,0.2,1);
-          box-shadow:0 2px 10px rgba(113,75,103,0.3);
-          letter-spacing:0.3px; white-space:nowrap;
-        "
-        onmouseover="this.style.boxShadow='0 4px 16px rgba(113,75,103,0.5)'; this.style.transform='translateY(-1px)'"
-        onmouseout="this.style.boxShadow='0 2px 10px rgba(113,75,103,0.3)'; this.style.transform='translateY(0)'"
-      >
-        <i class="ph ph-chart-bar" style="font-size:15px;"></i>
-        <span x-text="showKpis ? 'Ocultar resumen' : 'Resumen'"></span>
-        <i
-          class="ph ph-caret-down"
-          style="font-size:12px; transition:transform 0.25s ease;"
-          :style="showKpis ? 'transform:rotate(180deg)' : 'transform:rotate(0deg)'"
-        ></i>
+  <!-- ========================================================
+       TAB 1: ÓRDENES DE COMPRA REGULARES
+  ======================================================== -->
+  <div x-show="currentTab === 'orders'">
+    <!-- SEGMENTATION & FILTER PILLS WITH RESUMEN BUTTON -->
+    <div class="po-pills-scroll" style="position:relative; display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:20px;">
+      <span style="font-size:12px; font-weight:800; color:#64748b; margin-right:4px;">FILTRAR:</span>
+      <button class="filter-pill" :class="filterType === 'all' ? 'active' : ''" @click="filterType = 'all'; applyFilters()">
+        <span>Todas</span>
+        <span style="background:rgba(0,0,0,0.08); padding:1px 6px; border-radius:10px; font-size:11px;" x-text="purchases.length"></span>
+      </button>
+      <button class="filter-pill" :class="filterType === 'pending' ? 'active' : ''" @click="filterType = 'pending'; applyFilters()" style="color:#c2410c;">
+        <span>⏳ Pendientes de Recepción</span>
+      </button>
+      <button class="filter-pill" :class="filterType === 'received' ? 'active' : ''" @click="filterType = 'received'; applyFilters()" style="color:#15803d;">
+        <span>✅ Mercadería Recibida</span>
       </button>
 
-      <!-- Floating KPI Dropdown Panel (alineado a la derecha) -->
-      <div
-        x-show="showKpis"
-        @click.outside="showKpis = false"
-        x-transition:enter="transition ease-out duration-200"
-        x-transition:enter-start="opacity-0 scale-95"
-        x-transition:enter-end="opacity-100 scale-100"
-        x-transition:leave="transition ease-in duration-150"
-        x-transition:leave-start="opacity-100 scale-100"
-        x-transition:leave-end="opacity-0 scale-95"
-        style="
-          position:absolute; top:calc(100% + 8px); right:0; z-index:999;
-          background:#ffffff; border:1.5px solid #e2e8f0; border-radius:14px;
-          box-shadow:0 12px 40px -8px rgba(0,0,0,0.15), 0 4px 14px -4px rgba(0,0,0,0.08);
-          padding:14px; display:grid; grid-template-columns:repeat(4, 1fr);
-          gap:10px; width:820px; max-width:90vw;
-        "
-        x-cloak
-      >
-        <div class="po-kpi-card" style="margin:0; padding:12px 14px; border-left:3px solid #714B67;">
-          <div>
-            <div style="font-size:10.5px; font-weight:800; color:#714B67; text-transform:uppercase; letter-spacing:0.5px;">Total Compras (Q)</div>
-            <div style="font-size:18px; font-weight:900; color:#1e293b; margin-top:3px;" x-text="'Q ' + Number(kpis.total_spend || 0).toLocaleString('es-GT', {minimumFractionDigits:2, maximumFractionDigits:2})">Q 0.00</div>
-            <div style="font-size:10.5px; color:#64748b; margin-top:2px;">
-              <span x-text="(kpis.total_orders || 0) + ' órdenes'"></span>
+      <!-- Right Controls: Resumen KPI Button -->
+      <div class="hide-on-mobile" style="margin-left:auto; display:flex; align-items:center; gap:10px; position:relative;">
+        <button
+          type="button"
+          class="hide-on-mobile"
+          @click="showKpis = !showKpis"
+          style="
+            display:inline-flex; align-items:center; gap:7px;
+            padding:6px 14px;
+            background:linear-gradient(135deg, #714B67 0%, #9b6b8f 100%);
+            border:none; border-radius:20px;
+            font-size:11.5px; font-weight:800; color:#ffffff;
+            cursor:pointer; transition:all 0.22s cubic-bezier(0.4,0,0.2,1);
+            box-shadow:0 2px 10px rgba(113,75,103,0.3);
+            letter-spacing:0.3px; white-space:nowrap;
+          "
+          onmouseover="this.style.boxShadow='0 4px 16px rgba(113,75,103,0.5)'; this.style.transform='translateY(-1px)'"
+          onmouseout="this.style.boxShadow='0 2px 10px rgba(113,75,103,0.3)'; this.style.transform='translateY(0)'"
+        >
+          <i class="ph ph-chart-bar" style="font-size:15px;"></i>
+          <span x-text="showKpis ? 'Ocultar resumen' : 'Resumen'"></span>
+          <i
+            class="ph ph-caret-down"
+            style="font-size:12px; transition:transform 0.25s ease;"
+            :style="showKpis ? 'transform:rotate(180deg)' : 'transform:rotate(0deg)'"
+          ></i>
+        </button>
+
+        <!-- Floating KPI Dropdown Panel (alineado a la derecha) -->
+        <div
+          class="hide-on-mobile"
+          x-show="showKpis"
+          @click.outside="showKpis = false"
+          x-transition:enter="transition ease-out duration-200"
+          x-transition:enter-start="opacity-0 scale-95"
+          x-transition:enter-end="opacity-100 scale-100"
+          x-transition:leave="transition ease-in duration-150"
+          x-transition:leave-start="opacity-100 scale-100"
+          x-transition:leave-end="opacity-0 scale-95"
+          style="
+            position:absolute; top:calc(100% + 8px); right:0; z-index:999;
+            background:#ffffff; border:1.5px solid #e2e8f0; border-radius:14px;
+            box-shadow:0 12px 40px -8px rgba(0,0,0,0.15), 0 4px 14px -4px rgba(0,0,0,0.08);
+            padding:14px; display:grid; grid-template-columns:repeat(4, 1fr);
+            gap:10px; width:820px; max-width:90vw;
+          "
+          x-cloak
+        >
+          <div class="po-kpi-card" style="margin:0; padding:12px 14px; border-left:3px solid #714B67;">
+            <div>
+              <div style="font-size:10.5px; font-weight:800; color:#714B67; text-transform:uppercase; letter-spacing:0.5px;">Total Compras (Q)</div>
+              <div style="font-size:18px; font-weight:900; color:#1e293b; margin-top:3px;" x-text="'Q ' + Number(kpis.total_spend || 0).toLocaleString('es-GT', {minimumFractionDigits:2, maximumFractionDigits:2})">Q 0.00</div>
+              <div style="font-size:10.5px; color:#64748b; margin-top:2px;">
+                <span x-text="(kpis.total_orders || 0) + ' órdenes'"></span>
+              </div>
+            </div>
+            <div style="width:36px; height:36px; border-radius:9px; background:#f4eff3; color:#714B67; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;">
+              <i class="ph ph-shopping-bag"></i>
             </div>
           </div>
-          <div style="width:36px; height:36px; border-radius:9px; background:#f4eff3; color:#714B67; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;">
-            <i class="ph ph-shopping-bag"></i>
-          </div>
-        </div>
 
-        <div class="po-kpi-card" style="margin:0; padding:12px 14px; border-left:3px solid #f97316;">
-          <div>
-            <div style="font-size:10.5px; font-weight:800; color:#c2410c; text-transform:uppercase; letter-spacing:0.5px;">Pendientes</div>
-            <div style="font-size:20px; font-weight:900; color:#ea580c; margin-top:3px;" x-text="kpis.pending_reception_count || 0">0</div>
-            <div style="font-size:10.5px; color:#64748b; margin-top:2px;">Por ingresar a bodega</div>
-          </div>
-          <div style="width:36px; height:36px; border-radius:9px; background:#ffedd5; color:#ea580c; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;">
-            <i class="ph ph-truck"></i>
-          </div>
-        </div>
-
-        <div class="po-kpi-card" style="margin:0; padding:12px 14px; border-left:3px solid #10b981;">
-          <div>
-            <div style="font-size:10.5px; font-weight:800; color:#047857; text-transform:uppercase; letter-spacing:0.5px;">Recibidas</div>
-            <div style="font-size:20px; font-weight:900; color:#059669; margin-top:3px;" x-text="kpis.received_count || 0">0</div>
-            <div style="font-size:10.5px; color:#64748b; margin-top:2px;">
-              <span x-text="(kpis.total_units_received || 0) + ' unid.'"></span>
+          <div class="po-kpi-card" style="margin:0; padding:12px 14px; border-left:3px solid #f97316;">
+            <div>
+              <div style="font-size:10.5px; font-weight:800; color:#c2410c; text-transform:uppercase; letter-spacing:0.5px;">Pendientes</div>
+              <div style="font-size:20px; font-weight:900; color:#ea580c; margin-top:3px;" x-text="kpis.pending_reception_count || 0">0</div>
+              <div style="font-size:10.5px; color:#64748b; margin-top:2px;">Por ingresar a bodega</div>
+            </div>
+            <div style="width:36px; height:36px; border-radius:9px; background:#ffedd5; color:#ea580c; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;">
+              <i class="ph ph-truck"></i>
             </div>
           </div>
-          <div style="width:36px; height:36px; border-radius:9px; background:#dcfce7; color:#15803d; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;">
-            <i class="ph ph-check-circle"></i>
-          </div>
-        </div>
 
-        <div class="po-kpi-card" style="margin:0; padding:12px 14px; border-left:3px solid #0284c7;">
-          <div>
-            <div style="font-size:10.5px; font-weight:800; color:#0369a1; text-transform:uppercase; letter-spacing:0.5px;">Proveedores</div>
-            <div style="font-size:20px; font-weight:900; color:#0284c7; margin-top:3px;" x-text="kpis.active_suppliers_count || 0">0</div>
-            <div style="font-size:10.5px; color:#64748b; margin-top:2px;">Registrados</div>
+          <div class="po-kpi-card" style="margin:0; padding:12px 14px; border-left:3px solid #10b981;">
+            <div>
+              <div style="font-size:10.5px; font-weight:800; color:#047857; text-transform:uppercase; letter-spacing:0.5px;">Recibidas</div>
+              <div style="font-size:20px; font-weight:900; color:#059669; margin-top:3px;" x-text="kpis.received_count || 0">0</div>
+              <div style="font-size:10.5px; color:#64748b; margin-top:2px;">
+                <span x-text="(kpis.total_units_received || 0) + ' unid.'"></span>
+              </div>
+            </div>
+            <div style="width:36px; height:36px; border-radius:9px; background:#dcfce7; color:#15803d; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;">
+              <i class="ph ph-check-circle"></i>
+            </div>
           </div>
-          <div style="width:36px; height:36px; border-radius:9px; background:#e0f2fe; color:#0284c7; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;">
-            <i class="ph ph-buildings"></i>
+
+          <div class="po-kpi-card" style="margin:0; padding:12px 14px; border-left:3px solid #0284c7;">
+            <div>
+              <div style="font-size:10.5px; font-weight:800; color:#0369a1; text-transform:uppercase; letter-spacing:0.5px;">Proveedores</div>
+              <div style="font-size:20px; font-weight:900; color:#0284c7; margin-top:3px;" x-text="kpis.active_suppliers_count || 0">0</div>
+              <div style="font-size:10.5px; color:#64748b; margin-top:2px;">Registrados</div>
+            </div>
+            <div style="width:36px; height:36px; border-radius:9px; background:#e0f2fe; color:#0284c7; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;">
+              <i class="ph ph-buildings"></i>
+            </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- ===== 3. PURCHASES TABLE VIEW ===== -->
-  <div class="card p-0" style="overflow:hidden; background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
-    <div class="table-responsive">
-      <table class="table" style="width:100%; border-collapse:collapse;">
-        <thead>
-          <tr style="border-bottom:2px solid #e2e8f0; background:#f8fafc;">
-            <th style="padding:14px 18px; text-align:left; color:#475569; font-size:11px; text-transform:uppercase; font-weight:800;">Orden de Compra</th>
-            <th style="padding:14px 18px; text-align:left; color:#475569; font-size:11px; text-transform:uppercase; font-weight:800;">Proveedor</th>
-            <th style="padding:14px 18px; text-align:left; color:#475569; font-size:11px; text-transform:uppercase; font-weight:800;">Fecha</th>
-            <th style="padding:14px 18px; text-align:right; color:#475569; font-size:11px; text-transform:uppercase; font-weight:800;">Total (Q)</th>
-            <th style="padding:14px 18px; text-align:center; color:#475569; font-size:11px; text-transform:uppercase; font-weight:800;">Estado</th>
-            <th style="padding:14px 18px; text-align:right; color:#475569; font-size:11px; text-transform:uppercase; font-weight:800;">Acción</th>
-          </tr>
-        </thead>
-        <tbody>
-          <template x-for="po in filteredPurchases" :key="po.id">
-            <tr style="border-bottom:1px solid #f1f5f9; transition:background 0.15s; cursor:pointer;" @click="openPurchaseDetail(po)" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#ffffff'">
-              <td style="padding:14px 18px;">
-                <div style="display:flex; align-items:center; gap:10px;">
-                  <div style="width:32px; height:32px; border-radius:8px; background:#f4eff3; color:#714B67; font-weight:800; font-size:14px; display:flex; align-items:center; justify-content:center;">
-                    <i class="ph ph-receipt"></i>
+    <!-- PURCHASES TABLE VIEW (Desktop) -->
+    <div class="po-table-desktop card p-0" style="overflow:hidden; background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+      <div class="table-responsive">
+        <table class="table" style="width:100%; border-collapse:collapse;">
+          <thead>
+            <tr style="border-bottom:2px solid #e2e8f0; background:#f8fafc;">
+              <th style="padding:14px 18px; text-align:left; color:#475569; font-size:11px; text-transform:uppercase; font-weight:800;">Orden de Compra</th>
+              <th style="padding:14px 18px; text-align:left; color:#475569; font-size:11px; text-transform:uppercase; font-weight:800;">Proveedor</th>
+              <th style="padding:14px 18px; text-align:left; color:#475569; font-size:11px; text-transform:uppercase; font-weight:800;">Fecha</th>
+              <th style="padding:14px 18px; text-align:right; color:#475569; font-size:11px; text-transform:uppercase; font-weight:800;">Total (Q)</th>
+              <th style="padding:14px 18px; text-align:center; color:#475569; font-size:11px; text-transform:uppercase; font-weight:800;">Estado</th>
+              <th style="padding:14px 18px; text-align:right; color:#475569; font-size:11px; text-transform:uppercase; font-weight:800;">Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="po in filteredPurchases" :key="po.id">
+              <tr style="border-bottom:1px solid #f1f5f9; transition:background 0.15s; cursor:pointer;" @click="openPurchaseDetail(po)" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#ffffff'">
+                <td style="padding:14px 18px;">
+                  <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="width:32px; height:32px; border-radius:8px; background:#f4eff3; color:#714B67; font-weight:800; font-size:14px; display:flex; align-items:center; justify-content:center;">
+                      <i class="ph ph-receipt"></i>
+                    </div>
+                    <span style="font-weight:800; color:#714B67; font-size:13.5px;" x-text="po.number"></span>
                   </div>
-                  <span style="font-weight:800; color:#714B67; font-size:13.5px;" x-text="po.number"></span>
-                </div>
-              </td>
-              <td style="padding:14px 18px; font-weight:700; color:#1e293b;" x-text="po.supplier_name"></td>
-              <td style="padding:14px 18px; color:#64748b; font-size:13px;" x-text="po.date"></td>
-              <td style="padding:14px 18px; text-align:right; font-weight:900; font-size:14px; color:#0f172a;" x-text="'Q ' + Number(po.total || 0).toFixed(2)"></td>
-              <td style="padding:14px 18px; text-align:center;">
-                <span 
-                  style="font-size:11.5px; font-weight:800; padding:4px 12px; border-radius:12px; display:inline-block;"
-                  :class="po.state === 'received' ? 'bg-emerald-100 text-emerald-800' : 'bg-purple-100 text-purple-800'"
-                  x-text="po.state === 'received' ? '✓ Recibida' : '📄 Confirmada'"
-                ></span>
-              </td>
-              <td style="padding:14px 18px; text-align:right;">
-                <button class="btn btn-ghost btn-sm" style="background:#f1f5f9; color:#714B67; font-weight:800; border-radius:6px; padding:4px 10px; border:none; cursor:pointer;" @click.stop="openPurchaseDetail(po)">
-                  Ver Ficha &rarr;
-                </button>
+                </td>
+                <td style="padding:14px 18px; font-weight:700; color:#1e293b;" x-text="po.supplier_name"></td>
+                <td style="padding:14px 18px; color:#64748b; font-size:13px;" x-text="po.date"></td>
+                <td style="padding:14px 18px; text-align:right; font-weight:900; font-size:14px; color:#0f172a;" x-text="'Q ' + Number(po.total || 0).toFixed(2)"></td>
+                <td style="padding:14px 18px; text-align:center;">
+                  <span 
+                    style="font-size:11.5px; font-weight:800; padding:4px 12px; border-radius:12px; display:inline-block;"
+                    :class="po.state === 'received' ? 'bg-emerald-100 text-emerald-800' : 'bg-purple-100 text-purple-800'"
+                    x-text="po.state === 'received' ? '✓ Recibida' : '📄 Confirmada'"
+                  ></span>
+                </td>
+                <td style="padding:14px 18px; text-align:right;">
+                  <button class="btn btn-ghost btn-sm" style="background:#f1f5f9; color:#714B67; font-weight:800; border-radius:6px; padding:4px 10px; border:none; cursor:pointer;" @click.stop="openPurchaseDetail(po)">
+                    Ver Ficha &rarr;
+                  </button>
+                </td>
+              </tr>
+            </template>
+
+            <tr x-show="filteredPurchases.length === 0">
+              <td colspan="6" style="text-align:center; padding:60px 20px; color:#64748b;">
+                <i class="ph ph-shopping-bag" style="font-size:44px; color:#cbd5e1;"></i>
+                <p style="margin-top:10px; font-weight:800; font-size:16px; color:#1e293b;">No se encontraron órdenes de compra</p>
+                <p style="font-size:13px; color:#64748b; margin-top:4px;">Crea tu primera orden con el botón superior "+ Nueva Orden de Compra".</p>
               </td>
             </tr>
-          </template>
-
-          <tr x-show="filteredPurchases.length === 0">
-            <td colspan="6" style="text-align:center; padding:60px 20px; color:#64748b;">
-              <i class="ph ph-shopping-bag" style="font-size:44px; color:#cbd5e1;"></i>
-              <p style="margin-top:10px; font-weight:800; font-size:16px; color:#1e293b;">No se encontraron órdenes de compra</p>
-              <p style="font-size:13px; color:#64748b; margin-top:4px;">Crea tu primera orden con el botón superior "+ Nueva Orden de Compra".</p>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+          </tbody>
+        </table>
+      </div>
     </div>
+
+    <!-- PURCHASES MOBILE CARDS VIEW -->
+    <div class="po-mobile-cards">
+      <template x-for="po in filteredPurchases" :key="po.id">
+        <div class="po-card-item" @click="openPurchaseDetail(po)">
+          <div style="display:flex; align-items:center; justify-content:space-between;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <div style="width:28px; height:28px; border-radius:6px; background:#f4eff3; color:#714B67; font-weight:800; font-size:13px; display:flex; align-items:center; justify-content:center;">
+                <i class="ph ph-receipt"></i>
+              </div>
+              <span style="font-weight:800; color:#714B67; font-size:13.5px;" x-text="po.number"></span>
+            </div>
+            <span 
+              style="font-size:11px; font-weight:800; padding:3px 10px; border-radius:12px;"
+              :class="po.state === 'received' ? 'bg-emerald-100 text-emerald-800' : 'bg-purple-100 text-purple-800'"
+              x-text="po.state === 'received' ? '✓ Recibida' : '📄 Confirmada'"
+            ></span>
+          </div>
+
+          <div style="margin-top:4px;">
+            <div style="font-weight:800; font-size:13.5px; color:#1e293b;" x-text="po.supplier_name"></div>
+            <div style="font-size:11.5px; color:#64748b; margin-top:2px;">
+              <i class="ph ph-calendar-blank"></i> <span x-text="po.date"></span>
+            </div>
+          </div>
+
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-top:6px; padding-top:8px; border-top:1px solid #f1f5f9;">
+            <div>
+              <div style="font-size:10.5px; font-weight:800; color:#64748b; text-transform:uppercase;">TOTAL</div>
+              <div style="font-size:16px; font-weight:900; color:#0f172a;" x-text="'Q ' + Number(po.total || 0).toFixed(2)"></div>
+            </div>
+            <button class="btn btn-ghost btn-sm" style="background:#f1f5f9; color:#714B67; font-weight:800; border-radius:6px; padding:6px 12px; border:none; font-size:12px; cursor:pointer;" @click.stop="openPurchaseDetail(po)">
+              Ver Ficha &rarr;
+            </button>
+          </div>
+        </div>
+      </template>
+
+      <div x-show="filteredPurchases.length === 0" style="text-align:center; padding:40px 20px; background:#ffffff; border-radius:12px; border:1px solid #e2e8f0; color:#64748b;">
+        <i class="ph ph-shopping-bag" style="font-size:36px; color:#cbd5e1;"></i>
+        <p style="margin-top:8px; font-weight:800; font-size:14.5px; color:#1e293b;">No se encontraron órdenes</p>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ========================================================
+       TAB 2: PREVISIÓN DE DEMANDA & REORDEN INTELIGENTE
+  ======================================================== -->
+  <div x-show="currentTab === 'forecast'" x-cloak>
+    
+    <!-- CONTROLES SUPERIORES: Período y Horizonte -->
+    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px; margin-bottom:18px;">
+      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+        <span style="font-size:12px; font-weight:800; color:#64748b; text-transform:uppercase;">📅 HISTORIAL ANALIZADO:</span>
+        <button class="forecast-pill" :class="forecastDays === 7 ? 'active' : ''" @click="forecastDays = 7; loadForecast()">7 días</button>
+        <button class="forecast-pill" :class="forecastDays === 15 ? 'active' : ''" @click="forecastDays = 15; loadForecast()">15 días</button>
+        <button class="forecast-pill" :class="forecastDays === 30 ? 'active' : ''" @click="forecastDays = 30; loadForecast()">30 días</button>
+        <button class="forecast-pill" :class="forecastDays === 60 ? 'active' : ''" @click="forecastDays = 60; loadForecast()">60 días</button>
+      </div>
+
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div style="font-size:12px; color:#475569; font-weight:700;">
+          <span>🎯 Cobertura deseada: <strong>15 días de ventas</strong></span>
+        </div>
+        <button 
+          class="btn btn-sm btn-secondary" 
+          @click="loadForecast()" 
+          style="background:#f1f5f9; border:1px solid #cbd5e1; font-weight:800; border-radius:8px; padding:6px 12px; cursor:pointer;"
+          :disabled="isLoadingForecast"
+        >
+          <i class="ph ph-arrow-clockwise" :class="isLoadingForecast ? 'animate-spin' : ''"></i> Actualizar
+        </button>
+      </div>
+    </div>
+
+    <!-- RESUMEN EJECUTIVO CON IA (GEMINI BRIEFS) -->
+    <template x-if="aiSummary && aiSummary.insights && aiSummary.insights.length > 0">
+      <div class="ai-briefing-box">
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+          <div style="width:28px; height:28px; border-radius:7px; background:linear-gradient(135deg, #714B67, #0284c7); color:#fff; display:flex; align-items:center; justify-content:center; font-size:16px;">
+            <i class="ph ph-sparkle"></i>
+          </div>
+          <h4 style="margin:0; font-size:14.5px; font-weight:900; color:#1e293b;" x-text="aiSummary.headline || 'Diagnóstico Inteligente de Demanda'"></h4>
+          <span style="font-size:11px; font-weight:800; background:#e0f2fe; color:#0369a1; padding:2px 8px; border-radius:12px; margin-left:auto;">
+            Motor Predictivo POS
+          </span>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:8px; font-size:13px; color:#334155; line-height:1.5;">
+          <template x-for="(ins, idx) in aiSummary.insights" :key="idx">
+            <div style="display:flex; align-items:flex-start; gap:8px;">
+              <span style="color:#0284c7; font-weight:900;">•</span>
+              <span x-html="ins"></span>
+            </div>
+          </template>
+        </div>
+      </div>
+    </template>
+
+    <!-- 4 EXECUTIVE KPIS -->
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:16px; margin-bottom:24px;">
+      <!-- Crítico -->
+      <div class="po-kpi-card" style="border-left:4px solid #ef4444;">
+        <div>
+          <div style="font-size:11px; font-weight:800; color:#dc2626; text-transform:uppercase; letter-spacing:0.5px;">Quiebre Inminente</div>
+          <div style="font-size:24px; font-weight:900; color:#b91c1c; margin-top:3px;" x-text="forecastSummary.critical_count || 0">0</div>
+          <div style="font-size:11.5px; color:#64748b;">Se agotan en ≤ 3 días</div>
+        </div>
+        <div style="width:42px; height:42px; border-radius:10px; background:#fee2e2; color:#dc2626; display:flex; align-items:center; justify-content:center; font-size:22px;">
+          <i class="ph ph-warning-octagon"></i>
+        </div>
+      </div>
+
+      <!-- Alerta Reorden -->
+      <div class="po-kpi-card" style="border-left:4px solid #f59e0b;">
+        <div>
+          <div style="font-size:11px; font-weight:800; color:#d97706; text-transform:uppercase; letter-spacing:0.5px;">Alerta de Reorden</div>
+          <div style="font-size:24px; font-weight:900; color:#b45309; margin-top:3px;" x-text="forecastSummary.warning_count || 0">0</div>
+          <div style="font-size:11.5px; color:#64748b;">Se agotan en 4 a 7 días</div>
+        </div>
+        <div style="width:42px; height:42px; border-radius:10px; background:#fef3c7; color:#d97706; display:flex; align-items:center; justify-content:center; font-size:22px;">
+          <i class="ph ph-bell-ringing"></i>
+        </div>
+      </div>
+
+      <!-- Presupuesto Sugerido -->
+      <div class="po-kpi-card" style="border-left:4px solid #0284c7;">
+        <div>
+          <div style="font-size:11px; font-weight:800; color:#0284c7; text-transform:uppercase; letter-spacing:0.5px;">Inversión Sugerida</div>
+          <div style="font-size:20px; font-weight:900; color:#0369a1; margin-top:3px;" x-text="'Q ' + Number(forecastSummary.total_suggested_cost || 0).toLocaleString('es-GT', {minimumFractionDigits:2, maximumFractionDigits:2})">Q 0.00</div>
+          <div style="font-size:11.5px; color:#64748b;">Para cubrir 15 días</div>
+        </div>
+        <div style="width:42px; height:42px; border-radius:10px; background:#e0f2fe; color:#0284c7; display:flex; align-items:center; justify-content:center; font-size:22px;">
+          <i class="ph ph-currency-circle-dollar"></i>
+        </div>
+      </div>
+
+      <!-- Capital Estancado -->
+      <div class="po-kpi-card" style="border-left:4px solid #8b5cf6;">
+        <div>
+          <div style="font-size:11px; font-weight:800; color:#7c3aed; text-transform:uppercase; letter-spacing:0.5px;">Stock Inmovilizado</div>
+          <div style="font-size:20px; font-weight:900; color:#6d28d9; margin-top:3px;" x-text="'Q ' + Number(forecastSummary.dead_stock_capital || 0).toLocaleString('es-GT', {minimumFractionDigits:2, maximumFractionDigits:2})">Q 0.00</div>
+          <div style="font-size:11.5px; color:#64748b;"><span x-text="forecastSummary.dead_stock_count || 0"></span> productos sin venta</div>
+        </div>
+        <div style="width:42px; height:42px; border-radius:10px; background:#f3e8ff; color:#7c3aed; display:flex; align-items:center; justify-content:center; font-size:22px;">
+          <i class="ph ph-archive-box"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECCIÓN: REORDEN AGRUPADO POR PROVEEDOR (1-CLIC PURCHASE ORDER) -->
+    <template x-if="supplierGroups && supplierGroups.length > 0">
+      <div style="margin-bottom:28px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+          <div>
+            <h3 style="font-size:16px; font-weight:900; color:#1e293b; margin:0;">Órdenes Sugeridas por Proveedor</h3>
+            <div style="font-size:12px; color:#64748b; margin-top:2px;">Genera borradores de compra automáticos agrupados por distribuidor.</div>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)); gap:16px;">
+          <template x-for="grp in supplierGroups" :key="grp.supplier_id">
+            <div style="background:#ffffff; border:1.5px solid #cbd5e1; border-radius:14px; padding:18px; display:flex; flex-direction:column; justify-content:space-between; box-shadow:0 1px 4px rgba(0,0,0,0.03); transition:all 0.2s;" onmouseover="this.style.borderColor='#0284c7'; this.style.boxShadow='0 8px 20px rgba(2,132,199,0.12)'" onmouseout="this.style.borderColor='#cbd5e1'; this.style.boxShadow='0 1px 4px rgba(0,0,0,0.03)'">
+              <div>
+                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                  <div>
+                    <h4 style="margin:0; font-size:15px; font-weight:900; color:#0f172a;" x-text="grp.supplier_name"></h4>
+                    <div style="font-size:11.5px; color:#64748b; margin-top:2px;" x-text="'NIT: ' + grp.supplier_nit"></div>
+                  </div>
+                  <span style="font-size:11px; font-weight:800; background:#e0f2fe; color:#0369a1; padding:3px 10px; border-radius:12px;" x-text="grp.products_count + ' productos'"></span>
+                </div>
+
+                <div style="margin-top:14px; padding:10px 12px; background:#f8fafc; border-radius:8px; border:1px solid #e2e8f0; font-size:12px;">
+                  <div style="display:flex; justify-content:space-between; color:#475569; margin-bottom:4px;">
+                    <span>Total estimado:</span>
+                    <strong style="color:#0f172a; font-size:13.5px;" x-text="'Q ' + Number(grp.total_estimated_cost || 0).toLocaleString('es-GT', {minimumFractionDigits:2})"></strong>
+                  </div>
+                  <div style="font-size:11px; color:#64748b;">
+                    Productos incluidos: <span style="font-weight:700;" x-text="grp.items.map(i => i.product_name + ' (' + i.suggested_reorder_qty + ')').slice(0, 3).join(', ') + (grp.items.length > 3 ? '...' : '')"></span>
+                  </div>
+                </div>
+              </div>
+
+              <div style="margin-top:16px; display:flex; justify-content:flex-end;">
+                <button 
+                  type="button" 
+                  class="btn btn-primary btn-sm" 
+                  style="background:#0284c7; color:#ffffff; font-weight:800; border-radius:8px; padding:7px 16px; border:none; box-shadow:0 2px 8px rgba(2,132,199,0.25); cursor:pointer; font-size:12px; display:flex; align-items:center; gap:6px;"
+                  @click="generatePOFromGroup(grp)"
+                  :disabled="isGeneratingPO"
+                >
+                  <i class="ph ph-file-plus" style="font-weight:800;"></i> Generar Orden de Compra &rarr;
+                </button>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+    </template>
+
+    <!-- TABLA COMPLETA: MATRIZ DE PREVISIÓN DE DEMANDA -->
+    <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:14px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+      
+      <!-- Table Header Bar with Filters -->
+      <div style="padding:14px 18px; border-bottom:1px solid #e2e8f0; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; background:#f8fafc;">
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <span style="font-size:11.5px; font-weight:800; color:#64748b; text-transform:uppercase;">NIVEL DE RIESGO:</span>
+          <button class="forecast-pill" :class="forecastRiskFilter === 'all' ? 'active' : ''" @click="forecastRiskFilter = 'all'; applyForecastFilters()">Todos</button>
+          <button class="forecast-pill" :class="forecastRiskFilter === 'critical' ? 'active' : ''" @click="forecastRiskFilter = 'critical'; applyForecastFilters()" style="color:#dc2626;">🔴 Crítico (≤ 3d)</button>
+          <button class="forecast-pill" :class="forecastRiskFilter === 'warning' ? 'active' : ''" @click="forecastRiskFilter = 'warning'; applyForecastFilters()" style="color:#d97706;">🟡 Alerta (4-7d)</button>
+          <button class="forecast-pill" :class="forecastRiskFilter === 'dead_stock' ? 'active' : ''" @click="forecastRiskFilter = 'dead_stock'; applyForecastFilters()" style="color:#7c3aed;">🟣 Stock Muerto</button>
+          <button class="forecast-pill" :class="forecastRiskFilter === 'healthy' ? 'active' : ''" @click="forecastRiskFilter = 'healthy'; applyForecastFilters()" style="color:#059669;">🟢 Saludable</button>
+        </div>
+
+        <div style="font-size:12px; color:#64748b; font-weight:700;">
+          <span x-text="filteredForecastItems.length + ' productos'"></span>
+        </div>
+      </div>
+
+      <!-- Table Body -->
+      <div class="table-responsive">
+        <table class="table" style="width:100%; border-collapse:collapse; font-size:12.5px;">
+          <thead>
+            <tr style="border-bottom:2px solid #e2e8f0; background:#ffffff;">
+              <th style="padding:12px 16px; text-align:left; color:#475569; font-size:11px; text-transform:uppercase; font-weight:800;">Producto</th>
+              <th style="padding:12px 16px; text-align:left; color:#475569; font-size:11px; text-transform:uppercase; font-weight:800;">Proveedor</th>
+              <th style="padding:12px 16px; text-align:right; color:#475569; font-size:11px; text-transform:uppercase; font-weight:800;">Stock Actual</th>
+              <th style="padding:12px 16px; text-align:right; color:#475569; font-size:11px; text-transform:uppercase; font-weight:800;">Ventas Período</th>
+              <th style="padding:12px 16px; text-align:right; color:#475569; font-size:11px; text-transform:uppercase; font-weight:800;">Velocidad / Día</th>
+              <th style="padding:12px 16px; text-align:right; color:#475569; font-size:11px; text-transform:uppercase; font-weight:800;">Días de Stock</th>
+              <th style="padding:12px 16px; text-align:right; color:#475569; font-size:11px; text-transform:uppercase; font-weight:800;">Sugerido a Pedir</th>
+              <th style="padding:12px 16px; text-align:center; color:#475569; font-size:11px; text-transform:uppercase; font-weight:800;">Diagnóstico</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="item in filteredForecastItems" :key="item.product_id">
+              <tr style="border-bottom:1px solid #f1f5f9; transition:background 0.15s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#ffffff'">
+                <td style="padding:12px 16px;">
+                  <strong style="color:#0f172a; font-size:13px;" x-text="item.product_name"></strong>
+                  <div style="font-size:11px; color:#64748b;" x-text="item.barcode || item.category_name"></div>
+                </td>
+                <td style="padding:12px 16px; color:#475569; font-weight:600;" x-text="item.supplier ? item.supplier.name : 'Sin asignar'"></td>
+                <td style="padding:12px 16px; text-align:right; font-weight:800; font-size:13px;" :style="item.current_stock <= 0 ? 'color:#ef4444;' : 'color:#1e293b;'" x-text="item.current_stock + ' unid.'"></td>
+                <td style="padding:12px 16px; text-align:right; color:#334155; font-weight:700;" x-text="item.units_sold + ' unid.'"></td>
+                <td style="padding:12px 16px; text-align:right; color:#0284c7; font-weight:800;" x-text="item.daily_velocity + ' / día'"></td>
+                
+                <!-- Días de Stock con Badge Semáforo -->
+                <td style="padding:12px 16px; text-align:right;">
+                  <template x-if="item.days_of_stock < 999">
+                    <span 
+                      style="font-weight:900; padding:3px 8px; border-radius:10px; font-size:11.5px;"
+                      :style="
+                        item.days_of_stock <= 3 ? 'background:#fee2e2; color:#b91c1c;' :
+                        item.days_of_stock <= 7 ? 'background:#fef3c7; color:#b45309;' :
+                        'background:#dcfce7; color:#15803d;'
+                      "
+                      x-text="item.days_of_stock + ' días'"
+                    ></span>
+                  </template>
+                  <template x-if="item.days_of_stock >= 999">
+                    <span style="color:#94a3b8; font-size:11.5px;">&infin;</span>
+                  </template>
+                </td>
+
+                <!-- Cantidad a Pedir -->
+                <td style="padding:12px 16px; text-align:right;">
+                  <template x-if="item.suggested_reorder_qty > 0">
+                    <div>
+                      <strong style="color:#0284c7; font-size:13.5px;" x-text="item.suggested_reorder_qty + ' unid.'"></strong>
+                      <div style="font-size:10.5px; color:#64748b;" x-text="'≈ Q ' + Number(item.estimated_cost).toFixed(2)"></div>
+                    </div>
+                  </template>
+                  <template x-if="item.suggested_reorder_qty <= 0">
+                    <span style="color:#94a3b8;">0</span>
+                  </template>
+                </td>
+
+                <!-- Estado / Diagnóstico Pill -->
+                <td style="padding:12px 16px; text-align:center;">
+                  <span 
+                    style="font-size:11px; font-weight:800; padding:4px 10px; border-radius:12px; display:inline-block;"
+                    :style="
+                      item.risk_level === 'critical' ? 'background:#fee2e2; color:#b91c1c;' :
+                      item.risk_level === 'warning' ? 'background:#fef3c7; color:#b45309;' :
+                      item.risk_level === 'dead_stock' ? 'background:#f3e8ff; color:#7c3aed;' :
+                      item.risk_level === 'zero_stock' ? 'background:#f1f5f9; color:#64748b;' :
+                      'background:#dcfce7; color:#15803d;'
+                    "
+                    x-text="
+                      item.risk_level === 'critical' ? '🔴 Quiebre ≤ 3d' :
+                      item.risk_level === 'warning' ? '🟡 Alerta ≤ 7d' :
+                      item.risk_level === 'dead_stock' ? '🟣 Stock Muerto' :
+                      item.risk_level === 'zero_stock' ? '⚪ Sin Existencia' :
+                      '🟢 Óptimo'
+                    "
+                  ></span>
+                </td>
+              </tr>
+            </template>
+
+            <tr x-show="filteredForecastItems.length === 0">
+              <td colspan="8" style="text-align:center; padding:50px 20px; color:#64748b;">
+                <i class="ph ph-magnifying-glass" style="font-size:36px; color:#cbd5e1;"></i>
+                <p style="margin-top:8px; font-weight:800; font-size:14px; color:#1e293b;">No hay productos que coincidan con este filtro</p>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
   </div>
 
 </div>
@@ -278,6 +709,7 @@
 <script>
   function purchasesPage() {
     return {
+      currentTab: 'orders', // 'orders' | 'forecast'
       purchases: [],
       filteredPurchases: [],
       filterType: 'all',
@@ -292,9 +724,30 @@
         total_units_received: 0
       },
 
+      // Previsión Inteligente State
+      forecastDays: 30,
+      forecastRiskFilter: 'all',
+      isLoadingForecast: false,
+      isGeneratingPO: false,
+      forecastSummary: {},
+      forecastItems: [],
+      filteredForecastItems: [],
+      supplierGroups: [],
+      aiSummary: { insights: [], headline: '' },
+
       async init() {
         await this.loadKPIs();
         await this.loadPurchases();
+        // Cargar silenciosamente el resumen de previsión para el badge
+        this.loadForecastSummaryBadge();
+      },
+
+      switchTab(tab) {
+        this.currentTab = tab;
+        this.search = '';
+        if (tab === 'forecast' && this.forecastItems.length === 0) {
+          this.loadForecast();
+        }
       },
 
       async loadKPIs() {
@@ -334,6 +787,113 @@
 
       openPurchaseDetail(po) {
         window.location.href = `/purchases/${po.id}`;
+      },
+
+      // ===== PREVISIÓN Y REORDEN INTELIGENTE =====
+      async loadForecastSummaryBadge() {
+        try {
+          const branchId = localStorage.getItem('branch_id') || '';
+          let url = `/forecast/reorder-suggestions?days=30`;
+          if (branchId) url += `&branch_id=${encodeURIComponent(branchId)}`;
+          const res = await API.get(url);
+          if (res && res.summary) {
+            this.forecastSummary = res.summary;
+          }
+        } catch(e) {}
+      },
+
+      async loadForecast() {
+        this.isLoadingForecast = true;
+        try {
+          const branchId = localStorage.getItem('branch_id') || '';
+          let urlDemand = `/forecast/demand?days=${this.forecastDays}&target_cover_days=15`;
+          let urlSug = `/forecast/reorder-suggestions?days=${this.forecastDays}&target_cover_days=15`;
+          let urlAi = `/forecast/ai-summary?days=${this.forecastDays}`;
+          
+          if (branchId) {
+            urlDemand += `&branch_id=${encodeURIComponent(branchId)}`;
+            urlSug += `&branch_id=${encodeURIComponent(branchId)}`;
+            urlAi += `&branch_id=${encodeURIComponent(branchId)}`;
+          }
+
+          const [demandRes, sugRes, aiRes] = await Promise.all([
+            API.get(urlDemand),
+            API.get(urlSug),
+            API.get(urlAi)
+          ]);
+
+          if (demandRes) {
+            this.forecastSummary = demandRes.summary || {};
+            this.forecastItems = demandRes.items || [];
+            this.applyForecastFilters();
+          }
+
+          if (sugRes) {
+            this.supplierGroups = sugRes.supplier_groups || [];
+          }
+
+          if (aiRes) {
+            this.aiSummary = aiRes;
+          }
+        } catch(e) {
+          console.error("Error al cargar previsión inteligente:", e);
+        } finally {
+          this.isLoadingForecast = false;
+        }
+      },
+
+      applyForecastFilters() {
+        let list = [...this.forecastItems];
+
+        if (this.forecastRiskFilter !== 'all') {
+          list = list.filter(item => item.risk_level === this.forecastRiskFilter);
+        }
+
+        if (this.search) {
+          const q = this.search.toLowerCase().trim();
+          list = list.filter(item => 
+            item.product_name.toLowerCase().includes(q) ||
+            item.barcode.toLowerCase().includes(q) ||
+            item.category_name.toLowerCase().includes(q) ||
+            (item.supplier && item.supplier.name.toLowerCase().includes(q))
+          );
+        }
+
+        this.filteredForecastItems = list;
+      },
+
+      async generatePOFromGroup(group) {
+        if (!confirm(`¿Deseas generar una orden de compra en borrador para "${group.supplier_name}" con ${group.products_count} productos sugeridos (Total estimado: Q ${Number(group.total_estimated_cost).toFixed(2)})?`)) {
+          return;
+        }
+
+        this.isGeneratingPO = true;
+        try {
+          const branchId = localStorage.getItem('branch_id') || '';
+          const payload = {
+            supplier_id: group.supplier_id,
+            branch_id: branchId || null,
+            notes: `Orden sugerida automáticamente por Previsión de Demanda para ${group.supplier_name}.`,
+            items: group.items.map(i => ({
+              product_id: i.product_id,
+              product_name: i.product_name,
+              qty: i.suggested_reorder_qty,
+              unit_price: i.cost_price || 0
+            }))
+          };
+
+          const res = await API.post('/forecast/generate-po', payload);
+          if (res && res.status === 'created') {
+            alert(`✅ ${res.message}`);
+            // Recargar órdenes y cambiar a la pestaña de órdenes
+            await this.loadPurchases();
+            this.currentTab = 'orders';
+          }
+        } catch(e) {
+          alert('Error al generar orden de compra: ' + (e.message || e));
+        } finally {
+          this.isGeneratingPO = false;
+        }
       }
     }
   }
