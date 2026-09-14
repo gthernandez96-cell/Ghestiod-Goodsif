@@ -183,6 +183,123 @@
     color: #475569;
     box-shadow: 0 1px 2px rgba(0,0,0,0.02);
   }
+
+  /* Mobile Responsive Overhaul */
+  .po-form-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr 1.2fr;
+    gap: 12px;
+    margin-bottom: 16px;
+    align-items: start;
+  }
+  .po-mobile-products-list {
+    display: none;
+  }
+  @media (max-width: 900px) {
+    .po-form-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+    .po-field-supplier {
+      grid-column: span 2;
+    }
+  }
+  @media (max-width: 768px) {
+    .po-top-action-bar {
+      margin: -12px -12px 16px -12px !important;
+      padding: 12px !important;
+      gap: 10px !important;
+      flex-direction: column !important;
+      align-items: stretch !important;
+    }
+    .po-header-main-row {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      width: 100% !important;
+      gap: 8px !important;
+    }
+    .po-header-title {
+      font-size: 14px !important;
+      font-weight: 800 !important;
+      min-width: 0 !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+      white-space: nowrap !important;
+    }
+    .po-steps-container {
+      display: flex !important;
+      align-items: center !important;
+      gap: 6px !important;
+      overflow-x: auto !important;
+      padding-bottom: 4px !important;
+      scrollbar-width: none !important;
+      -webkit-overflow-scrolling: touch !important;
+      width: 100% !important;
+    }
+    .po-steps-container::-webkit-scrollbar {
+      display: none !important;
+    }
+    .po-status-step {
+      flex-shrink: 0 !important;
+      padding: 5px 10px !important;
+      font-size: 11px !important;
+    }
+    .po-actions-group {
+      width: 100% !important;
+      display: flex !important;
+      gap: 8px !important;
+      flex-direction: column !important;
+    }
+    .po-actions-group .btn {
+      width: 100% !important;
+      justify-content: center !important;
+    }
+    .po-main-card {
+      padding: 12px 14px !important;
+      border-radius: 12px !important;
+    }
+    .po-form-grid {
+      grid-template-columns: 1fr !important;
+      gap: 10px !important;
+    }
+    .po-field-supplier {
+      grid-column: span 1 !important;
+    }
+    .po-table-desktop {
+      display: none !important;
+    }
+    .po-mobile-products-list {
+      display: block !important;
+    }
+    .po-mobile-line-card {
+      background: #ffffff;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 10px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .po-mobile-line-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #f1f5f9;
+      padding-bottom: 6px;
+    }
+    .po-totals-container {
+      flex-direction: column !important;
+      gap: 12px !important;
+    }
+    .po-totals-container > div {
+      width: 100% !important;
+    }
+    .po-totals-box {
+      width: 100% !important;
+    }
+  }
 </style>
 {% endblock %}
 
@@ -190,38 +307,51 @@
 <div x-data="purchaseFormPage('{{ purchase_id }}')" x-init="init()">
   
   <!-- ===== TOP ACTION BAR ===== -->
-  <div style="margin:-20px -24px 24px -24px; padding:14px 24px; background:#ffffff; border-bottom:1px solid #e2e8f0; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+  <div class="po-top-action-bar" style="margin:-20px -24px 24px -24px; padding:14px 24px; background:#ffffff; border-bottom:1px solid #e2e8f0; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; box-shadow:0 1px 3px rgba(0,0,0,0.02);">
     
     <!-- Left: Breadcrumb & Title -->
-    <div style="display:flex; align-items:center; gap:12px;">
-      <a href="/purchases" style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; padding:7px 14px; border-radius:8px; font-weight:700; font-size:12.5px; text-decoration:none; display:flex; align-items:center; gap:6px;">
-        <i class="ph ph-arrow-left"></i> Volver a Compras
+    <div class="po-header-main-row" style="display:flex; align-items:center; gap:12px;">
+      <a href="/purchases" style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; padding:7px 12px; border-radius:8px; font-weight:700; font-size:12.5px; text-decoration:none; display:flex; align-items:center; gap:6px; flex-shrink:0;">
+        <i class="ph ph-arrow-left"></i> <span class="hide-on-mobile">Volver a Compras</span><span class="show-on-mobile-inline">Volver</span>
       </a>
-      <div style="font-size:16px; font-weight:800; color:#1e293b; display:flex; align-items:center; gap:8px;">
-        <span style="color:#64748b;">Compras /</span>
+      <div class="po-header-title" style="font-size:16px; font-weight:800; color:#1e293b; display:flex; align-items:center; gap:6px;">
+        <span style="color:#64748b;" class="hide-on-mobile">Compras /</span>
         <span x-text="purchaseId === 'new' ? 'Nueva Orden de Compra' : (poData.number || 'Detalle de Compra')"></span>
       </div>
+
+      <!-- Mobile Primary Action (Right in row 1) -->
+      <button 
+        type="button" 
+        class="btn btn-primary show-on-mobile-inline" 
+        style="background:#714B67; color:#ffffff; font-weight:800; border-radius:8px; padding:7px 14px; border:none; box-shadow:0 2px 8px rgba(113,75,103,0.3); font-size:12px; margin-left:auto; display:none;" 
+        @click="savePurchaseOrder()"
+        :disabled="isSaving"
+        x-show="purchaseId === 'new'"
+      >
+        <i class="ph ph-floppy-disk" style="font-weight:800;"></i>
+        <span x-text="isSaving ? 'Guardando...' : 'Crear Orden'"></span>
+      </button>
     </div>
 
     <!-- Center: Status Pipeline Steps -->
-    <div style="display:flex; align-items:center; gap:8px;">
+    <div class="po-steps-container" style="display:flex; align-items:center; gap:8px;">
       <div class="po-status-step" :class="poData.state === 'draft' || purchaseId === 'new' ? 'active' : 'completed'">
         <i class="ph ph-file-text"></i> 1. Solicitud (RFQ)
       </div>
-      <i class="ph ph-caret-right" style="color:#94a3b8; font-size:12px;"></i>
+      <i class="ph ph-caret-right" style="color:#94a3b8; font-size:12px; flex-shrink:0;"></i>
       <div class="po-status-step" :class="poData.state === 'confirmed' ? 'active' : (poData.state === 'received' ? 'completed' : '')">
         <i class="ph ph-check-circle"></i> 2. Confirmada
       </div>
-      <i class="ph ph-caret-right" style="color:#94a3b8; font-size:12px;"></i>
+      <i class="ph ph-caret-right" style="color:#94a3b8; font-size:12px; flex-shrink:0;"></i>
       <div class="po-status-step" :class="poData.state === 'received' ? 'completed active' : ''">
         <i class="ph ph-warehouse"></i> 3. Mercadería Recibida
       </div>
     </div>
 
-    <!-- Right: Actions -->
-    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+    <!-- Right: Actions Desktop & View mode -->
+    <div class="po-actions-group" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
       <template x-if="purchaseId !== 'new'">
-        <div style="display:flex; gap:8px;">
+        <div style="display:flex; gap:8px; flex-wrap:wrap; width:100%;">
           <!-- Recibir Mercadería Button -->
           <button 
             type="button" 
@@ -267,10 +397,10 @@
         </div>
       </template>
 
-      <!-- Save / Create Button -->
+      <!-- Save / Create Button (Desktop) -->
       <button 
         type="button" 
-        class="btn btn-primary" 
+        class="btn btn-primary hide-on-mobile" 
         style="background:#714B67; color:#ffffff; font-weight:800; border-radius:8px; padding:8px 24px; border:none; box-shadow:0 3px 10px rgba(113,75,103,0.3); display:flex; align-items:center; gap:6px; cursor:pointer;" 
         @click="savePurchaseOrder()"
         :disabled="isSaving"
@@ -284,7 +414,7 @@
   </div>
 
   <!-- ===== MAIN ORDER DOCUMENT CARD ===== -->
-  <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:14px; padding:16px 22px; box-shadow:0 1px 4px rgba(0,0,0,0.03); margin-bottom:16px;">
+  <div class="po-main-card" style="background:#ffffff; border:1px solid #e2e8f0; border-radius:14px; padding:16px 22px; box-shadow:0 1px 4px rgba(0,0,0,0.03); margin-bottom:16px;">
     
     <!-- Top Row: Document Reference & Status Badge -->
     <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #f1f5f9; padding-bottom:10px; margin-bottom:14px;">
@@ -304,10 +434,10 @@
     </div>
 
       <!-- Provider & General Data Grid -->
-    <div style="display:grid; grid-template-columns:2fr 1fr 1fr 1fr 1.2fr; gap:12px; margin-bottom:16px; align-items:start;">
+    <div class="po-form-grid">
       
       <!-- 1. Supplier Selector (Luxury Custom Component) -->
-      <div>
+      <div class="po-field-supplier">
         <label class="form-label-po" style="display:flex; justify-content:space-between; align-items:center;">
           <span>PROVEEDOR *</span>
           <span style="font-size:11px; font-weight:700; color:#714B67; text-transform:none;" x-show="suppliers.length > 0">
@@ -522,7 +652,7 @@
         <label class="form-label-po" style="display:flex; justify-content:space-between; align-items:center; gap:6px; flex-wrap:nowrap; overflow:hidden;">
           <span style="white-space:nowrap;">CONDICIÓN DE PAGO *</span>
           <span style="font-size:10.5px; font-weight:700; color:#714B67; text-transform:none; white-space:nowrap; flex-shrink:0;" x-show="selectedSupplier && selectedSupplier.payment_days > 0">
-            <i class="ph ph-clock"></i> <span x-text="'Default: ' + selectedSupplier.payment_days + 'd'"></span>
+            <i class="ph ph-clock"></i> <span x-text="'Default: ' + (selectedSupplier ? selectedSupplier.payment_days : '') + 'd'"></span>
           </span>
         </label>
         
@@ -595,8 +725,8 @@
         <div style="font-size:11px; color:#64748b; font-weight:700;" x-text="form.lines.length + ' producto(s) en la orden'"></div>
       </div>
 
-      <!-- Products Table -->
-      <div style="overflow-x:auto; border:1px solid #e2e8f0; border-radius:10px;">
+      <!-- Products Table (Desktop) -->
+      <div class="po-table-desktop" style="overflow-x:auto; border:1px solid #e2e8f0; border-radius:10px;">
         <table class="table" style="width:100%; border-collapse:collapse;">
           <thead>
             <tr style="background:#f8fafc; border-bottom:1.5px solid #e2e8f0;">
@@ -686,6 +816,113 @@
         </table>
       </div>
 
+      <!-- Mobile Products List (Cards for phone screens) -->
+      <div class="po-mobile-products-list">
+        <!-- Editable lines for New Purchase -->
+        <template x-if="purchaseId === 'new'">
+          <div>
+            <template x-for="(line, idx) in form.lines" :key="idx">
+              <div class="po-mobile-line-card">
+                <div class="po-mobile-line-header">
+                  <div style="font-weight:800; font-size:12px; color:#714B67; display:flex; align-items:center; gap:6px;">
+                    <span style="background:#f4eff3; color:#714B67; border-radius:6px; padding:2px 8px; font-weight:800;" x-text="'#' + (idx + 1)"></span>
+                    <span>Línea de Producto</span>
+                  </div>
+                  <button 
+                    type="button" 
+                    style="background:#fef2f2; border:1px solid #fecaca; color:#dc2626; border-radius:6px; padding:4px 8px; font-size:11.5px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:4px;" 
+                    @click="removeLine(idx)"
+                    x-show="form.lines.length > 1"
+                  >
+                    <i class="ph ph-trash"></i> Eliminar
+                  </button>
+                </div>
+
+                <!-- Product Selector -->
+                <div>
+                  <label class="form-label-po">PRODUCTO *</label>
+                  <select 
+                    class="form-control-po" 
+                    style="font-weight:700; width:100%; height:auto; padding:8px;" 
+                    x-model="line.product_id" 
+                    @change="onProductSelect(line)"
+                  >
+                    <option value="">Selecciona un producto...</option>
+                    <template x-for="p in catalogProducts" :key="p.id">
+                      <option :value="p.id" x-text="(p.supplier_id === form.supplier_id ? '⭐ ' : '') + p.name + ' (SKU: ' + (p.internal_ref || 'N/A') + ')'"></option>
+                    </template>
+                  </select>
+                </div>
+
+                <!-- Quantity, Cost, Subtotal Grid -->
+                <div style="display:grid; grid-template-columns:1fr 1fr 1.2fr; gap:8px; align-items:end;">
+                  <div>
+                    <label class="form-label-po">CANTIDAD</label>
+                    <input 
+                      type="number" 
+                      min="1" 
+                      step="1" 
+                      class="form-control-po" 
+                      style="text-align:center; font-weight:800;" 
+                      x-model.number="line.qty" 
+                      @input="calculateTotals()"
+                    >
+                  </div>
+                  <div>
+                    <label class="form-label-po">COSTO (Q)</label>
+                    <input 
+                      type="number" 
+                      step="0.01" 
+                      class="form-control-po" 
+                      style="text-align:right; font-weight:800;" 
+                      x-model.number="line.unit_price" 
+                      @input="calculateTotals()"
+                    >
+                  </div>
+                  <div>
+                    <label class="form-label-po" style="text-align:right;">SUBTOTAL</label>
+                    <div style="height:36px; display:flex; align-items:center; justify-content:flex-end; font-weight:900; color:#0f172a; font-size:13px; background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:8px; padding:0 8px;" x-text="'Q ' + Number((line.qty || 0) * (line.unit_price || 0)).toFixed(2)"></div>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </div>
+        </template>
+
+        <!-- Readonly lines for Existing Purchase -->
+        <template x-if="purchaseId !== 'new'">
+          <div>
+            <template x-for="line in poData.lines" :key="line.id">
+              <div class="po-mobile-line-card">
+                <div style="font-weight:800; color:#1e293b; font-size:13.5px;" x-text="line.product_name"></div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:6px; font-size:12px;">
+                  <div>
+                    <span style="color:#64748b; font-weight:700;">Cant. Pedida: </span>
+                    <span style="font-weight:800; color:#1e293b;" x-text="line.qty_ordered + ' unid.'"></span>
+                  </div>
+                  <div>
+                    <span style="color:#64748b; font-weight:700;">Cant. Recibida: </span>
+                    <span 
+                      style="font-weight:900; font-size:11px; padding:2px 6px; border-radius:5px;"
+                      :style="line.qty_received >= line.qty_ordered ? 'background:#dcfce7; color:#15803d;' : 'background:#ffedd5; color:#c2410c;'"
+                      x-text="line.qty_received + ' unid.'"
+                    ></span>
+                  </div>
+                  <div>
+                    <span style="color:#64748b; font-weight:700;">Costo Unit: </span>
+                    <span style="font-weight:800; color:#475569;" x-text="'Q ' + Number(line.unit_price || 0).toFixed(2)"></span>
+                  </div>
+                  <div>
+                    <span style="color:#64748b; font-weight:700;">Subtotal: </span>
+                    <span style="font-weight:900; color:#0f172a;" x-text="'Q ' + Number(line.subtotal || line.total || 0).toFixed(2)"></span>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </div>
+        </template>
+      </div>
+
       <!-- Live Catalog Search Bar — BELOW the lines table, only in new PO -->
       <template x-if="purchaseId === 'new'">
         <div style="position:relative; margin-top:8px;">
@@ -763,7 +1000,7 @@
     </div><!-- end products section -->
 
     <!-- ===== TOTALS & FINANCIAL SUMMARY ===== -->
-    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-top:14px; flex-wrap:wrap; gap:14px;">
+    <div class="po-totals-container" style="display:flex; justify-content:space-between; align-items:flex-start; margin-top:14px; flex-wrap:wrap; gap:14px;">
       
       <!-- Notes & Terms -->
       <div style="flex:1; min-width:240px;">
@@ -783,7 +1020,7 @@
       </div>
 
       <!-- Financial Totals Box -->
-      <div style="width:300px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px 16px;">
+      <div class="po-totals-box" style="width:300px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px 16px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; font-size:12px;">
           <span style="color:#64748b; font-weight:700;">Subtotal Neto:</span>
           <span style="font-weight:800; color:#334155;" x-text="'Q ' + calculatedSubtotal.toFixed(2)"></span>
@@ -1103,6 +1340,8 @@
           const res = await API.get(`/purchases/${this.purchaseId}`);
           if (res) {
             this.poData = res;
+            this.form.supplier_id = res.supplier_id || '';
+            this.form.warehouse_id = res.warehouse_id || '';
             this.form.notes = res.notes || '';
             this.form.payment_terms = res.payment_terms || 'contado';
             this.calculatedSubtotal = res.subtotal || 0;

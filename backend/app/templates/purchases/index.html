@@ -8,6 +8,13 @@
   /* =============================================
      EXECUTIVE PURCHASES & PROCUREMENT STYLES
   ============================================= */
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  .animate-spin {
+    animation: spin 1s linear infinite;
+  }
   .po-kpi-card {
     background: #ffffff;
     border: 1px solid #e2e8f0;
@@ -580,9 +587,18 @@
                   class="btn btn-primary btn-sm" 
                   style="background:#0284c7; color:#ffffff; font-weight:800; border-radius:8px; padding:7px 16px; border:none; box-shadow:0 2px 8px rgba(2,132,199,0.25); cursor:pointer; font-size:12px; display:flex; align-items:center; gap:6px;"
                   @click="generatePOFromGroup(grp)"
-                  :disabled="isGeneratingPO"
+                  :disabled="generatingGroupId === grp.supplier_id"
                 >
-                  <i class="ph ph-file-plus" style="font-weight:800;"></i> Generar Orden de Compra &rarr;
+                  <template x-if="generatingGroupId === grp.supplier_id">
+                    <span style="display:inline-flex; align-items:center; gap:6px;">
+                      <i class="ph ph-spinner animate-spin"></i> Creando Orden...
+                    </span>
+                  </template>
+                  <template x-if="generatingGroupId !== grp.supplier_id">
+                    <span style="display:inline-flex; align-items:center; gap:6px;">
+                      <i class="ph ph-file-plus" style="font-weight:800;"></i> Generar Orden de Compra &rarr;
+                    </span>
+                  </template>
                 </button>
               </div>
             </div>
@@ -729,6 +745,7 @@
       forecastRiskFilter: 'all',
       isLoadingForecast: false,
       isGeneratingPO: false,
+      generatingGroupId: null,
       forecastSummary: {},
       forecastItems: [],
       filteredForecastItems: [],
@@ -863,10 +880,7 @@
       },
 
       async generatePOFromGroup(group) {
-        if (!confirm(`¿Deseas generar una orden de compra en borrador para "${group.supplier_name}" con ${group.products_count} productos sugeridos (Total estimado: Q ${Number(group.total_estimated_cost).toFixed(2)})?`)) {
-          return;
-        }
-
+        this.generatingGroupId = group.supplier_id;
         this.isGeneratingPO = true;
         try {
           const branchId = localStorage.getItem('branch_id') || '';
@@ -883,15 +897,17 @@
           };
 
           const res = await API.post('/forecast/generate-po', payload);
-          if (res && res.status === 'created') {
-            alert(`✅ ${res.message}`);
-            // Recargar órdenes y cambiar a la pestaña de órdenes
+          if (res && res.status === 'created' && res.po_id) {
+            window.location.href = `/purchases/${res.po_id}`;
+            return;
+          } else if (res && res.status === 'created') {
             await this.loadPurchases();
             this.currentTab = 'orders';
           }
         } catch(e) {
           alert('Error al generar orden de compra: ' + (e.message || e));
         } finally {
+          this.generatingGroupId = null;
           this.isGeneratingPO = false;
         }
       }
