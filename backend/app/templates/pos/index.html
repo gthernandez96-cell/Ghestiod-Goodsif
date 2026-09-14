@@ -372,6 +372,17 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    min-height: 0;
+  }
+
+  .catalog-wrapper {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    height: 100%;
+    overflow: hidden;
+    width: 100%;
   }
 
   .catalog-top-bar {
@@ -1878,12 +1889,24 @@
       color: #ffffff !important;
     }
 
+    html, body {
+      overflow: hidden !important;
+      height: 100% !important;
+      height: 100dvh !important;
+      width: 100% !important;
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      overscroll-behavior: none !important;
+    }
+
     /* Single-Column Screen Switcher */
     .pos-main-container {
       height: calc(100vh - 48px) !important;
       height: calc(100dvh - 48px) !important;
       flex-direction: column !important;
       position: relative !important;
+      overflow: hidden !important;
     }
 
     /* In Catalog Mode: Hide Cart, Show Full Catalog */
@@ -1893,17 +1916,21 @@
     .pos-main-container.mobile-tab-catalog:not(.mobile-in-payment) .pos-right-panel {
       display: flex !important;
       width: 100% !important;
-      flex: 1 !important;
+      flex: 1 1 0% !important;
       height: 100% !important;
+      min-height: 0 !important;
+      overflow: hidden !important;
     }
 
     /* In Cart Mode: Hide Catalog, Show Full Cart */
     .pos-main-container.mobile-tab-cart:not(.mobile-in-payment) .pos-left-panel {
       display: flex !important;
       width: 100% !important;
-      flex: 1 !important;
+      flex: 1 1 0% !important;
       height: 100% !important;
+      min-height: 0 !important;
       border-right: none !important;
+      overflow: hidden !important;
     }
     .pos-main-container.mobile-tab-cart:not(.mobile-in-payment) .pos-right-panel {
       display: none !important;
@@ -1968,6 +1995,7 @@
       align-items: stretch !important;
       gap: 8px !important;
       padding: 10px 12px 6px 12px !important;
+      flex-shrink: 0 !important;
     }
     .catalog-search-pill {
       max-width: 100% !important;
@@ -1991,12 +2019,43 @@
       flex-shrink: 0 !important;
     }
 
-    /* Product Grid: 2 columns on mobile with bottom margin for floating cart dock */
+    /* Product Grid: 2 columns on mobile with vertical scrolling enabled */
     .product-grid-container {
+      display: grid !important;
       grid-template-columns: repeat(2, 1fr) !important;
       grid-gap: 10px !important;
-      padding: 10px 10px 84px 10px !important;
-      max-height: none !important;
+      padding: 10px 10px 96px 10px !important;
+      align-content: start !important;
+      grid-auto-rows: min-content !important;
+      flex: 1 1 auto !important;
+      min-height: 0 !important;
+      height: calc(100vh - 155px) !important;
+      height: calc(100dvh - 155px) !important;
+      max-height: calc(100vh - 155px) !important;
+      max-height: calc(100dvh - 155px) !important;
+      overflow-y: auto !important;
+      overflow-x: hidden !important;
+      -webkit-overflow-scrolling: touch !important;
+      overscroll-behavior-y: contain !important;
+      touch-action: pan-y !important;
+    }
+
+    .product-card-ref {
+      min-height: 165px !important;
+      height: auto !important;
+      display: flex !important;
+      flex-direction: column !important;
+      justify-content: space-between !important;
+    }
+
+    .cart-items-area {
+      flex: 1 1 0% !important;
+      min-height: 0 !important;
+      overflow-y: auto !important;
+      -webkit-overflow-scrolling: touch !important;
+      overscroll-behavior-y: contain !important;
+      touch-action: pan-y !important;
+      padding-bottom: 96px !important;
     }
     .card-img-wrapper {
       height: 95px !important;
@@ -2146,8 +2205,8 @@
       height: 100% !important;
       min-height: 0 !important;
       flex: 1 !important;
-      display: flex !important;
-      flex-direction: column !important;
+      display: flex;
+      flex-direction: column;
       position: relative !important;
       overflow: hidden !important;
     }
@@ -3480,7 +3539,7 @@
       <!-- ==============================================
            1. CATALOG VIEW (Visible when showPaymentScreen === false)
       =============================================== -->
-      <div class="catalog-wrapper" x-show="!showPaymentScreen" style="display:flex; flex-direction:column; height:100%;">
+      <div class="catalog-wrapper" x-show="!showPaymentScreen">
         <!-- Banner Informativo de Ventas a Mayoristas -->
         <div x-show="wholesaleMode" style="background:#f0fdfa; border:1.5px solid #99f6e4; border-radius:10px; padding:8px 14px; margin-bottom:10px; display:flex; align-items:center; justify-content:space-between; font-size:12px; color:#0f766e; box-shadow:0 1px 3px rgba(13,148,136,0.08);" x-cloak>
           <div style="display:flex; align-items:center; gap:8px;">
