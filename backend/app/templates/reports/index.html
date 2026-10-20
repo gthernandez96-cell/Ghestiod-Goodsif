@@ -1342,14 +1342,28 @@
 
     <!-- Chart: Top Sellers Visual Performance -->
     <div style="padding:16px 20px; border-bottom:1px solid #e2e8f0; background:#ffffff;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
         <span style="font-size:11px; font-weight:800; color:#475569; text-transform:uppercase; letter-spacing:0.5px;">
           <i class="ph-bold ph-chart-bar" style="color:var(--odoo-purple); margin-right:4px;"></i> Ranking Comparativo de Ventas y Margen por Vendedor
         </span>
-        <span style="font-size:11px; color:#94a3b8;">Top colaboradores</span>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <button type="button" @click="renderSellersChart()" class="btn-odoo-secondary" style="font-size:11px; padding:3px 8px;" title="Redibujar / Actualizar gráfica">
+            <i class="ph-bold ph-arrows-clockwise"></i> Actualizar
+          </button>
+          <span style="font-size:11px; color:#94a3b8;">Top colaboradores</span>
+        </div>
       </div>
-      <div style="height:200px; position:relative; width:100%;">
-        <canvas id="sellersRankingChart"></canvas>
+      
+      <!-- Empty State when no sales for sellers in period -->
+      <div x-show="!sellersData.sellers || sellersData.sellers.length === 0" style="padding:30px 16px; text-align:center; background:#f8fafc; border-radius:8px; border:1px dashed #cbd5e1;">
+        <i class="ph-bold ph-chart-bar" style="font-size:28px; color:#94a3b8; display:block; margin-bottom:4px;"></i>
+        <div style="font-size:12.5px; font-weight:800; color:#475569;">No hay ventas registradas por vendedor en el rango seleccionado</div>
+        <div style="font-size:11px; color:#94a3b8; margin-top:2px;">Prueba seleccionando "Año 2026" o ampliando el rango de fechas en la barra superior.</div>
+      </div>
+
+      <!-- Canvas container -->
+      <div x-show="sellersData.sellers && sellersData.sellers.length > 0" style="height:220px; position:relative; width:100%;">
+        <canvas id="sellersRankingChart" style="width:100% !important; height:100% !important;"></canvas>
       </div>
     </div>
 
@@ -2259,6 +2273,9 @@
         await this.loadBranches();
         this.setPreset('this_month');
         this.loadActiveReportData();
+        if (this.activeReport === 'sellers') {
+          this.$nextTick(() => setTimeout(() => this.renderSellersChart(), 150));
+        }
       },
 
       selectReport(tab) {
@@ -2272,7 +2289,10 @@
         window.history.pushState({}, '', url.toString());
         this.loadActiveReportData();
         if (tab === 'sales' && this.salesViewMode === 'chart') {
-          this.$nextTick(() => this.renderSalesChart());
+          this.$nextTick(() => setTimeout(() => this.renderSalesChart(), 50));
+        }
+        if (tab === 'sellers') {
+          this.$nextTick(() => setTimeout(() => this.renderSellersChart(), 80));
         }
       },
 
@@ -2640,7 +2660,9 @@
           if (res) {
             this.sellersData = res;
             this.$nextTick(() => {
-              this.renderSellersChart();
+              setTimeout(() => {
+                this.renderSellersChart();
+              }, 80);
             });
           }
         } catch(e) {
@@ -2651,12 +2673,31 @@
       renderSellersChart() {
         const canvas = document.getElementById('sellersRankingChart');
         if (!canvas) return;
-        if (typeof Chart === 'undefined') return;
+
+        // Si Chart.js no ha terminado de cargar, reintentar en 120ms
+        if (typeof Chart === 'undefined') {
+          setTimeout(() => this.renderSellersChart(), 120);
+          return;
+        }
+
+        // Si el contenedor está oculto (tab no activa o en transición), esperar a visibilidad
+        if (canvas.offsetParent === null) {
+          setTimeout(() => this.renderSellersChart(), 100);
+          return;
+        }
 
         const sellers = (this.sellersData.sellers || []).slice(0, 8);
+        if (sellers.length === 0) {
+          if (this.sellersChartInstance) {
+            this.sellersChartInstance.destroy();
+            this.sellersChartInstance = null;
+          }
+          return;
+        }
+
         const labels = sellers.map(s => s.user_name || 'Vendedor');
-        const salesData = sellers.map(s => s.total_sales || 0);
-        const profitData = sellers.map(s => s.gross_profit || 0);
+        const salesData = sellers.map(s => Number(s.total_sales) || 0);
+        const profitData = sellers.map(s => Number(s.gross_profit) || 0);
 
         if (this.sellersChartInstance) {
           this.sellersChartInstance.destroy();
@@ -2673,25 +2714,30 @@
                 label: 'Ventas Totales (Q)',
                 data: salesData,
                 backgroundColor: '#714B67',
+                hoverBackgroundColor: '#5d3d54',
                 borderRadius: 6,
-                maxBarThickness: 32,
+                maxBarThickness: 38,
               },
               {
                 label: 'Ganancia Bruta (Q)',
                 data: profitData,
-                backgroundColor: '#10b981',
+                backgroundColor: '#00A09D',
+                hoverBackgroundColor: '#008582',
                 borderRadius: 6,
-                maxBarThickness: 32,
+                maxBarThickness: 38,
               }
             ]
           },
           options: {
             responsive: true,
             maintainAspectRatio: false,
+            animation: {
+              duration: 350
+            },
             plugins: {
               legend: {
                 position: 'top',
-                labels: { boxWidth: 12, font: { size: 11, weight: '700' } }
+                labels: { boxWidth: 12, font: { size: 11, weight: '700' }, color: '#334155' }
               },
               tooltip: {
                 callbacks: {
@@ -2709,12 +2755,13 @@
                   callback: function(val) {
                     return 'Q ' + Number(val).toLocaleString();
                   },
-                  font: { size: 10 }
+                  font: { size: 10, weight: '600' },
+                  color: '#64748b'
                 }
               },
               x: {
                 grid: { display: false },
-                ticks: { font: { size: 10, weight: '600' } }
+                ticks: { font: { size: 11, weight: '700' }, color: '#1e293b' }
               }
             }
           }
