@@ -1046,10 +1046,11 @@ async def get_sales_by_seller(
     start_date: Optional[str] = Query(None),
     end_date: Optional[str] = Query(None),
     branch_id: Optional[str] = Query(None),
+    commission_rate: float = Query(3.0),
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    """Reporte de rendimiento y ventas por Vendedor / Cajero."""
+    """Reporte de rendimiento y ventas por Vendedor / Cajero con comisiones y métricas detalladas."""
     s_dt, e_dt = _parse_dates(start_date, end_date)
 
     stmt = (
@@ -1065,9 +1066,9 @@ async def get_sales_by_seller(
             SaleOrder.sale_date.between(s_dt, e_dt),
         )
     )
-    if branch_id:
+    if branch_id and branch_id.strip() and branch_id.strip() != "all":
         try:
-            stmt = stmt.where(SaleOrder.branch_id == uuid.UUID(branch_id))
+            stmt = stmt.where(SaleOrder.branch_id == uuid.UUID(branch_id.strip()))
         except Exception:
             pass
 
@@ -1076,28 +1077,37 @@ async def get_sales_by_seller(
 
     sellers_map = {}
     grand_total_sales = Decimal("0")
+    grand_total_cost = Decimal("0")
     grand_total_profit = Decimal("0")
     grand_total_orders = 0
+    grand_total_items = Decimal("0")
+    grand_total_discounts = Decimal("0")
+    comm_pct_dec = Decimal(str(max(0.0, commission_rate))) / Decimal("100")
 
     for s in sales:
         u_id = str(s.user_id) if s.user_id else "unassigned"
         u_name = s.user.full_name if s.user and s.user.full_name else (s.user.username if s.user else "Sin Asignar")
         u_email = s.user.email if s.user and s.user.email else ""
+        u_avatar = s.user.avatar_url if s.user and hasattr(s.user, "avatar_url") else ""
 
         if u_id not in sellers_map:
             sellers_map[u_id] = {
                 "user_id": u_id,
                 "user_name": u_name,
                 "email": u_email,
+                "avatar_url": u_avatar or "",
                 "total_orders": 0,
+                "total_items_sold": Decimal("0"),
                 "total_sales": Decimal("0"),
                 "total_subtotal": Decimal("0"),
                 "total_tax": Decimal("0"),
                 "total_cost": Decimal("0"),
+                "total_discounts": Decimal("0"),
                 "gross_profit": Decimal("0"),
                 "profit_margin_pct": 0.0,
                 "avg_ticket": Decimal("0"),
                 "pct_of_total": 0.0,
+                "commission_amount": Decimal("0"),
             }
 
         data = sellers_map[u_id]
@@ -1105,21 +1115,36 @@ async def get_sales_by_seller(
         tot = Decimal(str(s.total or 0))
         sub = Decimal(str(s.subtotal or 0))
         tax = Decimal(str(s.tax_amount or 0))
+        disc = Decimal(str(s.discount_amount or 0))
+
         data["total_sales"] += tot
         data["total_subtotal"] += sub
         data["total_tax"] += tax
+        data["total_discounts"] += disc
+        grand_total_discounts += disc
 
         cost_order = Decimal("0")
+        items_order = Decimal("0")
         for line in s.lines:
             c = Decimal(str(line.cost_price or 0))
             q = Decimal(str(line.qty or 0))
             cost_order += (c * q)
+            items_order += q
+            if line.discount_amount and not disc:
+                data["total_discounts"] += Decimal(str(line.discount_amount))
+                grand_total_discounts += Decimal(str(line.discount_amount))
 
         data["total_cost"] += cost_order
+        data["total_items_sold"] += items_order
+
         grand_total_orders += 1
         grand_total_sales += tot
+        grand_total_cost += cost_order
+        grand_total_items += items_order
 
     sellers_list = list(sellers_map.values())
+    grand_total_commissions = Decimal("0")
+
     for s in sellers_list:
         s["gross_profit"] = s["total_subtotal"] - s["total_cost"]
         grand_total_profit += s["gross_profit"]
@@ -1136,10 +1161,16 @@ async def get_sales_by_seller(
         else:
             s["pct_of_total"] = 0.0
 
+        comm = (s["total_sales"] * comm_pct_dec).quantize(Decimal("0.01"))
+        s["commission_amount"] = float(comm)
+        grand_total_commissions += comm
+
         s["total_sales"] = float(s["total_sales"])
         s["total_subtotal"] = float(s["total_subtotal"])
         s["total_tax"] = float(s["total_tax"])
         s["total_cost"] = float(s["total_cost"])
+        s["total_discounts"] = float(s["total_discounts"])
+        s["total_items_sold"] = float(s["total_items_sold"])
         s["gross_profit"] = float(s["gross_profit"])
 
     sellers_list.sort(key=lambda x: x["total_sales"], reverse=True)
@@ -1147,16 +1178,425 @@ async def get_sales_by_seller(
     return {
         "start_date": start_date,
         "end_date": end_date,
+        "commission_rate": commission_rate,
         "summary": {
             "total_sellers": len(sellers_list),
             "grand_total_orders": grand_total_orders,
+            "grand_total_items_sold": float(grand_total_items),
             "grand_total_sales": float(grand_total_sales),
+            "grand_total_cost": float(grand_total_cost),
             "grand_total_profit": float(grand_total_profit),
+            "grand_total_discounts": float(grand_total_discounts),
+            "grand_total_commissions": float(grand_total_commissions),
             "overall_margin_pct": round(float((grand_total_profit / grand_total_sales * Decimal("100"))), 2) if grand_total_sales > 0 else 0.0,
             "avg_ticket": round(float(grand_total_sales / grand_total_orders), 2) if grand_total_orders > 0 else 0.0
         },
         "sellers": sellers_list
     }
+
+
+@router.get("/sales-by-seller/{seller_id}/detail")
+async def get_seller_detail(
+    seller_id: str,
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None),
+    branch_id: Optional[str] = Query(None),
+    commission_rate: float = Query(3.0),
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """Detalle de ventas y desglose de productos de un vendedor específico."""
+    s_dt, e_dt = _parse_dates(start_date, end_date)
+
+    seller_user = None
+    if seller_id != "unassigned":
+        try:
+            seller_res = await db.execute(select(User).where(User.id == uuid.UUID(seller_id)))
+            seller_user = seller_res.scalar_one_or_none()
+        except Exception:
+            pass
+
+    stmt = (
+        select(SaleOrder)
+        .options(
+            selectinload(SaleOrder.lines),
+            selectinload(SaleOrder.branch),
+            selectinload(SaleOrder.payments),
+        )
+        .where(
+            SaleOrder.company_id == current_user.company_id,
+            SaleOrder.state.in_([SaleState.CONFIRMED, SaleState.INVOICED, SaleState.PAID]),
+            SaleOrder.sale_date.between(s_dt, e_dt),
+        )
+    )
+    if seller_id == "unassigned":
+        stmt = stmt.where(SaleOrder.user_id.is_(None))
+    else:
+        try:
+            stmt = stmt.where(SaleOrder.user_id == uuid.UUID(seller_id))
+        except Exception:
+            return {"error": "Invalid seller ID"}
+
+    if branch_id and branch_id.strip() and branch_id.strip() != "all":
+        try:
+            stmt = stmt.where(SaleOrder.branch_id == uuid.UUID(branch_id.strip()))
+        except Exception:
+            pass
+
+    stmt = stmt.order_by(desc(SaleOrder.sale_date))
+    res = await db.execute(stmt)
+    orders = res.scalars().all()
+
+    total_orders = len(orders)
+    total_sales = Decimal("0")
+    total_cost = Decimal("0")
+    total_subtotal = Decimal("0")
+    total_tax = Decimal("0")
+    total_items = Decimal("0")
+    total_discounts = Decimal("0")
+
+    products_map = {}
+    orders_list = []
+    payments_map = {}
+
+    for o in orders:
+        tot = Decimal(str(o.total or 0))
+        sub = Decimal(str(o.subtotal or 0))
+        tax = Decimal(str(o.tax_amount or 0))
+        disc = Decimal(str(o.discount_amount or 0))
+
+        total_sales += tot
+        total_subtotal += sub
+        total_tax += tax
+        total_discounts += disc
+
+        order_cost = Decimal("0")
+        order_items = Decimal("0")
+        for line in o.lines:
+            q = Decimal(str(line.qty or 0))
+            c = Decimal(str(line.cost_price or 0))
+            p_tot = Decimal(str(line.total or 0))
+            order_cost += (c * q)
+            order_items += q
+            total_items += q
+
+            p_id = str(line.product_id)
+            if p_id not in products_map:
+                products_map[p_id] = {
+                    "product_id": p_id,
+                    "product_name": line.product_name,
+                    "barcode": line.product_barcode or "",
+                    "qty_sold": Decimal("0"),
+                    "total_sales": Decimal("0"),
+                    "total_cost": Decimal("0"),
+                    "gross_profit": Decimal("0"),
+                    "profit_margin_pct": 0.0,
+                }
+            products_map[p_id]["qty_sold"] += q
+            products_map[p_id]["total_sales"] += p_tot
+            products_map[p_id]["total_cost"] += (c * q)
+
+        total_cost += order_cost
+        order_profit = sub - order_cost
+        order_margin = (float(order_profit / sub) * 100.0) if sub > 0 else 0.0
+
+        for pay in (o.payments or []):
+            m = pay.payment_method or "other"
+            payments_map[m] = payments_map.get(m, Decimal("0")) + Decimal(str(pay.amount or 0))
+
+        loc_dt = to_local_dt(o.sale_date)
+        orders_list.append({
+            "id": str(o.id),
+            "number": o.number,
+            "date": loc_dt.strftime("%d/%m/%Y %H:%M") if loc_dt else "",
+            "customer_name": o.customer_name or "Consumidor Final",
+            "customer_nit": o.customer_nit or "CF",
+            "branch_name": o.branch.name if o.branch else "",
+            "items_count": float(order_items),
+            "total": float(tot),
+            "gross_profit": float(order_profit),
+            "profit_margin_pct": round(order_margin, 1),
+            "fel_number": o.fel_number or "",
+            "state": o.state.value if hasattr(o.state, "value") else str(o.state),
+        })
+
+    top_products = list(products_map.values())
+    for p in top_products:
+        p["gross_profit"] = p["total_sales"] - p["total_cost"]
+        p["profit_margin_pct"] = round(float(p["gross_profit"] / p["total_sales"] * 100), 1) if p["total_sales"] > 0 else 0.0
+        p["qty_sold"] = float(p["qty_sold"])
+        p["total_sales"] = float(p["total_sales"])
+        p["total_cost"] = float(p["total_cost"])
+        p["gross_profit"] = float(p["gross_profit"])
+
+    top_products.sort(key=lambda x: x["total_sales"], reverse=True)
+
+    gross_profit = total_subtotal - total_cost
+    margin_pct = round(float((gross_profit / total_subtotal) * 100), 2) if total_subtotal > 0 else 0.0
+    avg_ticket = round(float(total_sales / Decimal(str(total_orders))), 2) if total_orders > 0 else 0.0
+    comm_pct_dec = Decimal(str(max(0.0, commission_rate))) / Decimal("100")
+    comm_amount = round(float(total_sales * comm_pct_dec), 2)
+
+    return {
+        "seller": {
+            "id": seller_id,
+            "full_name": seller_user.full_name if seller_user else ("Sin Asignar" if seller_id == "unassigned" else "Desconocido"),
+            "email": seller_user.email if seller_user else "",
+            "username": seller_user.username if seller_user else "",
+            "phone": getattr(seller_user, "phone", "") if seller_user else "",
+            "is_active": getattr(seller_user, "is_active", True) if seller_user else True,
+        },
+        "period": {"start_date": start_date, "end_date": end_date},
+        "summary": {
+            "total_orders": total_orders,
+            "total_items_sold": float(total_items),
+            "total_sales": float(total_sales),
+            "total_cost": float(total_cost),
+            "gross_profit": float(gross_profit),
+            "profit_margin_pct": margin_pct,
+            "avg_ticket": avg_ticket,
+            "total_discounts": float(total_discounts),
+            "commission_rate": commission_rate,
+            "commission_amount": comm_amount,
+        },
+        "payment_methods": {k: float(v) for k, v in payments_map.items()},
+        "top_products": top_products[:15],
+        "recent_orders": orders_list[:50],
+    }
+
+
+@router.get("/export-sales-by-seller-excel")
+async def export_sales_by_seller_excel(
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None),
+    branch_id: Optional[str] = Query(None),
+    commission_rate: float = Query(3.0),
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """Exportar Reporte de Rendimiento y Comisiones por Vendedor a Excel profesional (.xlsx)."""
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from openpyxl.utils import get_column_letter
+
+    data = await get_sales_by_seller(
+        start_date=start_date,
+        end_date=end_date,
+        branch_id=branch_id,
+        commission_rate=commission_rate,
+        db=db,
+        current_user=current_user,
+    )
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Ventas por Vendedor"
+    ws.views.sheetView[0].showGridLines = True
+
+    # Estilos
+    font_title = Font(name="Calibri", size=14, bold=True, color="FFFFFF")
+    fill_title = PatternFill(start_color="714B67", end_color="714B67", fill_type="solid")
+    font_subtitle = Font(name="Calibri", size=10, italic=True, color="475569")
+    fill_subtitle = PatternFill(start_color="F8FAFC", end_color="F8FAFC", fill_type="solid")
+
+    font_header = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+    fill_header = PatternFill(start_color="53334C", end_color="53334C", fill_type="solid")
+
+    font_data = Font(name="Calibri", size=10, color="1E293B")
+    font_total = Font(name="Calibri", size=11, bold=True, color="0F172A")
+    fill_total = PatternFill(start_color="E2E8F0", end_color="E2E8F0", fill_type="solid")
+
+    border_thin = Border(
+        left=Side(style="thin", color="E2E8F0"),
+        right=Side(style="thin", color="E2E8F0"),
+        top=Side(style="thin", color="E2E8F0"),
+        bottom=Side(style="thin", color="E2E8F0")
+    )
+    border_total = Border(
+        top=Side(style="thin", color="94A3B8"),
+        bottom=Side(style="double", color="0F172A")
+    )
+
+    # 1. Título
+    ws.merge_cells("A1:M1")
+    cell_t = ws["A1"]
+    cell_t.value = "POS EMPRESARIAL — REPORTE DE RENDIMIENTO Y COMISIONES POR VENDEDOR"
+    cell_t.font = font_title
+    cell_t.fill = fill_title
+    cell_t.alignment = Alignment(horizontal="center", vertical="center")
+    ws.row_dimensions[1].height = 32
+
+    # 2. Metadatos
+    ws.merge_cells("A2:M2")
+    cell_sub = ws["A2"]
+    now_str = datetime.now(GUATEMALA_TZ).strftime("%d/%m/%Y %H:%M:%S")
+    cell_sub.value = f"Período: {start_date or 'Inicio'} al {end_date or 'Hoy'} | Tasa Comisión: {commission_rate}% | Generado: {now_str}"
+    cell_sub.font = font_subtitle
+    cell_sub.fill = fill_subtitle
+    cell_sub.alignment = Alignment(horizontal="center", vertical="center")
+    ws.row_dimensions[2].height = 20
+
+    # 3. Encabezados de Tabla
+    headers = [
+        ("#", 6),
+        ("Vendedor / Colaborador", 28),
+        ("Correo / Usuario", 26),
+        ("Órdenes", 12),
+        ("Artículos", 12),
+        ("Venta Total (Q)", 18),
+        ("Descuentos (Q)", 16),
+        ("Costo (Q)", 16),
+        ("Ganancia Bruta (Q)", 18),
+        ("Margen %", 12),
+        ("Ticket Prom. (Q)", 16),
+        ("% Aporte", 12),
+        (f"Comisión ({commission_rate}%) (Q)", 20),
+    ]
+
+    header_row = 4
+    ws.row_dimensions[header_row].height = 26
+    for col_idx, (col_name, _) in enumerate(headers, 1):
+        cell = ws.cell(row=header_row, column=col_idx, value=col_name)
+        cell.font = font_header
+        cell.fill = fill_header
+        cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+
+    # 4. Filas de Datos
+    curr_row = 5
+    for idx, s in enumerate(data.get("sellers", []), 1):
+        ws.row_dimensions[curr_row].height = 20
+
+        row_vals = [
+            (idx, "center", None),
+            (s.get("user_name"), "left", None),
+            (s.get("email") or "-", "left", None),
+            (s.get("total_orders", 0), "center", "#,##0"),
+            (s.get("total_items_sold", 0), "center", "#,##0"),
+            (s.get("total_sales", 0.0), "right", 'Q #,##0.00'),
+            (s.get("total_discounts", 0.0), "right", 'Q #,##0.00'),
+            (s.get("total_cost", 0.0), "right", 'Q #,##0.00'),
+            (s.get("gross_profit", 0.0), "right", 'Q #,##0.00'),
+            (s.get("profit_margin_pct", 0.0) / 100.0, "center", '0.0%'),
+            (s.get("avg_ticket", 0.0), "right", 'Q #,##0.00'),
+            (s.get("pct_of_total", 0.0) / 100.0, "center", '0.0%'),
+            (s.get("commission_amount", 0.0), "right", 'Q #,##0.00'),
+        ]
+
+        for col_idx, (val, align, num_fmt) in enumerate(row_vals, 1):
+            c = ws.cell(row=curr_row, column=col_idx, value=val)
+            c.font = font_data
+            c.border = border_thin
+            c.alignment = Alignment(horizontal=align, vertical="center")
+            if num_fmt:
+                c.number_format = num_fmt
+
+        curr_row += 1
+
+    # 5. Fila de Totales
+    ws.row_dimensions[curr_row].height = 24
+    summary = data.get("summary", {})
+    total_vals = [
+        ("TOTAL", "center", None),
+        (f"{summary.get('total_sellers', 0)} Vendedores", "left", None),
+        ("", "left", None),
+        (summary.get("grand_total_orders", 0), "center", "#,##0"),
+        (summary.get("grand_total_items_sold", 0), "center", "#,##0"),
+        (summary.get("grand_total_sales", 0.0), "right", 'Q #,##0.00'),
+        (summary.get("grand_total_discounts", 0.0), "right", 'Q #,##0.00'),
+        (summary.get("grand_total_cost", 0.0), "right", 'Q #,##0.00'),
+        (summary.get("grand_total_profit", 0.0), "right", 'Q #,##0.00'),
+        (summary.get("overall_margin_pct", 0.0) / 100.0, "center", '0.0%'),
+        (summary.get("avg_ticket", 0.0), "right", 'Q #,##0.00'),
+        (1.0 if summary.get("grand_total_sales", 0) > 0 else 0.0, "center", '0.0%'),
+        (summary.get("grand_total_commissions", 0.0), "right", 'Q #,##0.00'),
+    ]
+
+    for col_idx, (val, align, num_fmt) in enumerate(total_vals, 1):
+        c = ws.cell(row=curr_row, column=col_idx, value=val)
+        c.font = font_total
+        c.fill = fill_total
+        c.border = border_total
+        c.alignment = Alignment(horizontal=align, vertical="center")
+        if num_fmt:
+            c.number_format = num_fmt
+
+    # Autoajustar columnas
+    for col_idx, (_, width) in enumerate(headers, 1):
+        col_letter = get_column_letter(col_idx)
+        ws.column_dimensions[col_letter].width = width
+
+    out = io.BytesIO()
+    wb.save(out)
+    out.seek(0)
+
+    filename = f"ventas_por_vendedor_{start_date or 'inicio'}_{end_date or 'hoy'}.xlsx"
+    return Response(
+        content=out.getvalue(),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
+
+
+@router.get("/export-sales-by-seller-csv")
+async def export_sales_by_seller_csv(
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None),
+    branch_id: Optional[str] = Query(None),
+    commission_rate: float = Query(3.0),
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """Exportar Reporte de Rendimiento y Comisiones por Vendedor a CSV."""
+    data = await get_sales_by_seller(
+        start_date=start_date,
+        end_date=end_date,
+        branch_id=branch_id,
+        commission_rate=commission_rate,
+        db=db,
+        current_user=current_user,
+    )
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "Ranking",
+        "Vendedor",
+        "Email",
+        "Ordenes",
+        "Articulos Vendidos",
+        "Venta Total (Q)",
+        "Descuentos (Q)",
+        "Costo (Q)",
+        "Ganancia Bruta (Q)",
+        "Margen %",
+        "Ticket Promedio (Q)",
+        "% Aporte",
+        f"Comision ({commission_rate}%) (Q)",
+    ])
+
+    for idx, s in enumerate(data.get("sellers", []), 1):
+        writer.writerow([
+            idx,
+            s.get("user_name"),
+            s.get("email"),
+            s.get("total_orders"),
+            s.get("total_items_sold"),
+            f"{s.get('total_sales', 0.0):.2f}",
+            f"{s.get('total_discounts', 0.0):.2f}",
+            f"{s.get('total_cost', 0.0):.2f}",
+            f"{s.get('gross_profit', 0.0):.2f}",
+            f"{s.get('profit_margin_pct', 0.0):.2f}%",
+            f"{s.get('avg_ticket', 0.0):.2f}",
+            f"{s.get('pct_of_total', 0.0):.2f}%",
+            f"{s.get('commission_amount', 0.0):.2f}",
+        ])
+
+    filename = f"ventas_por_vendedor_{start_date or 'inicio'}_{end_date or 'hoy'}.csv"
+    return Response(
+        content=output.getvalue().encode("utf-8-sig"),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
 
 
 # 2. TOP CLIENTES & ANÁLISIS DE CARTERA

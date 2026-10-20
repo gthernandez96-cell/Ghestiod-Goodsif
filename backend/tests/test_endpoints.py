@@ -1843,8 +1843,36 @@ def test_product_datasheet_and_notes():
     assert detail_v2["pdf_datasheet_url"] == new_pdf_url
 
 
+def test_sales_by_seller_reports():
+    """Pruebas completas del reporte de ventas por vendedor, detalle individual y exportaciones."""
+    # 1. Reporte principal con comisiones
+    res = client.get("/api/v1/reports/sales-by-seller?commission_rate=4.5", headers=headers)
+    assert res.status_code == 200
+    data = res.json()
+    assert "summary" in data
+    assert "sellers" in data
+    assert data["commission_rate"] == 4.5
+    assert "total_sellers" in data["summary"]
+    assert "grand_total_commissions" in data["summary"]
 
+    # 2. Detalle del vendedor
+    seller_id = str(USER_ID)
+    detail_res = client.get(f"/api/v1/reports/sales-by-seller/{seller_id}/detail?commission_rate=4.5", headers=headers)
+    assert detail_res.status_code == 200
+    detail = detail_res.json()
+    assert "seller" in detail
+    assert "summary" in detail
+    assert "top_products" in detail
+    assert "recent_orders" in detail
 
+    # 3. Exportación a Excel (.xlsx)
+    excel_res = client.get("/api/v1/reports/export-sales-by-seller-excel?commission_rate=4.5", headers=headers)
+    assert excel_res.status_code == 200
+    assert "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" in excel_res.headers.get("content-type", "")
+    assert len(excel_res.content) > 100
 
-
-
+    # 4. Exportación a CSV
+    csv_res = client.get("/api/v1/reports/export-sales-by-seller-csv?commission_rate=4.5", headers=headers)
+    assert csv_res.status_code == 200
+    assert "text/csv" in csv_res.headers.get("content-type", "")
+    assert b"Ranking,Vendedor,Email" in csv_res.content
