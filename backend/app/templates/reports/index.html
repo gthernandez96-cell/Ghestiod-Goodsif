@@ -6,82 +6,191 @@
 {% block extra_css %}
 <style>
   /* =============================================
-     EXECUTIVE REPORTS & BI STYLES
+     ODOO ENTERPRISE DESIGN SYSTEM — BI & REPORTS
   ============================================= */
   :root {
     --odoo-purple: #714B67;
+    --odoo-purple-hover: #5d3d54;
     --odoo-purple-light: #f4eff3;
     --odoo-teal: #00A09D;
     --odoo-teal-light: #e6f6f6;
+    --odoo-bg: #f8fafc;
+    --odoo-border: #e2e8f0;
+    --odoo-text-main: #1e293b;
+    --odoo-text-muted: #64748b;
   }
 
-  .bi-kpi-card {
+  /* Odoo Enterprise Sticky Control Panel */
+  .o_control_panel {
+    margin: -20px -24px 18px -24px;
+    padding: 10px 24px;
     background: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 14px;
-    padding: 18px 22px;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+    border-bottom: 1px solid #d8dadd;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-  }
-  .bi-kpi-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+    flex-wrap: wrap;
+    gap: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    position: sticky;
+    top: 46px;
+    z-index: 100;
   }
 
-  .report-tab-pill {
-    padding: 8px 16px;
-    border-radius: 20px;
-    font-size: 13px;
-    font-weight: 800;
-    cursor: pointer;
-    border: 1px solid #cbd5e1;
-    background: #ffffff;
-    color: #475569;
-    transition: all 0.15s ease;
+  .o_breadcrumb {
+    font-size: 16px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--odoo-text-main);
+  }
+  .o_breadcrumb_title {
+    font-weight: 900;
+    color: #0f172a;
     display: inline-flex;
     align-items: center;
     gap: 6px;
   }
-  .report-tab-pill:hover {
-    background: #f1f5f9;
-    color: #1e293b;
+
+  .btn-odoo-primary {
+    background: var(--odoo-purple) !important;
+    color: #ffffff !important;
+    border: none !important;
+    border-radius: 6px !important;
+    font-size: 12.5px !important;
+    font-weight: 700 !important;
+    padding: 6px 14px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    cursor: pointer !important;
+    box-shadow: 0 1px 2px rgba(113, 75, 103, 0.2) !important;
+    transition: all 0.15s ease !important;
   }
-  .report-tab-pill.active {
-    background: var(--odoo-purple);
-    color: #ffffff;
-    border-color: var(--odoo-purple);
-    box-shadow: 0 2px 8px rgba(113, 75, 103, 0.25);
+  .btn-odoo-primary:hover {
+    background: var(--odoo-purple-hover) !important;
+    box-shadow: 0 2px 6px rgba(113, 75, 103, 0.35) !important;
+  }
+
+  .btn-odoo-secondary {
+    background: #ffffff !important;
+    color: #475569 !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 6px !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    padding: 5px 12px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    cursor: pointer !important;
+    transition: all 0.12s ease !important;
+  }
+  .btn-odoo-secondary:hover {
+    background: #f8fafc !important;
+    color: #0f172a !important;
+    border-color: #94a3b8 !important;
+  }
+
+  .o_searchview {
+    display: flex;
+    align-items: center;
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 2px 6px;
+    gap: 4px;
+  }
+
+  .o_date_range_picker {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 4px 10px;
+  }
+  .o_date_range_picker input[type="date"] {
+    border: none;
+    background: transparent;
+    font-size: 12px;
+    font-weight: 700;
+    color: #1e293b;
+    outline: none;
   }
 
   .date-preset-btn {
-    padding: 5px 12px;
-    font-size: 12px;
+    padding: 4px 10px;
+    font-size: 11.5px;
     font-weight: 700;
     border-radius: 6px;
-    border: 1px solid #cbd5e1;
-    background: #ffffff;
+    border: 1px solid transparent;
+    background: transparent;
     color: #475569;
     cursor: pointer;
     transition: all 0.12s;
   }
   .date-preset-btn:hover {
-    background: #f8fafc;
+    background: #e2e8f0;
     color: #0f172a;
   }
   .date-preset-btn.active {
-    background: #f1f5f9;
-    border-color: var(--odoo-purple);
+    background: #ffffff;
+    border-color: #cbd5e1;
     color: var(--odoo-purple);
     font-weight: 800;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
   }
 
+  .report-tab-pill {
+    padding: 7px 14px;
+    border-radius: 20px;
+    font-size: 12.5px;
+    font-weight: 700;
+    cursor: pointer;
+    border: 1px solid #cbd5e1;
+    background: #f8fafc;
+    color: #475569;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    text-decoration: none;
+  }
+  .report-tab-pill:hover {
+    background: #ffffff;
+    color: #0f172a;
+    border-color: #94a3b8;
+  }
+  .report-tab-pill.active {
+    background: var(--odoo-purple) !important;
+    color: #ffffff !important;
+    border-color: var(--odoo-purple) !important;
+    font-weight: 800 !important;
+    box-shadow: 0 2px 8px rgba(113, 75, 103, 0.25) !important;
+  }
+
+  .report-tab-pill .pill-badge {
+    background: rgba(0,0,0,0.06);
+    color: inherit;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 1px 6px;
+    border-radius: 10px;
+  }
+  .report-tab-pill.active .pill-badge {
+    background: rgba(255,255,255,0.25);
+    color: #ffffff;
+  }
+
+  /* Odoo List Table Style */
   .report-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 13px;
+    font-size: 12.5px;
   }
   .report-table th {
     background: #f8fafc;
@@ -90,25 +199,28 @@
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    padding: 12px 16px;
+    padding: 11px 14px;
     border-bottom: 2px solid #e2e8f0;
     text-align: left;
+    position: sticky;
+    top: 0;
+    z-index: 5;
   }
   .report-table td {
-    padding: 12px 16px;
+    padding: 10px 14px;
     border-bottom: 1px solid #f1f5f9;
     color: #1e293b;
     vertical-align: middle;
+    font-variant-numeric: tabular-nums;
   }
   .report-table tr:hover td {
-    background: #fdfaff;
+    background: #fcfbfe !important;
   }
 
-  /* Mini visual bar for sales */
   .bar-container {
     background: #f1f5f9;
-    height: 8px;
-    border-radius: 4px;
+    height: 6px;
+    border-radius: 3px;
     overflow: hidden;
     width: 100%;
     margin-top: 4px;
@@ -116,8 +228,114 @@
   .bar-fill {
     background: var(--odoo-purple);
     height: 100%;
-    border-radius: 4px;
+    border-radius: 3px;
     transition: width 0.3s ease;
+  }
+
+  /* Touch scrolling pills */
+  .subnav-pills-scroll {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding: 2px 0;
+  }
+  .subnav-pills-scroll::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Odoo Enterprise Smart Buttons Ribbon */
+  .oe_button_box {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    padding: 2px 0;
+  }
+  .oe_button_box::-webkit-scrollbar {
+    display: none;
+  }
+  .oe_stat_button {
+    background: #ffffff;
+    border: 1px solid #d8dadd;
+    border-radius: 8px;
+    padding: 8px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    min-width: 170px;
+    flex: 1;
+    transition: all 0.15s ease;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+    user-select: none;
+  }
+  .oe_stat_button:hover {
+    border-color: var(--odoo-purple);
+    background: #fdfcfe;
+    box-shadow: 0 2px 6px rgba(113, 75, 103, 0.08);
+    transform: translateY(-1px);
+  }
+  .oe_stat_button i {
+    font-size: 24px;
+    flex-shrink: 0;
+  }
+  .oe_stat_button .o_stat_info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .oe_stat_button .o_stat_value {
+    font-size: 15px;
+    font-weight: 900;
+    color: #0f172a;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .oe_stat_button .o_stat_text {
+    font-size: 11px;
+    font-weight: 700;
+    color: #64748b;
+    margin-top: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Odoo View Switcher Group */
+  .o_cp_switch_buttons {
+    display: inline-flex;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    overflow: hidden;
+    background: #ffffff;
+  }
+  .o_cp_switch_buttons button {
+    background: transparent;
+    border: none;
+    padding: 6px 10px;
+    color: #64748b;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.12s ease;
+  }
+  .o_cp_switch_buttons button:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+  }
+  .o_cp_switch_buttons button.active {
+    background: var(--odoo-purple-light);
+    color: var(--odoo-purple);
+    font-weight: 800;
   }
 </style>
 {% endblock %}
@@ -125,101 +343,83 @@
 {% block content %}
 <div x-data="reportsBIModule()" x-init="init()">
   
-  <!-- ===== TOP CONTROL PANEL SUB-HEADER ===== -->
-  <div style="margin:-20px -24px 20px -24px; padding:12px 24px; background:#ffffff; border-bottom:1px solid #e2e8f0; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px; box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+  <!-- ===== ODOO ENTERPRISE CONTROL PANEL ===== -->
+  <div class="o_control_panel">
     
-    <!-- Left: Title & Quick Date Presets -->
-    <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
-      <div style="font-size:15px; font-weight:900; color:#1e293b; display:flex; align-items:center; gap:6px; margin-right:6px;">
-        <i class="ph ph-chart-line-up" style="color:var(--odoo-purple); font-size:18px;"></i>
-        <span>Business Intelligence & Reportes</span>
+    <!-- Left: Odoo Breadcrumb & Action Buttons -->
+    <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+      <div class="o_breadcrumb">
+        <span style="color:#64748b; font-weight:600;">Informes</span>
+        <span style="color:#94a3b8; margin:0 2px;">/</span>
+        <span class="o_breadcrumb_title">
+          <i class="ph-bold ph-chart-line-up" style="color:var(--odoo-purple); font-size:17px;"></i>
+          <span x-text="activeReportTitle"></span>
+        </span>
       </div>
 
-      <div style="display:flex; gap:6px; flex-wrap:wrap;">
-        <button class="date-preset-btn" :class="activePreset === 'today' ? 'active' : ''" @click="setPreset('today')">Hoy</button>
-        <button class="date-preset-btn" :class="activePreset === '7days' ? 'active' : ''" @click="setPreset('7days')">7 Días</button>
-        <button class="date-preset-btn" :class="activePreset === 'this_month' ? 'active' : ''" @click="setPreset('this_month')">Este Mes</button>
-        <button class="date-preset-btn" :class="activePreset === 'last_month' ? 'active' : ''" @click="setPreset('last_month')">Mes Anterior</button>
-        <button class="date-preset-btn" :class="activePreset === 'this_year' ? 'active' : ''" @click="setPreset('this_year')">Año 2026</button>
+      <!-- Action Buttons -->
+      <div style="display:flex; align-items:center; gap:6px;">
+        <button type="button" class="btn-odoo-secondary" @click="exportCurrentReportToCSV()" title="Exportar reporte activo a Excel / CSV">
+          <i class="ph-bold ph-file-csv" style="color:#0284c7; font-size:14px;"></i>
+          <span>Exportar</span>
+        </button>
+        <button type="button" class="btn-odoo-secondary" @click="printExecutiveReport()" title="Imprimir informe en PDF">
+          <i class="ph-bold ph-printer" style="font-size:14px; color:#64748b;"></i>
+          <span>Imprimir PDF</span>
+        </button>
+        <button type="button" class="btn-odoo-secondary" @click="reloadAllData()" title="Refrescar datos">
+          <i class="ph-bold ph-arrows-clockwise" style="font-size:14px;"></i>
+          <span>Refrescar</span>
+        </button>
       </div>
     </div>
 
-    <!-- Center/Right: Date Pickers & Universal Export -->
-    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-      <div style="display:flex; align-items:center; gap:6px; background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; padding:4px 10px;">
-        <span style="font-size:11px; font-weight:700; color:#64748b;">DESDE:</span>
-        <input type="date" style="border:none; background:transparent; font-size:12.5px; font-weight:700; color:#1e293b; outline:none;" x-model="startDate" @change="activePreset = 'custom'; reloadAllData()">
-        <span style="font-size:11px; font-weight:700; color:#64748b; margin-left:4px;">HASTA:</span>
-        <input type="date" style="border:none; background:transparent; font-size:12.5px; font-weight:700; color:#1e293b; outline:none;" x-model="endDate" @change="activePreset = 'custom'; reloadAllData()">
+    <!-- Center/Right: Odoo Search Bar / Filters, View Switcher & KPI Popover -->
+    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+      
+      <!-- Odoo Presets Search Box -->
+      <div class="o_searchview">
+        <i class="ph ph-funnel" style="color:var(--odoo-purple); font-size:13px; margin-right:2px; margin-left:4px;"></i>
+        <div style="display:flex; align-items:center; gap:2px;">
+          <button class="date-preset-btn" :class="activePreset === 'today' ? 'active' : ''" @click="setPreset('today')">Hoy</button>
+          <button class="date-preset-btn" :class="activePreset === '7days' ? 'active' : ''" @click="setPreset('7days')">7 Días</button>
+          <button class="date-preset-btn" :class="activePreset === 'this_month' ? 'active' : ''" @click="setPreset('this_month')">Este Mes</button>
+          <button class="date-preset-btn" :class="activePreset === 'last_month' ? 'active' : ''" @click="setPreset('last_month')">Mes Ant.</button>
+          <button class="date-preset-btn" :class="activePreset === 'this_year' ? 'active' : ''" @click="setPreset('this_year')">Año 2026</button>
+        </div>
       </div>
 
-      <!-- Export to Excel / CSV -->
-      <button 
-        type="button" 
-        class="btn btn-secondary" 
-        style="background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; font-weight:800; border-radius:8px; padding:7px 14px; font-size:12.5px; display:flex; align-items:center; gap:6px; cursor:pointer;"
-        @click="exportCurrentReportToCSV()"
-        title="Descargar datos en formato Excel / CSV"
-      >
-        <i class="ph ph-file-csv" style="font-size:16px;"></i> Exportar Excel / CSV
-      </button>
-
-      <!-- Print Report PDF -->
-      <button 
-        type="button" 
-        class="btn btn-secondary" 
-        style="background:#f8fafc; color:#334155; border:1px solid #cbd5e1; font-weight:700; border-radius:8px; padding:7px 14px; font-size:12.5px; display:flex; align-items:center; gap:6px; cursor:pointer;"
-        @click="printExecutiveReport()"
-        title="Imprimir informe oficial en PDF"
-      >
-        <i class="ph ph-printer" style="font-size:16px; color:#64748b;"></i> Imprimir PDF
-      </button>
-    </div>
-
-  </div>
-
-  <!-- ===== 2. REPORT TABS SWITCHER & FLOATING KPI POPOVER ===== -->
-  <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:14px; padding:14px 18px; margin-bottom:20px; box-shadow:0 1px 4px rgba(0,0,0,0.02);">
-    
-    <!-- Top Row: Area Category Selector & KPI Summary Button -->
-    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:12px; padding-bottom:10px; border-bottom:1px solid #f1f5f9;">
-      <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-        <span style="font-size:11px; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.5px; margin-right:4px;">Área:</span>
-        <button type="button" @click="reportCategory = 'all'" :style="reportCategory === 'all' ? 'background:var(--odoo-purple); color:#ffffff; border-color:var(--odoo-purple);' : 'background:#f8fafc; color:#475569; border-color:#cbd5e1;'" style="padding:4px 12px; border-radius:14px; font-size:12px; font-weight:800; border:1px solid; cursor:pointer; transition:all 0.15s;">Todos (14)</button>
-        <button type="button" @click="reportCategory = 'sales'" :style="reportCategory === 'sales' ? 'background:var(--odoo-purple); color:#ffffff; border-color:var(--odoo-purple);' : 'background:#f8fafc; color:#475569; border-color:#cbd5e1;'" style="padding:4px 12px; border-radius:14px; font-size:12px; font-weight:800; border:1px solid; cursor:pointer; transition:all 0.15s;">📊 Comercial & Ventas (7)</button>
-        <button type="button" @click="reportCategory = 'inventory'" :style="reportCategory === 'inventory' ? 'background:var(--odoo-purple); color:#ffffff; border-color:var(--odoo-purple);' : 'background:#f8fafc; color:#475569; border-color:#cbd5e1;'" style="padding:4px 12px; border-radius:14px; font-size:12px; font-weight:800; border:1px solid; cursor:pointer; transition:all 0.15s;">📦 Inventarios & Compras (3)</button>
-        <button type="button" @click="reportCategory = 'finance'" :style="reportCategory === 'finance' ? 'background:var(--odoo-purple); color:#ffffff; border-color:var(--odoo-purple);' : 'background:#f8fafc; color:#475569; border-color:#cbd5e1;'" style="padding:4px 12px; border-radius:14px; font-size:12px; font-weight:800; border:1px solid; cursor:pointer; transition:all 0.15s;">💳 Créditos, Cajas & SAT (4)</button>
+      <!-- Date Range Inputs -->
+      <div class="o_date_range_picker">
+        <span style="font-size:10px; font-weight:800; color:#64748b; letter-spacing:0.5px;">DESDE:</span>
+        <input type="date" x-model="startDate" @change="activePreset = 'custom'; reloadAllData()">
+        <span style="font-size:10px; font-weight:800; color:#64748b; letter-spacing:0.5px;">HASTA:</span>
+        <input type="date" x-model="endDate" @change="activePreset = 'custom'; reloadAllData()">
       </div>
 
-      <!-- Right Controls: Resumen Button (al par derecho) -->
-      <div class="hide-on-mobile" style="margin-left:auto; display:flex; align-items:center; gap:10px; position:relative;">
+      <!-- Odoo View Switcher (List vs Graph) -->
+      <div class="o_cp_switch_buttons" x-show="activeReport === 'sales' || activeReport === 'sellers'">
+        <button type="button" :class="(activeReport === 'sales' ? salesViewMode === 'table' : true) ? 'active' : ''" @click="if (activeReport === 'sales') salesViewMode = 'table'" title="Vista Lista / Tabla">
+          <i class="ph-bold ph-list-dashes"></i>
+        </button>
+        <button type="button" :class="(activeReport === 'sales' ? salesViewMode === 'chart' : false) ? 'active' : ''" @click="if (activeReport === 'sales') { salesViewMode = 'chart'; $nextTick(() => renderSalesChart()); }" title="Vista Gráfico / Tendencias">
+          <i class="ph-bold ph-chart-line-up"></i>
+        </button>
+      </div>
+
+      <!-- Odoo Floating KPI Resumen Button -->
+      <div style="position:relative;">
         <button
           type="button"
-          class="hide-on-mobile"
+          class="btn-odoo-primary"
           @click="showKpis = !showKpis"
-          style="
-            display:inline-flex; align-items:center; gap:7px;
-            padding:6px 16px;
-            background:linear-gradient(135deg, #714B67 0%, #9b6b8f 100%);
-            border:none; border-radius:20px;
-            font-size:12px; font-weight:800; color:#ffffff;
-            cursor:pointer; transition:all 0.22s cubic-bezier(0.4,0,0.2,1);
-            box-shadow:0 2px 10px rgba(113,75,103,0.3);
-            letter-spacing:0.3px; white-space:nowrap;
-          "
-          onmouseover="this.style.boxShadow='0 4px 16px rgba(113,75,103,0.5)'; this.style.transform='translateY(-1px)'"
-          onmouseout="this.style.boxShadow='0 2px 10px rgba(113,75,103,0.3)'; this.style.transform='translateY(0)'"
         >
-          <i class="ph ph-chart-bar" style="font-size:15px;"></i>
-          <span x-text="showKpis ? 'Ocultar resumen' : 'Resumen'"></span>
-          <i
-            class="ph ph-caret-down"
-            style="font-size:12px; transition:transform 0.25s ease;"
-            :style="showKpis ? 'transform:rotate(180deg)' : 'transform:rotate(0deg)'"
-          ></i>
+          <i class="ph-bold ph-chart-polar"></i>
+          <span x-text="showKpis ? 'Ocultar Resumen' : 'Resumen KPIs'"></span>
+          <i class="ph-bold ph-caret-down" style="font-size:11px; transition:transform 0.2s ease;" :style="showKpis ? 'transform:rotate(180deg)' : ''"></i>
         </button>
 
-        <!-- Floating Popover Dropdown Panel (Exacto a Inventarios y AP, alineado a la derecha) -->
+        <!-- Floating Popover Dropdown Panel -->
         <div
           class="hide-on-mobile"
           x-show="showKpis"
@@ -232,7 +432,7 @@
           x-transition:leave-end="opacity-0 scale-95"
           style="
             position:absolute; top:calc(100% + 8px); right:0; z-index:999;
-            background:#ffffff; border:1.5px solid #e2e8f0; border-radius:14px;
+            background:#ffffff; border:1px solid #d8dadd; border-radius:12px;
             box-shadow:0 14px 45px -8px rgba(0,0,0,0.18), 0 4px 16px -4px rgba(0,0,0,0.08);
             padding:12px; display:flex; flex-direction:column; gap:8px;
             width:460px; max-width:95vw;
@@ -267,101 +467,190 @@
             </div>
           </div>
 
-          <!-- Card 3: Valoración de Inventario -->
-          <div style="background:#ffffff; border:1px solid #e2e8f0; border-left:4px solid #0284c7; border-radius:10px; padding:12px 16px; display:flex; align-items:center; justify-content:space-between;">
-            <div>
-              <div style="font-size:10.5px; font-weight:800; color:#0369a1; text-transform:uppercase; letter-spacing:0.5px;">Valoración de Inventario (Q)</div>
-              <div style="font-size:20px; font-weight:900; color:#0284c7; margin-top:2px;" x-text="'Q ' + Number(kpis.inventory_valuation || 0).toLocaleString('es-GT', {minimumFractionDigits:2, maximumFractionDigits:2})">Q 0.00</div>
-              <div style="font-size:11px; color:#64748b; margin-top:2px;">
-                <span>Stock valorizado a costo</span>
-              </div>
+          <!-- Card 3: Ticket Promedio & Inventario Físico -->
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+            <div style="background:#ffffff; border:1px solid #e2e8f0; border-left:4px solid #f59e0b; border-radius:10px; padding:10px 14px;">
+              <div style="font-size:10px; font-weight:800; color:#d97706; text-transform:uppercase; letter-spacing:0.5px;">Ticket Promedio</div>
+              <div style="font-size:17px; font-weight:900; color:#0f172a; margin-top:2px;" x-text="'Q ' + Number(kpis.avg_ticket || 0).toFixed(2)">Q 0.00</div>
+              <div style="font-size:10.5px; color:#64748b;">Consumo medio</div>
             </div>
-            <div style="width:38px; height:38px; border-radius:10px; background:#e0f2fe; color:#0284c7; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;">
-              <i class="ph ph-warehouse"></i>
-            </div>
-          </div>
-
-          <!-- Card 4: Ticket Promedio -->
-          <div style="background:#ffffff; border:1px solid #e2e8f0; border-left:4px solid #f59e0b; border-radius:10px; padding:12px 16px; display:flex; align-items:center; justify-content:space-between;">
-            <div>
-              <div style="font-size:10.5px; font-weight:800; color:#d97706; text-transform:uppercase; letter-spacing:0.5px;">Ticket Promedio</div>
-              <div style="font-size:20px; font-weight:900; color:#d97706; margin-top:2px;" x-text="'Q ' + Number(kpis.avg_ticket || 0).toFixed(2)">Q 0.00</div>
-              <div style="font-size:11px; color:#64748b; margin-top:2px;">
-                <span>En <strong x-text="kpis.total_orders || 0"></strong> transacciones</span>
-              </div>
-            </div>
-            <div style="width:38px; height:38px; border-radius:10px; background:#fef3c7; color:#d97706; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;">
-              <i class="ph ph-receipt"></i>
+            <div style="background:#ffffff; border:1px solid #e2e8f0; border-left:4px solid #3b82f6; border-radius:10px; padding:10px 14px;">
+              <div style="font-size:10px; font-weight:800; color:#2563eb; text-transform:uppercase; letter-spacing:0.5px;">Valor Inventario</div>
+              <div style="font-size:17px; font-weight:900; color:#0f172a; margin-top:2px;" x-text="'Q ' + Number(kpis.inventory_valuation || 0).toLocaleString('es-GT', {minimumFractionDigits:2, maximumFractionDigits:2})">Q 0.00</div>
+              <div style="font-size:10.5px; color:#64748b;">Stock valorizado</div>
             </div>
           </div>
         </div>
       </div>
+
+    </div>
+  </div>
+
+  <!-- ===== ODOO ENTERPRISE SMART BUTTONS RIBBON ===== -->
+  <div class="oe_button_box">
+    <!-- Stat 1: Total Facturado -->
+    <div class="oe_stat_button" @click="selectReport('sales')" title="Ver evolución de ventas">
+      <i class="ph-bold ph-currency-circle-dollar" style="color:var(--odoo-purple);"></i>
+      <div class="o_stat_info">
+        <span class="o_stat_value" x-text="'Q ' + Number(kpis.total_sales || 0).toLocaleString('es-GT', {minimumFractionDigits:2, maximumFractionDigits:2})">Q 0.00</span>
+        <span class="o_stat_text">Ventas Facturadas</span>
+      </div>
+    </div>
+    <!-- Stat 2: Ganancia & Margen -->
+    <div class="oe_stat_button" @click="selectReport('sales')" title="Ver margen de utilidad">
+      <i class="ph-bold ph-trend-up" style="color:#059669;"></i>
+      <div class="o_stat_info">
+        <span class="o_stat_value" style="color:#059669;" x-text="'Q ' + Number(kpis.gross_profit || 0).toLocaleString('es-GT', {minimumFractionDigits:2, maximumFractionDigits:2})">Q 0.00</span>
+        <span class="o_stat_text" x-text="'Margen: ' + (kpis.profit_margin_pct || 0) + '%'">Margen</span>
+      </div>
+    </div>
+    <!-- Stat 3: Vendedores -->
+    <div class="oe_stat_button" @click="selectReport('sellers')" title="Ver ventas por vendedor">
+      <i class="ph-bold ph-users" style="color:#2563eb;"></i>
+      <div class="o_stat_info">
+        <span class="o_stat_value" x-text="(sellersData.summary ? (sellersData.summary.total_sellers || 0) : 0)">0</span>
+        <span class="o_stat_text">Vendedores Activos</span>
+      </div>
+    </div>
+    <!-- Stat 4: Ticket Promedio -->
+    <div class="oe_stat_button" @click="selectReport('sales_detail')" title="Ver detalle de ventas">
+      <i class="ph-bold ph-receipt" style="color:#d97706;"></i>
+      <div class="o_stat_info">
+        <span class="o_stat_value" x-text="'Q ' + Number(kpis.avg_ticket || 0).toFixed(2)">Q 0.00</span>
+        <span class="o_stat_text" x-text="(kpis.total_orders || 0) + ' Órdenes emitidas'">Tickets</span>
+      </div>
+    </div>
+    <!-- Stat 5: Valoración Inventario -->
+    <div class="oe_stat_button" @click="selectReport('inventory')" title="Ver existencias valorizadas">
+      <i class="ph-bold ph-package" style="color:#6366f1;"></i>
+      <div class="o_stat_info">
+        <span class="o_stat_value" x-text="'Q ' + Number(kpis.inventory_valuation || 0).toLocaleString('es-GT', {maximumFractionDigits:0})">Q 0</span>
+        <span class="o_stat_text">Stock en Bodegas</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 2. ODOO SUBNAV TABS & CATEGORIES ===== -->
+  <div style="background:#ffffff; border:1px solid #d8dadd; border-radius:12px; padding:12px 18px; margin-bottom:18px; box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+    
+    <!-- Top Row: Area Category Selector -->
+    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #f1f5f9;">
+      <span style="font-size:11px; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.5px; margin-right:4px;">
+        <i class="ph-bold ph-squares-four" style="color:var(--odoo-purple);"></i> Categoría:
+      </span>
+      <button type="button" @click="reportCategory = 'all'" :style="reportCategory === 'all' ? 'background:var(--odoo-purple); color:#ffffff; border-color:var(--odoo-purple);' : 'background:#f8fafc; color:#475569; border-color:#cbd5e1;'" style="padding:4px 12px; border-radius:14px; font-size:12px; font-weight:800; border:1px solid; cursor:pointer; transition:all 0.15s;">
+        Todos (14)
+      </button>
+      <button type="button" @click="reportCategory = 'sales'" :style="reportCategory === 'sales' ? 'background:var(--odoo-purple); color:#ffffff; border-color:var(--odoo-purple);' : 'background:#f8fafc; color:#475569; border-color:#cbd5e1;'" style="padding:4px 12px; border-radius:14px; font-size:12px; font-weight:800; border:1px solid; cursor:pointer; transition:all 0.15s;">
+        📊 Comercial &amp; Ventas (7)
+      </button>
+      <button type="button" @click="reportCategory = 'inventory'" :style="reportCategory === 'inventory' ? 'background:var(--odoo-purple); color:#ffffff; border-color:var(--odoo-purple);' : 'background:#f8fafc; color:#475569; border-color:#cbd5e1;'" style="padding:4px 12px; border-radius:14px; font-size:12px; font-weight:800; border:1px solid; cursor:pointer; transition:all 0.15s;">
+        📦 Inventarios &amp; Compras (3)
+      </button>
+      <button type="button" @click="reportCategory = 'finance'" :style="reportCategory === 'finance' ? 'background:var(--odoo-purple); color:#ffffff; border-color:var(--odoo-purple);' : 'background:#f8fafc; color:#475569; border-color:#cbd5e1;'" style="padding:4px 12px; border-radius:14px; font-size:12px; font-weight:800; border:1px solid; cursor:pointer; transition:all 0.15s;">
+        💳 Finanzas, Cajas &amp; SAT (4)
+      </button>
     </div>
 
-    <!-- Bottom Row: Report Tab Pills -->
-    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+    <!-- Bottom Row: Odoo Subnav Kinetic Scrolling Pills -->
+    <div class="subnav-pills-scroll">
       <!-- Comercial & Ventas -->
       <button x-show="reportCategory === 'all' || reportCategory === 'sales'" class="report-tab-pill" :class="activeReport === 'sales' ? 'active' : ''" @click="selectReport('sales')">
-        <i class="ph ph-chart-bar"></i> 1. Ventas por Día
+        <i class="ph-bold ph-chart-bar"></i> 1. Ventas por Día
       </button>
       <button x-show="reportCategory === 'all' || reportCategory === 'sales'" class="report-tab-pill" :class="activeReport === 'products' ? 'active' : ''" @click="selectReport('products')">
-        <i class="ph ph-crown"></i> 2. Top Productos (Pareto)
+        <i class="ph-bold ph-crown"></i> 2. Top Productos (Pareto)
       </button>
       <button x-show="reportCategory === 'all' || reportCategory === 'sales'" class="report-tab-pill" :class="activeReport === 'sellers' ? 'active' : ''" @click="selectReport('sellers')">
-        <i class="ph ph-users"></i> 3. Ventas por Vendedor
+        <i class="ph-bold ph-users"></i> 3. Ventas por Vendedor
       </button>
       <button x-show="reportCategory === 'all' || reportCategory === 'sales'" class="report-tab-pill" :class="activeReport === 'top_customers' ? 'active' : ''" @click="selectReport('top_customers')">
-        <i class="ph ph-user-list"></i> 4. Top Clientes & Cartera
+        <i class="ph-bold ph-user-list"></i> 4. Top Clientes &amp; Cartera
       </button>
       <button x-show="reportCategory === 'all' || reportCategory === 'sales'" class="report-tab-pill" :class="activeReport === 'peak_hours' ? 'active' : ''" @click="selectReport('peak_hours')">
-        <i class="ph ph-clock"></i> 5. Horas Pico & Días
+        <i class="ph-bold ph-clock"></i> 5. Horas Pico &amp; Días
       </button>
       <button x-show="reportCategory === 'all' || reportCategory === 'sales'" class="report-tab-pill" :class="activeReport === 'discounts' ? 'active' : ''" @click="selectReport('discounts')">
-        <i class="ph ph-tag"></i> 6. Auditoría de Descuentos
+        <i class="ph-bold ph-tag"></i> 6. Auditoría Descuentos
       </button>
       <button x-show="reportCategory === 'all' || reportCategory === 'sales'" class="report-tab-pill" :class="activeReport === 'sales_detail' ? 'active' : ''" @click="selectReport('sales_detail')">
-        <i class="ph ph-receipt"></i> 7. Detalle de Ventas Línea a Línea
+        <i class="ph-bold ph-receipt"></i> 7. Detalle de Ventas
       </button>
 
       <!-- Inventarios & Compras -->
       <button x-show="reportCategory === 'all' || reportCategory === 'inventory'" class="report-tab-pill" :class="activeReport === 'inventory' ? 'active' : ''" @click="selectReport('inventory')">
-        <i class="ph ph-stack"></i> 8. Valoración Inventario
+        <i class="ph-bold ph-stack"></i> 8. Valoración Inventario
       </button>
       <button x-show="reportCategory === 'all' || reportCategory === 'inventory'" class="report-tab-pill" :class="activeReport === 'slow_stock' ? 'active' : ''" @click="selectReport('slow_stock')">
-        <i class="ph ph-snowflake"></i> 9. Stock Estancado ("Huesos")
+        <i class="ph-bold ph-snowflake"></i> 9. Stock Estancado
       </button>
       <button x-show="reportCategory === 'all' || reportCategory === 'inventory'" class="report-tab-pill" :class="activeReport === 'purchasing' ? 'active' : ''" @click="selectReport('purchasing')">
-        <i class="ph ph-shopping-cart"></i> 10. Sugerido de Compras
+        <i class="ph-bold ph-shopping-cart"></i> 10. Sugerido de Compras
       </button>
 
       <!-- Finanzas, Créditos & Cajas -->
       <button x-show="reportCategory === 'all' || reportCategory === 'finance'" class="report-tab-pill" :class="activeReport === 'ar_aging' ? 'active' : ''" @click="selectReport('ar_aging')">
-        <i class="ph ph-calendar-blank"></i> 11. Antigüedad Cuentas por Cobrar
+        <i class="ph-bold ph-calendar-blank"></i> 11. Antigüedad Cuentas por Cobrar
       </button>
       <button x-show="reportCategory === 'all' || reportCategory === 'finance'" class="report-tab-pill" :class="activeReport === 'cashier_audit' ? 'active' : ''" @click="selectReport('cashier_audit')">
-        <i class="ph ph-vault"></i> 12. Auditoría Cierres de Caja
+        <i class="ph-bold ph-vault"></i> 12. Auditoría Cierres de Caja
       </button>
       <button x-show="reportCategory === 'all' || reportCategory === 'finance'" class="report-tab-pill" :class="activeReport === 'payments' ? 'active' : ''" @click="selectReport('payments')">
-        <i class="ph ph-credit-card"></i> 13. Métodos de Pago
+        <i class="ph-bold ph-credit-card"></i> 13. Métodos de Pago
       </button>
       <button x-show="reportCategory === 'all' || reportCategory === 'finance'" class="report-tab-pill" :class="activeReport === 'fel' ? 'active' : ''" @click="selectReport('fel')">
-        <i class="ph ph-file-text"></i> 14. Libro Oficial FEL SAT
+        <i class="ph-bold ph-file-text"></i> 14. Libro Oficial FEL SAT
       </button>
+    </div>
   </div>
 
   <!-- ===== 3. REPORT CONTAINERS ===== -->
 
   <!-- ===== REPORTE 1: VENTAS POR DÍA ===== -->
   <div x-show="activeReport === 'sales'" style="background:#ffffff; border:1px solid #e2e8f0; border-radius:14px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,0.03);">
-    <div style="padding:16px 20px; border-bottom:1px solid #e2e8f0; background:#f8fafc; display:flex; justify-content:space-between; align-items:center;">
+    <div style="padding:14px 20px; border-bottom:1px solid #e2e8f0; background:#f8fafc; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
       <div>
         <h3 style="margin:0; font-size:15px; font-weight:800; color:#1e293b;">Evolución de Ventas y Margen de Utilidad</h3>
         <div style="font-size:11.5px; color:#64748b; margin-top:2px;">Consolidado diario de ventas, costo de mercadería vendida y ganancia</div>
       </div>
-      <span style="font-size:11px; font-weight:800; color:var(--odoo-purple); background:var(--odoo-purple-light); padding:4px 10px; border-radius:12px;" x-text="salesData.length + ' días con ventas'"></span>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <!-- Local View Switcher -->
+        <div class="o_cp_switch_buttons">
+          <button type="button" :class="salesViewMode === 'table' ? 'active' : ''" @click="salesViewMode = 'table'" title="Vista Lista / Tabla">
+            <i class="ph-bold ph-list-dashes"></i>
+          </button>
+          <button type="button" :class="salesViewMode === 'chart' ? 'active' : ''" @click="salesViewMode = 'chart'; $nextTick(() => renderSalesChart())" title="Vista Gráfico / Tendencias">
+            <i class="ph-bold ph-chart-line-up"></i>
+          </button>
+        </div>
+        <span style="font-size:11px; font-weight:800; color:var(--odoo-purple); background:var(--odoo-purple-light); padding:4px 10px; border-radius:12px;" x-text="salesData.length + ' días con ventas'"></span>
+      </div>
     </div>
 
-    <div style="overflow-x:auto;">
+    <!-- Chart View (Odoo Enterprise Graph Mode) -->
+    <div x-show="salesViewMode === 'chart'" style="padding:20px; background:#ffffff;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
+        <div style="font-size:12px; font-weight:700; color:#475569; display:flex; align-items:center; gap:6px;">
+          <i class="ph-bold ph-chart-line" style="color:var(--odoo-purple);"></i>
+          <span>Tendencia Temporal de Ingresos vs Utilidad Bruta Diaria</span>
+        </div>
+        <!-- Graph Type Selector -->
+        <div style="display:flex; align-items:center; gap:4px; background:#f1f5f9; padding:2px; border-radius:6px;">
+          <button type="button" @click="salesChartType = 'line'; renderSalesChart()" :style="salesChartType === 'line' ? 'background:#ffffff; color:var(--odoo-purple); font-weight:800; box-shadow:0 1px 2px rgba(0,0,0,0.05);' : 'background:transparent; color:#64748b;'" style="border:none; padding:4px 10px; border-radius:5px; font-size:11px; cursor:pointer;">
+            <i class="ph-bold ph-chart-line"></i> Línea
+          </button>
+          <button type="button" @click="salesChartType = 'bar'; renderSalesChart()" :style="salesChartType === 'bar' ? 'background:#ffffff; color:var(--odoo-purple); font-weight:800; box-shadow:0 1px 2px rgba(0,0,0,0.05);' : 'background:transparent; color:#64748b;'" style="border:none; padding:4px 10px; border-radius:5px; font-size:11px; cursor:pointer;">
+            <i class="ph-bold ph-chart-bar"></i> Barras
+          </button>
+        </div>
+      </div>
+      <div style="height:320px; position:relative; width:100%;">
+        <canvas id="salesTrendsReportChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Table View (Odoo Enterprise List Mode) -->
+    <div x-show="salesViewMode === 'table'" style="overflow-x:auto;">
       <table class="report-table">
         <thead>
           <tr>
@@ -1795,6 +2084,9 @@
       activePreset: 'this_month',
       startDate: '',
       endDate: '',
+      salesViewMode: 'table',
+      salesChartType: 'line',
+      salesChartInstance: null,
       kpis: {
         total_sales: 0,
         total_subtotal: 0,
@@ -1837,6 +2129,26 @@
       selectedSellerDetail: null,
       sellersChartInstance: null,
 
+      get activeReportTitle() {
+        const titles = {
+          'sales': '1. Ventas por Día & Evolución',
+          'products': '2. Top Productos (Pareto)',
+          'sellers': '3. Ventas por Vendedor & Comisiones',
+          'top_customers': '4. Top Clientes & Cartera',
+          'peak_hours': '5. Horas Pico & Patrones de Venta',
+          'discounts': '6. Auditoría de Descuentos',
+          'sales_detail': '7. Detalle de Ventas Línea por Línea',
+          'inventory': '8. Valoración de Inventario',
+          'slow_stock': '9. Stock Estancado',
+          'purchasing': '10. Sugerido de Compras',
+          'ar_aging': '11. Antigüedad Cuentas por Cobrar',
+          'cashier_audit': '12. Auditoría Cierres de Caja',
+          'payments': '13. Métodos de Pago',
+          'fel': '14. Libro Oficial FEL SAT'
+        };
+        return titles[this.activeReport] || 'Reportes & Business Intelligence';
+      },
+
       get filteredSellers() {
         const list = this.sellersData.sellers || [];
         if (!this.sellerSearchQuery) return list;
@@ -1868,6 +2180,9 @@
         }
         window.history.pushState({}, '', url.toString());
         this.loadActiveReportData();
+        if (tab === 'sales' && this.salesViewMode === 'chart') {
+          this.$nextTick(() => this.renderSalesChart());
+        }
       },
 
       loadActiveReportData() {
@@ -2082,7 +2397,120 @@
         try {
           const res = await API.get(`/reports/sales-by-period?start_date=${this.startDate}&end_date=${this.endDate}`);
           this.salesData = res || [];
+          if (this.salesViewMode === 'chart') {
+            this.$nextTick(() => this.renderSalesChart());
+          }
         } catch(e) {}
+      },
+
+      renderSalesChart() {
+        const canvas = document.getElementById('salesTrendsReportChart');
+        if (!canvas) return;
+        if (typeof Chart === 'undefined') return;
+
+        const labels = this.salesData.map(r => r.date);
+        const revenueData = this.salesData.map(r => Number(r.total) || 0);
+        const profitData = this.salesData.map(r => Number(r.profit) || 0);
+        const costData = this.salesData.map(r => Number(r.cost) || 0);
+
+        if (this.salesChartInstance) {
+          this.salesChartInstance.destroy();
+          this.salesChartInstance = null;
+        }
+
+        const ctx = canvas.getContext('2d');
+        const isLine = this.salesChartType === 'line';
+
+        this.salesChartInstance = new Chart(ctx, {
+          type: isLine ? 'line' : 'bar',
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: 'Total Facturado (Q)',
+                data: revenueData,
+                borderColor: '#714B67',
+                backgroundColor: isLine ? 'rgba(113, 75, 103, 0.12)' : '#714B67',
+                fill: isLine,
+                tension: 0.35,
+                borderWidth: 2.5,
+                pointBackgroundColor: '#714B67',
+                pointRadius: 4,
+                pointHoverRadius: 6,
+                borderRadius: 4
+              },
+              {
+                label: 'Ganancia Bruta (Q)',
+                data: profitData,
+                borderColor: '#00A09D',
+                backgroundColor: isLine ? 'rgba(0, 160, 157, 0.12)' : '#00A09D',
+                fill: isLine,
+                tension: 0.35,
+                borderWidth: 2.5,
+                pointBackgroundColor: '#00A09D',
+                pointRadius: 4,
+                pointHoverRadius: 6,
+                borderRadius: 4
+              },
+              {
+                label: 'Costo Mercadería (COGS)',
+                data: costData,
+                borderColor: '#94a3b8',
+                backgroundColor: isLine ? 'transparent' : '#cbd5e1',
+                borderDash: isLine ? [4, 4] : [],
+                borderWidth: 1.5,
+                pointRadius: 2,
+                pointHoverRadius: 5,
+                borderRadius: 4
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+              mode: 'index',
+              intersect: false
+            },
+            plugins: {
+              legend: {
+                position: 'top',
+                labels: {
+                  boxWidth: 12,
+                  font: { size: 12, weight: '700' },
+                  color: '#334155'
+                }
+              },
+              tooltip: {
+                callbacks: {
+                  label: function(ctx) {
+                    return ctx.dataset.label + ': Q ' + Number(ctx.raw).toLocaleString('es-GT', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                  }
+                }
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                grid: { color: '#f1f5f9' },
+                ticks: {
+                  callback: function(val) {
+                    return 'Q ' + Number(val).toLocaleString();
+                  },
+                  font: { size: 11, weight: '600' },
+                  color: '#64748b'
+                }
+              },
+              x: {
+                grid: { display: false },
+                ticks: {
+                  font: { size: 11, weight: '600' },
+                  color: '#64748b'
+                }
+              }
+            }
+          }
+        });
       },
 
       async loadTopProducts() {
