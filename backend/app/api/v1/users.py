@@ -61,7 +61,7 @@ PREDEFINED_ROLES = [
             {"module": "POS & Ventas", "actions": "Cobros en Caja a precios de catálogo (Bloqueado: Modificación manual de precios)"},
             {"module": "Inventarios", "actions": "Consulta de Stock únicamente (Bloqueado: Creación, Edición y Precios)"},
             {"module": "Compras & AP", "actions": "Sin acceso"},
-            {"module": "Créditos & AR", "actions": "Recepción de Abonos simples de Clientes"},
+            {"module": "Créditos & AR", "actions": "Sin acceso (Bloqueado: Registro de abonos de crédito)"},
             {"module": "Contabilidad & FEL", "actions": "Generación de Ticket Factura FEL de la venta"},
             {"module": "Configuración & Usuarios", "actions": "Sin acceso"}
         ]

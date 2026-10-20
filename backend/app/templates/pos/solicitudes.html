@@ -1,0 +1,1686 @@
+{% set show_layout = true %}
+{% extends "base.html" %}
+
+{% block title %}Solicitudes POS (Pre-venta) — POS Empresarial{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* =========================================================
+     ODOO ENTERPRISE DESIGN SYSTEM: SOLICITUDES POS PRE-VENTA
+  ========================================================= */
+
+  /* Header Bar */
+  .tr-header-bar {
+    margin: -20px -24px 20px -24px;
+    padding: 14px 24px;
+    background: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 14px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+  }
+
+  .tr-header-main-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .tr-header-title-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .tr-header-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: #f4eff3;
+    color: #714B67;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+
+  .tr-header-title {
+    font-size: 16px;
+    font-weight: 800;
+    color: #1e293b;
+    margin: 0;
+    line-height: 1.2;
+  }
+
+  .tr-header-subtitle {
+    font-size: 11.5px;
+    color: #64748b;
+    font-weight: 600;
+  }
+
+  .tr-btn-new {
+    background: #714B67;
+    color: #ffffff !important;
+    font-weight: 800;
+    border-radius: 8px;
+    padding: 8px 18px;
+    border: none;
+    box-shadow: 0 2px 8px rgba(113,75,103,0.25);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    text-decoration: none;
+    font-size: 13px;
+    white-space: nowrap;
+    transition: background 0.2s, transform 0.15s;
+  }
+  .tr-btn-new:hover {
+    background: #5a3952;
+    color: #ffffff !important;
+    transform: translateY(-1px);
+  }
+
+  .tr-sec-btn {
+    background: #f8fafc;
+    color: #334155 !important;
+    border: 1px solid #cbd5e1;
+    font-weight: 700;
+    border-radius: 8px;
+    padding: 7px 14px;
+    font-size: 12.5px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    min-height: 36px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .tr-sec-btn:hover {
+    background: #f1f5f9;
+    color: #0f172a !important;
+    border-color: #94a3b8;
+  }
+
+  /* Search Container */
+  .tr-search-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 340px;
+    max-width: 100%;
+  }
+
+  .tr-search-input {
+    width: 100%;
+    background: #ffffff !important;
+    border: 1.5px solid #cbd5e1 !important;
+    border-radius: 8px !important;
+    padding: 8px 34px 8px 38px !important;
+    font-size: 13.5px !important;
+    font-weight: 600 !important;
+    color: #1e293b !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+    transition: all 0.2s ease !important;
+    outline: none !important;
+    height: 38px !important;
+    box-sizing: border-box !important;
+  }
+  .tr-search-input:focus {
+    border-color: #714B67 !important;
+    box-shadow: 0 0 0 3px rgba(113, 75, 103, 0.15) !important;
+  }
+
+  /* Filter Pills */
+  .tr-pills-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 18px;
+    overflow-x: auto;
+    white-space: nowrap;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+  }
+  .tr-pills-bar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .filter-pill {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12.5px;
+    font-weight: 700;
+    cursor: pointer;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    color: #475569;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .filter-pill:hover {
+    background: #f1f5f9;
+    color: #1e293b;
+  }
+  .filter-pill.active {
+    background: #714B67 !important;
+    color: #ffffff !important;
+    border-color: #714B67 !important;
+    box-shadow: 0 2px 8px rgba(113, 75, 103, 0.25);
+  }
+  .filter-pill.active .pill-counter {
+    background: rgba(255, 255, 255, 0.25) !important;
+    color: #ffffff !important;
+  }
+
+  .pill-counter {
+    background: rgba(0, 0, 0, 0.07);
+    color: inherit;
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 800;
+  }
+
+  /* 4-Column KPI Grid */
+  .sol-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+
+  .sol-kpi-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 15px 18px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .sol-kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.06);
+  }
+
+  .sol-kpi-amber { border-left: 4px solid #f59e0b; }
+  .sol-kpi-emerald { border-left: 4px solid #10b981; }
+  .sol-kpi-plum { border-left: 4px solid #714B67; }
+  .sol-kpi-rose { border-left: 4px solid #ef4444; }
+
+  .sol-kpi-label {
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .sol-kpi-val {
+    font-size: 22px;
+    font-weight: 900;
+    margin-top: 2px;
+    line-height: 1.1;
+  }
+  .sol-kpi-sub {
+    font-size: 11.5px;
+    color: #64748b;
+    margin-top: 4px;
+    font-weight: 600;
+  }
+
+  .sol-kpi-icon-box {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+
+  /* Table Styles */
+  .sol-table-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    overflow: hidden;
+  }
+
+  .sol-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .sol-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    text-align: left;
+  }
+  .sol-table th {
+    background: #f8fafc;
+    color: #475569;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 12px 16px;
+    border-bottom: 2px solid #e2e8f0;
+    white-space: nowrap;
+  }
+  .sol-table td {
+    padding: 13px 16px;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: middle;
+  }
+  .sol-table tr.data-row {
+    transition: background 0.15s ease;
+  }
+  .sol-table tr.data-row:hover {
+    background: #fdfbfd;
+  }
+
+  /* Badges */
+  .badge-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 9px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+  .badge-pending { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+  .badge-validation { background: #e0e7ff; color: #3730a3; border: 1px solid #c7d2fe; }
+  .badge-approved { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
+  .badge-rejected { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+
+  .stock-pill-ok {
+    background: #ecfdf5;
+    color: #065f46;
+    border: 1px solid #a7f3d0;
+    font-weight: 800;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+  }
+  .stock-pill-alert {
+    background: #fef2f2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+    font-weight: 800;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+  }
+
+  /* Action Buttons */
+  .sol-btn-action {
+    background: #f4eff3;
+    color: #714B67;
+    border: 1px solid #e6dce4;
+    font-weight: 800;
+    font-size: 12px;
+    padding: 6px 12px;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+  }
+  .sol-btn-action:hover {
+    background: #714B67;
+    color: #ffffff;
+    border-color: #714B67;
+    box-shadow: 0 2px 6px rgba(113,75,103,0.25);
+  }
+
+  /* Modal Styles */
+  .odoo-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1050;
+    background: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(3px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .odoo-modal-card {
+    background: #ffffff;
+    border-radius: 14px;
+    box-shadow: 0 20px 40px -10px rgba(0,0,0,0.25);
+    width: 100%;
+    max-width: 820px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid #cbd5e1;
+  }
+  .odoo-modal-header {
+    padding: 16px 22px;
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .odoo-modal-body {
+    padding: 20px 22px;
+    overflow-y: auto;
+    flex: 1;
+  }
+  .odoo-modal-footer {
+    padding: 14px 22px;
+    background: #f8fafc;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  @media screen and (max-width: 1024px) {
+    .sol-kpi-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media screen and (max-width: 768px) {
+    .tr-header-bar {
+      margin: -14px -12px 14px -12px !important;
+      padding: 12px 14px !important;
+      flex-direction: column !important;
+      align-items: stretch !important;
+      gap: 10px !important;
+    }
+    .tr-header-main-row {
+      justify-content: space-between !important;
+      width: 100% !important;
+    }
+    .tr-search-container {
+      width: 100% !important;
+    }
+    .sol-kpi-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* Modern Authorization & Action Buttons */
+  .btn-auth-dispatch {
+    border: none;
+    outline: none;
+    font-weight: 800;
+    font-size: 13px;
+    height: 38px;
+    min-height: 38px;
+    padding: 0 20px;
+    border-radius: 9px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    letter-spacing: 0.2px;
+    white-space: nowrap;
+    text-decoration: none;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .btn-auth-dispatch:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+  }
+  .btn-auth-dispatch.is-verified {
+    background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+    color: #ffffff;
+    box-shadow: 0 3px 12px rgba(16, 185, 129, 0.35);
+  }
+  .btn-auth-dispatch.is-verified:hover:not(:disabled) {
+    background: linear-gradient(135deg, #047857 0%, #059669 100%);
+    box-shadow: 0 6px 18px rgba(16, 185, 129, 0.5);
+    transform: translateY(-1px);
+  }
+  .btn-auth-dispatch.is-direct {
+    background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%);
+    color: #ffffff;
+    box-shadow: 0 3px 12px rgba(245, 158, 11, 0.35);
+  }
+  .btn-auth-dispatch.is-direct:hover:not(:disabled) {
+    background: linear-gradient(135deg, #b45309 0%, #d97706 100%);
+    box-shadow: 0 6px 18px rgba(245, 158, 11, 0.5);
+    transform: translateY(-1px);
+  }
+
+  .btn-auth-preapprove {
+    background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+    color: #ffffff;
+    border: none;
+    outline: none;
+    font-weight: 800;
+    font-size: 13px;
+    height: 38px;
+    min-height: 38px;
+    padding: 0 18px;
+    border-radius: 9px;
+    cursor: pointer;
+    box-shadow: 0 3px 10px rgba(37, 99, 235, 0.3);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    white-space: nowrap;
+  }
+  .btn-auth-preapprove:hover:not(:disabled) {
+    background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
+    box-shadow: 0 5px 16px rgba(37, 99, 235, 0.5);
+    transform: translateY(-1px);
+  }
+  .btn-auth-preapprove:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+    transform: none !important;
+  }
+
+  .btn-auth-reject {
+    background: #fef2f2;
+    color: #dc2626;
+    border: 1.5px solid #fecaca;
+    font-weight: 800;
+    font-size: 12.5px;
+    height: 38px;
+    min-height: 38px;
+    padding: 0 16px;
+    border-radius: 9px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+  }
+  .btn-auth-reject:hover:not(:disabled) {
+    background: #fee2e2;
+    border-color: #fca5a5;
+    color: #b91c1c;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div x-data="solicitudesPosApp()" x-init="init()">
+
+  <!-- ===== 1. TOP HEADER BAR ===== -->
+  <div class="tr-header-bar">
+    
+    <!-- Title and Action on Left -->
+    <div class="tr-header-main-row">
+      <div class="tr-header-title-box">
+        <div class="tr-header-icon">
+          <i class="ph ph-receipt"></i>
+        </div>
+        <div>
+          <h1 class="tr-header-title">Solicitudes POS</h1>
+          <div class="tr-header-subtitle">Pre-venta & Autorizaciones de Bodega</div>
+        </div>
+      </div>
+
+      <a href="/preventa" class="tr-btn-new">
+        <i class="ph ph-lightning" style="font-size:16px;"></i>
+        <span>Nueva Pre-Venta</span>
+      </a>
+    </div>
+
+    <!-- Center: Search Input -->
+    <div class="tr-search-container">
+      <i class="ph ph-magnifying-glass" style="position:absolute; left:12px; color:#714B67; font-size:17px; font-weight:800; pointer-events:none;"></i>
+      <input
+        type="text"
+        class="tr-search-input"
+        placeholder="Buscar folio, cliente o NIT..."
+        x-model="searchTerm"
+        @input.debounce.300ms="loadData()"
+      >
+      <i class="ph ph-x-circle" style="position:absolute; right:12px; color:#94a3b8; font-size:17px; cursor:pointer;" x-show="searchTerm.length > 0" @click="searchTerm = ''; loadData()"></i>
+    </div>
+
+    <!-- Right: Refresh Button and Resumen Popover -->
+    <div style="display:flex; align-items:center; gap:10px; position:relative;">
+      <button type="button" @click="loadData()" class="tr-sec-btn">
+        <i class="ph ph-arrows-clockwise" :class="isLoading ? 'ph-spin' : ''" style="color:#714B67; font-size:15px;"></i>
+        <span>Actualizar</span>
+      </button>
+
+      <!-- Resumen Button (desplegable) -->
+      <button
+        type="button"
+        @click="showKpis = !showKpis"
+        style="
+          display:inline-flex; align-items:center; gap:7px;
+          padding:6px 16px;
+          background:linear-gradient(135deg, #714B67 0%, #9b6b8f 100%);
+          border:none; border-radius:20px;
+          font-size:12px; font-weight:800; color:#ffffff;
+          cursor:pointer; transition:all 0.22s cubic-bezier(0.4,0,0.2,1);
+          box-shadow:0 2px 10px rgba(113,75,103,0.3);
+          letter-spacing:0.3px; white-space:nowrap;
+        "
+        onmouseover="this.style.boxShadow='0 4px 16px rgba(113,75,103,0.5)'; this.style.transform='translateY(-1px)'"
+        onmouseout="this.style.boxShadow='0 2px 10px rgba(113,75,103,0.3)'; this.style.transform='translateY(0)'"
+      >
+        <i class="ph ph-chart-bar" style="font-size:15px;"></i>
+        <span x-text="showKpis ? 'Ocultar resumen' : 'Resumen'"></span>
+        <i
+          class="ph ph-caret-down"
+          style="font-size:12px; transition:transform 0.25s ease;"
+          :style="showKpis ? 'transform:rotate(180deg)' : 'transform:rotate(0deg)'"
+        ></i>
+      </button>
+
+      <!-- Floating Popover Dropdown Panel (alineado a la derecha como segunda imagen) -->
+      <div
+        x-show="showKpis"
+        @click.outside="showKpis = false"
+        x-transition:enter="transition ease-out duration-200"
+        x-transition:enter-start="opacity-0 scale-95"
+        x-transition:enter-end="opacity-100 scale-100"
+        x-transition:leave="transition ease-in duration-150"
+        x-transition:leave-start="opacity-100 scale-100"
+        x-transition:leave-end="opacity-0 scale-95"
+        style="
+          position:absolute; top:calc(100% + 8px); right:0; z-index:999;
+          background:#ffffff; border:1.5px solid #e2e8f0; border-radius:14px;
+          box-shadow:0 14px 45px -8px rgba(0,0,0,0.18), 0 4px 16px -4px rgba(0,0,0,0.08);
+          padding:12px; display:flex; flex-direction:column; gap:8px;
+          width:440px; max-width:95vw;
+        "
+        x-cloak
+      >
+        <!-- Card 1: Por Autorizar -->
+        <div style="background:#ffffff; border:1px solid #e2e8f0; border-left:4px solid #f59e0b; border-radius:10px; padding:12px 16px; display:flex; align-items:center; justify-content:space-between;">
+          <div>
+            <div style="font-size:10.5px; font-weight:800; color:#d97706; text-transform:uppercase; letter-spacing:0.5px;">Por Autorizar</div>
+            <div style="font-size:20px; font-weight:900; color:#b45309; margin-top:2px;" x-text="kpis.pending_count || 0">0</div>
+            <div style="font-size:11px; color:#64748b; margin-top:2px;">
+              <span>Total: </span><strong style="color:#1e293b;">Q <span x-text="formatMoney(kpis.pending_amount)">0.00</span></strong>
+            </div>
+          </div>
+          <div style="width:38px; height:38px; border-radius:10px; background:#fef3c7; color:#d97706; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;">
+            <i class="ph ph-hourglass-medium"></i>
+          </div>
+        </div>
+
+        <!-- Card 2: Aprobadas Hoy -->
+        <div style="background:#ffffff; border:1px solid #e2e8f0; border-left:4px solid #10b981; border-radius:10px; padding:12px 16px; display:flex; align-items:center; justify-content:space-between;">
+          <div>
+            <div style="font-size:10.5px; font-weight:800; color:#047857; text-transform:uppercase; letter-spacing:0.5px;">Aprobadas Hoy</div>
+            <div style="font-size:20px; font-weight:900; color:#047857; margin-top:2px;" x-text="kpis.approved_today || 0">0</div>
+            <div style="font-size:11px; color:#64748b; margin-top:2px;">
+              <span>Inventario rebajado</span>
+            </div>
+          </div>
+          <div style="width:38px; height:38px; border-radius:10px; background:#dcfce7; color:#15803d; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;">
+            <i class="ph ph-check-circle"></i>
+          </div>
+        </div>
+
+        <!-- Card 3: Total Solicitudes -->
+        <div style="background:#ffffff; border:1px solid #e2e8f0; border-left:4px solid #714B67; border-radius:10px; padding:12px 16px; display:flex; align-items:center; justify-content:space-between;">
+          <div>
+            <div style="font-size:10.5px; font-weight:800; color:#714B67; text-transform:uppercase; letter-spacing:0.5px;">Total Solicitudes</div>
+            <div style="font-size:20px; font-weight:900; color:#714B67; margin-top:2px;" x-text="totalCount || 0">0</div>
+            <div style="font-size:11px; color:#64748b; margin-top:2px;">
+              <span>Historial del sistema</span>
+            </div>
+          </div>
+          <div style="width:38px; height:38px; border-radius:10px; background:#f4eff3; color:#714B67; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;">
+            <i class="ph ph-package"></i>
+          </div>
+        </div>
+
+        <!-- Card 4: Rechazadas Hoy -->
+        <div style="background:#ffffff; border:1px solid #e2e8f0; border-left:4px solid #ef4444; border-radius:10px; padding:12px 16px; display:flex; align-items:center; justify-content:space-between;">
+          <div>
+            <div style="font-size:10.5px; font-weight:800; color:#dc2626; text-transform:uppercase; letter-spacing:0.5px;">Rechazadas Hoy</div>
+            <div style="font-size:20px; font-weight:900; color:#b91c1c; margin-top:2px;" x-text="kpis.rejected_today || 0">0</div>
+            <div style="font-size:11px; color:#64748b; margin-top:2px;">
+              <span>Sin afectar stock</span>
+            </div>
+          </div>
+          <div style="width:38px; height:38px; border-radius:10px; background:#fee2e2; color:#dc2626; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;">
+            <i class="ph ph-x-circle"></i>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ===== 3. STATUS FILTER PILLS ===== -->
+  <div class="tr-pills-bar">
+    <span style="font-size:12px; font-weight:800; color:#64748b; margin-right:4px; flex-shrink:0;">ESTADO:</span>
+    <button class="filter-pill" :class="selectedState === '' ? 'active' : ''" @click="setStateFilter('')">
+      <span>Todos</span>
+      <span class="pill-counter" x-text="totalCount"></span>
+    </button>
+    <button class="filter-pill" :class="selectedState === 'pending_approval' ? 'active' : ''" @click="setStateFilter('pending_approval')">
+      <i class="ph ph-hourglass-medium" style="color:#d97706;"></i>
+      <span>Por Autorizar</span>
+      <span class="pill-counter" style="background:#fef3c7; color:#92400e;" x-text="kpis.pending_count"></span>
+    </button>
+    <button class="filter-pill" :class="selectedState === 'warehouse_validation' ? 'active' : ''" @click="setStateFilter('warehouse_validation')">
+      <i class="ph ph-package" style="color:#2563eb;"></i>
+      <span>En Bodega</span>
+    </button>
+    <button class="filter-pill" :class="selectedState === 'approved' ? 'active' : ''" @click="setStateFilter('approved')">
+      <i class="ph ph-check-circle" style="color:#059669;"></i>
+      <span>Autorizadas</span>
+    </button>
+    <button class="filter-pill" :class="selectedState === 'rejected' ? 'active' : ''" @click="setStateFilter('rejected')">
+      <i class="ph ph-x-circle" style="color:#dc2626;"></i>
+      <span>Rechazadas</span>
+    </button>
+
+    <!-- Botón Hoja de Ruta Repartidor -->
+    <button 
+      type="button" 
+      class="filter-pill" 
+      @click="openRouteSheetModal()" 
+      style="margin-left:auto; background:#f0fdf4; color:#166534; border-color:#86efac;"
+      title="Generar e imprimir hoja de ruta de entregas para el piloto/repartidor"
+    >
+      <i class="ph ph-truck" style="font-size:15px; color:#16a34a;"></i>
+      <span>🚚 Hoja de Ruta Repartidor</span>
+    </button>
+  </div>
+
+  <!-- ===== 4. TABLE VIEW (ODOO ENTERPRISE) ===== -->
+  <div class="sol-table-card">
+    <div class="sol-table-wrap">
+      <table class="sol-table">
+        <thead>
+          <tr>
+            <th>Folio</th>
+            <th>Fecha</th>
+            <th>Preventista</th>
+            <th>Cliente</th>
+            <th>Bodega</th>
+            <th style="text-align:center;">Ítems</th>
+            <th style="text-align:right;">Total</th>
+            <th style="text-align:center;">Estado</th>
+            <th style="text-align:right;">Acción</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Loading State -->
+          <template x-if="isLoading">
+            <tr>
+              <td colspan="9" style="text-align:center; padding:40px 20px; color:#64748b; font-weight:700;">
+                <i class="ph ph-arrows-clockwise ph-spin" style="font-size:20px; vertical-align:middle; margin-right:6px; color:#714B67;"></i>
+                Cargando solicitudes POS...
+              </td>
+            </tr>
+          </template>
+
+          <!-- Empty State -->
+          <template x-if="!isLoading && requests.length === 0">
+            <tr>
+              <td colspan="9" style="text-align:center; padding:50px 20px;">
+                <div style="font-size:36px; margin-bottom:8px;">📭</div>
+                <div style="font-weight:800; color:#334155; font-size:15px;">No hay solicitudes encontradas</div>
+                <div style="font-size:12.5px; color:#94a3b8; margin-top:3px;">
+                  Las órdenes creadas por los preventistas se listarán aquí para su validación de bodega y autorización.
+                </div>
+              </td>
+            </tr>
+          </template>
+
+          <!-- Row Template -->
+          <template x-for="r in requests" :key="r.id">
+            <tr class="data-row">
+              <!-- Folio -->
+              <td style="font-weight:800;">
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <span style="color:#714B67;" x-text="r.number"></span>
+                  <template x-if="r.warehouse_verified">
+                    <span title="Validado con bodega" style="color:#059669; font-size:13px; font-weight:900;">✓</span>
+                  </template>
+                </div>
+              </td>
+
+              <!-- Fecha -->
+              <td style="font-size:12px; color:#64748b; white-space:nowrap;" x-text="formatDate(r.created_at)"></td>
+
+              <!-- Preventista -->
+              <td>
+                <div style="font-weight:800; color:#1e293b; font-size:12.5px;" x-text="r.preventista?.name || 'Preventista'"></div>
+                <div style="font-size:11px; color:#94a3b8;" x-text="'@' + (r.preventista?.username || 'usuario')"></div>
+              </td>
+
+              <!-- Cliente -->
+              <td>
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <div style="font-weight:800; color:#1e293b; font-size:12.5px; max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" x-text="r.customer_name"></div>
+                  <a 
+                    :href="getWhatsAppLink(r)" 
+                    target="_blank" 
+                    title="Enviar WhatsApp al cliente con resumen del pedido"
+                    style="display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:5px; background:#dcfce7; color:#16a34a; text-decoration:none; font-size:13px; border:1px solid #86efac; flex-shrink:0;"
+                  >
+                    <i class="ph ph-whatsapp-logo"></i>
+                  </a>
+                </div>
+                <div style="font-size:11px; color:#64748b;" x-text="'NIT: ' + (r.customer_nit || 'CF')"></div>
+                <template x-if="r.delivery_date">
+                  <div style="margin-top:3px; display:inline-flex; align-items:center; gap:4px; font-size:10.5px; background:#f0fdf4; color:#166534; border:1px solid #bbf7d0; padding:1px 6px; border-radius:4px; font-weight:700;">
+                    <span>📅</span>
+                    <span x-text="'Entrega: ' + r.delivery_date"></span>
+                  </div>
+                </template>
+              </td>
+
+              <!-- Bodega -->
+              <td>
+                <span style="background:#f1f5f9; color:#334155; font-size:11.5px; font-weight:700; padding:3px 8px; border-radius:6px; border:1px solid #e2e8f0;" x-text="r.warehouse_name"></span>
+              </td>
+
+              <!-- Items -->
+              <td style="text-align:center; font-weight:700; color:#475569; font-size:12px;" x-text="r.items_count + ' prod.'"></td>
+
+              <!-- Total -->
+              <td style="text-align:right; font-weight:900; color:#0f172a; font-size:14px; white-space:nowrap;" x-text="'Q ' + formatMoney(r.total)"></td>
+
+              <!-- Estado -->
+              <td style="text-align:center;">
+                <template x-if="r.state === 'pending_approval'">
+                  <span class="badge-status badge-pending">
+                    <i class="ph ph-hourglass-medium"></i>
+                    <span>Pendiente</span>
+                  </span>
+                </template>
+                <template x-if="r.state === 'warehouse_validation'">
+                  <span class="badge-status" :style="r.warehouse_verified ? 'background:#d1fae5; color:#047857; border:1px solid #a7f3d0;' : 'background:#dbeafe; color:#1d4ed8; border:1px solid #bfdbfe;'">
+                    <i :class="r.warehouse_verified ? 'ph ph-check-circle' : 'ph ph-package'"></i>
+                    <span x-text="r.warehouse_verified ? 'Listo (Preparado)' : 'En Bodega'"></span>
+                  </span>
+                </template>
+                <template x-if="r.state === 'approved' || r.state === 'confirmed' || r.state === 'invoiced' || r.state === 'paid'">
+                  <span class="badge-status badge-approved">
+                    <i class="ph ph-check-circle"></i>
+                    <span>Aprobada</span>
+                  </span>
+                </template>
+                <template x-if="r.state === 'rejected' || r.state === 'cancelled'">
+                  <span class="badge-status badge-rejected" :title="r.rejection_reason || 'Rechazada'">
+                    <i class="ph ph-x-circle"></i>
+                    <span>Rechazada</span>
+                  </span>
+                </template>
+              </td>
+
+              <!-- Acciones -->
+              <td style="text-align:right; white-space:nowrap;">
+                <button type="button" @click="openDetailModal(r.id)" class="sol-btn-action">
+                  <span>Revisar & Validar</span>
+                  <i class="ph ph-arrow-right"></i>
+                </button>
+              </td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===== 5. MODAL DETALLE & APROBACIÓN CON BODEGA ===== -->
+  <div 
+    x-show="showModal" 
+    x-cloak 
+    class="odoo-modal-overlay"
+    @click.self="showModal = false"
+  >
+    <div class="odoo-modal-card">
+      
+      <!-- Encabezado Modal -->
+      <div class="odoo-modal-header">
+        <div>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <h2 style="margin:0; font-size:17px; font-weight:900; color:#1e293b;" x-text="'Solicitud ' + (currentDetail?.number || '')"></h2>
+            <template x-if="currentDetail?.state === 'pending_approval'">
+              <span class="badge-status badge-pending">⏳ Por Autorizar</span>
+            </template>
+            <template x-if="currentDetail?.state === 'warehouse_validation'">
+              <span class="badge-status" :style="currentDetail?.warehouse_verified ? 'background:#d1fae5; color:#047857; border:1px solid #a7f3d0;' : 'background:#dbeafe; color:#1d4ed8; border:1px solid #bfdbfe;'" x-text="currentDetail?.warehouse_verified ? '✅ Listo para Despacho (Bodega OK)' : '📦 En Preparación en Bodega'"></span>
+            </template>
+            <template x-if="currentDetail?.state === 'approved'">
+              <span class="badge-status badge-approved">✅ Autorizada (Inventario Rebajado)</span>
+            </template>
+            <template x-if="currentDetail?.state === 'rejected'">
+              <span class="badge-status badge-rejected">❌ Rechazada</span>
+            </template>
+          </div>
+          <div style="font-size:11.5px; color:#64748b; margin-top:3px;">
+            Preventista: <b style="color:#1e293b;" x-text="currentDetail?.preventista?.name"></b> |
+            Fecha: <span x-text="formatDate(currentDetail?.created_at)"></span>
+          </div>
+        </div>
+        <button type="button" @click="showModal = false" style="background:none; border:none; color:#64748b; font-size:22px; cursor:pointer; padding:2px 8px; border-radius:6px;">×</button>
+      </div>
+
+      <!-- Contenido Modal -->
+      <div class="odoo-modal-body">
+        
+        <!-- Strip 4 Columnas Info / Logística -->
+        <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px 16px; margin-bottom:14px;">
+          <div>
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+              <div style="font-size:10.5px; font-weight:800; color:#64748b; text-transform:uppercase;">Cliente</div>
+              <a 
+                :href="getWhatsAppLink(currentDetail)" 
+                target="_blank" 
+                title="Avisar al cliente por WhatsApp"
+                style="display:inline-flex; align-items:center; gap:4px; background:#dcfce7; color:#15803d; border:1px solid #86efac; border-radius:4px; padding:2px 7px; font-size:11px; font-weight:800; text-decoration:none;"
+              >
+                <i class="ph ph-whatsapp-logo" style="font-size:13px;"></i>
+                <span>WhatsApp</span>
+              </a>
+            </div>
+            <div style="font-weight:900; color:#1e293b; font-size:13.5px; margin-top:2px;" x-text="currentDetail?.customer_name"></div>
+            <div style="font-size:11px; color:#64748b;" x-text="'NIT: ' + (currentDetail?.customer_nit || 'CF')"></div>
+          </div>
+          <div>
+            <div style="font-size:10.5px; font-weight:800; color:#166534; text-transform:uppercase;">Entrega Prometida</div>
+            <div style="font-weight:900; color:#15803d; font-size:13.5px; margin-top:2px;" x-text="currentDetail?.delivery_date || 'Inmediata'"></div>
+            <div style="font-size:11px; color:#64748b; max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" :title="currentDetail?.delivery_address" x-text="currentDetail?.delivery_address || currentDetail?.customer_address || 'En tienda'"></div>
+          </div>
+          <div>
+            <div style="font-size:10.5px; font-weight:800; color:#714B67; text-transform:uppercase;">Bodega de Despacho</div>
+            <div style="font-weight:900; color:#714B67; font-size:13.5px; margin-top:2px;" x-text="currentDetail?.warehouse_name"></div>
+            <div style="font-size:11px; color:#64748b;" x-text="currentDetail?.branch_name"></div>
+          </div>
+          <div>
+            <div style="font-size:10.5px; font-weight:800; color:#64748b; text-transform:uppercase;">Total Solicitud</div>
+            <div style="font-weight:900; color:#0f172a; font-size:16px; margin-top:2px;" x-text="'Q ' + formatMoney(currentDetail?.total)"></div>
+            <div style="font-size:10.5px; color:#64748b;">IVA incluido (12%)</div>
+          </div>
+        </div>
+
+        <template x-if="currentDetail?.delivery_notes">
+          <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:8px 12px; margin-bottom:14px; font-size:12px; color:#166534; display:flex; align-items:center; gap:6px;">
+            <span>🚚 <strong>Instrucciones para el Piloto / Despacho:</strong></span>
+            <span x-text="currentDetail?.delivery_notes"></span>
+          </div>
+        </template>
+
+        <!-- Validación de Stock Header -->
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+          <div style="font-size:13px; font-weight:900; color:#1e293b; display:flex; align-items:center; gap:6px;">
+            <i class="ph ph-package" style="color:#714B67; font-size:16px;"></i>
+            <span>Validación de Existencias Físicas en Bodega</span>
+          </div>
+          <button 
+            type="button"
+            @click="validateStockWithWarehouse()"
+            :disabled="isValidatingStock || currentDetail?.state === 'approved'"
+            class="tr-sec-btn"
+            style="min-height:30px; padding:4px 10px; font-size:11.5px;"
+          >
+            <i class="ph ph-arrows-clockwise" :class="isValidatingStock ? 'ph-spin' : ''" style="color:#714B67;"></i>
+            <span>Revalidar Stock</span>
+          </button>
+        </div>
+
+        <!-- Alertas de Stock -->
+        <template x-if="currentDetail && !currentDetail.all_available && currentDetail.state === 'pending_approval'">
+          <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:10px 14px; margin-bottom:12px; display:flex; align-items:center; gap:8px; font-size:12px; color:#991b1b;">
+            <i class="ph ph-warning-circle" style="font-size:18px; flex-shrink:0;"></i>
+            <div>
+              <strong>Alerta de Existencias:</strong> Uno o más productos solicitados no cuentan con existencias suficientes en la bodega.
+            </div>
+          </div>
+        </template>
+
+        <template x-if="currentDetail && currentDetail.all_available && currentDetail.state === 'pending_approval'">
+          <div style="background:#ecfdf5; border:1px solid #a7f3d0; border-radius:8px; padding:10px 14px; margin-bottom:12px; display:flex; align-items:center; gap:8px; font-size:12px; color:#065f46;">
+            <i class="ph ph-check-circle" style="font-size:18px; flex-shrink:0;"></i>
+            <div>
+              <strong>Stock Confirmado:</strong> Todos los productos cuentan con existencias disponibles en bodega para entrega inmediata.
+            </div>
+          </div>
+        </template>
+
+        <!-- Tabla de Productos Solicitados -->
+        <div style="border:1px solid #e2e8f0; border-radius:10px; overflow:hidden; margin-bottom:14px;">
+          <table style="width:100%; border-collapse:collapse; font-size:12px;">
+            <thead>
+              <tr style="background:#f8fafc; border-bottom:1px solid #e2e8f0; color:#475569; font-size:10.5px; text-transform:uppercase; font-weight:800;">
+                <th style="padding:9px 12px; text-align:left;">Producto</th>
+                <th style="padding:9px 12px; text-align:center;">Cant. Solicitada</th>
+                <th style="padding:9px 12px; text-align:center;">Stock Bodega</th>
+                <th style="padding:9px 12px; text-align:right;">Precio</th>
+                <th style="padding:9px 12px; text-align:right;">Subtotal</th>
+                <th style="padding:9px 12px; text-align:center;">Disponibilidad</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="line in (currentDetail?.lines || [])" :key="line.id">
+                <tr style="border-bottom:1px solid #f1f5f9;" :style="line.is_deleted ? 'background:#fef2f2; opacity:0.75;' : (!line.is_available && currentDetail?.state === 'pending_approval' ? 'background:#fff5f5;' : '')">
+                  <td style="padding:10px 12px;">
+                    <div style="font-weight:800; color:#1e293b;" :style="line.is_deleted ? 'text-decoration:line-through; color:#991b1b;' : ''" x-text="line.product_name"></div>
+                    <div style="font-size:10px; color:#94a3b8;" x-text="'Ref: ' + (line.barcode || line.sku || 'N/A')"></div>
+                  </td>
+                  <td style="padding:10px 12px; text-align:center; font-weight:800;" :style="line.is_deleted ? 'color:#b91c1c; text-decoration:line-through;' : 'color:#0f172a;'" x-text="line.quantity"></td>
+                  <td style="padding:10px 12px; text-align:center; font-weight:800;" :style="line.warehouse_stock >= line.quantity ? 'color:#047857;' : 'color:#b91c1c;'" x-text="line.warehouse_stock"></td>
+                  <td style="padding:10px 12px; text-align:right; color:#475569; font-weight:600;" x-text="'Q ' + formatMoney(line.unit_price)"></td>
+                  <td style="padding:10px 12px; text-align:right; font-weight:900;" :style="line.is_deleted ? 'color:#991b1b; text-decoration:line-through;' : 'color:#0f172a;'" x-text="'Q ' + formatMoney(line.total)"></td>
+                  <td style="padding:10px 12px; text-align:center;">
+                    <template x-if="line.is_deleted">
+                      <span class="stock-pill-alert" style="background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5;">
+                        ❌ Omitido en Bodega
+                      </span>
+                    </template>
+                    <template x-if="!line.is_deleted && line.is_available">
+                      <span class="stock-pill-ok">🟢 Hay Stock</span>
+                    </template>
+                    <template x-if="!line.is_deleted && !line.is_available">
+                      <span class="stock-pill-alert" :title="'Faltan ' + Math.abs(line.stock_difference) + ' unid.'">
+                        🔴 Faltan <span x-text="Math.abs(line.stock_difference)"></span>
+                      </span>
+                    </template>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Reporte de Preparación en Bodega -->
+        <template x-if="currentDetail?.internal_notes && currentDetail.internal_notes.includes('[Bodega]')">
+          <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:10px 14px; font-size:12px; color:#1e40af; margin-bottom:10px; display:flex; align-items:flex-start; gap:8px;">
+            <i class="ph ph-package" style="font-size:18px; color:#2563eb; flex-shrink:0; margin-top:1px;"></i>
+            <div>
+              <strong style="color:#1e3a8a;">Reporte de Preparación en Bodega:</strong>
+              <div style="margin-top:2px; white-space:pre-line;" x-text="currentDetail.internal_notes"></div>
+            </div>
+          </div>
+        </template>
+
+        <!-- Notas preventista -->
+        <template x-if="currentDetail?.notes">
+          <div style="background:#fef3c7; border:1px solid #fde68a; border-radius:8px; padding:10px 14px; font-size:11.5px; color:#92400e; margin-bottom:10px;">
+            <strong>Nota del Preventista:</strong> <span x-text="currentDetail?.notes"></span>
+          </div>
+        </template>
+
+        <!-- Motivo de rechazo -->
+        <template x-if="currentDetail?.state === 'rejected' && currentDetail?.rejection_reason">
+          <div style="background:#fee2e2; border:1px solid #fecaca; border-radius:8px; padding:10px 14px; font-size:11.5px; color:#991b1b; margin-bottom:10px;">
+            <strong>Motivo de Rechazo:</strong> <span x-text="currentDetail.rejection_reason"></span>
+          </div>
+        </template>
+
+      </div>
+
+      <!-- Pie del Modal -->
+      <div class="odoo-modal-footer">
+        <div style="font-size:11.5px; color:#64748b;">
+          <template x-if="currentDetail?.state === 'pending_approval'">
+            <span>ℹ️ Paso 1: Aprueba para enviar a <strong>Preparación en Bodega</strong>. No descuenta stock aún.</span>
+          </template>
+          <template x-if="currentDetail?.state === 'warehouse_validation' && !currentDetail?.warehouse_verified">
+            <span style="color:#2563eb;">📦 Pedido en bodega. El bodeguero está alistando los productos.</span>
+          </template>
+          <template x-if="currentDetail?.state === 'warehouse_validation' && currentDetail?.warehouse_verified">
+            <div>
+              <span style="color:#059669; font-weight:800;">✅ ¡Productos preparados por el bodeguero! Listo para autorizar despacho final.</span>
+              <span x-show="currentDetail?.internal_notes && currentDetail.internal_notes.includes('faltantes')" style="color:#b91c1c; font-weight:800; margin-left:6px;">⚠️ (Con ajuste por faltantes)</span>
+            </div>
+          </template>
+          </template>
+          <template x-if="currentDetail?.state === 'approved'">
+            <span>✅ Autorizado y Despachado por: <strong style="color:#1e293b;" x-text="currentDetail?.approver?.name || 'Administrador'"></strong></span>
+          </template>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <button type="button" @click="showModal = false" class="tr-sec-btn">
+            Cerrar
+          </button>
+
+          <!-- Si está por autorizar inicialmente -->
+          <template x-if="currentDetail?.state === 'pending_approval'">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <button 
+                type="button"
+                class="btn-auth-reject"
+                @click="promptReject(currentDetail.id)"
+                :disabled="isProcessing"
+              >
+                <i class="ph ph-x-circle" style="font-size:16px;"></i>
+                <span>Rechazar</span>
+              </button>
+
+              <button 
+                type="button"
+                class="btn-auth-preapprove"
+                @click="preApprovePresale(currentDetail.id)"
+                :disabled="isProcessing"
+              >
+                <i class="ph ph-package" x-show="!isProcessing" style="font-size:17px;"></i>
+                <i class="ph ph-arrows-clockwise ph-spin" x-show="isProcessing" style="font-size:17px;"></i>
+                <span x-show="!isProcessing">Aprobar y Enviar a Bodega</span>
+                <span x-show="isProcessing">Procesando...</span>
+              </button>
+            </div>
+          </template>
+
+          <!-- Si ya está en bodega (warehouse_validation) -->
+          <template x-if="currentDetail?.state === 'warehouse_validation'">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <button 
+                type="button"
+                class="btn-auth-reject"
+                @click="promptReject(currentDetail.id)"
+                :disabled="isProcessing"
+              >
+                <i class="ph ph-x-circle" style="font-size:16px;"></i>
+                <span>Rechazar</span>
+              </button>
+
+              <button 
+                type="button"
+                class="btn-auth-dispatch"
+                :class="currentDetail?.warehouse_verified ? 'is-verified' : 'is-direct'"
+                @click="approvePresale(currentDetail.id)"
+                :disabled="isProcessing"
+              >
+                <template x-if="!isProcessing && currentDetail?.warehouse_verified">
+                  <i class="ph ph-rocket-launch-bold" style="font-size:18px;"></i>
+                </template>
+                <template x-if="!isProcessing && !currentDetail?.warehouse_verified">
+                  <i class="ph ph-warning-bold" style="font-size:18px;"></i>
+                </template>
+                <i class="ph ph-arrows-clockwise ph-spin" x-show="isProcessing" style="font-size:18px;"></i>
+
+                <span x-show="!isProcessing" x-text="currentDetail?.warehouse_verified ? 'Autorizar Despacho y Descontar Stock' : 'Autorizar Despacho Directo'"></span>
+                <span x-show="isProcessing">Procesando...</span>
+              </button>
+            </div>
+          </template>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== 6. MODAL HOJA DE RUTA REPARTIDOR ===== -->
+  <div 
+    x-show="showRouteSheetModal" 
+    x-cloak 
+    class="odoo-modal-overlay"
+    @click.self="showRouteSheetModal = false"
+  >
+    <div class="odoo-modal-card" style="max-width:760px;">
+      <div class="odoo-modal-header">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div style="width:34px; height:34px; border-radius:8px; background:#f0fdf4; color:#15803d; display:flex; align-items:center; justify-content:center; font-size:18px;">
+            <i class="ph ph-truck"></i>
+          </div>
+          <div>
+            <h2 style="margin:0; font-size:16px; font-weight:900; color:#1e293b;">Hoja de Ruta de Entregas & Liquidación</h2>
+            <div style="font-size:11.5px; color:#64748b;">Genera el manifiesto impreso con paradas, cobros y firmas para el piloto</div>
+          </div>
+        </div>
+        <button type="button" @click="showRouteSheetModal = false" style="background:none; border:none; color:#64748b; font-size:22px; cursor:pointer; padding:2px 8px; border-radius:6px;">×</button>
+      </div>
+
+      <div class="odoo-modal-body">
+        <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; margin-bottom:16px;">
+          <div>
+            <label style="display:block; font-size:11.5px; font-weight:800; color:#475569; margin-bottom:4px;">FECHA DE RUTA</label>
+            <input type="date" x-model="routeSheetDate" style="width:100%; padding:7px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:12.5px; font-weight:700; box-sizing:border-box;">
+          </div>
+          <div>
+            <label style="display:block; font-size:11.5px; font-weight:800; color:#475569; margin-bottom:4px;">PILOTO / REPARTIDOR</label>
+            <input type="text" x-model="routeSheetDriver" placeholder="Ej. Carlos Méndez / Camión 2" style="width:100%; padding:7px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:12.5px; font-weight:600; box-sizing:border-box;">
+          </div>
+          <div>
+            <label style="display:block; font-size:11.5px; font-weight:800; color:#475569; margin-bottom:4px;">BODEGA ORIGEN</label>
+            <select x-model="routeSheetWarehouse" style="width:100%; padding:7px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:12.5px; font-weight:600; box-sizing:border-box;">
+              <option value="">🏢 Todas las Bodegas</option>
+              <template x-for="w in routeWarehouses" :key="w">
+                <option :value="w" x-text="w"></option>
+              </template>
+            </select>
+          </div>
+        </div>
+
+        <div style="font-size:12px; font-weight:800; color:#334155; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+          <span>PEDIDOS EN ESTA RUTA (<span x-text="routeOrders.length"></span> pedidos)</span>
+          <span style="color:#059669; font-size:13px; font-weight:900;">Total a Liquidar: Q <span x-text="formatMoney(routeOrdersTotal)"></span></span>
+        </div>
+
+        <div style="border:1px solid #e2e8f0; border-radius:8px; max-height:280px; overflow-y:auto; background:#f8fafc;">
+          <table style="width:100%; border-collapse:collapse; font-size:11.5px;">
+            <thead>
+              <tr style="background:#f1f5f9; border-bottom:1px solid #e2e8f0; text-align:left; color:#475569;">
+                <th style="padding:8px 10px;">#</th>
+                <th style="padding:8px 10px;">Folio</th>
+                <th style="padding:8px 10px;">Cliente</th>
+                <th style="padding:8px 10px;">Dirección</th>
+                <th style="padding:8px 10px; text-align:right;">Monto Cobro</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="(ord, idx) in routeOrders" :key="ord.id">
+                <tr style="border-bottom:1px solid #f1f5f9; background:#fff;">
+                  <td style="padding:8px 10px; font-weight:800; color:#64748b;" x-text="idx + 1"></td>
+                  <td style="padding:8px 10px; font-weight:900; color:#714B67;" x-text="ord.number"></td>
+                  <td style="padding:8px 10px; font-weight:700; color:#1e293b;" x-text="ord.customer_name"></td>
+                  <td style="padding:8px 10px; color:#475569;" x-text="ord.delivery_address || ord.customer_address || 'En bodega'"></td>
+                  <td style="padding:8px 10px; text-align:right; font-weight:900; color:#0f172a;" x-text="'Q ' + formatMoney(ord.total)"></td>
+                </tr>
+              </template>
+              <template x-if="routeOrders.length === 0">
+                <tr>
+                  <td colspan="5" style="text-align:center; padding:30px; color:#94a3b8; font-weight:600;">
+                    No hay pedidos activos disponibles para los filtros seleccionados.
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="odoo-modal-footer">
+        <button type="button" @click="showRouteSheetModal = false" class="tr-sec-btn">
+          Cerrar
+        </button>
+        <button 
+          type="button" 
+          @click="printRouteSheet()" 
+          :disabled="routeOrders.length === 0"
+          style="background:#16a34a; color:#ffffff; border:none; font-weight:800; font-size:12.5px; padding:8px 18px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; box-shadow:0 2px 8px rgba(22,163,74,0.3);"
+        >
+          <i class="ph ph-printer" style="font-size:16px;"></i>
+          <span>🖨️ Imprimir Hoja de Ruta Oficial</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function solicitudesPosApp() {
+  return {
+    showKpis: false,
+    requests: [],
+    kpis: {
+      pending_count: 0,
+      pending_amount: 0,
+      approved_today: 0,
+      rejected_today: 0,
+    },
+    totalCount: 0,
+    selectedState: 'pending_approval',
+    searchTerm: '',
+    isLoading: false,
+    showModal: false,
+    currentDetail: null,
+    isValidatingStock: false,
+    isProcessing: false,
+
+    // Hoja de Ruta Repartidor
+    showRouteSheetModal: false,
+    routeSheetDate: new Date().toISOString().split('T')[0],
+    routeSheetDriver: '',
+    routeSheetWarehouse: '',
+
+    get routeWarehouses() {
+      const set = new Set();
+      this.requests.forEach(r => { if (r.warehouse_name) set.add(r.warehouse_name); });
+      return Array.from(set);
+    },
+
+    get routeOrders() {
+      return this.requests.filter(r => {
+        if (r.state === 'rejected' || r.state === 'cancelled') return false;
+        if (this.routeSheetWarehouse && r.warehouse_name !== this.routeSheetWarehouse) return false;
+        return true;
+      });
+    },
+
+    get routeOrdersTotal() {
+      return this.routeOrders.reduce((sum, r) => sum + Number(r.total || 0), 0);
+    },
+
+    async init() {
+      await this.loadKpis();
+      await this.loadData();
+      setInterval(() => {
+        if (!this.showModal) {
+          this.loadKpis();
+          this.loadData();
+        }
+      }, 30000);
+    },
+
+    async loadKpis() {
+      try {
+        const token = localStorage.getItem('access_token') || this.getCookie('access_token');
+        const res = await fetch('/api/v1/presale/kpis', {
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        });
+        if (res.ok) {
+          this.kpis = await res.json();
+        }
+      } catch (e) {
+        console.warn("Error cargando KPIs:", e);
+      }
+    },
+
+    async loadData() {
+      this.isLoading = true;
+      try {
+        const token = localStorage.getItem('access_token') || this.getCookie('access_token');
+        let url = `/api/v1/presale/solicitudes?limit=50`;
+        if (this.selectedState) url += `&state=${encodeURIComponent(this.selectedState)}`;
+        if (this.searchTerm) url += `&search=${encodeURIComponent(this.searchTerm)}`;
+
+        const res = await fetch(url, {
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        });
+        if (res.ok) {
+          const data = await res.json();
+          this.requests = data.items || [];
+          this.totalCount = data.total || 0;
+        }
+      } catch (e) {
+        console.error("Error al cargar solicitudes:", e);
+      } finally {
+        this.isLoading = false;
+      }
+    },
+
+    setStateFilter(st) {
+      this.selectedState = st;
+      this.loadData();
+    },
+
+    async openDetailModal(id) {
+      this.showModal = true;
+      this.currentDetail = null;
+      try {
+        const token = localStorage.getItem('access_token') || this.getCookie('access_token');
+        const res = await fetch(`/api/v1/presale/${id}`, {
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        });
+        if (res.ok) {
+          this.currentDetail = await res.json();
+        } else {
+          alert("No se pudo cargar el detalle de la solicitud.");
+          this.showModal = false;
+        }
+      } catch (e) {
+        alert("Error de conexión: " + e.message);
+        this.showModal = false;
+      }
+    },
+
+    async validateStockWithWarehouse() {
+      if (!this.currentDetail?.id) return;
+      this.isValidatingStock = true;
+      try {
+        const token = localStorage.getItem('access_token') || this.getCookie('access_token');
+        const res = await fetch(`/api/v1/presale/${this.currentDetail.id}/validate-stock`, {
+          method: 'POST',
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        });
+        if (res.ok) {
+          await this.openDetailModal(this.currentDetail.id);
+        }
+      } catch (e) {
+        alert("Error al validar con bodega: " + e.message);
+      } finally {
+        this.isValidatingStock = false;
+      }
+    },
+
+    async preApprovePresale(id) {
+      if (!confirm("¿Deseas APROBAR esta solicitud para enviarla a preparación en bodega?\n\nNota: El inventario físico NO se rebajará en este paso; se mantendrá reservado y aparecerá en el módulo 'Preparación en Bodega' para que el bodeguero aliste los productos.")) {
+        return;
+      }
+      this.isProcessing = true;
+      try {
+        const token = localStorage.getItem('access_token') || this.getCookie('access_token');
+        const res = await fetch(`/api/v1/presale/${id}/pre-approve`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify({})
+        });
+        const data = await res.json();
+        if (res.ok) {
+          alert("✅ " + data.message);
+          this.showModal = false;
+          this.broadcastStockChange('PRESALE_PRE_APPROVED');
+          await this.loadKpis();
+          await this.loadData();
+        } else {
+          alert("❌ Error: " + (data.detail || "No se pudo aprobar la solicitud."));
+        }
+      } catch (e) {
+        console.warn("Aviso de red en pre-aprobación:", e);
+        try {
+          const checkRes = await fetch(`/api/v1/presale/${id}`, { credentials: 'include' });
+          if (checkRes.ok) {
+            const checkData = await checkRes.json();
+            if (checkData.state === 'warehouse_validation') {
+              alert("✅ Solicitud aprobada y enviada a bodega con éxito.");
+              this.showModal = false;
+              this.broadcastStockChange('PRESALE_PRE_APPROVED');
+              await this.loadKpis();
+              await this.loadData();
+              return;
+            }
+          }
+        } catch (_) {}
+        alert("Aviso: El servidor demoró en responder. Por favor actualiza la lista para confirmar el estado.");
+      } finally {
+        this.isProcessing = false;
+      }
+    },
+
+    async approvePresale(id) {
+      if (!confirm("¿Confirmas que deseas AUTORIZAR Y DESCONTAR el inventario de esta solicitud?\n\nAl autorizarla, se rebajarán las existencias físicas de la bodega y se registrarán en el Kardex.")) {
+        return;
+      }
+      this.isProcessing = true;
+      try {
+        const token = localStorage.getItem('access_token') || this.getCookie('access_token');
+        const res = await fetch(`/api/v1/presale/${id}/approve`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify({})
+        });
+        const data = await res.json();
+        if (res.ok) {
+          alert("✅ " + data.message);
+          this.showModal = false;
+          this.broadcastStockChange('PRESALE_APPROVED');
+          await this.loadKpis();
+          await this.loadData();
+        } else {
+          alert("❌ Error: " + (data.detail || "No se pudo autorizar la solicitud."));
+        }
+      } catch (e) {
+        console.warn("Aviso de red en autorización:", e);
+        try {
+          const checkRes = await fetch(`/api/v1/presale/${id}`, { credentials: 'include' });
+          if (checkRes.ok) {
+            const checkData = await checkRes.json();
+            if (checkData.state === 'approved') {
+              alert("✅ ¡Solicitud autorizada y despachada con éxito!");
+              this.showModal = false;
+              this.broadcastStockChange('PRESALE_APPROVED');
+              await this.loadKpis();
+              await this.loadData();
+              return;
+            }
+          }
+        } catch (_) {}
+        alert("Aviso: El servidor demoró en responder. Por favor actualiza la lista para verificar el estado de la orden.");
+      } finally {
+        this.isProcessing = false;
+      }
+    },
+
+    async promptReject(id) {
+      const reason = prompt("Indica el motivo del rechazo de la solicitud:");
+      if (!reason || !reason.trim()) return;
+
+      this.isProcessing = true;
+      try {
+        const token = localStorage.getItem('access_token') || this.getCookie('access_token');
+        const res = await fetch(`/api/v1/presale/${id}/reject`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify({ reason: reason.trim() })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          alert("Solicitud rechazada correctamente.");
+          this.showModal = false;
+          this.broadcastStockChange('PRESALE_REJECTED');
+          await this.loadKpis();
+          await this.loadData();
+        } else {
+          alert("Error: " + (data.detail || "No se pudo rechazar la solicitud."));
+        }
+      } catch (e) {
+        alert("Error de red: " + e.message);
+      } finally {
+        this.isProcessing = false;
+      }
+    },
+
+    broadcastStockChange(type = 'STOCK_UPDATED') {
+      if ('BroadcastChannel' in window) {
+        try {
+          const ch = new BroadcastChannel('pos_stock_channel');
+          ch.postMessage({ type: type, timestamp: Date.now() });
+          setTimeout(() => ch.close(), 200);
+        } catch(_) {}
+      }
+      try {
+        localStorage.setItem('pos_stock_updated_timestamp', Date.now().toString());
+      } catch(_) {}
+    },
+
+    openRouteSheetModal() {
+      this.routeSheetDate = new Date().toISOString().split('T')[0];
+      this.showRouteSheetModal = true;
+    },
+
+    getWhatsAppLink(req) {
+      if (!req) return '#';
+      let phone = (req.customer_phone || req.phone || '').replace(/\D/g, '');
+      if (phone.length === 8) phone = '502' + phone;
+      const client = req.customer_name || 'Estimado(a) Cliente';
+      const num = req.number || '';
+      const address = req.delivery_address || req.customer_address || 'Entrega en tienda/bodega';
+      const total = Number(req.total || 0).toFixed(2);
+      const itemsCount = req.items_count || (req.lines ? req.lines.length : 0);
+      const msg = `¡Hola ${client}! 👋 Le saludamos de Administración de Ventas. ` +
+        `Le compartimos la información de su pedido *${num}* (${itemsCount} artículos). ` +
+        `📍 Destino: ${address}. Total: Q ${total}. Fecha de entrega: ${req.delivery_date || 'Programada'}. ` +
+        `¡Muchas gracias por su preferencia!`;
+      return phone 
+        ? `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`
+        : `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
+    },
+
+    printRouteSheet() {
+      const printWin = window.open('', '_blank', 'width=880,height=720');
+      if (!printWin) {
+        alert("Por favor habilita las ventanas emergentes para imprimir la hoja de ruta.");
+        return;
+      }
+
+      const dateStr = this.routeSheetDate || new Date().toISOString().split('T')[0];
+      const driverStr = this.routeSheetDriver ? this.routeSheetDriver.trim() : 'Piloto Asignado';
+      const warehouseStr = this.routeSheetWarehouse || 'Todas las Bodegas';
+      const totalMoney = this.formatMoney(this.routeOrdersTotal);
+
+      let rowsHtml = this.routeOrders.map((ord, idx) => `
+        <tr style="border-bottom: 1px solid #cbd5e1;">
+          <td style="padding: 8px 6px; text-align: center; font-weight: bold;">${idx + 1}</td>
+          <td style="padding: 8px 6px; font-weight: bold; color: #1e293b;">${ord.number}</td>
+          <td style="padding: 8px 6px;"><strong>${ord.customer_name}</strong><br><small style="color:#555;">NIT: ${ord.customer_nit || 'CF'} | Tel: ${ord.customer_phone || ord.phone || 'N/A'}</small></td>
+          <td style="padding: 8px 6px; font-size: 11px;">${ord.delivery_address || ord.customer_address || 'En bodega'}</td>
+          <td style="padding: 8px 6px; text-align: right; font-weight: 900; font-size: 12.5px;">Q ${this.formatMoney(ord.total)}</td>
+          <td style="padding: 8px 6px; text-align: center; border-left: 1px dashed #cbd5e1; width: 140px;">
+            <div style="height: 30px; border-bottom: 1px solid #94a3b8; margin-top: 5px;"></div>
+            <div style="font-size: 8.5px; color: #64748b; margin-top: 2px;">Firma / Recibido / Nombre</div>
+          </td>
+        </tr>
+      `).join('');
+
+      printWin.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <title>Hoja de Ruta - ${dateStr}</title>
+          <style>
+            @page { size: letter portrait; margin: 15mm 12mm; }
+            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 12px; color: #0f172a; margin: 0; }
+            .header-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
+            .header-title { font-size: 18px; font-weight: 900; color: #1e293b; text-transform: uppercase; }
+            .info-pill { background: #f1f5f9; padding: 4px 8px; border-radius: 4px; font-size: 11px; display: inline-block; margin-right: 8px; }
+            table.route-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 11px; }
+            table.route-table th { background: #f8fafc; border-top: 2px solid #0f172a; border-bottom: 2px solid #0f172a; padding: 8px 6px; text-align: left; font-size: 10.5px; font-weight: 800; }
+            .settlement-card { margin-top: 25px; border: 1.5px solid #0f172a; border-radius: 8px; padding: 14px; page-break-inside: avoid; }
+            .sig-box { width: 45%; text-align: center; }
+            .sig-line { border-top: 1px solid #0f172a; margin-top: 45px; padding-top: 5px; font-weight: bold; font-size: 11px; }
+          </style>
+        </head>
+        <body>
+          <table class="header-table">
+            <tr>
+              <td>
+                <div class="header-title">🚚 HOJA DE RUTA Y CONTROL DE ENTREGAS</div>
+                <div style="font-size: 11.5px; color: #475569; margin-top: 3px;">Manifiesto de Despacho & Liquidación de Efectivo</div>
+              </td>
+              <td style="text-align: right;">
+                <div style="font-size: 13px; font-weight: 900;">Fecha de Despacho: ${dateStr}</div>
+                <div style="font-size: 11px; color: #64748b;">Impreso: ${new Date().toLocaleDateString('es-GT')} ${new Date().toLocaleTimeString('es-GT')}</div>
+              </td>
+            </tr>
+          </table>
+
+          <div style="margin-bottom: 12px;">
+            <span class="info-pill"><strong>PILOTO / VEHÍCULO:</strong> ${driverStr}</span>
+            <span class="info-pill"><strong>BODEGA ORIGEN:</strong> ${warehouseStr}</span>
+            <span class="info-pill"><strong>PARADAS / PEDIDOS:</strong> ${this.routeOrders.length}</span>
+            <span class="info-pill" style="background:#dcfce7; color:#166534;"><strong>TOTAL A LIQUIDAR:</strong> Q ${totalMoney}</span>
+          </div>
+
+          <table class="route-table">
+            <thead>
+              <tr>
+                <th style="width: 25px; text-align: center;">#</th>
+                <th style="width: 80px;">ORDEN</th>
+                <th>CLIENTE / CONTACTO</th>
+                <th>DIRECCIÓN DE ENTREGA</th>
+                <th style="text-align: right; width: 90px;">A COBRAR</th>
+                <th style="text-align: center; width: 140px;">FIRMA DE RECIBIDO</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+          </table>
+
+          <div class="settlement-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 13px; font-weight: 900;">
+              <span>LIQUIDACIÓN FINAL DE RUTA</span>
+              <span>TOTAL EFECTIVO / DOCUMENTOS ENTREGADOS: Q ________________</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-top: 20px;">
+              <div class="sig-box">
+                <div class="sig-line">Firma y Nombre del Piloto / Repartidor</div>
+              </div>
+              <div class="sig-box">
+                <div class="sig-line">Firma y Sello de Recibido en Caja / Administración</div>
+              </div>
+            </div>
+          </div>
+
+          <script>
+            window.onload = function() {
+              setTimeout(() => { window.print(); }, 200);
+            };
+          <\/script>
+        </body>
+        </html>
+      `);
+      printWin.document.close();
+    },
+
+    formatMoney(v) {
+      const num = Number(v || 0);
+      return num.toLocaleString('es-GT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    },
+
+    formatDate(dtStr) {
+      if (!dtStr) return 'N/A';
+      let s = String(dtStr).trim();
+      // Si la fecha no incluye indicador de zona horaria (Z o offset), asumimos UTC del servidor
+      if (!s.endsWith('Z') && !s.includes('+') && !s.match(/-\d{2}:\d{2}$/)) {
+        s += 'Z';
+      }
+      const d = new Date(s);
+      if (isNaN(d.getTime())) return dtStr;
+      return d.toLocaleString('es-GT', {
+        timeZone: 'America/Guatemala',
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit', hour12: true
+      });
+    },
+
+    getCookie(name) {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop().split(';').shift();
+      return null;
+    }
+  }
+}
+</script>
+{% endblock %}

@@ -107,7 +107,7 @@ async def toggle_attendance(
         # Check-out: Buscar el registro abierto de asistencia más reciente
         stmt_att = select(Attendance).where(
             Attendance.employee_id == emp.id,
-            Attendance.check_out == None
+            Attendance.check_out.is_(None)
         ).order_by(Attendance.check_in.desc()).limit(1)
         res_att = await db.execute(stmt_att)
         att = res_att.scalar_one_or_none()

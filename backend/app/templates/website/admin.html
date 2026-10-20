@@ -346,6 +346,47 @@
     font-weight: 700;
     z-index: 9999;
   }
+
+  /* ============================================================
+     RESPONSIVE ADAPTATION FOR TABLET & MOBILE
+     ============================================================ */
+  @media screen and (max-width: 900px) {
+    .web-admin-wrapper {
+      flex-direction: column !important;
+    }
+    .web-sidebar {
+      width: 100% !important;
+      border-right: none !important;
+      border-bottom: 1px solid #e2e8f0 !important;
+      padding: 12px 14px !important;
+      gap: 12px !important;
+    }
+    .sidebar-nav-list {
+      flex-direction: row !important;
+      overflow-x: auto !important;
+      -webkit-overflow-scrolling: touch !important;
+      padding-bottom: 6px !important;
+      scrollbar-width: none !important;
+    }
+    .sidebar-nav-list::-webkit-scrollbar {
+      display: none !important;
+    }
+    .sidebar-nav-btn {
+      white-space: nowrap !important;
+      width: auto !important;
+      padding: 8px 14px !important;
+    }
+    .sidebar-module-link {
+      white-space: nowrap !important;
+    }
+    .web-main-content {
+      padding: 14px 12px 76px 12px !important;
+      max-width: 100% !important;
+    }
+    .web-header-card {
+      padding: 14px 16px !important;
+    }
+  }
 </style>
 {% endblock %}
 

@@ -179,131 +179,174 @@
   </div>
 
   <!-- ===== 2. REPORT TABS SWITCHER & FLOATING KPI POPOVER ===== -->
-  <div style="position:relative; display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:20px;">
-    <button class="report-tab-pill" :class="activeReport === 'sales' ? 'active' : ''" @click="activeReport = 'sales'">
-      <i class="ph ph-chart-bar"></i> 1. Ventas & Rentabilidad por Día
-    </button>
-    <button class="report-tab-pill" :class="activeReport === 'products' ? 'active' : ''" @click="activeReport = 'products'">
-      <i class="ph ph-crown"></i> 2. Ranking Top Productos (Pareto)
-    </button>
-    <button class="report-tab-pill" :class="activeReport === 'inventory' ? 'active' : ''" @click="activeReport = 'inventory'">
-      <i class="ph ph-stack"></i> 3. Valoración de Inventario por Bodega
-    </button>
-    <button class="report-tab-pill" :class="activeReport === 'fel' ? 'active' : ''" @click="activeReport = 'fel'">
-      <i class="ph ph-file-text"></i> 4. Libro Oficial de Ventas FEL SAT
-    </button>
-    <button class="report-tab-pill" :class="activeReport === 'payments' ? 'active' : ''" @click="selectReport('payments')">
-      <i class="ph ph-credit-card"></i> 5. Métodos de Pago
-    </button>
-    <button class="report-tab-pill" :class="activeReport === 'sales_detail' ? 'active' : ''" @click="selectReport('sales_detail')">
-      <i class="ph ph-receipt"></i> 6. Detalle de Ventas (Auditoría / Excel)
-    </button>
+  <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:14px; padding:14px 18px; margin-bottom:20px; box-shadow:0 1px 4px rgba(0,0,0,0.02);">
+    
+    <!-- Top Row: Area Category Selector & KPI Summary Button -->
+    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:12px; padding-bottom:10px; border-bottom:1px solid #f1f5f9;">
+      <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+        <span style="font-size:11px; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.5px; margin-right:4px;">Área:</span>
+        <button type="button" @click="reportCategory = 'all'" :style="reportCategory === 'all' ? 'background:var(--odoo-purple); color:#ffffff; border-color:var(--odoo-purple);' : 'background:#f8fafc; color:#475569; border-color:#cbd5e1;'" style="padding:4px 12px; border-radius:14px; font-size:12px; font-weight:800; border:1px solid; cursor:pointer; transition:all 0.15s;">Todos (14)</button>
+        <button type="button" @click="reportCategory = 'sales'" :style="reportCategory === 'sales' ? 'background:var(--odoo-purple); color:#ffffff; border-color:var(--odoo-purple);' : 'background:#f8fafc; color:#475569; border-color:#cbd5e1;'" style="padding:4px 12px; border-radius:14px; font-size:12px; font-weight:800; border:1px solid; cursor:pointer; transition:all 0.15s;">📊 Comercial & Ventas (7)</button>
+        <button type="button" @click="reportCategory = 'inventory'" :style="reportCategory === 'inventory' ? 'background:var(--odoo-purple); color:#ffffff; border-color:var(--odoo-purple);' : 'background:#f8fafc; color:#475569; border-color:#cbd5e1;'" style="padding:4px 12px; border-radius:14px; font-size:12px; font-weight:800; border:1px solid; cursor:pointer; transition:all 0.15s;">📦 Inventarios & Compras (3)</button>
+        <button type="button" @click="reportCategory = 'finance'" :style="reportCategory === 'finance' ? 'background:var(--odoo-purple); color:#ffffff; border-color:var(--odoo-purple);' : 'background:#f8fafc; color:#475569; border-color:#cbd5e1;'" style="padding:4px 12px; border-radius:14px; font-size:12px; font-weight:800; border:1px solid; cursor:pointer; transition:all 0.15s;">💳 Créditos, Cajas & SAT (4)</button>
+      </div>
 
-    <!-- Right Controls: Resumen Button (al par derecho) -->
-    <div class="hide-on-mobile" style="margin-left:auto; display:flex; align-items:center; gap:10px; position:relative;">
-      <button
-        type="button"
-        class="hide-on-mobile"
-        @click="showKpis = !showKpis"
-        style="
-          display:inline-flex; align-items:center; gap:7px;
-          padding:6px 16px;
-          background:linear-gradient(135deg, #714B67 0%, #9b6b8f 100%);
-          border:none; border-radius:20px;
-          font-size:12px; font-weight:800; color:#ffffff;
-          cursor:pointer; transition:all 0.22s cubic-bezier(0.4,0,0.2,1);
-          box-shadow:0 2px 10px rgba(113,75,103,0.3);
-          letter-spacing:0.3px; white-space:nowrap;
-        "
-        onmouseover="this.style.boxShadow='0 4px 16px rgba(113,75,103,0.5)'; this.style.transform='translateY(-1px)'"
-        onmouseout="this.style.boxShadow='0 2px 10px rgba(113,75,103,0.3)'; this.style.transform='translateY(0)'"
-      >
-        <i class="ph ph-chart-bar" style="font-size:15px;"></i>
-        <span x-text="showKpis ? 'Ocultar resumen' : 'Resumen'"></span>
-        <i
-          class="ph ph-caret-down"
-          style="font-size:12px; transition:transform 0.25s ease;"
-          :style="showKpis ? 'transform:rotate(180deg)' : 'transform:rotate(0deg)'"
-        ></i>
-      </button>
+      <!-- Right Controls: Resumen Button (al par derecho) -->
+      <div class="hide-on-mobile" style="margin-left:auto; display:flex; align-items:center; gap:10px; position:relative;">
+        <button
+          type="button"
+          class="hide-on-mobile"
+          @click="showKpis = !showKpis"
+          style="
+            display:inline-flex; align-items:center; gap:7px;
+            padding:6px 16px;
+            background:linear-gradient(135deg, #714B67 0%, #9b6b8f 100%);
+            border:none; border-radius:20px;
+            font-size:12px; font-weight:800; color:#ffffff;
+            cursor:pointer; transition:all 0.22s cubic-bezier(0.4,0,0.2,1);
+            box-shadow:0 2px 10px rgba(113,75,103,0.3);
+            letter-spacing:0.3px; white-space:nowrap;
+          "
+          onmouseover="this.style.boxShadow='0 4px 16px rgba(113,75,103,0.5)'; this.style.transform='translateY(-1px)'"
+          onmouseout="this.style.boxShadow='0 2px 10px rgba(113,75,103,0.3)'; this.style.transform='translateY(0)'"
+        >
+          <i class="ph ph-chart-bar" style="font-size:15px;"></i>
+          <span x-text="showKpis ? 'Ocultar resumen' : 'Resumen'"></span>
+          <i
+            class="ph ph-caret-down"
+            style="font-size:12px; transition:transform 0.25s ease;"
+            :style="showKpis ? 'transform:rotate(180deg)' : 'transform:rotate(0deg)'"
+          ></i>
+        </button>
 
-      <!-- Floating Popover Dropdown Panel (Exacto a Inventarios y AP, alineado a la derecha) -->
-      <div
-        class="hide-on-mobile"
-        x-show="showKpis"
-        @click.outside="showKpis = false"
-        x-transition:enter="transition ease-out duration-200"
-        x-transition:enter-start="opacity-0 scale-95"
-        x-transition:enter-end="opacity-100 scale-100"
-        x-transition:leave="transition ease-in duration-150"
-        x-transition:leave-start="opacity-100 scale-100"
-        x-transition:leave-end="opacity-0 scale-95"
-        style="
-          position:absolute; top:calc(100% + 8px); right:0; z-index:999;
-          background:#ffffff; border:1.5px solid #e2e8f0; border-radius:14px;
-          box-shadow:0 14px 45px -8px rgba(0,0,0,0.18), 0 4px 16px -4px rgba(0,0,0,0.08);
-          padding:12px; display:flex; flex-direction:column; gap:8px;
-          width:460px; max-width:95vw;
-        "
-        x-cloak
-      >
-        <!-- Card 1: Facturación Bruta -->
-        <div style="background:#ffffff; border:1px solid #e2e8f0; border-left:4px solid var(--odoo-purple); border-radius:10px; padding:12px 16px; display:flex; align-items:center; justify-content:space-between;">
-          <div>
-            <div style="font-size:10.5px; font-weight:800; color:var(--odoo-purple); text-transform:uppercase; letter-spacing:0.5px;">Facturación Bruta (Q)</div>
-            <div style="font-size:20px; font-weight:900; color:#1e293b; margin-top:2px;" x-text="'Q ' + Number(kpis.total_sales || 0).toLocaleString('es-GT', {minimumFractionDigits:2, maximumFractionDigits:2})">Q 0.00</div>
-            <div style="font-size:11px; color:#64748b; margin-top:2px;">
-              <span>Subtotal: Q <span x-text="Number(kpis.total_subtotal || 0).toFixed(2)"></span> | IVA: Q <span x-text="Number(kpis.total_tax || 0).toFixed(2)"></span></span>
+        <!-- Floating Popover Dropdown Panel (Exacto a Inventarios y AP, alineado a la derecha) -->
+        <div
+          class="hide-on-mobile"
+          x-show="showKpis"
+          @click.outside="showKpis = false"
+          x-transition:enter="transition ease-out duration-200"
+          x-transition:enter-start="opacity-0 scale-95"
+          x-transition:enter-end="opacity-100 scale-100"
+          x-transition:leave="transition ease-in duration-150"
+          x-transition:leave-start="opacity-100 scale-100"
+          x-transition:leave-end="opacity-0 scale-95"
+          style="
+            position:absolute; top:calc(100% + 8px); right:0; z-index:999;
+            background:#ffffff; border:1.5px solid #e2e8f0; border-radius:14px;
+            box-shadow:0 14px 45px -8px rgba(0,0,0,0.18), 0 4px 16px -4px rgba(0,0,0,0.08);
+            padding:12px; display:flex; flex-direction:column; gap:8px;
+            width:460px; max-width:95vw;
+          "
+          x-cloak
+        >
+          <!-- Card 1: Facturación Bruta -->
+          <div style="background:#ffffff; border:1px solid #e2e8f0; border-left:4px solid var(--odoo-purple); border-radius:10px; padding:12px 16px; display:flex; align-items:center; justify-content:space-between;">
+            <div>
+              <div style="font-size:10.5px; font-weight:800; color:var(--odoo-purple); text-transform:uppercase; letter-spacing:0.5px;">Facturación Bruta (Q)</div>
+              <div style="font-size:20px; font-weight:900; color:#1e293b; margin-top:2px;" x-text="'Q ' + Number(kpis.total_sales || 0).toLocaleString('es-GT', {minimumFractionDigits:2, maximumFractionDigits:2})">Q 0.00</div>
+              <div style="font-size:11px; color:#64748b; margin-top:2px;">
+                <span>Subtotal: Q <span x-text="Number(kpis.total_subtotal || 0).toFixed(2)"></span> | IVA: Q <span x-text="Number(kpis.total_tax || 0).toFixed(2)"></span></span>
+              </div>
+            </div>
+            <div style="width:38px; height:38px; border-radius:10px; background:var(--odoo-purple-light); color:var(--odoo-purple); display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;">
+              <i class="ph ph-currency-circle-dollar"></i>
             </div>
           </div>
-          <div style="width:38px; height:38px; border-radius:10px; background:var(--odoo-purple-light); color:var(--odoo-purple); display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;">
-            <i class="ph ph-currency-circle-dollar"></i>
-          </div>
-        </div>
 
-        <!-- Card 2: Ganancia Bruta & Margen -->
-        <div style="background:#ffffff; border:1px solid #e2e8f0; border-left:4px solid #10b981; border-radius:10px; padding:12px 16px; display:flex; align-items:center; justify-content:space-between;">
-          <div>
-            <div style="font-size:10.5px; font-weight:800; color:#047857; text-transform:uppercase; letter-spacing:0.5px;">Ganancia Bruta & Margen</div>
-            <div style="font-size:20px; font-weight:900; color:#059669; margin-top:2px;" x-text="'Q ' + Number(kpis.gross_profit || 0).toLocaleString('es-GT', {minimumFractionDigits:2, maximumFractionDigits:2})">Q 0.00</div>
-            <div style="font-size:11px; color:#059669; font-weight:800; margin-top:2px;">
-              <span>Margen: <span x-text="kpis.profit_margin_pct || 0"></span>% sobre venta</span>
+          <!-- Card 2: Ganancia Bruta & Margen -->
+          <div style="background:#ffffff; border:1px solid #e2e8f0; border-left:4px solid #10b981; border-radius:10px; padding:12px 16px; display:flex; align-items:center; justify-content:space-between;">
+            <div>
+              <div style="font-size:10.5px; font-weight:800; color:#047857; text-transform:uppercase; letter-spacing:0.5px;">Ganancia Bruta & Margen</div>
+              <div style="font-size:20px; font-weight:900; color:#059669; margin-top:2px;" x-text="'Q ' + Number(kpis.gross_profit || 0).toLocaleString('es-GT', {minimumFractionDigits:2, maximumFractionDigits:2})">Q 0.00</div>
+              <div style="font-size:11px; color:#059669; font-weight:800; margin-top:2px;">
+                <span>Margen: <span x-text="kpis.profit_margin_pct || 0"></span>% sobre venta</span>
+              </div>
+            </div>
+            <div style="width:38px; height:38px; border-radius:10px; background:#dcfce7; color:#15803d; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;">
+              <i class="ph ph-trend-up"></i>
             </div>
           </div>
-          <div style="width:38px; height:38px; border-radius:10px; background:#dcfce7; color:#15803d; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;">
-            <i class="ph ph-trend-up"></i>
-          </div>
-        </div>
 
-        <!-- Card 3: Valoración de Inventario -->
-        <div style="background:#ffffff; border:1px solid #e2e8f0; border-left:4px solid #0284c7; border-radius:10px; padding:12px 16px; display:flex; align-items:center; justify-content:space-between;">
-          <div>
-            <div style="font-size:10.5px; font-weight:800; color:#0369a1; text-transform:uppercase; letter-spacing:0.5px;">Valoración de Inventario (Q)</div>
-            <div style="font-size:20px; font-weight:900; color:#0284c7; margin-top:2px;" x-text="'Q ' + Number(kpis.inventory_valuation || 0).toLocaleString('es-GT', {minimumFractionDigits:2, maximumFractionDigits:2})">Q 0.00</div>
-            <div style="font-size:11px; color:#64748b; margin-top:2px;">
-              <span>Stock valorizado a costo</span>
+          <!-- Card 3: Valoración de Inventario -->
+          <div style="background:#ffffff; border:1px solid #e2e8f0; border-left:4px solid #0284c7; border-radius:10px; padding:12px 16px; display:flex; align-items:center; justify-content:space-between;">
+            <div>
+              <div style="font-size:10.5px; font-weight:800; color:#0369a1; text-transform:uppercase; letter-spacing:0.5px;">Valoración de Inventario (Q)</div>
+              <div style="font-size:20px; font-weight:900; color:#0284c7; margin-top:2px;" x-text="'Q ' + Number(kpis.inventory_valuation || 0).toLocaleString('es-GT', {minimumFractionDigits:2, maximumFractionDigits:2})">Q 0.00</div>
+              <div style="font-size:11px; color:#64748b; margin-top:2px;">
+                <span>Stock valorizado a costo</span>
+              </div>
+            </div>
+            <div style="width:38px; height:38px; border-radius:10px; background:#e0f2fe; color:#0284c7; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;">
+              <i class="ph ph-warehouse"></i>
             </div>
           </div>
-          <div style="width:38px; height:38px; border-radius:10px; background:#e0f2fe; color:#0284c7; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;">
-            <i class="ph ph-warehouse"></i>
-          </div>
-        </div>
 
-        <!-- Card 4: Ticket Promedio -->
-        <div style="background:#ffffff; border:1px solid #e2e8f0; border-left:4px solid #f59e0b; border-radius:10px; padding:12px 16px; display:flex; align-items:center; justify-content:space-between;">
-          <div>
-            <div style="font-size:10.5px; font-weight:800; color:#d97706; text-transform:uppercase; letter-spacing:0.5px;">Ticket Promedio</div>
-            <div style="font-size:20px; font-weight:900; color:#d97706; margin-top:2px;" x-text="'Q ' + Number(kpis.avg_ticket || 0).toFixed(2)">Q 0.00</div>
-            <div style="font-size:11px; color:#64748b; margin-top:2px;">
-              <span>En <strong x-text="kpis.total_orders || 0"></strong> transacciones</span>
+          <!-- Card 4: Ticket Promedio -->
+          <div style="background:#ffffff; border:1px solid #e2e8f0; border-left:4px solid #f59e0b; border-radius:10px; padding:12px 16px; display:flex; align-items:center; justify-content:space-between;">
+            <div>
+              <div style="font-size:10.5px; font-weight:800; color:#d97706; text-transform:uppercase; letter-spacing:0.5px;">Ticket Promedio</div>
+              <div style="font-size:20px; font-weight:900; color:#d97706; margin-top:2px;" x-text="'Q ' + Number(kpis.avg_ticket || 0).toFixed(2)">Q 0.00</div>
+              <div style="font-size:11px; color:#64748b; margin-top:2px;">
+                <span>En <strong x-text="kpis.total_orders || 0"></strong> transacciones</span>
+              </div>
             </div>
-          </div>
-          <div style="width:38px; height:38px; border-radius:10px; background:#fef3c7; color:#d97706; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;">
-            <i class="ph ph-receipt"></i>
+            <div style="width:38px; height:38px; border-radius:10px; background:#fef3c7; color:#d97706; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;">
+              <i class="ph ph-receipt"></i>
+            </div>
           </div>
         </div>
       </div>
     </div>
+
+    <!-- Bottom Row: Report Tab Pills -->
+    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+      <!-- Comercial & Ventas -->
+      <button x-show="reportCategory === 'all' || reportCategory === 'sales'" class="report-tab-pill" :class="activeReport === 'sales' ? 'active' : ''" @click="selectReport('sales')">
+        <i class="ph ph-chart-bar"></i> 1. Ventas por Día
+      </button>
+      <button x-show="reportCategory === 'all' || reportCategory === 'sales'" class="report-tab-pill" :class="activeReport === 'products' ? 'active' : ''" @click="selectReport('products')">
+        <i class="ph ph-crown"></i> 2. Top Productos (Pareto)
+      </button>
+      <button x-show="reportCategory === 'all' || reportCategory === 'sales'" class="report-tab-pill" :class="activeReport === 'sellers' ? 'active' : ''" @click="selectReport('sellers')">
+        <i class="ph ph-users"></i> 3. Ventas por Vendedor
+      </button>
+      <button x-show="reportCategory === 'all' || reportCategory === 'sales'" class="report-tab-pill" :class="activeReport === 'top_customers' ? 'active' : ''" @click="selectReport('top_customers')">
+        <i class="ph ph-user-list"></i> 4. Top Clientes & Cartera
+      </button>
+      <button x-show="reportCategory === 'all' || reportCategory === 'sales'" class="report-tab-pill" :class="activeReport === 'peak_hours' ? 'active' : ''" @click="selectReport('peak_hours')">
+        <i class="ph ph-clock"></i> 5. Horas Pico & Días
+      </button>
+      <button x-show="reportCategory === 'all' || reportCategory === 'sales'" class="report-tab-pill" :class="activeReport === 'discounts' ? 'active' : ''" @click="selectReport('discounts')">
+        <i class="ph ph-tag"></i> 6. Auditoría de Descuentos
+      </button>
+      <button x-show="reportCategory === 'all' || reportCategory === 'sales'" class="report-tab-pill" :class="activeReport === 'sales_detail' ? 'active' : ''" @click="selectReport('sales_detail')">
+        <i class="ph ph-receipt"></i> 7. Detalle de Ventas Línea a Línea
+      </button>
+
+      <!-- Inventarios & Compras -->
+      <button x-show="reportCategory === 'all' || reportCategory === 'inventory'" class="report-tab-pill" :class="activeReport === 'inventory' ? 'active' : ''" @click="selectReport('inventory')">
+        <i class="ph ph-stack"></i> 8. Valoración Inventario
+      </button>
+      <button x-show="reportCategory === 'all' || reportCategory === 'inventory'" class="report-tab-pill" :class="activeReport === 'slow_stock' ? 'active' : ''" @click="selectReport('slow_stock')">
+        <i class="ph ph-snowflake"></i> 9. Stock Estancado ("Huesos")
+      </button>
+      <button x-show="reportCategory === 'all' || reportCategory === 'inventory'" class="report-tab-pill" :class="activeReport === 'purchasing' ? 'active' : ''" @click="selectReport('purchasing')">
+        <i class="ph ph-shopping-cart"></i> 10. Sugerido de Compras
+      </button>
+
+      <!-- Finanzas, Créditos & Cajas -->
+      <button x-show="reportCategory === 'all' || reportCategory === 'finance'" class="report-tab-pill" :class="activeReport === 'ar_aging' ? 'active' : ''" @click="selectReport('ar_aging')">
+        <i class="ph ph-calendar-blank"></i> 11. Antigüedad Cuentas por Cobrar
+      </button>
+      <button x-show="reportCategory === 'all' || reportCategory === 'finance'" class="report-tab-pill" :class="activeReport === 'cashier_audit' ? 'active' : ''" @click="selectReport('cashier_audit')">
+        <i class="ph ph-vault"></i> 12. Auditoría Cierres de Caja
+      </button>
+      <button x-show="reportCategory === 'all' || reportCategory === 'finance'" class="report-tab-pill" :class="activeReport === 'payments' ? 'active' : ''" @click="selectReport('payments')">
+        <i class="ph ph-credit-card"></i> 13. Métodos de Pago
+      </button>
+      <button x-show="reportCategory === 'all' || reportCategory === 'finance'" class="report-tab-pill" :class="activeReport === 'fel' ? 'active' : ''" @click="selectReport('fel')">
+        <i class="ph ph-file-text"></i> 14. Libro Oficial FEL SAT
+      </button>
   </div>
 
   <!-- ===== 3. REPORT CONTAINERS ===== -->
@@ -819,6 +862,655 @@
           </tr>
         </tbody>
       </table>
+  <!-- ===== REPORTE 7: VENTAS POR VENDEDOR / CAJERO ===== -->
+  <div x-show="activeReport === 'sellers'" style="background:#ffffff; border:1px solid #e2e8f0; border-radius:14px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,0.03);">
+    <div style="padding:16px 20px; border-bottom:1px solid #e2e8f0; background:#f8fafc; display:flex; justify-content:space-between; align-items:center;">
+      <div>
+        <h3 style="margin:0; font-size:15px; font-weight:800; color:#1e293b;">Rendimiento Comercial y Ventas por Vendedor / Cajero</h3>
+        <div style="font-size:11.5px; color:#64748b; margin-top:2px;">Transacciones atendidas, costo, rentabilidad y ticket promedio por colaborador</div>
+      </div>
+      <span style="font-size:11px; font-weight:800; color:var(--odoo-purple); background:var(--odoo-purple-light); padding:4px 10px; border-radius:12px;" x-text="(sellersData.sellers ? sellersData.sellers.length : 0) + ' vendedores activos'"></span>
+    </div>
+
+    <!-- Summary KPI Cards -->
+    <div style="padding:12px 20px; background:#fbfcfe; border-bottom:1px solid #e2e8f0; display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:10px;">
+      <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:10px 14px;">
+        <div style="font-size:10.5px; font-weight:700; color:#64748b; text-transform:uppercase;">Vendedores</div>
+        <div style="font-size:18px; font-weight:900; color:#0f172a;" x-text="sellersData.summary ? (sellersData.summary.total_sellers || 0) : 0">0</div>
+        <div style="font-size:11px; color:#94a3b8;" x-text="(sellersData.summary ? (sellersData.summary.grand_total_orders || 0) : 0) + ' órdenes'"></div>
+      </div>
+      <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:10px 14px;">
+        <div style="font-size:10.5px; font-weight:700; color:var(--odoo-purple); text-transform:uppercase;">Facturación Total</div>
+        <div style="font-size:18px; font-weight:900; color:var(--odoo-purple);" x-text="'Q ' + Number(sellersData.summary ? (sellersData.summary.grand_total_sales || 0) : 0).toLocaleString('es-GT', {minimumFractionDigits:2, maximumFractionDigits:2})">Q 0.00</div>
+        <div style="font-size:11px; color:#64748b;">Venta global del equipo</div>
+      </div>
+      <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:10px 14px;">
+        <div style="font-size:10.5px; font-weight:700; color:#059669; text-transform:uppercase;">Ganancia Bruta</div>
+        <div style="font-size:18px; font-weight:900; color:#059669;" x-text="'Q ' + Number(sellersData.summary ? (sellersData.summary.grand_total_profit || 0) : 0).toLocaleString('es-GT', {minimumFractionDigits:2, maximumFractionDigits:2})">Q 0.00</div>
+        <div style="font-size:11px; color:#059669; font-weight:800;" x-text="(sellersData.summary ? (sellersData.summary.overall_margin_pct || 0) : 0) + '% margen neto'"></div>
+      </div>
+      <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:10px 14px;">
+        <div style="font-size:10.5px; font-weight:700; color:#d97706; text-transform:uppercase;">Ticket Promedio</div>
+        <div style="font-size:18px; font-weight:900; color:#d97706;" x-text="'Q ' + Number(sellersData.summary ? (sellersData.summary.avg_ticket || 0) : 0).toFixed(2)">Q 0.00</div>
+        <div style="font-size:11px; color:#64748b;">Promedio por ticket</div>
+      </div>
+    </div>
+
+    <div style="overflow-x:auto;">
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th style="width:40px; text-align:center;">#</th>
+            <th>Vendedor / Cajero</th>
+            <th style="text-align:center;">Órdenes Atendidas</th>
+            <th style="text-align:right;">Venta Total (Q)</th>
+            <th style="text-align:right;">Costo (Q)</th>
+            <th style="text-align:right;">Ganancia Bruta (Q)</th>
+            <th style="text-align:center;">Margen %</th>
+            <th style="text-align:right;">Ticket Promedio (Q)</th>
+            <th style="width:140px;">% Aporte a Ventas</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="(s, idx) in (sellersData.sellers || [])" :key="s.user_id">
+            <tr>
+              <td style="text-align:center; font-weight:900; color:var(--odoo-purple);" x-text="idx + 1"></td>
+              <td>
+                <div style="font-weight:800; color:#0f172a;" x-text="s.user_name"></div>
+                <div style="font-size:11px; color:#64748b;" x-text="s.email"></div>
+              </td>
+              <td style="text-align:center; font-weight:700; color:#475569;" x-text="s.total_orders"></td>
+              <td style="text-align:right; font-weight:900; color:var(--odoo-purple); font-size:14px;" x-text="'Q ' + Number(s.total_sales).toFixed(2)"></td>
+              <td style="text-align:right; color:#64748b;" x-text="'Q ' + Number(s.total_cost).toFixed(2)"></td>
+              <td style="text-align:right; font-weight:800; color:#059669;" x-text="'Q ' + Number(s.gross_profit).toFixed(2)"></td>
+              <td style="text-align:center;">
+                <span 
+                  style="font-size:11px; font-weight:800; padding:2px 8px; border-radius:10px;"
+                  :style="s.profit_margin_pct >= 25 ? 'background:#dcfce7; color:#15803d;' : 'background:#ffedd5; color:#c2410c;'"
+                  x-text="s.profit_margin_pct + '%'"
+                ></span>
+              </td>
+              <td style="text-align:right; font-weight:700; color:#d97706;" x-text="'Q ' + Number(s.avg_ticket).toFixed(2)"></td>
+              <td>
+                <div style="font-size:11px; font-weight:800; color:#334155; margin-bottom:2px;" x-text="s.pct_of_total + '%'"></div>
+                <div class="bar-container">
+                  <div class="bar-fill" :style="'width:' + s.pct_of_total + '%'"></div>
+                </div>
+              </td>
+            </tr>
+          </template>
+          <tr x-show="!sellersData.sellers || sellersData.sellers.length === 0">
+            <td colspan="9" style="text-align:center; padding:40px; color:#64748b;">No hay registros de ventas para vendedores en este rango.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===== REPORTE 8: TOP CLIENTES & CARTERA ===== -->
+  <div x-show="activeReport === 'top_customers'" style="background:#ffffff; border:1px solid #e2e8f0; border-radius:14px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,0.03);">
+    <div style="padding:16px 20px; border-bottom:1px solid #e2e8f0; background:#f8fafc; display:flex; justify-content:space-between; align-items:center;">
+      <div>
+        <h3 style="margin:0; font-size:15px; font-weight:800; color:#1e293b;">Ranking Top Clientes & Análisis de Cartera (80/20)</h3>
+        <div style="font-size:11.5px; color:#64748b; margin-top:2px;">Clientes de mayor consumo, frecuencia, última visita y días de inactividad</div>
+      </div>
+      <span style="font-size:11px; font-weight:800; color:#0284c7; background:#e0f2fe; padding:4px 10px; border-radius:12px;" x-text="(topCustomersData.customers ? topCustomersData.customers.length : 0) + ' clientes listados'"></span>
+    </div>
+
+    <!-- Summary KPI Cards -->
+    <div style="padding:12px 20px; background:#fbfcfe; border-bottom:1px solid #e2e8f0; display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:10px;">
+      <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:10px 14px;">
+        <div style="font-size:10.5px; font-weight:700; color:#64748b; text-transform:uppercase;">Clientes Únicos</div>
+        <div style="font-size:18px; font-weight:900; color:#0f172a;" x-text="topCustomersData.summary ? (topCustomersData.summary.total_unique_customers || 0) : 0">0</div>
+        <div style="font-size:11px; color:#94a3b8;">En el período</div>
+      </div>
+      <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:10px 14px;">
+        <div style="font-size:10.5px; font-weight:700; color:var(--odoo-purple); text-transform:uppercase;">Facturación Clientes</div>
+        <div style="font-size:18px; font-weight:900; color:var(--odoo-purple);" x-text="'Q ' + Number(topCustomersData.summary ? (topCustomersData.summary.grand_total_sales || 0) : 0).toLocaleString('es-GT', {minimumFractionDigits:2, maximumFractionDigits:2})">Q 0.00</div>
+        <div style="font-size:11px; color:#64748b;">Consumo total</div>
+      </div>
+      <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:10px 14px;">
+        <div style="font-size:10.5px; font-weight:700; color:#059669; text-transform:uppercase;">Clientes Frecuentes</div>
+        <div style="font-size:18px; font-weight:900; color:#059669;" x-text="topCustomersData.summary ? (topCustomersData.summary.active_customers || 0) : 0">0</div>
+        <div style="font-size:11px; color:#059669; font-weight:700;">Compraron en &le; 15 días</div>
+      </div>
+      <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:10px 14px;">
+        <div style="font-size:10.5px; font-weight:700; color:#d97706; text-transform:uppercase;">En Riesgo / Inactivos</div>
+        <div style="font-size:18px; font-weight:900; color:#d97706;" x-text="topCustomersData.summary ? (topCustomersData.summary.at_risk_customers || 0) : 0">0</div>
+        <div style="font-size:11px; color:#d97706; font-weight:700;">&gt; 45 días sin comprar</div>
+      </div>
+    </div>
+
+    <div style="overflow-x:auto;">
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th style="width:40px; text-align:center;">#</th>
+            <th>Cliente</th>
+            <th>NIT / DPI</th>
+            <th style="text-align:center;">Compras</th>
+            <th style="text-align:right;">Facturación Total (Q)</th>
+            <th style="text-align:right;">Ticket Prom. (Q)</th>
+            <th style="text-align:right;">Ganancia Bruta (Q)</th>
+            <th style="text-align:center;">Última Compra</th>
+            <th style="text-align:center;">Inactividad</th>
+            <th style="text-align:center;">Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="(c, idx) in (topCustomersData.customers || [])" :key="c.customer_id">
+            <tr>
+              <td style="text-align:center; font-weight:900; color:var(--odoo-purple);" x-text="idx + 1"></td>
+              <td>
+                <div style="font-weight:800; color:#0f172a;" x-text="c.name"></div>
+                <div style="font-size:11px; color:#64748b;" x-text="c.phone ? ('Tel: ' + c.phone) : ''"></div>
+              </td>
+              <td style="font-family:monospace; font-weight:700; color:#475569;" x-text="c.nit"></td>
+              <td style="text-align:center; font-weight:700; color:#334155;" x-text="c.total_orders"></td>
+              <td style="text-align:right; font-weight:900; color:var(--odoo-purple); font-size:14px;" x-text="'Q ' + Number(c.total_sales).toFixed(2)"></td>
+              <td style="text-align:right; font-weight:700; color:#d97706;" x-text="'Q ' + Number(c.avg_ticket).toFixed(2)"></td>
+              <td style="text-align:right; font-weight:800; color:#059669;" x-text="'Q ' + Number(c.gross_profit).toFixed(2)"></td>
+              <td style="text-align:center; font-size:12px; font-weight:600; color:#334155;" x-text="c.last_sale_formatted"></td>
+              <td style="text-align:center; font-weight:700; color:#64748b;" x-text="c.days_inactive + ' días'"></td>
+              <td style="text-align:center;">
+                <span 
+                  style="font-size:11px; font-weight:800; padding:2px 8px; border-radius:10px;"
+                  :style="c.activity_color === 'green' ? 'background:#dcfce7; color:#15803d;' : (c.activity_color === 'blue' ? 'background:#e0f2fe; color:#0369a1;' : 'background:#ffedd5; color:#c2410c;')"
+                  x-text="c.activity_status"
+                ></span>
+              </td>
+            </tr>
+          </template>
+          <tr x-show="!topCustomersData.customers || topCustomersData.customers.length === 0">
+            <td colspan="10" style="text-align:center; padding:40px; color:#64748b;">No hay registros de clientes en este período.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===== REPORTE 9: HORAS PICO & DÍAS (HEATMAP) ===== -->
+  <div x-show="activeReport === 'peak_hours'" style="background:#ffffff; border:1px solid #e2e8f0; border-radius:14px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,0.03);">
+    <div style="padding:16px 20px; border-bottom:1px solid #e2e8f0; background:#f8fafc; display:flex; justify-content:space-between; align-items:center;">
+      <div>
+        <h3 style="margin:0; font-size:15px; font-weight:800; color:#1e293b;">Horas Pico & Días de Mayor Demanda (Heatmap Comercial)</h3>
+        <div style="font-size:11.5px; color:#64748b; margin-top:2px;">Distribución de afluencia y ventas por horario y día de la semana (Hora de Guatemala UTC-6)</div>
+      </div>
+      <span style="font-size:11px; font-weight:800; color:#d97706; background:#fef3c7; padding:4px 10px; border-radius:12px;">Patrón de Comportamiento</span>
+    </div>
+
+    <!-- Summary KPI Cards -->
+    <div style="padding:12px 20px; background:#fbfcfe; border-bottom:1px solid #e2e8f0; display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:10px;">
+      <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:10px 14px;">
+        <div style="font-size:10.5px; font-weight:700; color:#64748b; text-transform:uppercase;">Hora de Mayor Demanda</div>
+        <div style="font-size:18px; font-weight:900; color:var(--odoo-purple);" x-text="peakHoursData.summary ? (peakHoursData.summary.peak_hour || 'N/A') : 'N/A'">N/A</div>
+        <div style="font-size:11px; color:#64748b;" x-text="'Q ' + Number(peakHoursData.summary ? (peakHoursData.summary.peak_hour_sales || 0) : 0).toFixed(2) + ' facturados'"></div>
+      </div>
+      <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:10px 14px;">
+        <div style="font-size:10.5px; font-weight:700; color:#059669; text-transform:uppercase;">Día Más Fuerte</div>
+        <div style="font-size:18px; font-weight:900; color:#059669;" x-text="peakHoursData.summary ? (peakHoursData.summary.busiest_day || 'N/A') : 'N/A'">N/A</div>
+        <div style="font-size:11px; color:#059669; font-weight:700;" x-text="'Q ' + Number(peakHoursData.summary ? (peakHoursData.summary.busiest_day_sales || 0) : 0).toFixed(2) + ' facturados'"></div>
+      </div>
+      <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:10px 14px;">
+        <div style="font-size:10.5px; font-weight:700; color:#0284c7; text-transform:uppercase;">Transacciones Totales</div>
+        <div style="font-size:18px; font-weight:900; color:#0284c7;" x-text="peakHoursData.summary ? (peakHoursData.summary.total_orders || 0) : 0">0</div>
+        <div style="font-size:11px; color:#64748b;">En el rango analizado</div>
+      </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:20px; padding:20px;">
+      <!-- Columna 1: Horas del Día -->
+      <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:10px; overflow:hidden;">
+        <div style="padding:10px 16px; background:#f8fafc; font-size:13px; font-weight:800; color:#1e293b; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between;">
+          <span>🕒 Ventas por Franja Horaria</span>
+          <span style="font-size:11px; color:#64748b;">Horario Local (Guatemala)</span>
+        </div>
+        <div style="max-height:450px; overflow-y:auto;">
+          <table class="report-table">
+            <thead>
+              <tr>
+                <th>Franja Horaria</th>
+                <th style="text-align:center;">Órdenes</th>
+                <th style="text-align:right;">Venta Total</th>
+                <th style="width:100px;">Intensidad</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="h in (peakHoursData.hourly || [])" :key="h.hour">
+                <tr :style="h.label === (peakHoursData.summary ? peakHoursData.summary.peak_hour : '') ? 'background:#fdf2f8;' : ''">
+                  <td style="font-weight:700; color:#0f172a;">
+                    <span x-text="h.label"></span>
+                    <span x-show="h.label === (peakHoursData.summary ? peakHoursData.summary.peak_hour : '')" style="font-size:10px; background:var(--odoo-purple); color:#ffffff; padding:1px 6px; border-radius:6px; margin-left:4px; font-weight:800;">PICO</span>
+                  </td>
+                  <td style="text-align:center; font-weight:700; color:#64748b;" x-text="h.orders"></td>
+                  <td style="text-align:right; font-weight:800; color:var(--odoo-purple);" x-text="'Q ' + Number(h.sales).toFixed(2)"></td>
+                  <td>
+                    <div class="bar-container">
+                      <div class="bar-fill" :style="'width:' + (peakHoursData.summary && peakHoursData.summary.peak_hour_sales > 0 ? (h.sales / peakHoursData.summary.peak_hour_sales * 100) : 0) + '%'"></div>
+                    </div>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Columna 2: Días de la Semana -->
+      <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:10px; overflow:hidden;">
+        <div style="padding:10px 16px; background:#f8fafc; font-size:13px; font-weight:800; color:#1e293b; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between;">
+          <span>📅 Ventas por Día de la Semana</span>
+          <span style="font-size:11px; color:#64748b;">Lunes a Domingo</span>
+        </div>
+        <div>
+          <table class="report-table">
+            <thead>
+              <tr>
+                <th>Día</th>
+                <th style="text-align:center;">Órdenes</th>
+                <th style="text-align:right;">Venta Total</th>
+                <th style="text-align:right;">Ticket Prom.</th>
+                <th style="width:100px;">Intensidad</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="d in (peakHoursData.daily || [])" :key="d.day_idx">
+                <tr :style="d.day_name === (peakHoursData.summary ? peakHoursData.summary.busiest_day : '') ? 'background:#ecfdf5;' : ''">
+                  <td style="font-weight:800; color:#0f172a;">
+                    <span x-text="d.day_name"></span>
+                    <span x-show="d.day_name === (peakHoursData.summary ? peakHoursData.summary.busiest_day : '')" style="font-size:10px; background:#059669; color:#ffffff; padding:1px 6px; border-radius:6px; margin-left:4px; font-weight:800;">TOP</span>
+                  </td>
+                  <td style="text-align:center; font-weight:700; color:#64748b;" x-text="d.orders"></td>
+                  <td style="text-align:right; font-weight:900; color:#047857;" x-text="'Q ' + Number(d.sales).toFixed(2)"></td>
+                  <td style="text-align:right; font-weight:700; color:#d97706;" x-text="'Q ' + Number(d.avg_ticket).toFixed(2)"></td>
+                  <td>
+                    <div class="bar-container">
+                      <div class="bar-fill" style="background:#059669;" :style="'width:' + (peakHoursData.summary && peakHoursData.summary.busiest_day_sales > 0 ? (d.sales / peakHoursData.summary.busiest_day_sales * 100) : 0) + '%'"></div>
+                    </div>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== REPORTE 10: AUDITORÍA DE DESCUENTOS ===== -->
+  <div x-show="activeReport === 'discounts'" style="background:#ffffff; border:1px solid #e2e8f0; border-radius:14px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,0.03);">
+    <div style="padding:16px 20px; border-bottom:1px solid #e2e8f0; background:#f8fafc; display:flex; justify-content:space-between; align-items:center;">
+      <div>
+        <h3 style="margin:0; font-size:15px; font-weight:800; color:#1e293b;">Auditoría y Control de Descuentos Otorgados</h3>
+        <div style="font-size:11.5px; color:#64748b; margin-top:2px;">Rebajas autorizadas, colaborador responsable y afectación del margen</div>
+      </div>
+      <span style="font-size:11px; font-weight:800; color:#dc2626; background:#fee2e2; padding:4px 10px; border-radius:12px;" x-text="(discountsData.items ? discountsData.items.length : 0) + ' registros con descuento'"></span>
+    </div>
+
+    <!-- Summary KPI Cards -->
+    <div style="padding:12px 20px; background:#fbfcfe; border-bottom:1px solid #e2e8f0; display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:10px;">
+      <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:10px 14px;">
+        <div style="font-size:10.5px; font-weight:700; color:#dc2626; text-transform:uppercase;">Total Descontado</div>
+        <div style="font-size:18px; font-weight:900; color:#dc2626;" x-text="'Q ' + Number(discountsData.summary ? (discountsData.summary.total_discount_amount || 0) : 0).toLocaleString('es-GT', {minimumFractionDigits:2, maximumFractionDigits:2})">Q 0.00</div>
+        <div style="font-size:11px; color:#64748b;">Monto cedido en rebajas</div>
+      </div>
+      <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:10px 14px;">
+        <div style="font-size:10.5px; font-weight:700; color:#64748b; text-transform:uppercase;">Operaciones Afectadas</div>
+        <div style="font-size:18px; font-weight:900; color:#0f172a;" x-text="discountsData.summary ? (discountsData.summary.total_records || 0) : 0">0</div>
+        <div style="font-size:11px; color:#94a3b8;">Líneas con descuento</div>
+      </div>
+      <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:10px 14px;">
+        <div style="font-size:10.5px; font-weight:700; color:var(--odoo-purple); text-transform:uppercase;">Ventas Impactadas</div>
+        <div style="font-size:18px; font-weight:900; color:var(--odoo-purple);" x-text="'Q ' + Number(discountsData.summary ? (discountsData.summary.total_sales_impacted || 0) : 0).toLocaleString('es-GT', {minimumFractionDigits:2, maximumFractionDigits:2})">Q 0.00</div>
+        <div style="font-size:11px; color:#64748b;">Monto cobrado final</div>
+      </div>
+      <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:10px 14px;">
+        <div style="font-size:10.5px; font-weight:700; color:#d97706; text-transform:uppercase;">Descuento Promedio</div>
+        <div style="font-size:18px; font-weight:900; color:#d97706;" x-text="'Q ' + Number(discountsData.summary ? (discountsData.summary.avg_discount_per_record || 0) : 0).toFixed(2)">Q 0.00</div>
+        <div style="font-size:11px; color:#64748b;">Por transacción</div>
+      </div>
+    </div>
+
+    <div style="overflow-x:auto;">
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th>Fecha & Hora</th>
+            <th>No. Ticket</th>
+            <th>Vendedor</th>
+            <th>Cliente</th>
+            <th>Producto</th>
+            <th style="text-align:center;">Cant.</th>
+            <th style="text-align:right;">P. Unit. (Q)</th>
+            <th style="text-align:right;">Descuento (Q)</th>
+            <th style="text-align:center;">% Desc.</th>
+            <th style="text-align:right;">Total Línea (Q)</th>
+            <th style="text-align:right;">Margen (Q)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="item in (discountsData.items || [])" :key="item.sale_number + '_' + item.product_name + '_' + item.total">
+            <tr>
+              <td style="white-space:nowrap; font-size:12px; color:#64748b;" x-text="item.sale_date"></td>
+              <td style="font-family:monospace; font-weight:800; color:var(--odoo-purple);" x-text="item.sale_number"></td>
+              <td style="font-weight:700; color:#334155;" x-text="item.seller_name"></td>
+              <td style="color:#1e293b;" x-text="item.customer_name"></td>
+              <td style="font-weight:700; color:#0f172a;" x-text="item.product_name"></td>
+              <td style="text-align:center; font-weight:700;" x-text="item.qty"></td>
+              <td style="text-align:right; color:#64748b;" x-text="'Q ' + Number(item.unit_price).toFixed(2)"></td>
+              <td style="text-align:right; font-weight:900; color:#dc2626;" x-text="'-Q ' + Number(item.discount_amount).toFixed(2)"></td>
+              <td style="text-align:center;">
+                <span style="background:#fee2e2; color:#dc2626; font-size:11px; font-weight:800; padding:2px 8px; border-radius:10px;" x-text="item.discount_pct + '%'"></span>
+              </td>
+              <td style="text-align:right; font-weight:900; color:#0f172a;" x-text="'Q ' + Number(item.total).toFixed(2)"></td>
+              <td style="text-align:right; font-weight:800;" :style="item.margin_amount >= 0 ? 'color:#059669;' : 'color:#dc2626;'" x-text="'Q ' + Number(item.margin_amount).toFixed(2)"></td>
+            </tr>
+          </template>
+          <tr x-show="!discountsData.items || discountsData.items.length === 0">
+            <td colspan="11" style="text-align:center; padding:40px; color:#64748b;">No se encontraron ventas con descuentos aplicados en este rango.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===== REPORTE 11: STOCK ESTANCADO ("HUESOS") ===== -->
+  <div x-show="activeReport === 'slow_stock'" style="background:#ffffff; border:1px solid #e2e8f0; border-radius:14px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,0.03);">
+    <div style="padding:16px 20px; border-bottom:1px solid #e2e8f0; background:#f8fafc; display:flex; justify-content:space-between; align-items:center;">
+      <div>
+        <h3 style="margin:0; font-size:15px; font-weight:800; color:#1e293b;">Productos de Lento Movimiento o Stock Estancado («Huesos»)</h3>
+        <div style="font-size:11.5px; color:#64748b; margin-top:2px;">Mercadería con stock físico disponible pero sin rotación o muy baja venta (Capital Inmovilizado)</div>
+      </div>
+      <span style="font-size:11px; font-weight:800; color:#475569; background:#e2e8f0; padding:4px 10px; border-radius:12px;" x-text="(slowStockData.items ? slowStockData.items.length : 0) + ' productos estancados'"></span>
+    </div>
+
+    <!-- Summary KPI Cards -->
+    <div style="padding:12px 20px; background:#fbfcfe; border-bottom:1px solid #e2e8f0; display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:10px;">
+      <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:10px 14px;">
+        <div style="font-size:10.5px; font-weight:700; color:#dc2626; text-transform:uppercase;">Capital Congelado a Costo</div>
+        <div style="font-size:18px; font-weight:900; color:#dc2626;" x-text="'Q ' + Number(slowStockData.summary ? (slowStockData.summary.total_locked_capital || 0) : 0).toLocaleString('es-GT', {minimumFractionDigits:2, maximumFractionDigits:2})">Q 0.00</div>
+        <div style="font-size:11px; color:#64748b;">Dinero invertido sin retorno</div>
+      </div>
+      <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:10px 14px;">
+        <div style="font-size:10.5px; font-weight:700; color:#64748b; text-transform:uppercase;">Productos Inactivos</div>
+        <div style="font-size:18px; font-weight:900; color:#0f172a;" x-text="slowStockData.summary ? (slowStockData.summary.total_slow_products || 0) : 0">0</div>
+        <div style="font-size:11px; color:#94a3b8;">SKUs estancados</div>
+      </div>
+      <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:10px 14px;">
+        <div style="font-size:10.5px; font-weight:700; color:#475569; text-transform:uppercase;">Unidades Físicas</div>
+        <div style="font-size:18px; font-weight:900; color:#475569;" x-text="slowStockData.summary ? (slowStockData.summary.total_frozen_units || 0) : 0">0</div>
+        <div style="font-size:11px; color:#64748b;">Piezas ocupando espacio</div>
+      </div>
+    </div>
+
+    <div style="overflow-x:auto;">
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th>SKU / Barra</th>
+            <th>Producto</th>
+            <th>Categoría</th>
+            <th>Bodega</th>
+            <th style="text-align:center;">Existencia Actual</th>
+            <th style="text-align:center;">Vendido en Período</th>
+            <th style="text-align:right;">Costo Unit. (Q)</th>
+            <th style="text-align:right;">P. Venta (Q)</th>
+            <th style="text-align:right;">Capital Inmovilizado (Q)</th>
+            <th style="text-align:center;">Última Venta</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="item in (slowStockData.items || [])" :key="item.product_id">
+            <tr>
+              <td style="font-family:monospace; font-weight:700; color:#475569;" x-text="item.sku"></td>
+              <td style="font-weight:800; color:#0f172a;" x-text="item.product_name"></td>
+              <td style="color:#64748b;" x-text="item.category"></td>
+              <td style="font-weight:700; color:var(--odoo-purple);" x-text="item.warehouse_name"></td>
+              <td style="text-align:center; font-weight:900; color:#0f172a;" x-text="item.qty_on_hand + ' uds.'"></td>
+              <td style="text-align:center; font-weight:800;" :style="item.qty_sold_in_period === 0 ? 'color:#dc2626;' : 'color:#d97706;'" x-text="item.qty_sold_in_period + ' uds.'"></td>
+              <td style="text-align:right; color:#64748b;" x-text="'Q ' + Number(item.unit_cost).toFixed(2)"></td>
+              <td style="text-align:right; color:#334155;" x-text="'Q ' + Number(item.sale_price).toFixed(2)"></td>
+              <td style="text-align:right; font-weight:900; color:#dc2626; font-size:14px;" x-text="'Q ' + Number(item.capital_locked).toFixed(2)"></td>
+              <td style="text-align:center; font-size:12px; color:#64748b;" x-text="item.last_sold_date"></td>
+            </tr>
+          </template>
+          <tr x-show="!slowStockData.items || slowStockData.items.length === 0">
+            <td colspan="10" style="text-align:center; padding:40px; color:#059669; font-weight:700;">¡Excelente! No se detectaron productos estancados en el período analizado.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===== REPORTE 12: SUGERIDO DE COMPRAS & STOCK BAJO ===== -->
+  <div x-show="activeReport === 'purchasing'" style="background:#ffffff; border:1px solid #e2e8f0; border-radius:14px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,0.03);">
+    <div style="padding:16px 20px; border-bottom:1px solid #e2e8f0; background:#f8fafc; display:flex; justify-content:space-between; align-items:center;">
+      <div>
+        <h3 style="margin:0; font-size:15px; font-weight:800; color:#1e293b;">Sugerido de Compras y Alertas de Stock Mínimo</h3>
+        <div style="font-size:11.5px; color:#64748b; margin-top:2px;">Productos por debajo de su inventario de seguridad y cálculo automático de reposición</div>
+      </div>
+      <span style="font-size:11px; font-weight:800; color:#0284c7; background:#e0f2fe; padding:4px 10px; border-radius:12px;" x-text="(purchasingData.items ? purchasingData.items.length : 0) + ' alertas de reposición'"></span>
+    </div>
+
+    <!-- Summary KPI Cards -->
+    <div style="padding:12px 20px; background:#fbfcfe; border-bottom:1px solid #e2e8f0; display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:10px;">
+      <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:10px 14px;">
+        <div style="font-size:10.5px; font-weight:700; color:#dc2626; text-transform:uppercase;">Quiebres Críticos (Agotados)</div>
+        <div style="font-size:18px; font-weight:900; color:#dc2626;" x-text="purchasingData.summary ? (purchasingData.summary.critical_stockout || 0) : 0">0</div>
+        <div style="font-size:11px; color:#dc2626; font-weight:700;">Stock en cero o negativo</div>
+      </div>
+      <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:10px 14px;">
+        <div style="font-size:10.5px; font-weight:700; color:#d97706; text-transform:uppercase;">Bajo Stock Mínimo</div>
+        <div style="font-size:18px; font-weight:900; color:#d97706;" x-text="purchasingData.summary ? (purchasingData.summary.warning_low_stock || 0) : 0">0</div>
+        <div style="font-size:11px; color:#64748b;">Próximos a agotarse</div>
+      </div>
+      <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:10px 14px;">
+        <div style="font-size:10.5px; font-weight:700; color:#0284c7; text-transform:uppercase;">Inversión Estimada</div>
+        <div style="font-size:18px; font-weight:900; color:#0284c7;" x-text="'Q ' + Number(purchasingData.summary ? (purchasingData.summary.total_investment_needed || 0) : 0).toLocaleString('es-GT', {minimumFractionDigits:2, maximumFractionDigits:2})">Q 0.00</div>
+        <div style="font-size:11px; color:#64748b;">Para reabastecer al nivel óptimo</div>
+      </div>
+    </div>
+
+    <div style="overflow-x:auto;">
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th>Estado</th>
+            <th>SKU / Código</th>
+            <th>Producto</th>
+            <th>Bodega</th>
+            <th>Proveedor Sugerido</th>
+            <th style="text-align:center;">Stock Actual</th>
+            <th style="text-align:center;">Stock Mín.</th>
+            <th style="text-align:center; font-weight:900; color:#0284c7;">A Pedir</th>
+            <th style="text-align:right;">Costo Unit. (Q)</th>
+            <th style="text-align:right;">Inversión (Q)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="item in (purchasingData.items || [])" :key="item.product_id + '_' + item.warehouse_name">
+            <tr>
+              <td>
+                <span 
+                  style="font-size:11px; font-weight:800; padding:3px 8px; border-radius:10px;"
+                  :style="item.status_color === 'red' ? 'background:#fee2e2; color:#dc2626;' : 'background:#fef3c7; color:#b45309;'"
+                  x-text="item.status"
+                ></span>
+              </td>
+              <td style="font-family:monospace; font-weight:700; color:#475569;" x-text="item.sku"></td>
+              <td style="font-weight:800; color:#0f172a;" x-text="item.product_name"></td>
+              <td style="font-weight:700; color:var(--odoo-purple);" x-text="item.warehouse_name"></td>
+              <td style="color:#64748b;" x-text="item.supplier_name"></td>
+              <td style="text-align:center; font-weight:800;" :style="item.qty_on_hand <= 0 ? 'color:#dc2626;' : 'color:#d97706;'" x-text="item.qty_on_hand"></td>
+              <td style="text-align:center; font-weight:700; color:#64748b;" x-text="item.min_stock"></td>
+              <td style="text-align:center; font-weight:900; color:#0284c7; font-size:14px;" x-text="item.suggested_qty + ' uds.'"></td>
+              <td style="text-align:right; color:#64748b;" x-text="'Q ' + Number(item.unit_cost).toFixed(2)"></td>
+              <td style="text-align:right; font-weight:900; color:#0f172a;" x-text="'Q ' + Number(item.investment_needed).toFixed(2)"></td>
+            </tr>
+          </template>
+          <tr x-show="!purchasingData.items || purchasingData.items.length === 0">
+            <td colspan="10" style="text-align:center; padding:40px; color:#059669; font-weight:700;">No hay alertas de stock bajo actualmente.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===== REPORTE 13: ANTIGÜEDAD DE SALDOS (AGING CUENTAS POR COBRAR AR) ===== -->
+  <div x-show="activeReport === 'ar_aging'" style="background:#ffffff; border:1px solid #e2e8f0; border-radius:14px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,0.03);">
+    <div style="padding:16px 20px; border-bottom:1px solid #e2e8f0; background:#f8fafc; display:flex; justify-content:space-between; align-items:center;">
+      <div>
+        <h3 style="margin:0; font-size:15px; font-weight:800; color:#1e293b;">Antigüedad de Saldos de Clientes (Aging Report — Cuentas por Cobrar)</h3>
+        <div style="font-size:11.5px; color:#64748b; margin-top:2px;">Clasificación de créditos por vencer y vencidos (0 a +90 días) para gestión de cobranza</div>
+      </div>
+      <span style="font-size:11px; font-weight:800; color:#d97706; background:#fef3c7; padding:4px 10px; border-radius:12px;" x-text="(arAgingData.customers ? arAgingData.customers.length : 0) + ' clientes con saldo'"></span>
+    </div>
+
+    <!-- Summary KPI Cards -->
+    <div style="padding:12px 20px; background:#fbfcfe; border-bottom:1px solid #e2e8f0; display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:10px;">
+      <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:10px 14px;">
+        <div style="font-size:10.5px; font-weight:700; color:#0f172a; text-transform:uppercase;">Cartera Total por Cobrar</div>
+        <div style="font-size:18px; font-weight:900; color:#0f172a;" x-text="'Q ' + Number(arAgingData.summary ? (arAgingData.summary.grand_total_portfolio || 0) : 0).toLocaleString('es-GT', {minimumFractionDigits:2, maximumFractionDigits:2})">Q 0.00</div>
+        <div style="font-size:11px; color:#64748b;">Saldo acumulado global</div>
+      </div>
+      <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:10px 14px;">
+        <div style="font-size:10.5px; font-weight:700; color:#059669; text-transform:uppercase;">Al Día / Corriente</div>
+        <div style="font-size:18px; font-weight:900; color:#059669;" x-text="'Q ' + Number(arAgingData.summary ? (arAgingData.summary.grand_total_current || 0) : 0).toLocaleString('es-GT', {minimumFractionDigits:2, maximumFractionDigits:2})">Q 0.00</div>
+        <div style="font-size:11px; color:#059669; font-weight:700;">Sin vencer</div>
+      </div>
+      <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:10px 14px;">
+        <div style="font-size:10.5px; font-weight:700; color:#dc2626; text-transform:uppercase;">Cartera Vencida (Mora)</div>
+        <div style="font-size:18px; font-weight:900; color:#dc2626;" x-text="'Q ' + Number(arAgingData.summary ? (arAgingData.summary.grand_total_overdue || 0) : 0).toLocaleString('es-GT', {minimumFractionDigits:2, maximumFractionDigits:2})">Q 0.00</div>
+        <div style="font-size:11px; color:#dc2626; font-weight:800;" x-text="(arAgingData.summary ? (arAgingData.summary.overdue_percentage || 0) : 0) + '% del total'"></div>
+      </div>
+    </div>
+
+    <div style="overflow-x:auto;">
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th>Cliente</th>
+            <th>NIT / DPI</th>
+            <th>Teléfono</th>
+            <th style="text-align:right;">Saldo Total (Q)</th>
+            <th style="text-align:right; color:#059669;">Al Día</th>
+            <th style="text-align:right; color:#b45309;">1–30 Días</th>
+            <th style="text-align:right; color:#ea580c;">31–60 Días</th>
+            <th style="text-align:right; color:#dc2626;">61–90 Días</th>
+            <th style="text-align:right; color:#991b1b;">+90 Días</th>
+            <th style="text-align:center;">Riesgo</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="c in (arAgingData.customers || [])" :key="c.customer_id">
+            <tr>
+              <td>
+                <div style="font-weight:800; color:#0f172a;" x-text="c.customer_name"></div>
+                <div style="font-size:11px; color:#64748b;" x-text="c.invoices_count + ' facturas pendientes'"></div>
+              </td>
+              <td style="font-family:monospace; font-weight:700; color:#475569;" x-text="c.nit"></td>
+              <td style="color:#64748b;" x-text="c.phone"></td>
+              <td style="text-align:right; font-weight:900; color:#0f172a; font-size:14px;" x-text="'Q ' + Number(c.total_balance).toFixed(2)"></td>
+              <td style="text-align:right; font-weight:700; color:#059669;" x-text="'Q ' + Number(c.current).toFixed(2)"></td>
+              <td style="text-align:right; font-weight:700; color:#b45309;" x-text="'Q ' + Number(c.days_1_30).toFixed(2)"></td>
+              <td style="text-align:right; font-weight:700; color:#ea580c;" x-text="'Q ' + Number(c.days_31_60).toFixed(2)"></td>
+              <td style="text-align:right; font-weight:700; color:#dc2626;" x-text="'Q ' + Number(c.days_61_90).toFixed(2)"></td>
+              <td style="text-align:right; font-weight:900; color:#991b1b;" x-text="'Q ' + Number(c.days_over_90).toFixed(2)"></td>
+              <td style="text-align:center;">
+                <span 
+                  style="font-size:11px; font-weight:800; padding:2px 8px; border-radius:10px;"
+                  :style="c.risk_color === 'green' ? 'background:#dcfce7; color:#15803d;' : (c.risk_color === 'amber' ? 'background:#fef3c7; color:#b45309;' : 'background:#fee2e2; color:#dc2626;')"
+                  x-text="c.risk_level"
+                ></span>
+              </td>
+            </tr>
+          </template>
+          <tr x-show="!arAgingData.customers || arAgingData.customers.length === 0">
+            <td colspan="10" style="text-align:center; padding:40px; color:#059669; font-weight:700;">¡Excelente! No hay facturas de clientes con saldos pendientes.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===== REPORTE 14: AUDITORÍA DE SESIONES Y CIERRES DE CAJA ===== -->
+  <div x-show="activeReport === 'cashier_audit'" style="background:#ffffff; border:1px solid #e2e8f0; border-radius:14px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,0.03);">
+    <div style="padding:16px 20px; border-bottom:1px solid #e2e8f0; background:#f8fafc; display:flex; justify-content:space-between; align-items:center;">
+      <div>
+        <h3 style="margin:0; font-size:15px; font-weight:800; color:#1e293b;">Auditoría de Turnos y Arqueos de Caja (Sobrantes & Faltantes)</h3>
+        <div style="font-size:11.5px; color:#64748b; margin-top:2px;">Control exhaustivo de entregas de efectivo, saldo esperado vs contado físico por cajero</div>
+      </div>
+      <span style="font-size:11px; font-weight:800; color:var(--odoo-purple); background:var(--odoo-purple-light); padding:4px 10px; border-radius:12px;" x-text="(cashierAuditsData.sessions ? cashierAuditsData.sessions.length : 0) + ' sesiones registradas'"></span>
+    </div>
+
+    <!-- Summary KPI Cards -->
+    <div style="padding:12px 20px; background:#fbfcfe; border-bottom:1px solid #e2e8f0; display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:10px;">
+      <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:10px 14px;">
+        <div style="font-size:10.5px; font-weight:700; color:#64748b; text-transform:uppercase;">Sesiones Auditadas</div>
+        <div style="font-size:18px; font-weight:900; color:#0f172a;" x-text="cashierAuditsData.summary ? (cashierAuditsData.summary.total_sessions || 0) : 0">0</div>
+        <div style="font-size:11px; color:#94a3b8;">Turnos de caja</div>
+      </div>
+      <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:10px 14px;">
+        <div style="font-size:10.5px; font-weight:700; color:#059669; text-transform:uppercase;">Sesiones Cuadradas</div>
+        <div style="font-size:18px; font-weight:900; color:#059669;" x-text="cashierAuditsData.summary ? (cashierAuditsData.summary.exact_sessions || 0) : 0">0</div>
+        <div style="font-size:11px; color:#059669; font-weight:700;">Diferencia Q0.00</div>
+      </div>
+      <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:10px 14px;">
+        <div style="font-size:10.5px; font-weight:700; color:#dc2626; text-transform:uppercase;">Con Faltante</div>
+        <div style="font-size:18px; font-weight:900; color:#dc2626;" x-text="cashierAuditsData.summary ? (cashierAuditsData.summary.faltantes_sessions || 0) : 0">0</div>
+        <div style="font-size:11px; color:#dc2626; font-weight:700;">Efectivo faltante</div>
+      </div>
+      <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:10px 14px;">
+        <div style="font-size:10.5px; font-weight:700; color:#0f172a; text-transform:uppercase;">Diferencia Neta</div>
+        <div style="font-size:18px; font-weight:900;" :style="(cashierAuditsData.summary ? cashierAuditsData.summary.net_difference : 0) >= 0 ? 'color:#059669;' : 'color:#dc2626;'" x-text="'Q ' + Number(cashierAuditsData.summary ? (cashierAuditsData.summary.net_difference || 0) : 0).toFixed(2)">Q 0.00</div>
+        <div style="font-size:11px; color:#64748b;">Balance acumulado</div>
+      </div>
+    </div>
+
+    <div style="overflow-x:auto;">
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th>No. Sesión</th>
+            <th>Cajero</th>
+            <th>Sucursal</th>
+            <th>Apertura</th>
+            <th>Cierre</th>
+            <th style="text-align:right;">Fondo Inicial (Q)</th>
+            <th style="text-align:right;">Ventas (Q)</th>
+            <th style="text-align:right;">Esperado (Q)</th>
+            <th style="text-align:right;">Contado Real (Q)</th>
+            <th style="text-align:right;">Diferencia (Q)</th>
+            <th style="text-align:center;">Resultado</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="s in (cashierAuditsData.sessions || [])" :key="s.session_id">
+            <tr>
+              <td style="font-family:monospace; font-weight:800; color:var(--odoo-purple);" x-text="s.session_number"></td>
+              <td style="font-weight:700; color:#0f172a;" x-text="s.cajero_name"></td>
+              <td style="color:#64748b;" x-text="s.branch_name"></td>
+              <td style="font-size:12px; color:#475569;" x-text="s.opened_at"></td>
+              <td style="font-size:12px; color:#475569;" x-text="s.closed_at"></td>
+              <td style="text-align:right; color:#64748b;" x-text="'Q ' + Number(s.opening_balance).toFixed(2)"></td>
+              <td style="text-align:right; font-weight:700; color:#0f172a;" x-text="'Q ' + Number(s.total_sales).toFixed(2)"></td>
+              <td style="text-align:right; color:#64748b;" x-text="'Q ' + Number(s.closing_balance_expected).toFixed(2)"></td>
+              <td style="text-align:right; font-weight:800; color:#334155;" x-text="'Q ' + Number(s.closing_balance_real).toFixed(2)"></td>
+              <td style="text-align:right; font-weight:900; font-size:13.5px;" :style="s.closing_difference < 0 ? 'color:#dc2626;' : (s.closing_difference > 0 ? 'color:#b45309;' : 'color:#059669;')" x-text="'Q ' + Number(s.closing_difference).toFixed(2)"></td>
+              <td style="text-align:center;">
+                <span 
+                  style="font-size:11px; font-weight:800; padding:2px 8px; border-radius:10px;"
+                  :style="s.status_color === 'green' ? 'background:#dcfce7; color:#15803d;' : (s.status_color === 'amber' ? 'background:#fef3c7; color:#b45309;' : 'background:#fee2e2; color:#dc2626;')"
+                  x-text="s.status_diff"
+                ></span>
+              </td>
+            </tr>
+          </template>
+          <tr x-show="!cashierAuditsData.sessions || cashierAuditsData.sessions.length === 0">
+            <td colspan="11" style="text-align:center; padding:40px; color:#64748b;">No hay registros de sesiones de caja en este rango.</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </div>
 
@@ -828,6 +1520,7 @@
   function reportsBIModule() {
     return {
       activeReport: (new URLSearchParams(window.location.search).get('tab') || 'sales'),
+      reportCategory: 'all',
       showKpis: false,
       activePreset: 'this_month',
       startDate: '',
@@ -864,12 +1557,20 @@
       salesDetailPaymentType: 'all',
       isLoadingSalesDetail: false,
 
+      // 8 Nuevos Reportes
+      sellersData: { summary: {}, sellers: [] },
+      topCustomersData: { summary: {}, customers: [] },
+      peakHoursData: { summary: {}, hourly: [], daily: [] },
+      discountsData: { summary: {}, items: [] },
+      slowStockData: { summary: {}, items: [] },
+      purchasingData: { summary: {}, items: [] },
+      arAgingData: { summary: {}, customers: [] },
+      cashierAuditsData: { summary: {}, sessions: [] },
+
       async init() {
         await this.loadBranches();
         this.setPreset('this_month');
-        if (this.activeReport === 'sales_detail') {
-          await this.loadSalesDetail();
-        }
+        this.loadActiveReportData();
       },
 
       selectReport(tab) {
@@ -881,8 +1582,28 @@
           url.searchParams.set('tab', tab);
         }
         window.history.pushState({}, '', url.toString());
-        if (tab === 'sales_detail' && this.salesDetailData.length === 0) {
+        this.loadActiveReportData();
+      },
+
+      loadActiveReportData() {
+        if (this.activeReport === 'sales_detail' && this.salesDetailData.length === 0) {
           this.loadSalesDetail();
+        } else if (this.activeReport === 'sellers' && (!this.sellersData.sellers || this.sellersData.sellers.length === 0)) {
+          this.loadSellers();
+        } else if (this.activeReport === 'top_customers' && (!this.topCustomersData.customers || this.topCustomersData.customers.length === 0)) {
+          this.loadTopCustomers();
+        } else if (this.activeReport === 'peak_hours' && (!this.peakHoursData.hourly || this.peakHoursData.hourly.length === 0)) {
+          this.loadPeakHours();
+        } else if (this.activeReport === 'discounts' && (!this.discountsData.items || this.discountsData.items.length === 0)) {
+          this.loadDiscounts();
+        } else if (this.activeReport === 'slow_stock' && (!this.slowStockData.items || this.slowStockData.items.length === 0)) {
+          this.loadSlowStock();
+        } else if (this.activeReport === 'purchasing' && (!this.purchasingData.items || this.purchasingData.items.length === 0)) {
+          this.loadPurchasing();
+        } else if (this.activeReport === 'ar_aging' && (!this.arAgingData.customers || this.arAgingData.customers.length === 0)) {
+          this.loadArAging();
+        } else if (this.activeReport === 'cashier_audit' && (!this.cashierAuditsData.sessions || this.cashierAuditsData.sessions.length === 0)) {
+          this.loadCashierAudits();
         }
       },
 
@@ -1030,8 +1751,15 @@
           e = new Date(now.getFullYear(), 11, 31);
         }
 
-        this.startDate = s.toISOString().slice(0, 10);
-        this.endDate = e.toISOString().slice(0, 10);
+        const toLocalYMD = (d) => {
+          const year = d.getFullYear();
+          const month = String(d.getMonth() + 1).padStart(2, '0');
+          const day = String(d.getDate()).padStart(2, '0');
+          return `${year}-${month}-${day}`;
+        };
+
+        this.startDate = toLocalYMD(s);
+        this.endDate = toLocalYMD(e);
         this.reloadAllData();
       },
 
@@ -1044,9 +1772,17 @@
           this.loadFelLedger(),
           this.loadPaymentMethods()
         ];
-        if (this.activeReport === 'sales_detail') {
-          tasks.push(this.loadSalesDetail());
-        }
+        // Reload active report
+        if (this.activeReport === 'sales_detail') tasks.push(this.loadSalesDetail());
+        if (this.activeReport === 'sellers') tasks.push(this.loadSellers());
+        if (this.activeReport === 'top_customers') tasks.push(this.loadTopCustomers());
+        if (this.activeReport === 'peak_hours') tasks.push(this.loadPeakHours());
+        if (this.activeReport === 'discounts') tasks.push(this.loadDiscounts());
+        if (this.activeReport === 'slow_stock') tasks.push(this.loadSlowStock());
+        if (this.activeReport === 'purchasing') tasks.push(this.loadPurchasing());
+        if (this.activeReport === 'ar_aging') tasks.push(this.loadArAging());
+        if (this.activeReport === 'cashier_audit') tasks.push(this.loadCashierAudits());
+
         await Promise.all(tasks);
       },
 
@@ -1092,6 +1828,79 @@
         } catch(e) {}
       },
 
+      // --- Cargas de los 8 Nuevos Reportes ---
+      async loadSellers() {
+        try {
+          const res = await API.get(`/reports/sales-by-seller?start_date=${this.startDate}&end_date=${this.endDate}`);
+          if (res) this.sellersData = res;
+        } catch(e) {
+          console.error("Error al cargar vendedores:", e);
+        }
+      },
+
+      async loadTopCustomers() {
+        try {
+          const res = await API.get(`/reports/top-customers?start_date=${this.startDate}&end_date=${this.endDate}`);
+          if (res) this.topCustomersData = res;
+        } catch(e) {
+          console.error("Error al cargar top clientes:", e);
+        }
+      },
+
+      async loadPeakHours() {
+        try {
+          const res = await API.get(`/reports/sales-peak-hours?start_date=${this.startDate}&end_date=${this.endDate}`);
+          if (res) this.peakHoursData = res;
+        } catch(e) {
+          console.error("Error al cargar horas pico:", e);
+        }
+      },
+
+      async loadDiscounts() {
+        try {
+          const res = await API.get(`/reports/discounts-audit?start_date=${this.startDate}&end_date=${this.endDate}`);
+          if (res) this.discountsData = res;
+        } catch(e) {
+          console.error("Error al cargar descuentos:", e);
+        }
+      },
+
+      async loadSlowStock() {
+        try {
+          const res = await API.get(`/reports/slow-moving-stock?days_threshold=30`);
+          if (res) this.slowStockData = res;
+        } catch(e) {
+          console.error("Error al cargar stock estancado:", e);
+        }
+      },
+
+      async loadPurchasing() {
+        try {
+          const res = await API.get(`/reports/purchasing-suggestions`);
+          if (res) this.purchasingData = res;
+        } catch(e) {
+          console.error("Error al cargar sugerido de compras:", e);
+        }
+      },
+
+      async loadArAging() {
+        try {
+          const res = await API.get(`/reports/ar-aging`);
+          if (res) this.arAgingData = res;
+        } catch(e) {
+          console.error("Error al cargar antigüedad de saldos:", e);
+        }
+      },
+
+      async loadCashierAudits() {
+        try {
+          const res = await API.get(`/reports/cashier-audits?start_date=${this.startDate}&end_date=${this.endDate}`);
+          if (res) this.cashierAuditsData = res;
+        } catch(e) {
+          console.error("Error al cargar auditoría de cajas:", e);
+        }
+      },
+
       getRelativeSalesBarWidth(amount) {
         if (!this.salesData.length) return 0;
         const max = Math.max(...this.salesData.map(d => d.total || 0));
@@ -1105,7 +1914,7 @@
           return;
         }
 
-        let csvContent = "data:text/csv;charset=utf-8,";
+        let csvContent = "\uFEFF"; // UTF-8 BOM for flawless Excel accents
         let filename = `reporte_${this.activeReport}_${this.startDate}_${this.endDate}.csv`;
 
         if (this.activeReport === 'sales') {
@@ -1114,9 +1923,53 @@
             csvContent += `"${r.date}",${r.transactions},${r.subtotal},${r.cost},${r.profit},${r.margin_pct}%,${r.tax_amount},${r.total}\n`;
           });
         } else if (this.activeReport === 'products') {
-          csvContent += "Producto,Unidades_Vendidas,Ingreso_Total,Costo_Total,Utilidad_Bruta,Margen_Pct\n";
-          this.topProducts.forEach(r => {
-            csvContent += `"${r.product_name}",${r.units_sold},${r.total_revenue},${r.total_cost},${r.gross_profit},${r.margin_pct}%\n`;
+          csvContent += "Ranking,Producto,Unidades_Vendidas,Ingreso_Total,Costo_Total,Utilidad_Bruta,Margen_Pct\n";
+          this.topProducts.forEach((r, idx) => {
+            csvContent += `${idx + 1},"${r.product_name}",${r.units_sold},${r.total_revenue},${r.total_cost},${r.gross_profit},${r.margin_pct}%\n`;
+          });
+        } else if (this.activeReport === 'sellers') {
+          csvContent += "Ranking,Vendedor_Cajero,Email,Ordenes_Atendidas,Venta_Total,Costo_Total,Ganancia_Bruta,Margen_Pct,Ticket_Promedio,Pct_Aporte\n";
+          (this.sellersData.sellers || []).forEach((r, idx) => {
+            csvContent += `${idx + 1},"${r.user_name}","${r.email}",${r.total_orders},${r.total_sales},${r.total_cost},${r.gross_profit},${r.profit_margin_pct}%,${r.avg_ticket},${r.pct_of_total}%\n`;
+          });
+        } else if (this.activeReport === 'top_customers') {
+          csvContent += "Ranking,Cliente,NIT,Telefono,Compras,Facturacion_Total,Ticket_Promedio,Ganancia_Bruta,Margen_Pct,Ultima_Compra,Dias_Inactivo,Estado\n";
+          (this.topCustomersData.customers || []).forEach((r, idx) => {
+            csvContent += `${idx + 1},"${r.name}","${r.nit}","${r.phone}",${r.total_orders},${r.total_sales},${r.avg_ticket},${r.gross_profit},${r.profit_margin_pct}%,"${r.last_sale_formatted}",${r.days_inactive},"${r.activity_status}"\n`;
+          });
+        } else if (this.activeReport === 'peak_hours') {
+          csvContent += "Franja_Horaria,Ordenes,Venta_Total,Ticket_Promedio\n";
+          (this.peakHoursData.hourly || []).forEach(r => {
+            csvContent += `"${r.label}",${r.orders},${r.sales},${r.avg_ticket}\n`;
+          });
+          csvContent += "\nDia_Semana,Ordenes,Venta_Total,Ticket_Promedio\n";
+          (this.peakHoursData.daily || []).forEach(r => {
+            csvContent += `"${r.day_name}",${r.orders},${r.sales},${r.avg_ticket}\n`;
+          });
+        } else if (this.activeReport === 'discounts') {
+          csvContent += "Fecha_Hora,No_Ticket,Vendedor,Cliente,Producto,Codigo,Cantidad,Precio_Unitario,Descuento_Monto,Descuento_Pct,Total_Linea,Margen_Linea\n";
+          (this.discountsData.items || []).forEach(r => {
+            csvContent += `"${r.sale_date}","${r.sale_number}","${r.seller_name}","${r.customer_name}","${r.product_name}","${r.product_barcode}",${r.qty},${r.unit_price},${r.discount_amount},${r.discount_pct}%,${r.total},${r.margin_amount}\n`;
+          });
+        } else if (this.activeReport === 'slow_stock') {
+          csvContent += "SKU,Producto,Categoria,Bodega,Existencia_Actual,Vendido_Periodo,Costo_Unitario,Precio_Venta,Capital_Inmovilizado,Ultima_Venta\n";
+          (this.slowStockData.items || []).forEach(r => {
+            csvContent += `"${r.sku}","${r.product_name}","${r.category}","${r.warehouse_name}",${r.qty_on_hand},${r.qty_sold_in_period},${r.unit_cost},${r.sale_price},${r.capital_locked},"${r.last_sold_date}"\n`;
+          });
+        } else if (this.activeReport === 'purchasing') {
+          csvContent += "Estado_Urgencia,SKU,Producto,Bodega,Proveedor,Stock_Actual,Stock_Minimo,Stock_Maximo,Cantidad_Sugerida,Costo_Unitario,Inversion_Requerida\n";
+          (this.purchasingData.items || []).forEach(r => {
+            csvContent += `"${r.status}","${r.sku}","${r.product_name}","${r.warehouse_name}","${r.supplier_name}",${r.qty_on_hand},${r.min_stock},${r.max_stock},${r.suggested_qty},${r.unit_cost},${r.investment_needed}\n`;
+          });
+        } else if (this.activeReport === 'ar_aging') {
+          csvContent += "Cliente,NIT,Telefono,Saldo_Total,Al_Dia,Mora_1_30,Mora_31_60,Mora_61_90,Mora_Mas_90,Nivel_Riesgo\n";
+          (this.arAgingData.customers || []).forEach(r => {
+            csvContent += `"${r.customer_name}","${r.nit}","${r.phone}",${r.total_balance},${r.current},${r.days_1_30},${r.days_31_60},${r.days_61_90},${r.days_over_90},"${r.risk_level}"\n`;
+          });
+        } else if (this.activeReport === 'cashier_audit') {
+          csvContent += "No_Sesion,Cajero,Sucursal,Apertura,Cierre,Fondo_Inicial,Ventas_Turno,Saldo_Esperado,Contado_Real,Diferencia,Diagnostico\n";
+          (this.cashierAuditsData.sessions || []).forEach(r => {
+            csvContent += `"${r.session_number}","${r.cajero_name}","${r.branch_name}","${r.opened_at}","${r.closed_at}",${r.opening_balance},${r.total_sales},${r.closing_balance_expected},${r.closing_balance_real},${r.closing_difference},"${r.status_diff}"\n`;
           });
         } else if (this.activeReport === 'inventory') {
           csvContent += "Almacen,Codigo,Producto,SKU,Existencia,Costo_Unitario,Valoracion_Costo,Precio_Venta,Valoracion_Venta\n";

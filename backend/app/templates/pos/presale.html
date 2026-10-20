@@ -1,0 +1,3652 @@
+{% set show_layout = false %}
+{% extends "base.html" %}
+
+{% block title %}Pre-Venta Comercial — POS Empresarial{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* =============================================
+     PRE-VENTA DESIGN SYSTEM - EXACT MATCH TO IMAGE 2
+  ============================================= */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #edf2f7;
+    overflow: hidden;
+    height: 100vh;
+    color: #1e293b;
+  }
+
+  /* 1. TOP BAR (PURPLE / PLUM ODOO #714B67 - EXACTLY AS IMAGE 2) */
+  .pos-topbar {
+    height: 48px;
+    background: #714B67;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    flex-shrink: 0;
+    z-index: 100;
+  }
+
+  .order-tabs-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .order-tab-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+
+  .order-tab-pill.active {
+    background: #ffffff;
+    color: #714B67;
+    border-color: #ffffff;
+  }
+
+  .order-tab-close {
+    font-size: 14px;
+    opacity: 0.7;
+    cursor: pointer;
+  }
+  .order-tab-close:hover { opacity: 1; }
+
+  .new-sale-btn {
+    background: #0d9488;
+    color: #ffffff;
+    border: none;
+    padding: 6px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.15s;
+  }
+  .new-sale-btn:hover { background: #0f766e; }
+
+  .topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .status-pill-online {
+    background: #10b981;
+    color: #ffffff;
+    padding: 5px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .topbar-btn {
+    background: rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 34px;
+    text-decoration: none;
+    transition: all 0.15s ease;
+  }
+  .topbar-btn:hover { background: rgba(255, 255, 255, 0.3); color: #ffffff; }
+
+  /* =============================================
+     ODOO ENTERPRISE SEGMENTED DATE PILLS
+  ============================================= */
+  .odoo-date-pill-group {
+    display: flex !important;
+    width: 100% !important;
+    background: #f1f5f9 !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 8px !important;
+    padding: 4px !important;
+    gap: 6px !important;
+    box-sizing: border-box !important;
+  }
+
+  .odoo-date-pill-btn {
+    flex: 1 1 0% !important;
+    height: 38px !important;
+    border: none !important;
+    outline: none !important;
+    background: transparent !important;
+    color: #475569 !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    border-radius: 6px !important;
+    cursor: pointer !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    transition: all 0.15s ease-in-out !important;
+    user-select: none !important;
+    padding: 0 10px !important;
+    margin: 0 !important;
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    box-shadow: none !important;
+    font-family: inherit !important;
+  }
+
+  .odoo-date-pill-btn:hover:not(.active) {
+    background: rgba(255, 255, 255, 0.8) !important;
+    color: #1e293b !important;
+  }
+
+  .odoo-date-pill-btn.active {
+    background: #714B67 !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    box-shadow: 0 2px 6px rgba(113, 75, 103, 0.35) !important;
+  }
+
+  .odoo-date-pill-btn i {
+    font-size: 16px !important;
+    line-height: 1 !important;
+  }
+
+  /* 2. MAIN LAYOUT (LEFT CART & NUMPAD + RIGHT CATALOG) */
+  .pos-main-container {
+    display: flex;
+    height: calc(100vh - 48px);
+    height: calc(100dvh - 48px);
+    overflow: hidden;
+  }
+
+  /* LEFT PANEL: CART & NUMPAD (WIDTH: 380px) */
+  .pos-left-panel {
+    width: 380px;
+    background: #ffffff;
+    border-right: 1px solid #cbd5e1;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+  }
+
+  /* Customer selector box */
+  .customer-header-box {
+    padding: 12px 14px;
+    border-bottom: 1px solid #f1f5f9;
+    position: relative;
+  }
+
+  .customer-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: #1e293b;
+    font-weight: 800;
+    font-size: 13px;
+    margin-bottom: 8px;
+  }
+
+  .customer-search-input {
+    width: 100%;
+    padding: 8px 12px 8px 34px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-size: 13px;
+    outline: none;
+    color: #334155;
+    background: #f8fafc;
+    box-sizing: border-box;
+  }
+  .customer-search-input:focus {
+    border-color: #714B67;
+    background: #ffffff;
+    box-shadow: 0 0 0 2px rgba(84, 57, 75, 0.15);
+  }
+
+  .customer-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.18);
+    max-height: 300px;
+    overflow-y: auto;
+    z-index: 100;
+  }
+  .customer-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #f1f5f9;
+  }
+  .customer-item:hover { background: #f8fafc; }
+
+  /* Cart Items Area */
+  .cart-items-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+    background: #ffffff;
+  }
+
+  .empty-cart-state {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #94a3b8;
+    gap: 12px;
+    font-size: 13px;
+  }
+  .empty-cart-state svg { width: 44px; height: 44px; stroke-width: 1.5; color: #94a3b8; }
+
+  .cart-line-item {
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 6px;
+    background: #f8fafc;
+    border: 1px solid #f1f5f9;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .cart-line-item:hover { background: #f1f5f9; }
+  .cart-line-item.selected {
+    background: #fae8ff;
+    border-color: #d8b4fe;
+    border-left: 4px solid #a855f7;
+  }
+
+  .cart-line-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 4px;
+  }
+  .cart-line-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    color: #64748b;
+  }
+
+  /* Totals Section */
+  .totals-summary-box {
+    padding: 10px 16px;
+    background: #ffffff;
+    border-top: 1px dashed #cbd5e1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .subtotal-line {
+    font-size: 12px;
+    color: #64748b;
+  }
+
+  .total-line {
+    font-size: 18px;
+    font-weight: 800;
+    color: #1e293b;
+  }
+
+  /* 5-Column Numpad matching Image 2 */
+  .numpad-container {
+    padding: 8px 10px 10px 10px;
+    background: #ffffff;
+    border-top: 1px solid #e2e8f0;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr) 1fr 1.25fr;
+    grid-gap: 6px;
+  }
+
+  .numpad-btn {
+    height: 46px;
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #334155;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.1s;
+    user-select: none;
+  }
+  .numpad-btn:hover { background: #f1f5f9; border-color: #94a3b8; }
+  .numpad-btn:active { transform: scale(0.96); }
+
+  .numpad-mode-btn {
+    background: #f1f5f9;
+    color: #475569;
+    font-size: 11px;
+    font-weight: 800;
+    border-color: #cbd5e1;
+  }
+  .numpad-mode-btn.active {
+    background: #714B67;
+    color: #ffffff;
+    border-color: #714B67;
+  }
+
+  .pay-action-btn {
+    grid-column: 5;
+    grid-row: 1 / span 4;
+    background: #64acb4;
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 800;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    transition: background 0.15s, transform 0.1s;
+  }
+  .pay-action-btn:hover { background: #5298a0; }
+  .pay-action-btn:active { transform: scale(0.98); }
+  .pay-action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* RIGHT PANEL: CATALOG */
+  .pos-right-panel {
+    flex: 1;
+    background: #edf2f7;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  .catalog-top-bar {
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #edf2f7;
+    border-bottom: 1px solid #e2e8f0;
+    overflow-x: auto;
+  }
+
+  .catalog-search-pill {
+    flex: 0 0 320px;
+    position: relative;
+  }
+
+  .catalog-search-pill input {
+    width: 100% !important;
+    padding: 7px 14px 7px 36px !important;
+    border-radius: 8px !important;
+    border: 1.5px solid #714B67 !important;
+    background: #ffffff !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    color: #1e293b !important;
+    outline: none !important;
+    box-shadow: 0 2px 6px rgba(84, 57, 75, 0.08) !important;
+  }
+  .catalog-search-pill input:focus {
+    box-shadow: 0 0 0 2px rgba(84, 57, 75, 0.25) !important;
+  }
+  .catalog-search-icon {
+    position: absolute;
+    left: 11px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #714B67;
+    font-size: 16px;
+    font-weight: 800;
+  }
+
+  .categories-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow-x: auto;
+    white-space: nowrap;
+    scrollbar-width: none;
+  }
+  .categories-row::-webkit-scrollbar { display: none; }
+
+  .cat-pill {
+    padding: 6px 14px;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #334155;
+    font-size: 12.5px;
+    font-weight: 700;
+    border: 1px solid #cbd5e1;
+    cursor: pointer;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .cat-pill:hover { background: #f8fafc; border-color: #94a3b8; }
+  .cat-pill.active {
+    background: #714B67;
+    color: #ffffff;
+    border-color: #714B67;
+  }
+
+  /* PRODUCT GRID & CARDS (IMAGE 2 EXACT SPECIFICATION) */
+  .product-scroll-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px 16px;
+  }
+
+  .product-grid-container {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)) !important;
+    grid-auto-rows: minmax(215px, max-content) !important;
+    gap: 12px !important;
+    align-items: start !important;
+    padding-bottom: 24px;
+  }
+
+  .product-card-ref {
+    background: #ffffff;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    padding: 0;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    min-height: 215px !important;
+    height: 100% !important;
+    position: relative;
+    cursor: pointer;
+    overflow: hidden;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    box-sizing: border-box;
+    user-select: none;
+  }
+  .product-card-ref:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+    border-color: #0d9488;
+  }
+  .product-card-ref:active {
+    transform: scale(0.98);
+  }
+
+  .card-img-wrapper {
+    height: 120px !important;
+    width: 100%;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    overflow: hidden;
+    border-bottom: 1px solid #f1f5f9;
+    background: #ffffff;
+    padding: 8px;
+    flex-shrink: 0 !important;
+    position: relative;
+    box-sizing: border-box;
+  }
+  .card-img-wrapper img {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    display: block;
+    margin: 0 auto;
+    transition: transform 0.2s ease;
+  }
+  .product-card-ref:hover .card-img-wrapper img {
+    transform: scale(1.06);
+  }
+  .card-img-emoji {
+    font-size: 44px;
+    line-height: 1;
+  }
+
+  .card-bottom-info {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    gap: 4px;
+    padding: 10px 12px 12px 12px !important;
+    flex: 1 0 auto !important;
+    background: #ffffff;
+    box-sizing: border-box;
+  }
+
+  .card-product-title {
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    color: #1e293b !important;
+    line-height: 1.35 !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+    min-height: 32px !important;
+    word-break: break-word;
+  }
+
+  .card-price-row {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    margin-top: 6px !important;
+    gap: 4px;
+  }
+
+  .eye-info-icon {
+    background: #f1f5f9 !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 6px !important;
+    width: 26px !important;
+    height: 24px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    color: #475569 !important;
+    padding: 0 !important;
+    transition: all 0.15s ease !important;
+    flex-shrink: 0 !important;
+  }
+  .eye-info-icon:hover {
+    background: #e2e8f0 !important;
+    color: #714B67 !important;
+  }
+
+  .product-stock-pill {
+    font-size: 10.5px !important;
+    font-weight: 800 !important;
+    color: #475569 !important;
+    background: #f1f5f9 !important;
+    padding: 2px 7px !important;
+    border-radius: 6px !important;
+    border: 1px solid #e2e8f0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+  }
+  .product-stock-pill.low {
+    background: #ffedd5 !important;
+    color: #c2410c !important;
+    border-color: #fed7aa !important;
+  }
+  .product-stock-pill.out {
+    background: #fee2e2 !important;
+    color: #b91c1c !important;
+    border-color: #fca5a5 !important;
+  }
+
+  .card-price-text {
+    font-size: 13.5px !important;
+    font-weight: 800 !important;
+    color: #0d9488 !important;
+    white-space: nowrap !important;
+    text-align: right !important;
+    flex-shrink: 0 !important;
+    margin-left: auto !important;
+  }
+
+  /* MODALS & PROFORMA PRINTING */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(3px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+
+  .modal-card {
+    background: #ffffff;
+    border-radius: 14px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+    width: 100%;
+    max-width: 680px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Default desktop visibility for mobile elements */
+  .pos-mobile-cart-bar { display: none !important; }
+  .mobile-cart-top-bar { display: none !important; }
+  .pos-mobile-nav-pills { display: none !important; }
+  .topbar-btn-text { display: inline; }
+  .new-sale-text { display: inline; }
+
+  /* ===================================================
+     RESPONSIVE MOBILE & TABLETS (<= 768px)
+     Matching the POS module single-column switcher
+  =================================================== */
+  @media (max-width: 768px) {
+    .pos-topbar {
+      padding: 0 8px !important;
+      height: 48px !important;
+      gap: 6px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+    }
+    .order-tabs-container {
+      max-width: 32% !important;
+      overflow-x: auto !important;
+      -webkit-overflow-scrolling: touch !important;
+      white-space: nowrap !important;
+      gap: 4px !important;
+      flex-shrink: 0 !important;
+    }
+    .order-tab-pill {
+      padding: 4px 8px !important;
+      font-size: 11px !important;
+      height: 30px !important;
+    }
+    .new-sale-btn {
+      padding: 0 !important;
+      width: 30px !important;
+      min-width: 30px !important;
+      height: 30px !important;
+      font-size: 16px !important;
+      font-weight: 900 !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }
+    .new-sale-text {
+      display: none !important;
+    }
+
+    /* Mobile segmented pills in top bar */
+    .pos-mobile-nav-pills {
+      display: inline-flex !important;
+      background: rgba(0, 0, 0, 0.35) !important;
+      border: 1px solid rgba(255, 255, 255, 0.18) !important;
+      border-radius: 20px !important;
+      padding: 2px !important;
+      gap: 2px !important;
+      flex-shrink: 0 !important;
+    }
+    .pos-mn-btn {
+      background: transparent !important;
+      border: none !important;
+      color: #ffffff !important;
+      opacity: 0.85 !important;
+      padding: 4px 9px !important;
+      border-radius: 16px !important;
+      font-size: 11px !important;
+      font-weight: 800 !important;
+      cursor: pointer !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 4px !important;
+      touch-action: manipulation !important;
+      transition: all 0.15s ease !important;
+      line-height: 1 !important;
+    }
+    .pos-mn-btn.active {
+      background: #ffffff !important;
+      color: #714B67 !important;
+      opacity: 1 !important;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25) !important;
+    }
+    .pos-mn-badge {
+      background: #714B67 !important;
+      color: #ffffff !important;
+      border-radius: 10px !important;
+      padding: 0 5px !important;
+      font-size: 9.5px !important;
+      font-weight: 900 !important;
+    }
+    .pos-mn-btn:not(.active) .pos-mn-badge {
+      background: rgba(255, 255, 255, 0.3) !important;
+      color: #ffffff !important;
+    }
+
+    .topbar-right {
+      gap: 4px !important;
+    }
+    .status-pill-online {
+      display: none !important;
+    }
+    .topbar-btn.branch-info {
+      display: none !important;
+    }
+    .topbar-btn {
+      padding: 4px 8px !important;
+      height: 30px !important;
+      font-size: 11px !important;
+    }
+    .topbar-btn-text {
+      display: none !important;
+    }
+
+    /* Single-Column Screen Switcher */
+    .pos-main-container {
+      height: calc(100vh - 48px) !important;
+      height: calc(100dvh - 48px) !important;
+      flex-direction: column !important;
+      position: relative !important;
+      overflow: hidden !important;
+    }
+
+    /* In Catalog Mode: Hide Cart Panel, Show Full Catalog */
+    .pos-main-container.mobile-tab-catalog .pos-left-panel {
+      display: none !important;
+    }
+    .pos-main-container.mobile-tab-catalog .pos-right-panel {
+      display: flex !important;
+      width: 100% !important;
+      flex: 1 1 0% !important;
+      height: 100% !important;
+      min-height: 0 !important;
+      overflow: hidden !important;
+    }
+
+    /* In Cart Mode: Hide Catalog, Show Full Cart */
+    .pos-main-container.mobile-tab-cart .pos-left-panel {
+      display: flex !important;
+      width: 100% !important;
+      flex: 1 1 0% !important;
+      height: 100% !important;
+      min-height: 0 !important;
+      border-right: none !important;
+      overflow: hidden !important;
+    }
+    .pos-main-container.mobile-tab-cart .pos-right-panel {
+      display: none !important;
+    }
+
+    /* Mobile Return Bar in Cart Panel */
+    .mobile-cart-top-bar {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      background: #714B67 !important;
+      color: #ffffff !important;
+      padding: 8px 12px !important;
+      flex-shrink: 0 !important;
+    }
+    .mobile-back-catalog-btn {
+      background: rgba(255, 255, 255, 0.2) !important;
+      border: 1px solid rgba(255, 255, 255, 0.35) !important;
+      color: #ffffff !important;
+      padding: 6px 12px !important;
+      border-radius: 6px !important;
+      font-size: 12px !important;
+      font-weight: 800 !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 5px !important;
+      cursor: pointer !important;
+    }
+    .mobile-cart-title {
+      font-weight: 800 !important;
+      font-size: 13px !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 6px !important;
+    }
+
+    /* Catalog Top Bar on Mobile */
+    .catalog-top-bar {
+      flex-direction: column !important;
+      align-items: stretch !important;
+      gap: 8px !important;
+      padding: 8px 10px !important;
+      background: #f8fafc !important;
+      border-bottom: 1px solid #e2e8f0 !important;
+      flex-shrink: 0 !important;
+      height: auto !important;
+      min-height: 0 !important;
+      overflow: visible !important;
+    }
+    .catalog-search-pill {
+      flex: none !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      height: 40px !important;
+      position: relative !important;
+      margin: 0 !important;
+    }
+    .catalog-search-icon {
+      position: absolute !important;
+      left: 12px !important;
+      top: 50% !important;
+      transform: translateY(-50%) !important;
+      color: #714B67 !important;
+      font-size: 16px !important;
+      z-index: 5 !important;
+      pointer-events: none !important;
+    }
+    .catalog-search-pill input {
+      width: 100% !important;
+      font-size: 14px !important;
+      height: 40px !important;
+      line-height: 40px !important;
+      padding: 0 14px 0 36px !important;
+      border: 1.5px solid #714B67 !important;
+      border-radius: 8px !important;
+      box-sizing: border-box !important;
+      background: #ffffff !important;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important;
+    }
+    .categories-row {
+      width: 100% !important;
+      overflow-x: auto !important;
+      -webkit-overflow-scrolling: touch !important;
+      display: flex !important;
+      flex-wrap: nowrap !important;
+      gap: 6px !important;
+      padding-bottom: 2px !important;
+      scrollbar-width: none !important;
+    }
+    .categories-row::-webkit-scrollbar { display: none !important; }
+    .cat-pill {
+      padding: 6px 12px !important;
+      font-size: 12px !important;
+      font-weight: 700 !important;
+      flex-shrink: 0 !important;
+      white-space: nowrap !important;
+    }
+
+    /* Product Grid on Mobile: 2 columns */
+    .product-scroll-container {
+      flex: 1 1 0% !important;
+      min-height: 0 !important;
+      overflow-y: auto !important;
+      -webkit-overflow-scrolling: touch !important;
+      padding-bottom: 90px !important;
+    }
+    .product-grid-container {
+      display: grid !important;
+      grid-template-columns: repeat(2, 1fr) !important;
+      grid-gap: 8px !important;
+      padding: 8px 8px 90px 8px !important;
+    }
+    .product-card-ref {
+      min-height: 175px !important;
+      height: auto !important;
+      width: 100% !important;
+    }
+    .card-img-wrapper {
+      height: 90px !important;
+      padding: 4px !important;
+    }
+    .card-product-title {
+      font-size: 12px !important;
+      line-height: 1.2 !important;
+      min-height: 28px !important;
+    }
+    .card-price-text {
+      font-size: 13.5px !important;
+    }
+
+    /* Cart & Numpad responsiveness on mobile */
+    .pos-left-panel {
+      width: 100% !important;
+      max-width: 100% !important;
+      flex: 1 1 0% !important;
+      border-right: none !important;
+      height: 100% !important;
+    }
+    .cart-items-area {
+      flex: 1 1 0% !important;
+      min-height: 0 !important;
+      overflow-y: auto !important;
+    }
+    .numpad-container {
+      grid-gap: 4px !important;
+      padding: 6px 8px !important;
+    }
+    .numpad-btn {
+      height: 40px !important;
+      font-size: 15px !important;
+    }
+    .pay-action-btn {
+      font-size: 13px !important;
+    }
+
+    /* Floating Bottom Cart Bar in Catalog View */
+    .pos-mobile-cart-bar {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      position: fixed !important;
+      bottom: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      height: 62px !important;
+      background: #ffffff !important;
+      border-top: 1.5px solid #e2e8f0 !important;
+      box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.12) !important;
+      padding: 6px 12px !important;
+      z-index: 100 !important;
+      gap: 8px !important;
+    }
+    .pos-mcb-info {
+      display: flex !important;
+      align-items: center !important;
+      gap: 8px !important;
+      cursor: pointer !important;
+      flex: 1 !important;
+      min-width: 0 !important;
+    }
+    .pos-mcb-icon-wrap {
+      width: 40px !important;
+      height: 40px !important;
+      background: #fdf4ff !important;
+      border: 1.5px solid #e9d5ff !important;
+      border-radius: 8px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      position: relative !important;
+      color: #714B67 !important;
+      font-size: 20px !important;
+      flex-shrink: 0 !important;
+    }
+    .pos-mcb-count {
+      position: absolute !important;
+      top: -5px !important;
+      right: -5px !important;
+      background: #714B67 !important;
+      color: #ffffff !important;
+      font-size: 10px !important;
+      font-weight: 900 !important;
+      width: 18px !important;
+      height: 18px !important;
+      border-radius: 50% !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      border: 1.5px solid #ffffff !important;
+    }
+    .pos-mcb-text-block {
+      display: flex !important;
+      flex-direction: column !important;
+      min-width: 0 !important;
+    }
+    .pos-mcb-label {
+      font-size: 10px !important;
+      font-weight: 700 !important;
+      color: #64748b !important;
+      text-transform: uppercase !important;
+    }
+    .pos-mcb-total {
+      font-size: 16px !important;
+      font-weight: 900 !important;
+      color: #1e293b !important;
+      white-space: nowrap !important;
+    }
+    .pos-mcb-btn-cart {
+      background: #714B67 !important;
+      color: #ffffff !important;
+      border: none !important;
+      border-radius: 8px !important;
+      padding: 9px 14px !important;
+      font-size: 12px !important;
+      font-weight: 800 !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 5px !important;
+      cursor: pointer !important;
+      flex-shrink: 0 !important;
+    }
+
+    /* Modal responsiveness */
+    .modal-card {
+      width: 95vw !important;
+      max-width: 95vw !important;
+      max-height: 92vh !important;
+      margin: 10px !important;
+    }
+  }
+
+  @keyframes syncPulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.04); opacity: 0.9; }
+  }
+  .sync-btn-pulse {
+    animation: syncPulse 2s infinite ease-in-out;
+  }
+
+  /* Thermal ticket preview and print styles */
+  .thermal-ticket-container {
+    width: 320px;
+    max-width: 100%;
+    margin: 0 auto;
+    background: #ffffff;
+    border: 1px dashed #cbd5e1;
+    border-radius: 8px;
+    padding: 16px 14px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 11.5px;
+    line-height: 1.35;
+    color: #0f172a;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+  }
+  .ticket-dashed-line {
+    border-top: 1px dashed #475569;
+    margin: 8px 0;
+  }
+  .ticket-double-line {
+    border-top: 2px double #1e293b;
+    margin: 8px 0;
+  }
+
+  @media print {
+    body * {
+      visibility: hidden;
+    }
+    .print-zone-active, .print-zone-active * {
+      visibility: visible;
+    }
+    .print-zone-active {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100% !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      background: #ffffff !important;
+    }
+    .print-zone-active.ticket-print {
+      width: 76mm !important;
+      max-width: 76mm !important;
+      padding: 2mm 3mm !important;
+      font-size: 11px !important;
+      border: none !important;
+      box-shadow: none !important;
+      border-radius: 0 !important;
+    }
+    .no-print {
+      display: none !important;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content_raw %}
+<div x-data="presaleApp()" x-init="init()" class="h-screen flex flex-col select-none overflow-hidden">
+
+  <!-- =============================================
+       1. TOP BAR (ODOO PLUM #714B67 - EXACT MATCH TO IMAGE 2)
+  ============================================= -->
+  <header class="pos-topbar">
+    <!-- Left: Order Tabs & New Sale -->
+    <div class="order-tabs-container">
+      <template x-for="(ord, idx) in orders" :key="idx">
+        <div 
+          class="order-tab-pill" 
+          :class="activeOrderIdx === idx ? 'active' : ''"
+          @click="switchOrder(idx)"
+        >
+          <span x-text="'Orden ' + (idx + 1)"></span>
+          <span class="order-tab-close" x-show="orders.length > 1" @click.stop="closeOrder(idx)">&times;</span>
+        </div>
+      </template>
+      <button class="new-sale-btn" @click="addNewOrder()" title="Nueva Venta">
+        <span>+</span> <span class="new-sale-text">Nueva Venta</span>
+      </button>
+    </div>
+
+    <!-- Center/Right Mobile Tabs Pills -->
+    <div class="pos-mobile-nav-pills">
+      <button 
+        type="button" 
+        class="pos-mn-btn" 
+        :class="mobileTab === 'catalog' ? 'active' : ''"
+        @click="mobileTab = 'catalog'"
+      >
+        <i class="ph ph-squares-four"></i>
+        <span>Catálogo</span>
+      </button>
+      <button 
+        type="button" 
+        class="pos-mn-btn" 
+        :class="mobileTab === 'cart' ? 'active' : ''"
+        @click="mobileTab = 'cart'"
+      >
+        <i class="ph ph-shopping-cart-simple"></i>
+        <span>Carrito</span>
+        <span class="pos-mn-badge" x-text="cart.reduce((s, i) => s + Number(i.qty || 1), 0)">0</span>
+      </button>
+    </div>
+
+    <!-- Right: Status, Offline Sync, Mis Solicitudes, Sucursal, Salir -->
+    <div class="topbar-right">
+      <!-- Indicador reactivo de Conexión -->
+      <template x-if="isOnline">
+        <div class="status-pill-online" title="Conectado al servidor central">
+          <span style="display:inline-block; width:7px; height:7px; border-radius:50%; background:#ffffff;"></span>
+          <span class="topbar-btn-text">En línea</span>
+        </div>
+      </template>
+      <template x-if="!isOnline">
+        <div style="background:#fef3c7; color:#b45309; border:1px solid #fde68a; font-size:11px; font-weight:700; padding:4px 10px; border-radius:12px; display:inline-flex; align-items:center; gap:5px;" title="Modo Sin Conexión activo">
+          <i class="ph-bold ph-wifi-slash"></i>
+          <span class="topbar-btn-text">Offline</span>
+        </div>
+      </template>
+
+      <!-- Botón de Sincronización Automática si hay cola local -->
+      <template x-if="offlineQueue.length > 0">
+        <button 
+          class="topbar-btn sync-btn-pulse" 
+          @click="syncOfflinePresales(false)" 
+          :disabled="isSyncing"
+          style="background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; font-weight: 700; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 6px; cursor: pointer; transition: all 0.15s;"
+          :title="'Sincronizando automáticamente en segundo plano (' + offlineQueue.length + ' pendientes)'"
+        >
+          <i class="ph-bold ph-arrows-clockwise" :class="isSyncing ? 'animate-spin' : ''" style="font-size: 15px; color: #0284c7;"></i>
+          <span class="topbar-btn-text" x-text="isSyncing ? 'Sincronizando...' : 'Auto-sincronizando (' + offlineQueue.length + ')'"></span>
+        </button>
+      </template>
+
+      <button class="topbar-btn" @click="openMyRequestsModal()" title="Mis Solicitudes" style="display:inline-flex; align-items:center; gap:6px;">
+        <i class="ph-bold ph-clock-counter-clockwise"></i>
+        <span class="topbar-btn-text">Mis Solicitudes</span>
+        <span class="pos-mn-badge" style="background:#714B67; color:#ffffff; padding:1px 6px; border-radius:10px; font-size:10px; font-weight:800;" x-text="myRequests.length">0</span>
+      </button>
+      <div class="topbar-btn branch-info" style="cursor:default;">
+        <i class="ph-bold ph-storefront"></i> <span x-text="activeBranchName">Sucursal Principal</span>
+      </div>
+      <a href="/dashboard" class="topbar-btn" title="Volver al Panel Principal" style="display:inline-flex; align-items:center; gap:6px;">
+        <i class="ph-bold ph-sign-out"></i>
+        <span class="topbar-btn-text">Salir</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- =============================================
+       2. MAIN POS CONTAINER (LEFT CART & RIGHT CATALOG)
+  ============================================= -->
+  <div class="pos-main-container" :class="{'mobile-tab-catalog': mobileTab === 'catalog', 'mobile-tab-cart': mobileTab === 'cart'}">
+
+    <!-- ---------------------------------------------
+         LEFT PANEL: CART & NUMPAD (MATCHING IMAGE 2)
+    --------------------------------------------- -->
+    <aside class="pos-left-panel">
+      <!-- Mobile Cart Top Bar (Visible on Mobile) -->
+      <div class="mobile-cart-top-bar" x-show="mobileTab === 'cart'">
+        <button type="button" class="mobile-back-catalog-btn" @click="mobileTab = 'catalog'">
+          <span>← Catálogo</span>
+        </button>
+        <div class="mobile-cart-title">
+          <i class="ph ph-shopping-cart"></i>
+          <span>Carrito (<span x-text="cart.reduce((s, i) => s + Number(i.qty || 1), 0)"></span>)</span>
+        </div>
+        <button 
+          type="button" 
+          @click="cart = []; customer = null; if (orders && orders[activeOrderIdx]) { orders[activeOrderIdx].cart = []; orders[activeOrderIdx].customer = null; } customerSearchQuery = ''; deliveryAddress = ''; calculateTotals(); toast('✓ Carrito y cliente vaciados', 'info');" 
+          x-show="cart.length > 0 || (customer && customer.id)"
+          style="background:rgba(239,68,68,0.25); border:1px solid rgba(239,68,68,0.45); color:#fecaca; padding:4px 8px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer;"
+          title="Vaciar Carrito y Cliente"
+        >
+          Vaciar
+        </button>
+      </div>
+
+      <!-- Customer Selector Header (Crédito Activo Requerido) -->
+      <div class="customer-header-box" style="background:#ffffff; border-bottom:1px solid #e2e8f0; padding:10px 14px;">
+        <div style="margin-bottom:8px;">
+          <template x-if="customer && customer.id">
+            <div>
+              <!-- Fila superior: Ícono, Nombre del Cliente y Botones Cambiar/Quitar -->
+              <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+                <div 
+                  style="display:flex; align-items:center; gap:8px; flex:1; min-width:0; cursor:pointer;" 
+                  @click="openCustomerModal()"
+                  title="Haga clic para ver o cambiar cliente"
+                >
+                  <div style="width:34px; height:34px; border-radius:50%; background:#f0fdf4; border:1.5px solid #86efac; display:flex; align-items:center; justify-content:center; color:#16a34a; flex-shrink:0;">
+                    <i class="ph ph-identification-badge" style="font-size:19px;"></i>
+                  </div>
+                  <div style="min-width:0; flex:1;">
+                    <div style="font-weight:900; font-size:13.5px; color:#0f172a; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;" x-text="customer.name"></div>
+                  </div>
+                </div>
+
+                <!-- Botones de Acción -->
+                <div style="display:flex; align-items:center; gap:5px; flex-shrink:0;">
+                  <button 
+                    type="button" 
+                    @click="openCustomerModal()" 
+                    style="background:#714B67; border:none; color:#ffffff; font-size:11.5px; font-weight:700; padding:5px 9px; border-radius:6px; cursor:pointer; display:inline-flex; align-items:center; gap:4px; box-shadow:0 1px 2px rgba(0,0,0,0.06); transition:all 0.15s;"
+                    title="Cambiar cliente para esta pre-venta"
+                  >
+                    <i class="ph ph-arrows-clockwise" style="font-size:13px;"></i>
+                    <span>Cambiar</span>
+                  </button>
+                  <button 
+                    type="button" 
+                    @click="removeCustomer()" 
+                    style="background:#fef2f2; border:1px solid #fecaca; color:#dc2626; font-size:11.5px; font-weight:700; padding:5px 9px; border-radius:6px; cursor:pointer; display:inline-flex; align-items:center; gap:4px; transition:all 0.15s;"
+                    title="Quitar cliente de esta pre-venta"
+                    onmouseover="this.style.background='#fee2e2'; this.style.borderColor='#fca5a5';"
+                    onmouseout="this.style.background='#fef2f2'; this.style.borderColor='#fecaca';"
+                  >
+                    <i class="ph ph-trash" style="font-size:13px;"></i>
+                    <span>Eliminar</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Fila inferior: Badges independientes amplios para NIT y Crédito Disponible -->
+              <div style="margin-top:7px; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                <!-- Badge NIT -->
+                <div style="background:#f8fafc; color:#334155; font-size:11px; font-weight:700; padding:3px 8px; border-radius:6px; border:1px solid #e2e8f0; display:inline-flex; align-items:center; gap:4px; white-space:nowrap;">
+                  <span style="color:#64748b;">NIT:</span>
+                  <strong style="color:#0f172a;" x-text="customer.nit || 'CF'"></strong>
+                </div>
+
+                <!-- Badge Plazo & Disponible -->
+                <div style="background:#ecfdf5; color:#065f46; font-size:11px; font-weight:800; padding:3px 8px; border-radius:6px; border:1px solid #a7f3d0; display:inline-flex; align-items:center; gap:5px; white-space:nowrap;">
+                  <span style="color:#047857;" x-text="(customer.payment_days ? customer.payment_days + 'd' : 'Crédito')"></span>
+                  <span style="color:#86efac;">•</span>
+                  <span>Disp: <strong style="color:#065f46;" x-text="'Q ' + formatPrice(customer.available_credit || 0)"></strong></span>
+                </div>
+              </div>
+            </div>
+          </template>
+
+          <!-- Si no hay cliente seleccionado -->
+          <template x-if="!customer || !customer.id">
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+              <div 
+                style="display:flex; align-items:center; gap:8px; cursor:pointer; flex:1;" 
+                @click="openCustomerModal()"
+                title="Haga clic para elegir cliente con crédito activo"
+              >
+                <div style="width:34px; height:34px; border-radius:50%; background:#fef3c7; border:1.5px solid #fde68a; display:flex; align-items:center; justify-content:center; color:#d97706; flex-shrink:0;">
+                  <i class="ph ph-user-plus" style="font-size:18px;"></i>
+                </div>
+                <div>
+                  <div style="font-weight:800; font-size:13px; color:#b45309;">Seleccionar Cliente (Crédito)</div>
+                  <div style="font-size:11px; color:#64748b;">Haga clic para elegir cliente con crédito activo</div>
+                </div>
+              </div>
+              <button 
+                type="button" 
+                @click="openCustomerModal()" 
+                style="background:#714B67; border:none; color:#ffffff; font-size:11.5px; font-weight:700; padding:6px 12px; border-radius:6px; cursor:pointer; display:inline-flex; align-items:center; gap:4px;"
+              >
+                <i class="ph ph-magnifying-glass"></i>
+                <span>Buscar</span>
+              </button>
+            </div>
+          </template>
+        </div>
+        <div style="position:relative;" @click.outside="showInlineCustomerDropdown = false">
+          <i class="ph ph-magnifying-glass" style="position:absolute; left:10px; top:50%; transform:translateY(-50%); color:#94a3b8; font-size:14px;"></i>
+          <input 
+            type="text" 
+            class="customer-search-input" 
+            placeholder="Buscar cliente con crédito por NIT o Nombre..." 
+            x-model="customerSearchQuery"
+            @input="searchCustomers(); showInlineCustomerDropdown = true;"
+            @focus="searchCustomers(); showInlineCustomerDropdown = true;"
+            @click="searchCustomers(); showInlineCustomerDropdown = true;"
+            @keydown.enter.prevent="handleCustomerSearchEnter()"
+          >
+          <!-- Autocomplete Dropdown (Solo clientes con crédito) -->
+          <div 
+            class="customer-dropdown" 
+            x-show="showInlineCustomerDropdown" 
+            x-cloak
+          >
+            <!-- Lista de clientes coincidentes con crédito activo -->
+            <template x-for="c in customerList" :key="c.id || c.nit">
+              <div 
+                class="customer-item" 
+                @click="selectCustomer(c)" 
+                style="padding:10px 12px; border-bottom:1px solid #f1f5f9; cursor:pointer; transition:background 0.15s ease;"
+              >
+                <!-- Fila 1: Nombre del cliente completo -->
+                <div style="font-weight:800; font-size:13px; color:#0f172a; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;" x-text="c.name"></div>
+
+                <!-- Fila 2: Badges compactos y ordenados para NIT, Plazo y Crédito Disponible -->
+                <div style="display:flex; align-items:center; gap:5px; margin-top:5px; flex-wrap:wrap;">
+                  <!-- Badge NIT -->
+                  <div style="background:#f8fafc; color:#334155; font-size:10.5px; font-weight:700; padding:2px 6px; border-radius:5px; border:1px solid #e2e8f0; display:inline-flex; align-items:center; gap:3px; white-space:nowrap;">
+                    <span style="color:#64748b; font-weight:600;">NIT:</span>
+                    <span style="color:#0f172a;" x-text="c.nit || 'CF'"></span>
+                  </div>
+
+                  <!-- Badge Plazo / Días de Crédito -->
+                  <div style="background:#fdf2f8; color:#9d174d; font-size:10.5px; font-weight:800; padding:2px 6px; border-radius:5px; border:1px solid #fbcfe8; display:inline-flex; align-items:center; gap:3px; white-space:nowrap;">
+                    <span style="color:#be185d; font-weight:600;">Plazo:</span>
+                    <strong style="color:#9d174d;" x-text="(c.payment_days ? c.payment_days + 'd' : 'Crédito')"></strong>
+                  </div>
+
+                  <!-- Badge Disponible (Destacado en verde esmeralda) -->
+                  <div style="background:#ecfdf5; color:#065f46; font-size:10.5px; font-weight:800; padding:2px 7px; border-radius:5px; border:1px solid #a7f3d0; display:inline-flex; align-items:center; gap:3px; white-space:nowrap;">
+                    <span style="color:#047857; font-weight:600;">Disp:</span>
+                    <strong style="color:#065f46;" x-text="'Q ' + formatPrice(c.available_credit || 0)"></strong>
+                  </div>
+                </div>
+
+                <!-- Fila 3: Límite de crédito y teléfono -->
+                <div style="display:flex; justify-content:space-between; align-items:center; font-size:10px; color:#64748b; margin-top:5px;">
+                  <span x-show="c.credit_limit">
+                    Límite: <strong style="color:#475569;" x-text="'Q ' + formatPrice(c.credit_limit)"></strong>
+                  </span>
+                  <span x-show="c.phone" style="display:inline-flex; align-items:center; gap:3px; color:#64748b;">
+                    <i class="ph ph-phone" style="font-size:11px;"></i>
+                    <span x-text="c.phone"></span>
+                  </span>
+                </div>
+              </div>
+            </template>
+
+            <!-- Si no hay coincidencias -->
+            <template x-if="customerList.length === 0">
+              <div style="padding:14px; text-align:center; font-size:12px; color:#64748b;">
+                <i class="ph ph-warning-circle" style="font-size:18px; color:#f59e0b; display:block; margin-bottom:4px;"></i>
+                <div>No se encontraron clientes con <strong>crédito activo</strong>.</div>
+                <button 
+                  type="button" 
+                  @click="openCustomerModal(); showCreateCustomerForm = true; newCustomerForm.name = customerSearchQuery; showInlineCustomerDropdown = false;"
+                  style="margin-top:8px; background:#714B67; color:#ffffff; border:none; padding:5px 12px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer;"
+                >+ Crear Cliente con Crédito</button>
+              </div>
+            </template>
+
+            <!-- Acceso al catálogo de créditos -->
+            <div style="padding:8px 12px; background:#f8fafc; text-align:center; border-top:1px solid #e2e8f0;">
+              <button 
+                type="button" 
+                @click="openCustomerModal(); showInlineCustomerDropdown = false;"
+                style="background:none; border:none; color:#714B67; font-size:11px; font-weight:800; cursor:pointer;"
+              >
+                Ver listado de clientes con crédito →
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cart Items Area -->
+      <div class="cart-items-area">
+        <template x-for="(item, idx) in cart" :key="idx">
+          <div 
+            class="cart-line-item"
+            :class="selectedLineIdx === idx ? 'selected' : ''"
+            @click="selectLine(idx)"
+          >
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div class="cart-line-title" x-text="item.product_name"></div>
+              <button 
+                type="button" 
+                style="background:none; border:none; font-size:16px; color:#ef4444; cursor:pointer; padding:0 4px;" 
+                title="Eliminar producto"
+                @click.stop="removeLine(idx)"
+              >&times;</button>
+            </div>
+            <div class="cart-line-meta">
+              <span x-text="item.qty + ' x Q' + formatPrice(item.unit_price)"></span>
+              <span style="font-weight:800; color:#1e293b;" x-text="'Q ' + formatPrice(item.total)"></span>
+            </div>
+          </div>
+        </template>
+
+        <!-- Empty Cart State -->
+        <div class="empty-cart-state" x-show="cart.length === 0">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+          </svg>
+          <div>Carrito vacío. Seleccione productos.</div>
+        </div>
+      </div>
+
+      <!-- Totals & Numpad Toggle Box -->
+      <div class="totals-summary-box">
+        <button 
+          type="button" 
+          @click="showNumpad = !showNumpad"
+          style="background:#f1f5f9; border:1px solid #cbd5e1; border-radius:6px; padding:5px 10px; font-size:11px; font-weight:700; color:#475569; cursor:pointer; display:flex; align-items:center; gap:4px;"
+        >
+          <span x-text="showNumpad ? '🔽 Ocultar Teclado' : '🔼 Mostrar Teclado'"></span>
+        </button>
+        <div style="text-align:right;">
+          <div class="subtotal-line" x-text="'SubtotalQ ' + formatPrice(subtotal)">SubtotalQ 0.00</div>
+          <div class="total-line" x-text="'TOTALQ ' + formatPrice(grandTotal)">TOTALQ 0.00</div>
+        </div>
+      </div>
+
+      <!-- Numpad Grid (5 columns: 3 num, 1 mode, 1 tall pay button) -->
+      <div class="numpad-container" x-show="showNumpad">
+        <button class="numpad-btn" @click="handleNumpad('1')">1</button>
+        <button class="numpad-btn" @click="handleNumpad('2')">2</button>
+        <button class="numpad-btn" @click="handleNumpad('3')">3</button>
+        <button 
+          class="numpad-btn numpad-mode-btn"
+          :class="numpadMode === 'qty' ? 'active' : ''"
+          @click="setNumpadMode('qty')"
+        >CANT</button>
+
+        <!-- Tall Action Button (Generar Proforma / Cobrar) -->
+        <button 
+          class="pay-action-btn"
+          :disabled="cart.length === 0 || isSubmitting"
+          @click="openCheckoutModal()"
+          title="Configurar despacho y generar proforma de pre-venta"
+        >
+          <span style="font-size:16px;">▶</span>
+          <span style="font-size:13px; font-weight:800;">Pago</span>
+        </button>
+
+        <button class="numpad-btn" @click="handleNumpad('4')">4</button>
+        <button class="numpad-btn" @click="handleNumpad('5')">5</button>
+        <button class="numpad-btn" @click="handleNumpad('6')">6</button>
+        <button 
+          class="numpad-btn numpad-mode-btn"
+          :class="numpadMode === 'disc' ? 'active' : ''"
+          @click="setNumpadMode('disc')"
+        >DESC</button>
+
+        <button class="numpad-btn" @click="handleNumpad('7')">7</button>
+        <button class="numpad-btn" @click="handleNumpad('8')">8</button>
+        <button class="numpad-btn" @click="handleNumpad('9')">9</button>
+        <button 
+          class="numpad-btn numpad-mode-btn" 
+          style="background:#fef2f2; color:#b91c1c; border-color:#fecaca;"
+          @click="numpadBuffer = ''; toast('Entrada borrada', 'info')"
+        >CLR</button>
+
+        <button class="numpad-btn" @click="handleNumpad('+/-')">+/-</button>
+        <button class="numpad-btn" @click="handleNumpad('0')">0</button>
+        <button class="numpad-btn" @click="handleNumpad('.')">.</button>
+        <button class="numpad-btn" @click="handleNumpad('backspace')">⌫</button>
+      </div>
+
+      <!-- Fallback Action Button when numpad is hidden -->
+      <div x-show="!showNumpad" style="padding:10px 14px; background:#ffffff; border-top:1px solid #e2e8f0;">
+        <button 
+          class="pay-action-btn" 
+          style="width:100%; border-radius:10px; padding:14px; font-size:16px; display:flex; flex-direction:row; justify-content:center; align-items:center; gap:8px;"
+          :disabled="cart.length === 0 || isSubmitting" 
+          @click="openCheckoutModal()"
+        >
+          <span>▶ Cobrar</span>
+          <span x-text="'(Q ' + formatPrice(grandTotal) + ')'"></span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- ---------------------------------------------
+         RIGHT PANEL: CATALOG & SEARCH (MATCHING IMAGE 2)
+    --------------------------------------------- -->
+    <main class="pos-right-panel">
+      <!-- Search input + Categories row -->
+      <div class="catalog-top-bar">
+        <!-- Search bar -->
+        <div class="catalog-search-pill">
+          <i class="ph ph-magnifying-glass catalog-search-icon"></i>
+          <input 
+            type="text" 
+            placeholder="Buscar por nombre, código o escanear" 
+            x-model="search"
+            @input.debounce.250ms="filterProducts()"
+          >
+        </div>
+
+        <!-- Categories Pill Buttons -->
+        <div class="categories-row">
+          <button 
+            class="cat-pill" 
+            :class="selectedCategory === '' ? 'active' : ''"
+            @click="selectedCategory = ''; filterProducts()"
+          >Todos</button>
+          <button class="cat-pill" @click="quickFilter('quick')">⚡ Venta Rápida</button>
+          <template x-for="cat in categories" :key="cat.id">
+            <button 
+              class="cat-pill" 
+              :class="selectedCategory === cat.id ? 'active' : ''"
+              @click="selectedCategory = cat.id; filterProducts()"
+              x-text="cat.name"
+            ></button>
+          </template>
+        </div>
+      </div>
+
+      <!-- Product Cards Grid (Matching Image 2 specifications) -->
+      <div class="product-scroll-container">
+        <div class="product-grid-container">
+          <template x-for="product in filteredProducts" :key="product.id">
+            <div class="product-card-ref" @click="handleProductClick(product)">
+              <!-- Card Image Area (120px height, centered, white wrapper) -->
+              <div class="card-img-wrapper">
+                <template x-if="product.image_url">
+                  <img :src="product.image_url" :alt="product.name" onerror="this.parentNode.querySelector('.card-img-emoji').style.display='flex'; this.style.display='none';">
+                </template>
+                <span class="card-img-emoji" :style="product.image_url ? 'display:none' : ''" x-text="product.emoji || '📦'"></span>
+              </div>
+
+              <!-- Card Bottom Info: Title, Stock Pill & Teal Price -->
+              <div class="card-bottom-info">
+                <div class="card-product-title" x-text="product.name"></div>
+                <div class="card-price-row">
+                  <div style="display:flex; align-items:center; gap:4px; flex-shrink:1; min-width:0; overflow:hidden;">
+                    <!-- Eye button -->
+                    <button 
+                      type="button" 
+                      class="eye-info-icon" 
+                      @click.stop="showProductStockInfo(product)"
+                      title="Ver ficha técnica, información y existencias"
+                    >
+                      <i class="ph ph-eye" style="font-size:14px;"></i>
+                    </button>
+                    <!-- Stock Pill (Físico en bodega con validación de disponibilidad) -->
+                    <span 
+                      class="product-stock-pill"
+                      :class="((product.stock_available !== undefined ? product.stock_available : ((product.stock_physical !== undefined ? product.stock_physical : product.stock) - (product.stock_frozen || 0))) <= 0) ? 'out' : (((product.stock_physical !== undefined ? product.stock_physical : product.stock) <= (product.min_stock || 5)) ? 'low' : '')"
+                      x-text="((product.stock_available !== undefined ? product.stock_available : ((product.stock_physical !== undefined ? product.stock_physical : product.stock) - (product.stock_frozen || 0))) <= 0) ? ((product.stock_frozen > 0) ? '❄️ Reservado' : 'Agotado') : 'Stk: ' + (product.stock_physical !== undefined ? product.stock_physical : product.stock)"
+                      :title="'Stock físico en bodega: ' + (product.stock_physical !== undefined ? product.stock_physical : (product.stock !== undefined ? product.stock : (product.total_stock || 0))) + (product.stock_frozen ? ' (' + product.stock_frozen + ' reservadas)' : '')"
+                    ></span>
+                    <!-- Frozen Stock Indicator solo si hay disponible positivo -->
+                    <template x-if="product.stock_frozen > 0 && ((product.stock_available !== undefined ? product.stock_available : ((product.stock_physical !== undefined ? product.stock_physical : product.stock) - product.stock_frozen)) > 0)">
+                      <span 
+                        style="font-size: 10px; font-weight: 700; color: #0284c7; background: #e0f2fe; border: 1px solid #bae6fd; border-radius: 4px; padding: 2px 5px; display: inline-flex; align-items: center; gap: 2px; flex-shrink: 0;" 
+                        :title="'❄️ ' + product.stock_frozen + ' unidades congeladas en solicitudes pendientes (vencimiento 7 días)'"
+                      >
+                        ❄️ <span x-text="product.stock_frozen"></span>
+                      </span>
+                    </template>
+                  </div>
+                  <!-- Teal / Emerald Price (e.g. Q18.25) -->
+                  <span class="card-price-text" x-text="'Q' + formatPrice(product.sale_price)"></span>
+                </div>
+              </div>
+            </div>
+          </template>
+        </div>
+
+        <!-- Empty Products Message -->
+        <div x-show="filteredProducts.length === 0" style="text-align:center; padding:60px 20px; color:#64748b;">
+          <i class="ph ph-package" style="font-size:48px; color:#cbd5e1;"></i>
+          <div style="font-weight:800; font-size:16px; color:#1e293b; margin-top:8px;">No hay productos disponibles</div>
+          <div style="font-size:12px; color:#94a3b8; margin-top:4px;">No se encontraron coincidencias para la búsqueda seleccionada.</div>
+        </div>
+      </div>
+
+      <!-- Floating Bottom Cart Bar for Mobile View -->
+      <div class="pos-mobile-cart-bar" x-show="mobileTab === 'catalog'" x-cloak>
+        <div class="pos-mcb-info" @click="mobileTab = 'cart'">
+          <div class="pos-mcb-icon-wrap">
+            <i class="ph ph-shopping-cart-simple"></i>
+            <span class="pos-mcb-count" x-text="cart.reduce((s, i) => s + Number(i.qty || 1), 0)">0</span>
+          </div>
+          <div class="pos-mcb-text-block">
+            <div class="pos-mcb-label">Pre-venta • Total</div>
+            <div class="pos-mcb-total" x-text="'Q ' + formatPrice(grandTotal)">Q 0.00</div>
+          </div>
+        </div>
+        <div class="pos-mcb-buttons">
+          <button type="button" class="pos-mcb-btn-cart" @click="mobileTab = 'cart'">
+            <span>Ver Carrito</span>
+            <i class="ph ph-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- =============================================
+       3. MODAL DE DESPACHO & LOGÍSTICA DE PRE-VENTA
+  ============================================= -->
+  <!-- =============================================
+       3. MODAL DE DESPACHO & LOGÍSTICA DE PRE-VENTA (ODOO ENTERPRISE)
+  ============================================= -->
+  <div class="modal-backdrop" x-show="showCheckoutModal" x-cloak style="background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); z-index: 9999;">
+    <div class="modal-card" style="max-width: 580px; background: #ffffff; border: 1px solid #dee2e6; border-radius: 8px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1); overflow: hidden;" @click.away="showCheckoutModal = false">
+      
+      <!-- Odoo Enterprise Modal Header -->
+      <div style="padding: 14px 20px; background: #ffffff; border-bottom: 1px solid #e9ecef; display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 34px; height: 34px; border-radius: 6px; background: #f3e8f0; border: 1px solid #e8d5e3; display: flex; align-items: center; justify-content: center; color: #714B67; font-size: 18px; flex-shrink: 0;">
+            <i class="ph-bold ph-truck"></i>
+          </div>
+          <div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-weight: 700; font-size: 16px; color: #212529; letter-spacing: -0.2px;">Datos de Despacho & Entrega</span>
+              <span style="background: #f3e8f0; color: #714B67; border: 1px solid #e8d5e3; font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 4px;">Pre-Venta</span>
+            </div>
+            <div style="font-size: 11.5px; color: #6c757d; font-weight: 500;">Validación de logística y crédito comercial asignado</div>
+          </div>
+        </div>
+        <button 
+          type="button"
+          @click="showCheckoutModal = false" 
+          style="background: none; border: none; color: #6c757d; font-size: 22px; cursor: pointer; padding: 2px 6px; line-height: 1; border-radius: 4px; transition: all 0.15s;"
+          onmouseover="this.style.color='#212529'; this.style.background='#f8f9fa';" 
+          onmouseout="this.style.color='#6c757d'; this.style.background='none';"
+        >&times;</button>
+      </div>
+
+      <!-- Odoo Form Sheet Body -->
+      <div style="padding: 18px 20px; overflow-y: auto; font-size: 13px; display: flex; flex-direction: column; gap: 16px; background: #ffffff;">
+        
+        <!-- Odoo Partner & Order Smart Banner -->
+        <div style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="width: 40px; height: 40px; border-radius: 50%; background: #e9ecef; border: 1px solid #ced4da; display: flex; align-items: center; justify-content: center; color: #714B67; font-weight: 800; font-size: 15px; flex-shrink: 0;"
+                 x-text="(customer?.name || 'CF').substring(0,2).toUpperCase()">
+            </div>
+            <div>
+              <div style="font-size: 10px; font-weight: 700; color: #6c757d; text-transform: uppercase; letter-spacing: 0.5px;">Cliente Asignado</div>
+              <div style="font-weight: 700; color: #212529; font-size: 14px;" x-text="customer?.name || 'Consumidor Final'"></div>
+              <div style="font-size: 11.5px; color: #495057; margin-top: 2px; display: flex; align-items: center; gap: 8px;">
+                <span>NIT: <strong style="color: #212529;" x-text="customer?.nit || 'CF'"></strong></span>
+                <span>•</span>
+                <span>Crédito Disp: <strong style="color: #137333; background: #e6f4ea; border: 1px solid #ceead6; padding: 1px 6px; border-radius: 3px;" x-text="'Q ' + formatPrice(customer?.available_credit || 0)"></strong></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Odoo Stat Box / KPI Widget -->
+          <div style="text-align: right; border-left: 1px solid #dee2e6; padding-left: 16px;">
+            <div style="font-size: 10px; font-weight: 700; color: #6c757d; text-transform: uppercase; letter-spacing: 0.5px;">Total Solicitud</div>
+            <div style="font-weight: 800; color: #714B67; font-size: 22px; letter-spacing: -0.5px; line-height: 1.1;" x-text="'Q ' + formatPrice(grandTotal)"></div>
+            <div style="font-size: 11px; color: #6c757d; font-weight: 600; margin-top: 2px;" x-text="cart.length + ' producto(s)'"></div>
+          </div>
+        </div>
+
+        <!-- 1. Fecha Prometida de Entrega -->
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <label style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: #495057; font-size: 12.5px;">
+            <i class="ph-bold ph-calendar-blank" style="color: #714B67; font-size: 15px;"></i>
+            <span>Fecha Prometida de Entrega</span>
+          </label>
+          
+          <!-- Odoo Segmented Button Group (Modern Pill Design) -->
+          <div class="odoo-date-pill-group">
+            <button 
+              type="button" 
+              class="odoo-date-pill-btn"
+              :class="{ 'active': isTodayDelivery() }"
+              @click="setQuickDeliveryDate(0)" 
+            >
+              <i class="ph-bold ph-lightning"></i>
+              <span>Hoy</span>
+            </button>
+            <button 
+              type="button" 
+              class="odoo-date-pill-btn"
+              :class="{ 'active': isTomorrowDelivery() }"
+              @click="setQuickDeliveryDate(1)" 
+            >
+              <i class="ph-bold ph-sun"></i>
+              <span>Mañana</span>
+            </button>
+            <button 
+              type="button" 
+              class="odoo-date-pill-btn"
+              :class="{ 'active': (!isTodayDelivery() && !isTomorrowDelivery()) }"
+              @click="setQuickDeliveryDate(2)" 
+            >
+              <i class="ph-bold ph-package"></i>
+              <span>En 2 Días</span>
+            </button>
+          </div>
+
+          <input 
+            type="date" 
+            x-model="deliveryDate"
+            style="width: 100%; border: 1px solid #cbd5e1; border-radius: 6px; padding: 9px 12px; font-size: 13.5px; font-family: inherit; color: #1e293b; background: #ffffff; outline: none; transition: all 0.15s ease;"
+            onfocus="this.style.borderColor='#714B67'; this.style.boxShadow='0 0 0 3px rgba(113,75,103,0.18)'"
+            onblur="this.style.borderColor='#cbd5e1'; this.style.boxShadow='none'"
+          >
+        </div>
+
+        <!-- 2. Dirección de Entrega / Destino -->
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <label style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: #495057; font-size: 12.5px;">
+            <i class="ph-bold ph-map-pin" style="color: #714B67; font-size: 15px;"></i>
+            <span>Dirección de Entrega / Punto de Descarga</span>
+          </label>
+          <input 
+            type="text" 
+            x-model="deliveryAddress" 
+            placeholder="Ej. Km 14.5 Carretera a El Salvador, Bodega #2 frente a gasolinera"
+            style="width: 100%; border: 1px solid #ced4da; border-radius: 4px; padding: 8px 12px; font-size: 13px; font-family: inherit; color: #212529; background: #ffffff; outline: none; transition: border-color 0.15s, box-shadow 0.15s;"
+            onfocus="this.style.borderColor='#714B67'; this.style.boxShadow='0 0 0 3px rgba(113,75,103,0.15)'"
+            onblur="this.style.borderColor='#ced4da'; this.style.boxShadow='none'"
+          >
+          <div style="font-size: 11px; color: #6c757d;">
+            Precargada desde la ficha del cliente; modifíquela si la descarga es en obra u otra sucursal.
+          </div>
+        </div>
+
+        <!-- 3. Instrucciones de Entrega / Notas de Ruta -->
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <label style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: #495057; font-size: 12.5px;">
+            <i class="ph-bold ph-note-pencil" style="color: #714B67; font-size: 15px;"></i>
+            <span>Instrucciones de Entrega / Notas para el Piloto</span>
+          </label>
+          <textarea 
+            x-model="deliveryNotes" 
+            rows="2" 
+            placeholder="Ej. Recibe encargado Don Julio (tel: 5555-1234). Descargar antes de las 11:00 AM."
+            style="width: 100%; border: 1px solid #ced4da; border-radius: 4px; padding: 8px 12px; font-size: 13px; font-family: inherit; color: #212529; background: #ffffff; outline: none; resize: none; transition: border-color 0.15s, box-shadow 0.15s;"
+            onfocus="this.style.borderColor='#714B67'; this.style.boxShadow='0 0 0 3px rgba(113,75,103,0.15)'"
+            onblur="this.style.borderColor='#ced4da'; this.style.boxShadow='none'"
+          ></textarea>
+        </div>
+
+        <!-- Alerta de Modo Offline si aplica -->
+        <template x-if="!isOnline">
+          <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 4px; padding: 10px 14px; font-size: 12px; color: #92400e; display: flex; align-items: center; gap: 8px;">
+            <i class="ph-bold ph-wifi-slash" style="font-size: 18px; color: #b45309;"></i>
+            <div>
+              <strong>Modo Sin Conexión:</strong> El pedido se guardará en la memoria local y se sincronizará automáticamente al recuperar internet.
+            </div>
+          </div>
+        </template>
+      </div>
+
+      <!-- Odoo Modal Action Footer -->
+      <div style="padding: 12px 20px; background: #f8f9fa; border-top: 1px solid #dee2e6; display: flex; justify-content: space-between; align-items: center;">
+        <button 
+          type="button" 
+          @click="showCheckoutModal = false"
+          style="background: #ffffff; border: 1px solid #ced4da; color: #495057; padding: 7px 16px; border-radius: 4px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s;"
+          onmouseover="this.style.background='#f1f5f9'; this.style.borderColor='#adb5bd';"
+          onmouseout="this.style.background='#ffffff'; this.style.borderColor='#ced4da';"
+        >Volver al Carrito</button>
+
+        <button 
+          type="button" 
+          @click="confirmPresaleOrder()"
+          :disabled="isSubmitting"
+          style="background: #714B67; border: 1px solid #714B67; color: #ffffff; padding: 8px 22px; border-radius: 4px; font-size: 13px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 1px 3px rgba(113,75,103,0.25); transition: background 0.15s, transform 0.1s;"
+          onmouseover="this.style.background='#5a3952'; this.style.borderColor='#5a3952';"
+          onmouseout="this.style.background='#714B67'; this.style.borderColor='#714B67';"
+        >
+          <span x-show="!isSubmitting"><i class="ph-bold ph-check" style="font-size: 16px;"></i></span>
+          <span x-show="isSubmitting" class="animate-spin"><i class="ph-bold ph-arrows-clockwise"></i></span>
+          <span x-text="isSubmitting ? 'Procesando...' : 'Confirmar y Generar Proforma'"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =============================================
+       4. MODAL PROFORMA DE PRE-VENTA (ODOO ENTERPRISE)
+  ============================================= -->
+  <div class="modal-backdrop" x-show="showProformaModal" x-cloak>
+    <div class="modal-card" style="max-width:760px; border:1px solid #cbd5e1; border-radius:14px; box-shadow:0 20px 40px -10px rgba(0,0,0,0.25);" @click.away="showProformaModal = false">
+      <!-- Odoo Modal Header with Segmented Format Switcher -->
+      <div class="no-print" style="padding:14px 22px; background:#ffffff; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div style="width:38px; height:38px; border-radius:8px; background:#fdf2f8; border:1px solid #fbcfe8; display:flex; align-items:center; justify-content:center; color:#714B67; font-size:20px;">
+            <i class="ph-bold ph-file-text"></i>
+          </div>
+          <div>
+            <div style="font-weight:800; font-size:15px; color:#1e293b;">Proforma de Solicitud de Pre-Venta</div>
+            <div style="font-size:11.5px; color:#64748b; font-weight:500;">Documento comercial para cotización y despacho</div>
+          </div>
+        </div>
+
+        <!-- Format Selector Tabs (Odoo Segmented Pills) -->
+        <div style="display:flex; background:#f1f5f9; border-radius:8px; padding:3px; gap:4px; border:1px solid #e2e8f0;">
+          <button 
+            type="button"
+            @click="proformaViewMode = 'standard'"
+            :style="proformaViewMode === 'standard' ? 'background:#ffffff; color:#714B67; font-weight:800; box-shadow:0 1px 3px rgba(0,0,0,0.1);' : 'background:transparent; color:#64748b; font-weight:600;'"
+            style="border:none; padding:6px 12px; border-radius:6px; font-size:12px; cursor:pointer; display:inline-flex; align-items:center; gap:5px; transition:all 0.15s;"
+          >
+            <i class="ph-bold ph-file-pdf"></i>
+            <span>Hoja Formal (A4)</span>
+          </button>
+          <button 
+            type="button"
+            @click="proformaViewMode = 'ticket'"
+            :style="proformaViewMode === 'ticket' ? 'background:#ffffff; color:#714B67; font-weight:800; box-shadow:0 1px 3px rgba(0,0,0,0.1);' : 'background:transparent; color:#64748b; font-weight:600;'"
+            style="border:none; padding:6px 12px; border-radius:6px; font-size:12px; cursor:pointer; display:inline-flex; align-items:center; gap:5px; transition:all 0.15s;"
+          >
+            <i class="ph-bold ph-receipt"></i>
+            <span>Ticket Térmico (58/80mm)</span>
+          </button>
+        </div>
+
+        <button 
+          @click="showProformaModal = false" 
+          style="background:none; border:none; color:#94a3b8; font-size:24px; cursor:pointer; padding:0 4px; line-height:1;"
+          onmouseover="this.style.color='#1e293b'" 
+          onmouseout="this.style.color='#94a3b8'"
+        >&times;</button>
+      </div>
+
+      <!-- Scrollable Container containing both formats -->
+      <div style="flex:1; overflow-y:auto; padding:20px; font-family:'Inter', sans-serif;">
+
+        <!-- -----------------------------------------------
+             VISTA 1: HOJA FORMAL A4 (STANDARD)
+        ----------------------------------------------- -->
+        <div 
+          id="printable-proforma" 
+          x-show="proformaViewMode === 'standard'"
+          :class="proformaViewMode === 'standard' ? 'print-zone-active standard-print' : ''"
+          style="padding:10px 14px;"
+        >
+          <!-- Header Documental -->
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid #714B67; padding-bottom:14px; margin-bottom:16px;">
+            <div>
+              <h2 style="font-size:20px; font-weight:900; color:#714B67; letter-spacing:-0.5px; margin-bottom:4px;">POS EMPRESARIAL</h2>
+              <div style="font-size:12px; color:#475569; font-weight:600;">SISTEMA INTEGRAL DE GESTIÓN COMERCIAL</div>
+              <div style="font-size:11px; color:#64748b;" x-text="'Sucursal: ' + (proforma?.branch_name || 'Sucursal Principal')"></div>
+            </div>
+            <div style="text-align:right;">
+              <template x-if="proforma?.is_offline">
+                <span style="background:#fef3c7; color:#b45309; border:1px solid #fde68a; font-size:11px; font-weight:800; padding:3px 8px; border-radius:6px; display:inline-block; margin-bottom:4px;">
+                  ⚡ MODO OFFLINE (PENDIENTE SYNC)
+                </span>
+              </template>
+              <template x-if="!proforma?.is_offline">
+                <span style="background:#fef3c7; color:#92400e; border:1px solid #fde68a; font-size:11px; font-weight:800; padding:3px 8px; border-radius:6px; display:inline-block; margin-bottom:4px;">
+                  SOLICITUD DE PRE-VENTA
+                </span>
+              </template>
+              <div style="font-size:16px; font-weight:900; color:#1e293b;" x-text="proforma?.number || 'PRE-000000'"></div>
+              <div style="font-size:11px; color:#64748b;" x-text="'Fecha: ' + (proforma?.date || '')"></div>
+              <div style="font-size:11px; color:#64748b;" x-text="'Preventista: ' + (proforma?.seller_name || '')"></div>
+            </div>
+          </div>
+
+          <!-- Datos del Cliente & Despacho -->
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px;">
+            <!-- Ficha Cliente -->
+            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:10px 14px; font-size:12px;">
+              <div style="font-size:10px; font-weight:800; color:#64748b; text-transform:uppercase; margin-bottom:4px;">Datos del Cliente</div>
+              <div style="font-weight:900; color:#1e293b; font-size:13px;" x-text="proforma?.customer_name || 'CONSUMIDOR FINAL'"></div>
+              <div style="color:#475569; margin-top:2px;" x-text="'NIT: ' + (proforma?.customer_nit || 'CF')"></div>
+              <div style="color:#64748b; margin-top:2px;" x-text="proforma?.customer_address || 'CIUDAD'"></div>
+            </div>
+
+            <!-- Ficha Logística & Entrega (Odoo Enterprise Sheet) -->
+            <div style="background: #f8fafc; border: 1px solid #dee2e6; border-radius: 8px; padding: 10px 14px; font-size: 12px;">
+              <div style="font-size: 10px; font-weight: 700; color: #714B67; text-transform: uppercase; margin-bottom: 4px;">Logística de Despacho</div>
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <i class="ph-bold ph-calendar-blank" style="color: #714B67;"></i>
+                <strong style="color: #495057;">Entrega Prometida:</strong>
+                <span style="color: #212529; font-weight: 700;" x-text="proforma?.delivery_date || 'Inmediata'"></span>
+              </div>
+              <div style="margin-top: 3px; display: flex; align-items: center; gap: 6px;">
+                <i class="ph-bold ph-map-pin" style="color: #714B67;"></i>
+                <strong style="color: #495057;">Destino:</strong>
+                <span style="color: #212529;" x-text="proforma?.delivery_address || proforma?.customer_address || 'En tienda'"></span>
+              </div>
+              <template x-if="proforma?.delivery_notes">
+                <div style="margin-top: 3px; font-size: 11px; color: #6c757d; font-style: italic; display: flex; align-items: flex-start; gap: 6px;">
+                  <i class="ph-bold ph-note-pencil" style="color: #714B67; margin-top: 2px;"></i>
+                  <span x-text="'Notas: ' + proforma.delivery_notes"></span>
+                </div>
+              </template>
+            </div>
+          </div>
+
+          <!-- Tabla de Productos -->
+          <table style="width:100%; border-collapse:collapse; margin-bottom:16px; font-size:12px;">
+            <thead>
+              <tr style="background:#f1f5f9; border-bottom:1.5px solid #cbd5e1; text-align:left;">
+                <th style="padding:8px 6px; font-weight:800; color:#334155; width:45px; text-align:center;">Cant.</th>
+                <th style="padding:8px 6px; font-weight:800; color:#334155;">Descripción del Producto</th>
+                <th style="padding:8px 6px; font-weight:800; color:#334155; text-align:right; width:90px;">P. Unit</th>
+                <th style="padding:8px 6px; font-weight:800; color:#334155; text-align:right; width:90px;">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="(line, lidx) in (proforma?.lines || [])" :key="lidx">
+                <tr style="border-bottom:1px solid #f1f5f9;">
+                  <td style="padding:7px 6px; text-align:center; font-weight:700; color:#1e293b;" x-text="line.qty || line.quantity || 1"></td>
+                  <td style="padding:7px 6px; color:#1e293b;" x-text="line.product_name || line.name || 'Producto'"></td>
+                  <td style="padding:7px 6px; text-align:right; color:#475569;" x-text="'Q ' + formatPrice(line.unit_price !== undefined ? line.unit_price : (line.price || 0))"></td>
+                  <td style="padding:7px 6px; text-align:right; font-weight:800; color:#1e293b;" x-text="'Q ' + formatPrice(line.total !== undefined ? line.total : ((line.qty || line.quantity || 1) * (line.unit_price || line.price || 0)))"></td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+
+          <!-- Totales de la Proforma -->
+          <div style="display:flex; justify-content:flex-end; margin-bottom:16px;">
+            <div style="width:260px; font-size:13px;">
+              <div style="display:flex; justify-content:space-between; padding:3px 0; color:#475569;">
+                <span>Subtotal:</span>
+                <span x-text="'Q ' + formatPrice(proforma?.subtotal !== undefined ? proforma.subtotal : ((proforma?.total || 0) / 1.12))"></span>
+              </div>
+              <div style="display:flex; justify-content:space-between; padding:3px 0; color:#475569;">
+                <span>IVA (12%):</span>
+                <span x-text="'Q ' + formatPrice(proforma?.tax !== undefined ? proforma.tax : (((proforma?.total || 0) * 12) / 112))"></span>
+              </div>
+              <div style="display:flex; justify-content:space-between; padding:6px 0; font-size:16px; font-weight:900; color:#0d9488; border-top:2px solid #cbd5e1; margin-top:4px;">
+                <span>TOTAL PROFORMA:</span>
+                <span x-text="'Q ' + formatPrice(proforma?.total || 0)"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Leyenda / Disclaimer de Pre-venta -->
+          <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:10px 14px; font-size:11px; color:#1e40af; line-height:1.4;">
+            <strong>AVISO IMPORTANTE:</strong> Este documento es una <strong>Proforma / Solicitud de Pre-venta</strong> generada para cotización y despacho. 
+            No constituye factura contable ni deduce inventario físico hasta su debida aprobación en el módulo de <strong>Solicitudes POS</strong> y validación de existencias en bodega.
+          </div>
+        </div>
+
+        <!-- -----------------------------------------------
+             VISTA 2: TICKET TÉRMICO (58mm / 80mm)
+        ----------------------------------------------- -->
+        <div 
+          id="printable-ticket" 
+          x-show="proformaViewMode === 'ticket'"
+          :class="proformaViewMode === 'ticket' ? 'print-zone-active ticket-print' : ''"
+          style="display:flex; justify-content:center;"
+        >
+          <div class="thermal-ticket-container">
+            <div style="text-align:center;">
+              <div style="font-weight:900; font-size:15px; letter-spacing:0.5px;">POS EMPRESARIAL</div>
+              <div style="font-size:10px; color:#475569;">SISTEMA DE GESTIÓN COMERCIAL</div>
+              <div style="font-size:10px; margin-top:2px;" x-text="'Sucursal: ' + (proforma?.branch_name || 'Sucursal Principal')"></div>
+            </div>
+
+            <div class="ticket-dashed-line"></div>
+
+            <div style="text-align:center;">
+              <div style="font-weight:900; font-size:13px;" x-text="proforma?.is_offline ? 'PROFORMA [OFFLINE]' : 'PROFORMA DE PRE-VENTA'"></div>
+              <div style="font-weight:800; font-size:13px;" x-text="proforma?.number || 'PRE-000000'"></div>
+              <div style="font-size:10.5px;" x-text="'Fecha: ' + (proforma?.date || '')"></div>
+              <div style="font-size:10.5px;" x-text="'Preventista: ' + (proforma?.seller_name || '')"></div>
+            </div>
+
+            <div class="ticket-dashed-line"></div>
+
+            <!-- Cliente -->
+            <div style="font-size:11px;">
+              <div><strong>CLIENTE:</strong> <span x-text="proforma?.customer_name"></span></div>
+              <div><strong>NIT:</strong> <span x-text="proforma?.customer_nit"></span></div>
+              <div><strong>DIR:</strong> <span x-text="proforma?.customer_address"></span></div>
+            </div>
+
+            <div class="ticket-dashed-line"></div>
+
+            <!-- Despacho -->
+            <div style="font-size:11px;">
+              <div><strong>[ENTREGA]:</strong> <span x-text="proforma?.delivery_date || 'Inmediata'"></span></div>
+              <div><strong>[DESTINO]:</strong> <span x-text="proforma?.delivery_address || proforma?.customer_address || 'En tienda'"></span></div>
+              <template x-if="proforma?.delivery_notes">
+                <div><strong>[NOTAS]:</strong> <span x-text="proforma.delivery_notes"></span></div>
+              </template>
+            </div>
+
+            <div class="ticket-dashed-line"></div>
+
+            <!-- Detalle de Productos -->
+            <div style="margin-bottom:6px;">
+              <div style="display:flex; justify-content:space-between; font-weight:800; border-bottom:1px dashed #cbd5e1; padding-bottom:3px; margin-bottom:4px;">
+                <span>CANT / DESCRIPCIÓN</span>
+                <span>TOTAL</span>
+              </div>
+              <template x-for="(line, lidx) in (proforma?.lines || [])" :key="lidx">
+                <div style="margin-bottom:4px;">
+                  <div style="font-weight:700;" x-text="line.product_name || line.name || 'Producto'"></div>
+                  <div style="display:flex; justify-content:space-between; font-size:10.5px;">
+                    <span x-text="(line.qty || line.quantity || 1) + ' x Q' + formatPrice(line.unit_price !== undefined ? line.unit_price : (line.price || 0))"></span>
+                    <span style="font-weight:800;" x-text="'Q ' + formatPrice(line.total !== undefined ? line.total : ((line.qty || line.quantity || 1) * (line.unit_price || line.price || 0)))"></span>
+                  </div>
+                </div>
+              </template>
+            </div>
+
+            <div class="ticket-double-line"></div>
+
+            <!-- Totales Ticket -->
+            <div style="font-size:11px;">
+              <div style="display:flex; justify-content:space-between;">
+                <span>Subtotal:</span>
+                <span x-text="'Q ' + formatPrice(proforma?.subtotal !== undefined ? proforma.subtotal : ((proforma?.total || 0) / 1.12))"></span>
+              </div>
+              <div style="display:flex; justify-content:space-between;">
+                <span>IVA (12%):</span>
+                <span x-text="'Q ' + formatPrice(proforma?.tax !== undefined ? proforma.tax : (((proforma?.total || 0) * 12) / 112))"></span>
+              </div>
+              <div style="display:flex; justify-content:space-between; font-weight:900; font-size:14px; margin-top:4px; padding-top:3px; border-top:1px dashed #475569;">
+                <span>TOTAL:</span>
+                <span x-text="'Q ' + formatPrice(proforma?.total || 0)"></span>
+              </div>
+            </div>
+
+            <div class="ticket-dashed-line"></div>
+
+            <!-- Pie de Ticket Térmico -->
+            <div style="text-align:center; font-size:10px; color:#475569; line-height:1.3;">
+              <div>* DOCUMENTO DE PRE-VENTA *</div>
+              <div>Cotización válida para despacho.</div>
+              <div>No deduce inventario ni es factura contable.</div>
+              <div style="margin-top:4px; font-weight:700;">¡Gracias por su preferencia!</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Modal Actions (No Print) -->
+      <div class="no-print" style="padding:14px 20px; background:#f8fafc; border-top:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+        <button 
+          type="button" 
+          @click="showProformaModal = false"
+          style="background:#ffffff; border:1px solid #cbd5e1; color:#334155; padding:8px 16px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer;"
+        >Cerrar</button>
+
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <!-- Copiar Resumen -->
+          <button 
+            type="button" 
+            @click="copyProformaText()"
+            style="background:#ffffff; border:1px solid #cbd5e1; color:#334155; padding:8px 14px; border-radius:8px; font-size:12.5px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:6px;"
+            title="Copiar texto resumen de la proforma"
+          >
+            <i class="ph ph-copy"></i> Copiar
+          </button>
+
+          <!-- Compartir WhatsApp -->
+          <button 
+            type="button" 
+            @click="shareWhatsApp()"
+            style="background:#25D366; border:none; color:#ffffff; padding:8px 16px; border-radius:8px; font-size:13px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:6px; box-shadow:0 2px 8px rgba(37,211,102,0.3);"
+            title="Enviar detalle al cliente vía WhatsApp"
+          >
+            <i class="ph ph-whatsapp-logo" style="font-size:16px;"></i> WhatsApp
+          </button>
+
+          <!-- Imprimir -->
+          <button 
+            type="button" 
+            @click="printProforma()"
+            style="background:#0d9488; border:none; color:#ffffff; padding:8px 18px; border-radius:8px; font-size:13px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:6px; box-shadow:0 2px 8px rgba(13,148,136,0.3);"
+          >
+            <i class="ph ph-printer"></i>
+            <span x-text="proformaViewMode === 'ticket' ? 'Imprimir Ticket' : 'Imprimir Hoja'"></span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =============================================
+       4. MODAL MIS SOLICITUDES (ODOO ENTERPRISE)
+  ============================================= -->
+  <div class="modal-backdrop" x-show="showMyRequestsModal" x-cloak style="background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); z-index: 9999;">
+    <div class="modal-card" style="max-width: 820px; background: #ffffff; border: 1px solid #dee2e6; border-radius: 8px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15); overflow: hidden;" @click.away="showMyRequestsModal = false">
+      <div style="padding: 14px 20px; background: #ffffff; border-bottom: 1px solid #e9ecef; display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 34px; height: 34px; border-radius: 6px; background: #f3e8f0; border: 1px solid #e8d5e3; display: flex; align-items: center; justify-content: center; color: #714B67; font-size: 18px;">
+            <i class="ph-bold ph-clock-counter-clockwise"></i>
+          </div>
+          <div>
+            <div style="font-weight: 700; font-size: 16px; color: #212529;">Mis Solicitudes de Pre-Venta</div>
+            <div style="font-size: 11.5px; color: #6c757d;">Historial de pedidos y cotizaciones registradas</div>
+          </div>
+        </div>
+        <button type="button" @click="showMyRequestsModal = false" style="background: none; border: none; color: #6c757d; font-size: 22px; cursor: pointer; padding: 2px 6px; line-height: 1; border-radius: 4px;" onmouseover="this.style.color='#212529'" onmouseout="this.style.color='#6c757d'">&times;</button>
+      </div>
+
+      <div style="flex: 1; overflow-y: auto; padding: 16px; background: #ffffff;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 12.5px;">
+          <thead>
+            <tr style="background: #f8f9fa; text-align: left; border-bottom: 1.5px solid #dee2e6;">
+              <th style="padding: 10px 12px; font-weight: 700; color: #495057;">Número</th>
+              <th style="padding: 10px 12px; font-weight: 700; color: #495057;">Fecha</th>
+              <th style="padding: 10px 12px; font-weight: 700; color: #495057;">Cliente</th>
+              <th style="padding: 10px 12px; font-weight: 700; color: #495057; text-align: right;">Total</th>
+              <th style="padding: 10px 12px; font-weight: 700; color: #495057; text-align: center;">Estado</th>
+              <th style="padding: 10px 12px; font-weight: 700; color: #495057; text-align: center;">Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="r in myRequests" :key="r.id">
+              <tr style="border-bottom: 1px solid #f1f5f9; transition: background 0.12s;" onmouseover="this.style.background='#f8f9fa'" onmouseout="this.style.background='transparent'">
+                <td style="padding: 10px 12px; font-weight: 700; color: #714B67;" x-text="r.number"></td>
+                <td style="padding: 10px 12px; color: #6c757d;" x-text="new Date(r.created_at).toLocaleDateString('es-GT')"></td>
+                <td style="padding: 10px 12px; font-weight: 600; color: #212529;" x-text="r.customer_name"></td>
+                <td style="padding: 10px 12px; text-align: right; font-weight: 800; color: #714B67;" x-text="'Q ' + formatPrice(r.total)"></td>
+                <td style="padding: 10px 12px; text-align: center;">
+                  <span 
+                    style="font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 4px;"
+                    :style="r.state === 'approved' ? 'background: #e6f4ea; color: #137333; border: 1px solid #ceead6;' : (r.state === 'rejected' ? 'background: #fce8e6; color: #c5221f; border: 1px solid #fad2cf;' : 'background: #fef7e0; color: #b06000; border: 1px solid #feeaa8;')"
+                    x-text="r.state === 'approved' ? 'Aprobada' : (r.state === 'rejected' ? 'Rechazada' : 'Pendiente')"
+                  ></span>
+                </td>
+                <td style="padding: 10px 12px; text-align: center;">
+                  <button 
+                    type="button" 
+                    @click="viewProformaFromRequest(r)"
+                    style="background: #ffffff; border: 1px solid #ced4da; border-radius: 4px; padding: 4px 10px; font-size: 11.5px; font-weight: 600; color: #495057; cursor: pointer; transition: all 0.15s;"
+                    onmouseover="this.style.background='#f1f5f9'; this.style.borderColor='#adb5bd';"
+                    onmouseout="this.style.background='#ffffff'; this.style.borderColor='#ced4da';"
+                  >Ver Proforma</button>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+        <div x-show="myRequests.length === 0" style="text-align: center; padding: 40px; color: #6c757d;">
+          No tienes solicitudes de pre-venta registradas aún.
+        </div>
+      </div>
+
+      <div style="padding: 12px 20px; background: #f8f9fa; border-top: 1px solid #dee2e6; text-align: right;">
+        <button 
+          type="button" 
+          @click="showMyRequestsModal = false"
+          style="background: #ffffff; border: 1px solid #ced4da; color: #495057; padding: 7px 18px; border-radius: 4px; font-size: 13px; font-weight: 600; cursor: pointer;"
+        >Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =============================================
+       5. MODAL INFO EXISTENCIAS BODEGA (ODOO ENTERPRISE)
+  ============================================= -->
+  <div class="modal-backdrop" x-show="showStockModal" x-cloak style="background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); z-index: 9999;">
+    <div class="modal-card" style="max-width: 520px; background: #ffffff; border: 1px solid #dee2e6; border-radius: 8px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15); overflow: hidden;" @click.away="showStockModal = false">
+      <div style="padding: 14px 20px; background: #ffffff; border-bottom: 1px solid #e9ecef; display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 34px; height: 34px; border-radius: 6px; background: #f3e8f0; border: 1px solid #e8d5e3; display: flex; align-items: center; justify-content: center; color: #714B67; font-size: 18px;">
+            <i class="ph-bold ph-warehouse"></i>
+          </div>
+          <div>
+            <div style="font-weight: 700; font-size: 15px; color: #212529;">Existencias por Bodega</div>
+            <div style="font-size: 11.5px; color: #6c757d;">Disponibilidad en tiempo real</div>
+          </div>
+        </div>
+        <button type="button" @click="showStockModal = false" style="background: none; border: none; color: #6c757d; font-size: 22px; cursor: pointer; padding: 2px 6px; line-height: 1;">&times;</button>
+      </div>
+
+      <div style="padding: 18px 20px; font-size: 13px; background: #ffffff;">
+        <div style="font-weight: 700; color: #212529; font-size: 14px; margin-bottom: 3px;" x-text="selectedProductStock?.name"></div>
+        <div style="font-size: 11.5px; color: #6c757d; margin-bottom: 12px;" x-text="'Código: ' + (selectedProductStock?.barcode || 'N/A') + ' | Ref: ' + (selectedProductStock?.internal_ref || 'N/A')"></div>
+        
+        <!-- Ficha Técnica Oficial en PDF -->
+        <template x-if="selectedProductStock?.pdf_datasheet_url">
+          <div style="margin-bottom: 12px; padding: 10px 14px; background: #fef2f2; border: 1.5px solid #fecaca; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div style="width: 30px; height: 30px; border-radius: 6px; background: #ef4444; color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;">
+                <i class="ph ph-file-pdf"></i>
+              </div>
+              <div>
+                <div style="font-size: 12.5px; font-weight: 700; color: #991b1b;">Ficha Técnica Oficial Disponible</div>
+                <div style="font-size: 11px; color: #b91c1c;">Especificaciones técnicas del producto para asesoría comercial</div>
+              </div>
+            </div>
+            <a 
+              :href="selectedProductStock?.pdf_datasheet_url" 
+              target="_blank" 
+              style="background: #dc2626; color: #ffffff; padding: 5px 12px; font-size: 11.5px; font-weight: 700; text-decoration: none; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 1px 3px rgba(220,38,38,0.25); white-space: nowrap;"
+            >
+              <i class="ph ph-file-pdf"></i> Ver PDF
+            </a>
+          </div>
+        </template>
+
+        <!-- Notas Internas para Ventas / Pre-Venta -->
+        <template x-if="selectedProductStock?.internal_notes">
+          <div style="margin-bottom: 12px; padding: 10px 12px; background: #fffbeb; border: 1.5px solid #fde68a; border-radius: 8px; display: flex; align-items: flex-start; gap: 8px;">
+            <i class="ph-fill ph-warning-circle" style="font-size: 18px; color: #d97706; flex-shrink: 0; margin-top: 1px;"></i>
+            <div style="flex: 1;">
+              <div style="font-size: 11px; font-weight: 800; color: #92400e; text-transform: uppercase;">Nota Interna para Ventas:</div>
+              <div style="font-size: 12px; font-weight: 600; color: #78350f; margin-top: 2px; line-height: 1.4;" x-text="selectedProductStock?.internal_notes"></div>
+            </div>
+          </div>
+        </template>
+
+        <!-- Descripción Comercial -->
+        <template x-if="selectedProductStock?.description">
+          <div style="margin-bottom: 12px; padding: 9px 12px; background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 6px; font-size: 11.5px; color: #495057; line-height: 1.45;">
+            <div style="font-weight: 700; color: #6c757d; font-size: 10.5px; text-transform: uppercase; margin-bottom: 2px;">Descripción Comercial:</div>
+            <div x-text="selectedProductStock?.description"></div>
+          </div>
+        </template>
+        
+        <div style="background: #ffffff; border: 1px solid #dee2e6; border-radius: 6px; overflow: hidden;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 12.5px;">
+            <thead>
+              <tr style="background: #f8f9fa; text-align: left; border-bottom: 1px solid #dee2e6;">
+                <th style="padding: 9px 12px; font-weight: 700; color: #495057;">Bodega</th>
+                <th style="padding: 9px 10px; text-align: right; font-weight: 700; color: #495057;">Físico</th>
+                <th style="padding: 9px 10px; text-align: right; font-weight: 700; color: #0284c7;">❄️ Congelado</th>
+                <th style="padding: 9px 12px; text-align: right; font-weight: 700; color: #137333;">Disponible</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="w in productWarehousesStock" :key="w.warehouse_id">
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                  <td style="padding: 9px 12px; font-weight: 600; color: #212529;" x-text="w.warehouse_name"></td>
+                  <td style="padding: 9px 10px; text-align: right; font-weight: 600; color: #64748b;" x-text="w.qty_on_hand"></td>
+                  <td style="padding: 9px 10px; text-align: right; font-weight: 700;" :style="(w.qty_frozen || 0) > 0 ? 'color: #0284c7;' : 'color: #94a3b8;'">
+                    <span x-text="(w.qty_frozen || 0) > 0 ? ('❄️ ' + w.qty_frozen) : '0'"></span>
+                  </td>
+                  <td style="padding: 9px 12px; text-align: right; font-weight: 800;" :style="(w.qty_available !== undefined ? w.qty_available : (w.qty_on_hand - (w.qty_frozen || 0))) > 0 ? 'color: #137333;' : 'color: #c5221f;'" x-text="w.qty_available !== undefined ? w.qty_available : (w.qty_on_hand - (w.qty_frozen || 0))"></td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+
+        <div style="margin-top: 12px; padding: 8px 10px; background: #f0f9ff; border: 1px solid #e0f2fe; border-radius: 6px; font-size: 11px; color: #0369a1; display: flex; align-items: flex-start; gap: 6px; line-height: 1.4;">
+          <i class="ph-fill ph-snowflake" style="font-size: 14px; margin-top: 1px; flex-shrink: 0;"></i>
+          <span>El <strong>stock congelado</strong> reserva unidades para pre-ventas pendientes. Si en <strong>7 días</strong> la solicitud no es autorizada ni anulada, se libera automáticamente a la normalidad. El inventario físico no se descuenta hasta procesar la venta.</span>
+        </div>
+      </div>
+
+      <div style="padding: 12px 20px; background: #f8f9fa; border-top: 1px solid #dee2e6; text-align: right;">
+        <button 
+          type="button" 
+          @click="showStockModal = false"
+          style="background: #ffffff; border: 1px solid #ced4da; color: #495057; padding: 7px 18px; border-radius: 4px; font-size: 13px; font-weight: 600; cursor: pointer;"
+        >Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =============================================
+       6. MODAL DE SELECCIÓN Y CREACIÓN DE CLIENTES (ODOO ENTERPRISE)
+  ============================================= -->
+  <div class="modal-backdrop" x-show="showCustomerModal" x-cloak style="background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); z-index: 9999;">
+    <div class="modal-card" style="max-width: 680px; background: #ffffff; border: 1px solid #dee2e6; border-radius: 8px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15); overflow: hidden;" @click.away="showCustomerModal = false">
+      <div style="padding: 14px 20px; background: #ffffff; border-bottom: 1px solid #e9ecef; display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 34px; height: 34px; border-radius: 6px; background: #f3e8f0; border: 1px solid #e8d5e3; display: flex; align-items: center; justify-content: center; color: #714B67; font-size: 18px;">
+            <i class="ph-bold ph-users"></i>
+          </div>
+          <div>
+            <div style="font-size: 16px; font-weight: 700; color: #212529;" x-text="showCreateCustomerForm ? 'Crear Nuevo Cliente' : 'Seleccionar Cliente'"></div>
+            <div style="font-size: 11.5px; color: #6c757d;">Clientes con crédito y condiciones comerciales</div>
+          </div>
+        </div>
+        <div style="font-size: 22px; cursor: pointer; line-height: 1; color: #6c757d;" @click="showCustomerModal = false">&times;</div>
+      </div>
+
+      <!-- MODO 1: BÚSQUEDA Y LISTA DE CLIENTES -->
+      <div x-show="!showCreateCustomerForm" style="padding: 18px 20px; flex: 1; overflow-y: auto; background: #ffffff;">
+        <div style="display: flex; gap: 10px; margin-bottom: 14px;">
+          <div style="flex: 1; position: relative;">
+            <i class="ph-bold ph-magnifying-glass" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #714B67; font-size: 16px;"></i>
+            <input
+              type="text"
+              placeholder="Buscar por NIT, nombre o teléfono..."
+              x-model="customerSearchQuery"
+              @input.debounce.200ms="searchCustomers()"
+              style="width: 100%; padding: 8px 12px 8px 36px; border: 1px solid #ced4da; border-radius: 4px; font-size: 13px; outline: none;"
+              onfocus="this.style.borderColor='#714B67'"
+              onblur="this.style.borderColor='#ced4da'"
+            >
+          </div>
+          <button 
+            type="button" 
+            style="background: #714B67; color: #ffffff; border: none; border-radius: 4px; padding: 8px 16px; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px;"
+            @click="showCreateCustomerForm = true"
+          >
+            <i class="ph-bold ph-plus"></i> Nuevo Cliente
+          </button>
+        </div>
+
+        <!-- Banner si ya hay un cliente seleccionado en la orden -->
+        <div x-show="customer && customer.id" style="margin-bottom: 14px; padding: 10px 14px; background: #fdf2f8; border: 1px solid #fbcfe8; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <i class="ph-bold ph-identification-badge" style="color:#714B67; font-size:20px;"></i>
+            <div>
+              <div style="font-size:11.5px; color:#831843; font-weight:600;">Cliente asignado a esta orden:</div>
+              <div style="font-weight:800; font-size:13px; color:#212529;" x-text="customer?.name"></div>
+            </div>
+          </div>
+          <button 
+            type="button" 
+            @click="removeCustomer(); showCustomerModal = false;" 
+            style="background:#ffffff; border:1px solid #f43f5e; color:#e11d48; font-size:11.5px; font-weight:700; padding:5px 12px; border-radius:4px; cursor:pointer; display:inline-flex; align-items:center; gap:4px; transition:all 0.15s;"
+            onmouseover="this.style.background='#fff1f2';"
+            onmouseout="this.style.background='#ffffff';"
+          >
+            <i class="ph-bold ph-trash"></i> Desvincular de la Orden
+          </button>
+        </div>
+
+        <div style="max-height: 360px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+          <!-- Lista de Clientes con Crédito Activo -->
+          <template x-for="c in customerList" :key="c.id || c.nit">
+            <div
+              style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 12px 14px; border: 1px solid #e2e8f0; border-radius: 8px; background: #ffffff; transition: all 0.15s ease;"
+              onmouseover="this.style.background='#f8fafc'; this.style.borderColor='#cbd5e1';"
+              onmouseout="this.style.background='#ffffff'; this.style.borderColor='#e2e8f0';"
+              @click="selectCustomer(c)"
+            >
+              <div style="flex: 1; min-width: 0; padding-right: 14px;">
+                <!-- Fila 1: Nombre del cliente completo -->
+                <div style="font-weight: 800; font-size: 14.5px; color: #0f172a; line-height: 1.3;" x-text="c.name"></div>
+
+                <!-- Fila 2: Línea comercial de crédito completa y alineada -->
+                <div style="margin-top: 6px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                  <!-- Badge NIT -->
+                  <div style="background:#f8fafc; color:#334155; font-size:11px; font-weight:700; padding:3px 8px; border-radius:5px; border:1px solid #e2e8f0; display:inline-flex; align-items:center; gap:4px; white-space:nowrap;">
+                    <span style="color:#64748b; font-weight:600;">NIT:</span>
+                    <strong style="color:#0f172a;" x-text="c.nit || 'CF'"></strong>
+                  </div>
+
+                  <!-- Badge Días de Crédito (Plazo alineado en la misma línea) -->
+                  <div style="background:#fdf2f8; color:#9d174d; font-size:11px; font-weight:800; padding:3px 8px; border-radius:5px; border:1px solid #fbcfe8; display:inline-flex; align-items:center; gap:4px; white-space:nowrap;">
+                    <span style="color:#be185d; font-weight:600;">Plazo:</span>
+                    <strong style="color:#9d174d;" x-text="(c.payment_days ? c.payment_days + ' días' : 'Crédito')"></strong>
+                  </div>
+
+                  <!-- Badge Disponible -->
+                  <div style="background:#ecfdf5; color:#065f46; font-size:11px; font-weight:800; padding:3px 8px; border-radius:5px; border:1px solid #a7f3d0; display:inline-flex; align-items:center; gap:4px; white-space:nowrap;">
+                    <span style="color:#047857; font-weight:600;">Disp:</span>
+                    <strong style="color:#065f46;" x-text="'Q ' + formatPrice(c.available_credit || 0)"></strong>
+                  </div>
+
+                  <!-- Badge Límite -->
+                  <div x-show="c.credit_limit" style="background:#f1f5f9; color:#475569; font-size:11px; font-weight:600; padding:3px 8px; border-radius:5px; border:1px solid #e2e8f0; display:inline-flex; align-items:center; gap:4px; white-space:nowrap;">
+                    <span style="color:#64748b;">Límite:</span>
+                    <strong style="color:#334155;" x-text="'Q ' + formatPrice(c.credit_limit)"></strong>
+                  </div>
+                </div>
+
+                <!-- Fila 3: Teléfono y Dirección -->
+                <div x-show="c.phone || c.address" style="font-size: 11px; color: #64748b; margin-top: 5px; display:flex; align-items:center; gap:8px;" x-text="(c.phone ? '📞 ' + c.phone : '') + (c.phone && c.address ? ' • ' : '') + (c.address ? '📍 ' + c.address : '')"></div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;" @click.stop>
+                <button type="button" @click="selectCustomer(c)" style="padding: 7px 14px; font-size: 12px; font-weight: 700; background: #714B67; color: white; border: none; border-radius: 6px; cursor: pointer; box-shadow:0 1px 2px rgba(0,0,0,0.06);">Seleccionar</button>
+                <button type="button" @click.stop="confirmDeleteCustomer(c)" title="Eliminar cliente del sistema" style="padding: 7px 9px; font-size: 13px; font-weight: 700; background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;">
+                  <i class="ph-bold ph-trash"></i>
+                </button>
+              </div>
+            </div>
+          </template>
+
+          <template x-if="customerList.length === 0">
+            <div style="padding: 30px; text-align: center; color: #6c757d;">
+              <i class="ph-bold ph-warning-circle" style="font-size: 32px; color: #f59e0b; display: block; margin-bottom: 8px;"></i>
+              <div style="font-weight: 700; font-size: 14px; color: #212529;">No se encontraron clientes con crédito activo</div>
+              <div style="font-size: 12px; margin-top: 4px;">Solo se pueden seleccionar clientes que tengan una línea de crédito autorizada y vigente.</div>
+              <button 
+                type="button" 
+                style="margin-top: 14px; padding: 8px 18px; background: #714B67; color: #ffffff; border: none; border-radius: 4px; font-weight: 700; font-size: 13px; cursor: pointer;" 
+                @click="showCreateCustomerForm = true"
+              >
+                + Crear Nuevo Cliente con Crédito
+              </button>
+            </div>
+          </template>
+        </div>
+      </div>
+
+      <!-- MODO 2: FORMULARIO CREAR CLIENTE -->
+      <div x-show="showCreateCustomerForm" style="padding: 18px 20px; flex: 1; overflow-y: auto; background: #ffffff;">
+        <div style="display: flex; flex-direction: column; gap: 14px;">
+          <div style="display: flex; gap: 10px;">
+            <div style="flex: 1;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                <label style="font-size: 12px; font-weight: 600; color: #495057;">NIT</label>
+                <template x-if="satStatus === 'verified'">
+                  <span style="font-size: 11px; font-weight: 700; color: #137333;">✓ Verificado SAT</span>
+                </template>
+                <template x-if="satStatus === 'invalid'">
+                  <span style="font-size: 11px; font-weight: 700; color: #c5221f;">✗ Inválido SAT</span>
+                </template>
+              </div>
+              <div style="display: flex; gap: 6px;">
+                <input 
+                  type="text" 
+                  class="customer-search-input" 
+                  placeholder="CF o Número de NIT" 
+                  x-model="newCustomerForm.nit"
+                  @blur="lookupSAT()"
+                  @keyup.enter.prevent="lookupSAT()"
+                  style="border-radius: 4px; border: 1px solid #ced4da; padding: 7px 10px; font-size: 13px;"
+                >
+                <button 
+                  type="button" 
+                  style="background: #714B67; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 12px; font-weight: 700; cursor: pointer;"
+                  @click="lookupSAT()"
+                  :disabled="isLookingUpSAT"
+                >
+                  <span x-show="!isLookingUpSAT">SAT</span>
+                  <span x-show="isLookingUpSAT">...</span>
+                </button>
+              </div>
+            </div>
+            <div style="flex: 2;">
+              <label style="font-size: 12px; font-weight: 600; color: #495057; margin-bottom: 4px; display: block;">Nombre / Razón Social *</label>
+              <input type="text" class="customer-search-input" placeholder="Nombre completo o razón social" x-model="newCustomerForm.name" required style="border-radius: 4px; border: 1px solid #ced4da; padding: 7px 10px; font-size: 13px;">
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 10px;">
+            <div style="flex: 1;">
+              <label style="font-size: 12px; font-weight: 600; color: #495057; margin-bottom: 4px; display: block;">Teléfono</label>
+              <input type="text" class="customer-search-input" placeholder="Teléfono" x-model="newCustomerForm.phone" style="border-radius: 4px; border: 1px solid #ced4da; padding: 7px 10px; font-size: 13px;">
+            </div>
+            <div style="flex: 1;">
+              <label style="font-size: 12px; font-weight: 600; color: #495057; margin-bottom: 4px; display: block;">Correo</label>
+              <input type="email" class="customer-search-input" placeholder="cliente@correo.com" x-model="newCustomerForm.email" style="border-radius: 4px; border: 1px solid #ced4da; padding: 7px 10px; font-size: 13px;">
+            </div>
+          </div>
+
+          <div>
+            <label style="font-size: 12px; font-weight: 600; color: #495057; margin-bottom: 4px; display: block;">Dirección</label>
+            <input type="text" class="customer-search-input" placeholder="Ciudad, Guatemala" x-model="newCustomerForm.address" style="border-radius: 4px; border: 1px solid #ced4da; padding: 7px 10px; font-size: 13px;">
+          </div>
+        </div>
+
+        <div style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
+          <button 
+            type="button" 
+            style="background: #ffffff; border: 1px solid #ced4da; color: #495057; padding: 7px 16px; border-radius: 4px; font-size: 13px; font-weight: 600; cursor: pointer;"
+            @click="showCreateCustomerForm = false"
+          >Volver a lista</button>
+          <button 
+            type="button" 
+            style="background: #714B67; color: #ffffff; border: none; padding: 7px 20px; border-radius: 4px; font-size: 13px; font-weight: 700; cursor: pointer;" 
+            @click="saveNewCustomer()"
+          >Guardar y Seleccionar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+if (!window.toast && typeof showToast === 'function') {
+  window.toast = showToast;
+}
+function presaleApp() {
+  return {
+    // Mobile view switching ('catalog' or 'cart')
+    mobileTab: 'catalog',
+
+    // Orders / Multi-tab support
+    orders: [{ cart: [], customer: null }],
+    activeOrderIdx: 0,
+    cart: [],
+    customer: null,
+    customerSearchQuery: '',
+    customerList: [],
+    showInlineCustomerDropdown: false,
+
+    // Numpad & Totals
+    showNumpad: true,
+    numpadMode: 'qty', // 'qty' o 'disc'
+    numpadBuffer: '',
+    selectedLineIdx: -1,
+    subtotal: 0,
+    grandTotal: 0,
+    taxAmount: 0,
+    notes: '',
+
+    // Catalog & Filters
+    products: [],
+    filteredProducts: [],
+    categories: [],
+    selectedCategory: '',
+    search: '',
+
+    // Modals, Logistics & Offline State
+    showCheckoutModal: false,
+    deliveryDate: new Date(Date.now() + 86400000).toISOString().split('T')[0],
+    deliveryAddress: '',
+    deliveryNotes: '',
+
+    isOnline: navigator.onLine,
+    isSyncing: false,
+    offlineQueue: JSON.parse(localStorage.getItem('presale_offline_queue') || '[]'),
+
+    showProformaModal: false,
+    proformaViewMode: 'ticket', // 'standard' | 'ticket'
+    proforma: null,
+    showMyRequestsModal: false,
+    myRequests: [],
+    showStockModal: false,
+    selectedProductStock: null,
+    productWarehousesStock: [],
+    activeBranchName: 'Sucursal Principal',
+    userName: 'Preventista',
+    isSubmitting: false,
+
+    async init() {
+      // Monitoreo reactivo de conectividad de red y auto-sincronización
+      window.addEventListener('online', () => {
+        this.isOnline = true;
+        this.syncOfflinePresales(true);
+      });
+      window.addEventListener('offline', () => {
+        this.isOnline = false;
+      });
+      window.addEventListener('focus', () => {
+        if (this.offlineQueue.length > 0 && !this.isSyncing) {
+          this.syncOfflinePresales(true);
+        }
+      });
+
+      // Sanitizar cola offline eliminando pedidos vacíos o corruptos
+      this.offlineQueue = (this.offlineQueue || []).filter(item => 
+        item && item.payload && item.payload.lines && item.payload.lines.length > 0 && Number(item.total || item.payload.total || 0) > 0
+      );
+      try {
+        localStorage.setItem('presale_offline_queue', JSON.stringify(this.offlineQueue));
+      } catch(e) {}
+
+      this.syncActiveOrder();
+      await this.loadCategories();
+      await this.loadProducts();
+      await this.loadMyRequests();
+      await this.searchCustomers();
+      this.loadUserInfo();
+      this.initRealtimeStockSync();
+
+      // Auto-sincronización inmediata al iniciar si hay pedidos pendientes
+      if (this.offlineQueue.length > 0) {
+        setTimeout(() => this.syncOfflinePresales(true), 800);
+      }
+
+      // Worker automático en segundo plano: sincroniza cada 4 segundos sin intervención manual
+      setInterval(() => {
+        if (this.offlineQueue.length > 0 && !this.isSyncing && navigator.onLine) {
+          this.syncOfflinePresales(true);
+        }
+      }, 4000);
+    },
+
+    toast(msg, type = 'info') {
+      if (typeof window.showToast === 'function') {
+        window.showToast(msg, type);
+      } else if (typeof window.toast === 'function' && window.toast !== this.toast) {
+        window.toast(msg, type);
+      } else {
+        const el = document.createElement('div');
+        el.className = `toast-msg toast-${type}`;
+        el.style.cssText = 'position:fixed; bottom:24px; right:24px; padding:12px 20px; border-radius:8px; font-weight:700; font-size:13px; z-index:99999; box-shadow:0 10px 25px rgba(0,0,0,0.2); animation:fadeIn 0.25s; display:flex; align-items:center; gap:8px;';
+        if (type === 'success') { el.style.background = '#065f46'; el.style.color = '#ecfdf5'; }
+        else if (type === 'error') { el.style.background = '#991b1b'; el.style.color = '#fef2f2'; }
+        else if (type === 'warning') { el.style.background = '#92400e'; el.style.color = '#fffbeb'; }
+        else { el.style.background = '#714B67'; el.style.color = '#ffffff'; }
+        el.textContent = msg;
+        document.body.appendChild(el);
+        setTimeout(() => {
+          el.style.opacity = '0';
+          el.style.transition = 'opacity 0.3s';
+          setTimeout(() => el.remove(), 300);
+        }, 3200);
+      }
+    },
+
+    formatPrice(val) {
+      if (val === undefined || val === null || isNaN(val)) return '0.00';
+      return Number(val).toFixed(2);
+    },
+
+    loadUserInfo() {
+      try {
+        const u = JSON.parse(localStorage.getItem('user') || '{}');
+        if (u.full_name) this.userName = u.full_name;
+        const b = JSON.parse(localStorage.getItem('active_branch') || '{}');
+        if (b.name) this.activeBranchName = b.name;
+      } catch(e) {}
+    },
+
+    // ----------------------------------------------------
+    // MULTI-ORDER TABS
+    // ----------------------------------------------------
+    syncActiveOrder() {
+      const ord = this.orders[this.activeOrderIdx];
+      if (ord) {
+        this.cart = ord.cart || [];
+        this.customer = ord.customer || null;
+        this.selectedLineIdx = this.cart.length > 0 ? 0 : -1;
+        this.calculateTotals();
+      }
+    },
+
+    addNewOrder() {
+      this.orders.push({
+        cart: [],
+        customer: null
+      });
+      this.activeOrderIdx = this.orders.length - 1;
+      this.syncActiveOrder();
+    },
+
+    switchOrder(idx) {
+      this.activeOrderIdx = idx;
+      this.syncActiveOrder();
+    },
+
+    closeOrder(idx) {
+      if (this.orders.length <= 1) return;
+      this.orders.splice(idx, 1);
+      if (this.activeOrderIdx >= this.orders.length) {
+        this.activeOrderIdx = this.orders.length - 1;
+      }
+      this.syncActiveOrder();
+    },
+
+    // ----------------------------------------------------
+    // CUSTOMER MANAGEMENT & MODAL (CLIENTES CON CRÉDITO ACTIVO)
+    // ----------------------------------------------------
+    showCustomerModal: false,
+    showCreateCustomerForm: false,
+    isLookingUpSAT: false,
+    satStatus: null,
+    newCustomerForm: {
+      nit: 'CF',
+      name: '',
+      phone: '',
+      email: '',
+      address: 'Ciudad de Guatemala'
+    },
+
+    openCustomerModal() {
+      this.showCustomerModal = true;
+      this.showCreateCustomerForm = false;
+      this.customerSearchQuery = '';
+      this.searchCustomers();
+    },
+
+    async searchCustomers() {
+      try {
+        const q = (this.customerSearchQuery || '').trim();
+        const url = q 
+          ? '/partners/?partner_type=customer&credit_status=active&search=' + encodeURIComponent(q) 
+          : '/partners/?partner_type=customer&credit_status=active';
+        const res = await API.get(url);
+        const items = res.items || res || [];
+        // Filtro estricto: solo clientes con crédito activo y que no sean Consumidor Final
+        this.customerList = (Array.isArray(items) ? items : []).filter(c => {
+          const status = (c.credit_status || '').toLowerCase();
+          const isCF = (c.nit || '').trim().toUpperCase() === 'CF';
+          const hasCreditLine = (Number(c.credit_limit) > 0 || Number(c.available_credit) > 0 || Number(c.payment_days) > 0);
+          return status === 'active' && !isCF && hasCreditLine;
+        });
+        if (this.customerList.length > 0 && !q) {
+          try {
+            localStorage.setItem('presale_cached_customers', JSON.stringify(this.customerList));
+          } catch(err) {}
+        }
+      } catch(e) {
+        // Fallback a almacenamiento local cuando no hay conexión
+        const cached = localStorage.getItem('presale_cached_customers');
+        if (cached) {
+          try {
+            const parsed = JSON.parse(cached);
+            const q = (this.customerSearchQuery || '').toLowerCase().trim();
+            this.customerList = q ? parsed.filter(c => (c.name || '').toLowerCase().includes(q) || (c.nit || '').toLowerCase().includes(q)) : parsed;
+          } catch(err) {
+            this.customerList = [];
+          }
+        } else {
+          this.customerList = [];
+        }
+      }
+    },
+
+    selectCustomer(c) {
+      this.customer = {
+        id: c.id || null,
+        name: c.name || c.business_name || '',
+        nit: c.nit || 'CF',
+        address: c.address || 'CIUDAD',
+        phone: c.phone || c.mobile || '',
+        email: c.email || '',
+        credit_status: c.credit_status || 'active',
+        credit_limit: Number(c.credit_limit || 0),
+        available_credit: Number(c.available_credit !== undefined ? c.available_credit : c.credit_limit || 0),
+        payment_days: c.payment_days || 15
+      };
+      this.orders[this.activeOrderIdx].customer = this.customer;
+      this.customerSearchQuery = '';
+      this.showInlineCustomerDropdown = false;
+      this.showCustomerModal = false;
+      this.deliveryAddress = this.customer.address || '';
+      this.toast('✓ Cliente con crédito seleccionado: ' + this.customer.name, 'success');
+    },
+
+    removeCustomer() {
+      if (!this.customer) return;
+      const prevName = this.customer.name || 'Cliente';
+      this.customer = null;
+      if (this.orders && this.orders[this.activeOrderIdx]) {
+        this.orders[this.activeOrderIdx].customer = null;
+      }
+      this.customerSearchQuery = '';
+      this.deliveryAddress = '';
+      this.showInlineCustomerDropdown = false;
+      this.toast('✓ Cliente ' + prevName + ' desvinculado de la orden de pre-venta', 'info');
+    },
+
+    async confirmDeleteCustomer(c) {
+      if (!c || !c.id) return;
+      const clientName = c.name || 'este cliente';
+      if (!confirm(`¿Está seguro de eliminar al cliente "${clientName}" (NIT: ${c.nit || 'CF'}) del sistema?\n\nEsta acción lo desactivará de forma permanente.`)) {
+        return;
+      }
+      try {
+        const res = await API.delete('/partners/' + c.id);
+        if (res && (res.success || res.status === 'deleted')) {
+          this.toast(`✓ Cliente "${clientName}" eliminado exitosamente`, 'success');
+          if (this.customer && this.customer.id === c.id) {
+            this.removeCustomer();
+          }
+          this.searchCustomers();
+        } else {
+          this.toast(res?.detail || 'No se pudo eliminar el cliente', 'error');
+        }
+      } catch(err) {
+        this.toast('Error al eliminar cliente: ' + (err.message || 'Verifique sus permisos'), 'error');
+      }
+    },
+
+    handleCustomerSearchEnter() {
+      if (this.customerList && this.customerList.length > 0) {
+        this.selectCustomer(this.customerList[0]);
+      } else {
+        const q = (this.customerSearchQuery || '').trim();
+        this.openCustomerModal();
+        if (q) {
+          this.showCreateCustomerForm = true;
+          this.newCustomerForm.nit = q;
+          this.newCustomerForm.name = '';
+          this.lookupSAT();
+        }
+      }
+    },
+
+    async lookupSAT() {
+      const rawNit = (this.newCustomerForm.nit || '').trim();
+      if (!rawNit) return;
+      const clean = rawNit.toUpperCase().replace(/[- ]/g, '');
+      if (clean === 'CF' || clean === 'C/F') {
+        this.newCustomerForm.nit = 'CF';
+        this.newCustomerForm.name = 'CONSUMIDOR FINAL';
+        this.satStatus = 'verified';
+        return;
+      }
+
+      this.isLookingUpSAT = true;
+      this.satStatus = null;
+      try {
+        const res = await API.get('/partners/lookup-nit/' + encodeURIComponent(rawNit));
+        if (res.valid) {
+          this.newCustomerForm.nit = res.nit || rawNit;
+          if (res.name) {
+            this.newCustomerForm.name = res.name;
+            this.satStatus = 'verified';
+            this.toast('✓ Verificado: ' + res.name, 'success');
+          } else {
+            this.satStatus = 'valid_unregistered';
+            this.toast('NIT válido. Complete el nombre.', 'info');
+          }
+          if (res.address && !this.newCustomerForm.address) {
+            this.newCustomerForm.address = res.address;
+          }
+        } else {
+          this.satStatus = 'invalid';
+          this.toast(res.error || 'NIT no válido en SAT', 'warning');
+        }
+      } catch(e) {
+        this.satStatus = null;
+      } finally {
+        this.isLookingUpSAT = false;
+      }
+    },
+
+    async saveNewCustomer() {
+      if (!this.newCustomerForm.name) {
+        this.toast('Por favor ingrese el nombre del cliente', 'warning');
+        return;
+      }
+      try {
+        const res = await API.post('/partners/', {
+          name: this.newCustomerForm.name,
+          nit: this.newCustomerForm.nit || 'CF',
+          phone: this.newCustomerForm.phone || '',
+          email: this.newCustomerForm.email || '',
+          address: this.newCustomerForm.address || 'Ciudad de Guatemala',
+          partner_type: 'customer',
+          credit_status: 'active',
+          payment_days: 15,
+          credit_limit: 600
+        });
+        const created = {
+          id: res.id,
+          nit: this.newCustomerForm.nit || 'CF',
+          name: this.newCustomerForm.name,
+          address: this.newCustomerForm.address || 'Ciudad de Guatemala',
+          phone: this.newCustomerForm.phone || '',
+          email: this.newCustomerForm.email || '',
+          credit_status: 'active',
+          payment_days: 15,
+          credit_limit: 600,
+          available_credit: 600
+        };
+        this.selectCustomer(created);
+      } catch(e) {
+        const fallback = {
+          id: null,
+          nit: this.newCustomerForm.nit || 'CF',
+          name: this.newCustomerForm.name,
+          address: this.newCustomerForm.address || 'Ciudad de Guatemala',
+          phone: this.newCustomerForm.phone || '',
+          email: this.newCustomerForm.email || '',
+          credit_status: 'active',
+          payment_days: 15,
+          credit_limit: 600,
+          available_credit: 600
+        };
+        this.selectCustomer(fallback);
+      }
+    },
+
+    // ----------------------------------------------------
+    // CART & NUMPAD
+    // ----------------------------------------------------
+    handleProductClick(product) {
+      const phys = Number(product.stock_physical !== undefined ? product.stock_physical : (product.stock || 0));
+      const frozen = Number(product.stock_frozen || 0);
+      const avail = product.stock_available !== undefined ? Number(product.stock_available) : (phys - frozen);
+      const isService = product.product_type === 'service';
+
+      if (!isService && avail <= 0) {
+        if (frozen > 0) {
+          this.toast(`❌ El producto "${product.name}" está reservado (${frozen} en pre-venta) y no cuenta con existencia disponible para otra solicitud.`, 'error');
+        } else {
+          this.toast(`❌ Sin stock disponible en bodega para "${product.name}".`, 'error');
+        }
+        return;
+      }
+
+      const existingIdx = this.cart.findIndex(i => i.product_id === product.id);
+      const currentQty = existingIdx >= 0 ? this.cart[existingIdx].qty : 0;
+      if (!isService && (currentQty + 1) > avail) {
+        if (frozen > 0) {
+          this.toast(`❌ Existencia disponible insuficiente para "${product.name}". Solo hay ${Math.max(0, avail)} unidad(es) disponible(s) (${frozen} reservadas).`, 'error');
+        } else {
+          this.toast(`❌ Existencia insuficiente en bodega para "${product.name}". Solo hay ${Math.max(0, phys)} disponible(s) (en carrito: ${currentQty}).`, 'error');
+        }
+        return;
+      }
+
+      if (existingIdx >= 0) {
+        this.cart[existingIdx].qty += 1;
+        this.cart[existingIdx].total = (this.cart[existingIdx].qty * this.cart[existingIdx].unit_price) - (this.cart[existingIdx].discount_amount || 0);
+        this.selectedLineIdx = existingIdx;
+      } else {
+        const price = Number(product.sale_price) || 0;
+        this.cart.push({
+          product_id: product.id,
+          product_name: product.name,
+          barcode: product.barcode || '',
+          qty: 1,
+          unit_price: price,
+          discount_amount: 0,
+          total: price
+        });
+        this.selectedLineIdx = this.cart.length - 1;
+      }
+      this.numpadBuffer = '';
+      this.orders[this.activeOrderIdx].cart = this.cart;
+      this.calculateTotals();
+      if (window.innerWidth <= 768 && this.mobileTab === 'catalog') {
+        this.toast('+1 ' + product.name, 'info');
+      }
+    },
+
+    selectLine(idx) {
+      this.selectedLineIdx = idx;
+      this.numpadBuffer = '';
+    },
+
+    removeLine(idx) {
+      this.cart.splice(idx, 1);
+      if (this.selectedLineIdx >= this.cart.length) {
+        this.selectedLineIdx = this.cart.length - 1;
+      }
+      this.orders[this.activeOrderIdx].cart = this.cart;
+      this.numpadBuffer = '';
+      this.calculateTotals();
+    },
+
+    setNumpadMode(mode) {
+      this.numpadMode = mode;
+      this.numpadBuffer = '';
+    },
+
+    handleNumpad(key) {
+      if (this.cart.length === 0 || this.selectedLineIdx < 0 || this.selectedLineIdx >= this.cart.length) {
+        this.toast('Seleccione un producto en el carrito', 'info');
+        return;
+      }
+      const line = this.cart[this.selectedLineIdx];
+
+      if (key === 'backspace') {
+        this.numpadBuffer = this.numpadBuffer.slice(0, -1);
+      } else if (key === '+/-') {
+        if (this.numpadBuffer.startsWith('-')) {
+          this.numpadBuffer = this.numpadBuffer.slice(1);
+        } else if (this.numpadBuffer) {
+          this.numpadBuffer = '-' + this.numpadBuffer;
+        }
+      } else {
+        this.numpadBuffer += key;
+      }
+
+      const val = parseFloat(this.numpadBuffer) || 0;
+      if (this.numpadMode === 'qty') {
+        const prod = (this.products || []).find(p => p.id === line.product_id);
+        if (prod && prod.product_type !== 'service') {
+          const phys = Number(prod.stock_physical !== undefined ? prod.stock_physical : (prod.stock || 0));
+          const frozen = Number(prod.stock_frozen || 0);
+          const avail = prod.stock_available !== undefined ? Number(prod.stock_available) : (phys - frozen);
+          if (val > avail) {
+            const msg = frozen > 0
+              ? `❌ Cantidad supera la existencia disponible (${Math.max(0, avail)} disponible(s), ${frozen} reservada(s)).`
+              : `❌ Cantidad supera la existencia en bodega (${Math.max(0, phys)} disponible(s)).`;
+            this.toast(msg, 'error');
+            this.numpadBuffer = '';
+            return;
+          }
+        }
+        if (val > 0) line.qty = val;
+      } else if (this.numpadMode === 'disc') {
+        line.discount_amount = val;
+      }
+
+      line.total = Math.max(0, (line.qty * line.unit_price) - (line.discount_amount || 0));
+      this.orders[this.activeOrderIdx].cart = this.cart;
+      this.calculateTotals();
+    },
+
+    calculateTotals() {
+      let sub = 0;
+      for (const item of this.cart) {
+        sub += (item.total || 0);
+      }
+      this.subtotal = sub;
+      this.grandTotal = sub;
+      this.taxAmount = (sub * 12) / 112;
+    },
+
+    // ----------------------------------------------------
+    // REALTIME STOCK SYNC & BROADCAST
+    // ----------------------------------------------------
+    broadcastStockChange(type = 'STOCK_UPDATED', delta = null) {
+      if ('BroadcastChannel' in window) {
+        try {
+          const ch = new BroadcastChannel('pos_stock_channel');
+          ch.postMessage({ type: type, delta: delta, timestamp: Date.now() });
+          setTimeout(() => ch.close(), 200);
+        } catch(_) {}
+      }
+      try {
+        localStorage.setItem('pos_stock_updated_timestamp', Date.now().toString());
+      } catch(_) {}
+    },
+
+    initRealtimeStockSync() {
+      // 1. Canal BroadcastChannel para sincronización instantánea entre pestañas del POS y Pre-venta
+      if ('BroadcastChannel' in window) {
+        try {
+          this.stockChannel = new BroadcastChannel('pos_stock_channel');
+          this.stockChannel.onmessage = (ev) => {
+            if (ev.data) {
+              this.syncLiveStock().catch(() => {});
+            }
+          };
+        } catch(e) {
+          console.warn("BroadcastChannel error in presale:", e);
+        }
+      }
+
+      // 2. Escucha de evento Storage para sincronización entre ventanas del navegador
+      window.addEventListener('storage', (e) => {
+        if (e.key === 'pos_stock_updated_timestamp') {
+          this.syncLiveStock().catch(() => {});
+        }
+      });
+
+      // 3. Sincronizar inmediatamente al enfocar o volver a la pestaña
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden && navigator.onLine) {
+          this.syncLiveStock().catch(() => {});
+        }
+      });
+      window.addEventListener('focus', () => {
+        if (navigator.onLine) {
+          this.syncLiveStock().catch(() => {});
+        }
+      });
+
+      // 4. Temporizador de actualización periódica en segundo plano (cada 3 segundos)
+      if (this._stockSyncInterval) clearInterval(this._stockSyncInterval);
+      this._stockSyncInterval = setInterval(() => {
+        if (!document.hidden && navigator.onLine && !this.isSyncingStock) {
+          this.syncLiveStock().catch(() => {});
+        }
+      }, 3000);
+    },
+
+    async syncLiveStock() {
+      if (!navigator.onLine || this.isSyncingStock) return;
+      this.isSyncingStock = true;
+      try {
+        const res = await API.get('/products/stock-levels');
+        if (res && (res.stock || res.stock_available) && typeof (res.stock || res.stock_available) === 'object') {
+          const availMap = res.stock_available || res.stock || {};
+          const physMap = res.stock_physical || {};
+          const frozMap = res.stock_frozen || {};
+          if (this.products && Array.isArray(this.products)) {
+            for (let i = 0; i < this.products.length; i++) {
+              const p = this.products[i];
+              const pid = String(p.id);
+              if (availMap[pid] !== undefined) {
+                p.stock = Number(availMap[pid]);
+                p.stock_available = Number(availMap[pid]);
+              }
+              if (physMap[pid] !== undefined) {
+                p.stock_physical = Number(physMap[pid]);
+              }
+              p.stock_frozen = Number(frozMap[pid] || 0);
+            }
+          }
+          this.filterProducts();
+        }
+      } catch(err) {
+      } finally {
+        this.isSyncingStock = false;
+      }
+    },
+
+    // ----------------------------------------------------
+    // CATALOG & CATEGORIES
+    // ----------------------------------------------------
+    async loadCategories() {
+      try {
+        const res = await API.get('/products/categories');
+        this.categories = Array.isArray(res) ? res : (res.items || []);
+      } catch(e) {
+        this.categories = [];
+      }
+    },
+
+    async loadProducts() {
+      try {
+        const res = await API.get('/products/?is_active=true');
+        const items = res.items || res.products || (Array.isArray(res) ? res : []);
+        this.products = items.filter(p => p.is_active === true && !p.is_deleted);
+        if (this.products.length > 0) {
+          try {
+            localStorage.setItem('presale_cached_products', JSON.stringify(this.products));
+          } catch(err) {}
+        }
+        this.filterProducts();
+      } catch(e) {
+        console.error(e);
+        // Fallback a almacenamiento local en modo offline
+        const cached = localStorage.getItem('presale_cached_products');
+        if (cached) {
+          try {
+            this.products = JSON.parse(cached);
+            this.filterProducts();
+            this.toast('Catálogo de productos cargado desde memoria local (Modo Offline)', 'info');
+            return;
+          } catch(err) {}
+        }
+        this.toast('Error cargando productos', 'error');
+      }
+    },
+
+    filterProducts() {
+      let list = this.products;
+      if (this.selectedCategory) {
+        list = list.filter(p => p.category_id === this.selectedCategory || (p.category && p.category.id === this.selectedCategory));
+      }
+      if (this.search) {
+        const q = this.search.toLowerCase().trim();
+        list = list.filter(p => 
+          (p.name && p.name.toLowerCase().includes(q)) ||
+          (p.barcode && p.barcode.toLowerCase().includes(q)) ||
+          (p.internal_ref && p.internal_ref.toLowerCase().includes(q))
+        );
+      }
+      this.filteredProducts = list;
+    },
+
+    quickFilter(type) {
+      if (type === 'quick') {
+        this.selectedCategory = '';
+        this.search = '';
+        this.filteredProducts = this.products.slice(0, 15);
+      }
+    },
+
+    async showProductStockInfo(product) {
+      this.selectedProductStock = product;
+      try {
+        const res = await API.get('/products/' + product.id + '/warehouses-stock');
+        this.productWarehousesStock = res.warehouses || res || [];
+        if (res) {
+          this.selectedProductStock = {
+            ...product,
+            ...res,
+            pdf_datasheet_url: res.pdf_datasheet_url || product.pdf_datasheet_url,
+            description: res.description || product.description,
+            internal_notes: res.internal_notes || product.internal_notes,
+          };
+        }
+      } catch(e) {
+        this.productWarehousesStock = [
+          { warehouse_id: '1', warehouse_name: 'Bodega Principal', qty_on_hand: product.stock || product.total_stock || 0 }
+        ];
+      }
+      this.showStockModal = true;
+    },
+
+    // ----------------------------------------------------
+    // LOGÍSTICA & DESPACHO
+    // ----------------------------------------------------
+    openCheckoutModal() {
+      if (this.cart.length === 0) {
+        this.toast('El carrito está vacío. Agregue productos para generar la Proforma.', 'warning');
+        return;
+      }
+      if (!this.customer || !this.customer.id) {
+        this.toast('⚠️ Debe seleccionar un cliente con crédito activo para la pre-venta.', 'warning');
+        this.openCustomerModal();
+        return;
+      }
+
+      if (!this.deliveryDate) {
+        this.deliveryDate = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+      }
+      if (!this.deliveryAddress) {
+        this.deliveryAddress = this.customer.address || '';
+      }
+      this.showCheckoutModal = true;
+    },
+
+    setQuickDeliveryDate(offsetDays) {
+      const d = new Date(Date.now() + (offsetDays * 86400000));
+      this.deliveryDate = d.toISOString().split('T')[0];
+    },
+
+    isTodayDelivery() {
+      const today = new Date().toISOString().split('T')[0];
+      return this.deliveryDate === today;
+    },
+
+    isTomorrowDelivery() {
+      const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+      return this.deliveryDate === tomorrow;
+    },
+
+    clearCartAfterPresale() {
+      this.cart = [];
+      this.customer = null;
+      this.customerSearchQuery = '';
+      this.deliveryAddress = '';
+      if (this.orders && this.orders[this.activeOrderIdx]) {
+        this.orders[this.activeOrderIdx].cart = [];
+        this.orders[this.activeOrderIdx].customer = null;
+      }
+      this.selectedLineIdx = -1;
+      this.numpadBuffer = '';
+      this.calculateTotals();
+      this.notes = '';
+      this.deliveryNotes = '';
+    },
+
+    // ----------------------------------------------------
+    // CONFIRMACIÓN DE PRE-VENTA (ONLINE / OFFLINE)
+    // ----------------------------------------------------
+    async confirmPresaleOrder() {
+      if (this.cart.length === 0) {
+        this.toast('El carrito está vacío.', 'warning');
+        return;
+      }
+      if (!this.customer || !this.customer.id) {
+        this.toast('Seleccione un cliente con crédito activo.', 'warning');
+        return;
+      }
+
+      // Validar que ningún producto en el carrito supere el stock disponible en bodega o reservas
+      for (const line of this.cart) {
+        const prod = (this.products || []).find(p => p.id === line.product_id);
+        if (prod && prod.product_type !== 'service') {
+          const phys = Number(prod.stock_physical !== undefined ? prod.stock_physical : (prod.stock || 0));
+          const frozen = Number(prod.stock_frozen || 0);
+          const avail = prod.stock_available !== undefined ? Number(prod.stock_available) : (phys - frozen);
+          if (avail <= 0) {
+            this.toast(`❌ No se puede generar pre-venta: "${line.product_name}" no tiene existencias disponibles en bodega${frozen > 0 ? ' (' + frozen + ' reservadas en pre-ventas)' : ''}.`, 'error');
+            return;
+          }
+          if (line.qty > avail) {
+            this.toast(`❌ No se puede generar pre-venta: "${line.product_name}" supera la existencia disponible (${Math.max(0, avail)} disponible(s), Solicitado: ${line.qty}${frozen > 0 ? ', ' + frozen + ' reservada(s)' : ''}).`, 'error');
+            return;
+          }
+        }
+      }
+
+      // Snapshot inmutable de las líneas y totales antes de cualquier operación
+      const cartSnapshot = JSON.parse(JSON.stringify(this.cart));
+      const subtotalSnapshot = Number(this.subtotal) || 0;
+      const taxSnapshot = Number(this.taxAmount) || 0;
+      const totalSnapshot = Number(this.grandTotal) || 0;
+      const customerSnapshot = JSON.parse(JSON.stringify(this.customer || {}));
+      const deliveryDateSnapshot = this.deliveryDate || 'Inmediata';
+      const deliveryAddressSnapshot = this.deliveryAddress || customerSnapshot.address || 'CIUDAD';
+      const deliveryNotesSnapshot = this.deliveryNotes || this.notes || '';
+
+      this.isSubmitting = true;
+
+      const payload = {
+        customer_id: customerSnapshot.id,
+        customer_name: customerSnapshot.name || 'CONSUMIDOR FINAL',
+        customer_nit: customerSnapshot.nit || 'CF',
+        customer_address: customerSnapshot.address || 'CIUDAD',
+        delivery_date: deliveryDateSnapshot || null,
+        delivery_address: deliveryAddressSnapshot,
+        delivery_notes: deliveryNotesSnapshot,
+        notes: deliveryNotesSnapshot,
+        lines: cartSnapshot.map(i => ({
+          product_id: i.product_id,
+          product_name: i.product_name,
+          qty: Number(i.qty || 1),
+          unit_price: Number(i.unit_price || 0),
+          discount_amount: Number(i.discount_amount || 0)
+        }))
+      };
+
+      // Si está deliberadamente offline, guardar en la cola local de inmediato
+      if (!this.isOnline || !navigator.onLine) {
+        this.saveOrderOffline(payload, cartSnapshot, {
+          subtotal: subtotalSnapshot,
+          tax: taxSnapshot,
+          total: totalSnapshot,
+          customer: customerSnapshot,
+          deliveryDate: deliveryDateSnapshot,
+          deliveryAddress: deliveryAddressSnapshot,
+          deliveryNotes: deliveryNotesSnapshot
+        });
+        this.isSubmitting = false;
+        return;
+      }
+
+      // Modo Online con tolerancia a fallas de red
+      try {
+        const res = await API.post('/presale/', payload);
+        if (res && (res.success || res.id)) {
+          this.proforma = {
+            id: res.id,
+            number: res.number,
+            is_offline: false,
+            state: res.state || 'pending_approval',
+            date: new Date().toLocaleString('es-GT', { dateStyle: 'medium', timeStyle: 'short' }),
+            customer_name: customerSnapshot.name || 'CONSUMIDOR FINAL',
+            customer_nit: customerSnapshot.nit || 'CF',
+            customer_address: customerSnapshot.address || 'CIUDAD',
+            customer_phone: customerSnapshot.phone || customerSnapshot.mobile || '',
+            delivery_date: deliveryDateSnapshot,
+            delivery_address: deliveryAddressSnapshot,
+            delivery_notes: deliveryNotesSnapshot,
+            seller_name: this.userName || 'Preventista',
+            branch_name: this.activeBranchName || 'Sucursal Principal',
+            lines: cartSnapshot,
+            subtotal: subtotalSnapshot,
+            tax: taxSnapshot,
+            total: totalSnapshot,
+            notes: deliveryNotesSnapshot
+          };
+
+          this.clearCartAfterPresale();
+          this.showCheckoutModal = false;
+          this.showProformaModal = true;
+          try { this.loadMyRequests(); } catch(_) {}
+          try { this.loadProducts(); } catch(_) {}
+          this.broadcastStockChange('PRESALE_CREATED');
+          this.toast('✓ Solicitud de Pre-venta registrada con éxito', 'success');
+        } else {
+          this.toast((res && res.detail) || 'Error registrando pre-venta', 'error');
+        }
+      } catch(e) {
+        const isNetworkErr = !navigator.onLine || (e.message && (
+          e.message.toLowerCase().includes('fetch') || 
+          e.message.toLowerCase().includes('network') || 
+          e.message.toLowerCase().includes('failed')
+        ));
+
+        if (isNetworkErr) {
+          console.warn('Fallo de red detectado al enviar pre-venta, guardando en cola offline:', e);
+          this.saveOrderOffline(payload, cartSnapshot, {
+            subtotal: subtotalSnapshot,
+            tax: taxSnapshot,
+            total: totalSnapshot,
+            customer: customerSnapshot,
+            deliveryDate: deliveryDateSnapshot,
+            deliveryAddress: deliveryAddressSnapshot,
+            deliveryNotes: deliveryNotesSnapshot
+          });
+        } else {
+          console.error('Error del servidor al procesar pre-venta:', e);
+          this.toast(e.message || 'Error procesando solicitud en el servidor', 'error');
+        }
+      } finally {
+        this.isSubmitting = false;
+      }
+    },
+
+    saveOrderOffline(payload, cartSnapshot = null, totalsSnapshot = null) {
+      const items = cartSnapshot || JSON.parse(JSON.stringify(this.cart || []));
+      const subtotal = totalsSnapshot ? totalsSnapshot.subtotal : this.subtotal;
+      const tax = totalsSnapshot ? totalsSnapshot.tax : this.taxAmount;
+      const total = totalsSnapshot ? totalsSnapshot.total : this.grandTotal;
+      const cust = (totalsSnapshot && totalsSnapshot.customer) ? totalsSnapshot.customer : (this.customer || {});
+      const delDate = (totalsSnapshot && totalsSnapshot.deliveryDate) ? totalsSnapshot.deliveryDate : (this.deliveryDate || 'Inmediata');
+      const delAddr = (totalsSnapshot && totalsSnapshot.deliveryAddress) ? totalsSnapshot.deliveryAddress : (this.deliveryAddress || cust.address || 'CIUDAD');
+      const delNotes = (totalsSnapshot && totalsSnapshot.deliveryNotes) ? totalsSnapshot.deliveryNotes : (this.deliveryNotes || '');
+
+      const localNumber = 'PRE-OFFLINE-' + Date.now().toString().slice(-6);
+      const localRecord = {
+        local_id: 'loc_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+        payload: payload,
+        number: localNumber,
+        created_at: new Date().toISOString(),
+        total: total,
+        customer_name: cust.name || 'CONSUMIDOR FINAL',
+        customer_phone: cust.phone || cust.mobile || '',
+        delivery_date: delDate,
+        delivery_address: delAddr,
+        delivery_notes: delNotes
+      };
+
+      // Guardar en cola offline únicamente si tiene líneas válidas y total positivo
+      if (payload && payload.lines && payload.lines.length > 0 && total > 0) {
+        this.offlineQueue.push(localRecord);
+        try {
+          localStorage.setItem('presale_offline_queue', JSON.stringify(this.offlineQueue));
+        } catch(err) {}
+      }
+
+      this.proforma = {
+        id: localRecord.local_id,
+        number: localNumber,
+        is_offline: true,
+        state: 'pending_offline',
+        date: new Date().toLocaleString('es-GT', { dateStyle: 'medium', timeStyle: 'short' }),
+        customer_name: cust.name || 'CONSUMIDOR FINAL',
+        customer_nit: cust.nit || 'CF',
+        customer_address: cust.address || 'CIUDAD',
+        customer_phone: cust.phone || cust.mobile || '',
+        delivery_date: delDate,
+        delivery_address: delAddr,
+        delivery_notes: delNotes,
+        seller_name: this.userName || 'Preventista',
+        branch_name: this.activeBranchName || 'Sucursal Principal',
+        lines: items,
+        subtotal: subtotal,
+        tax: tax,
+        total: total,
+        notes: delNotes
+      };
+
+      this.clearCartAfterPresale();
+      this.showCheckoutModal = false;
+      this.showProformaModal = true;
+      this.toast('⚡ Pedido guardado en memoria offline. Se sincronizará automáticamente.', 'info');
+
+      // Intentar auto-sincronización inmediata en segundo plano
+      setTimeout(() => {
+        this.syncOfflinePresales(true);
+      }, 1500);
+    },
+
+    // ----------------------------------------------------
+    // SINCRONIZACIÓN AUTOMÁTICA DE COLA OFFLINE
+    // ----------------------------------------------------
+    async syncOfflinePresales(silent = false) {
+      if (this.offlineQueue.length === 0 || this.isSyncing) return;
+      if (!navigator.onLine) {
+        if (!silent) this.toast('No hay conexión a internet para sincronizar pedidos.', 'warning');
+        return;
+      }
+
+      this.isSyncing = true;
+      let successCount = 0;
+      const remaining = [];
+
+      for (const item of [...this.offlineQueue]) {
+        // Descartar órdenes corruptas sin líneas o total 0
+        if (!item.payload || !item.payload.lines || item.payload.lines.length === 0 || Number(item.total || 0) <= 0) {
+          continue;
+        }
+        try {
+          const res = await API.post('/presale/', item.payload);
+          if (res && (res.success || res.id)) {
+            successCount++;
+            this.isOnline = true;
+          } else {
+            console.warn('Fallo en sincronización:', res);
+            remaining.push(item);
+          }
+        } catch(err) {
+          console.warn('Error en auto-sincronización:', err);
+          remaining.push(item);
+        }
+      }
+
+      this.offlineQueue = remaining;
+      try {
+        localStorage.setItem('presale_offline_queue', JSON.stringify(this.offlineQueue));
+      } catch(err) {}
+
+      this.isSyncing = false;
+      if (successCount > 0) {
+        this.toast(`✓ ${successCount} pedido(s) sincronizado(s) automáticamente con el servidor`, 'success');
+        try { this.loadMyRequests(); } catch(_) {}
+        try { this.loadProducts(); } catch(_) {}
+        this.broadcastStockChange('PRESALE_SYNCED');
+      }
+      if (!silent && remaining.length > 0) {
+        this.toast(`⚠️ Quedan ${remaining.length} pedido(s) pendientes de sincronización`, 'info');
+      }
+    },
+
+    // ----------------------------------------------------
+    // COMPARTIR POR WHATSAPP & COPIAR RESUMEN
+    // ----------------------------------------------------
+    shareWhatsApp() {
+      if (!this.proforma) return;
+      const p = this.proforma;
+      
+      let text = `📋 *PROFORMA DE SOLICITUD DE PRE-VENTA*\n`;
+      text += `*No. Documento:* ${p.number || 'PRE-XXXX'}\n`;
+      text += `*Sucursal:* ${p.branch_name || 'Sucursal Principal'}\n`;
+      text += `*Fecha:* ${p.date || ''}\n`;
+      text += `*Preventista:* ${p.seller_name || 'Preventista'}\n\n`;
+
+      text += `👤 *DATOS DEL CLIENTE:*\n`;
+      text += `• *Nombre:* ${p.customer_name || 'Cliente'}\n`;
+      text += `• *NIT:* ${p.customer_nit || 'CF'}\n`;
+      text += `• *Dirección:* ${p.customer_address || 'Ciudad'}\n\n`;
+
+      text += `🛒 *DETALLE DEL PEDIDO:*\n`;
+      (p.lines || []).forEach((l, idx) => {
+        text += `${idx + 1}. *${l.qty}x* ${l.product_name} — Q ${this.formatPrice(l.total || (l.qty * l.unit_price))}\n`;
+      });
+      text += `\n`;
+
+      text += `💰 *TOTALES:*\n`;
+      text += `• Subtotal: Q ${this.formatPrice(p.subtotal)}\n`;
+      text += `• IVA (12%): Q ${this.formatPrice(p.tax)}\n`;
+      text += `• *TOTAL PROFORMA: Q ${this.formatPrice(p.total)}*\n\n`;
+
+      text += `🚚 *LOGÍSTICA & DESPACHO:*\n`;
+      text += `• *Fecha Entrega Prometida:* ${p.delivery_date || 'Inmediata'}\n`;
+      text += `• *Punto de Entrega:* ${p.delivery_address || p.customer_address || 'En tienda'}\n`;
+      if (p.delivery_notes) {
+        text += `• *Instrucciones Piloto:* ${p.delivery_notes}\n`;
+      }
+      text += `\n`;
+
+      if (p.is_offline) {
+        text += `⚡ *Nota:* Documento registrado en modo sin conexión (pendiente de correlativo central).\n\n`;
+      }
+
+      text += `⚠️ _Este documento es una Proforma de Pre-Venta cotizada para despacho. No constituye factura contable ni deduce inventario físico hasta su debida aprobación en Bodega._`;
+
+      // Resolver teléfono del cliente
+      let phone = (p.customer_phone || '').replace(/\D/g, '');
+      if (phone.length === 8) {
+        phone = '502' + phone;
+      }
+
+      let waUrl = phone 
+        ? `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(text)}`
+        : `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+
+      window.open(waUrl, '_blank');
+    },
+
+    copyProformaText() {
+      if (!this.proforma) return;
+      const p = this.proforma;
+      let text = `📋 PROFORMA DE PRE-VENTA ${p.number || ''}\n`;
+      text += `Cliente: ${p.customer_name} (NIT: ${p.customer_nit})\n`;
+      text += `Fecha: ${p.date}\n`;
+      text += `Total: Q ${this.formatPrice(p.total)}\n`;
+      text += `Entrega: ${p.delivery_date || 'Por coordinar'} en ${p.delivery_address || 'Dirección de cliente'}\n`;
+      if (p.delivery_notes) text += `Notas: ${p.delivery_notes}\n`;
+      text += `\nProductos:\n`;
+      (p.lines || []).forEach(l => {
+        const q = l.qty || l.quantity || 1;
+        const pu = l.unit_price !== undefined ? l.unit_price : (l.price || 0);
+        const tot = l.total !== undefined ? l.total : (q * pu);
+        text += `- ${q}x ${l.product_name || l.name || 'Producto'} (P.U: Q${this.formatPrice(pu)}) = Q ${this.formatPrice(tot)}\n`;
+      });
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+          this.toast('✓ Resumen de la Proforma copiado al portapapeles', 'success');
+        }).catch(() => {
+          this.toast('Error copiando al portapapeles', 'error');
+        });
+      } else {
+        this.toast('Portapapeles no soportado en este dispositivo', 'info');
+      }
+    },
+
+    printProforma() {
+      window.print();
+    },
+
+    // ----------------------------------------------------
+    // HISTORIAL DE SOLICITUDES
+    // ----------------------------------------------------
+    async loadMyRequests() {
+      try {
+        const res = await API.get('/presale/my-requests');
+        this.myRequests = res.items || res || [];
+      } catch(e) {
+        this.myRequests = [];
+      }
+    },
+
+    openMyRequestsModal() {
+      this.loadMyRequests();
+      this.showMyRequestsModal = true;
+    },
+
+    async viewProformaFromRequest(req) {
+      try {
+        const detail = await API.get('/presale/' + req.id);
+        const tot = Number(detail.total || 0);
+        const sub = detail.subtotal !== undefined ? Number(detail.subtotal) : (tot / 1.12);
+        const tx = detail.tax_amount !== undefined ? Number(detail.tax_amount) : ((tot * 12) / 112);
+
+        this.proforma = {
+          id: detail.id,
+          number: detail.number,
+          state: detail.state,
+          date: (() => {
+            if (!detail.created_at) return '';
+            let s = String(detail.created_at).trim();
+            if (!s.endsWith('Z') && !s.includes('+') && !s.match(/-\d{2}:\d{2}$/)) s += 'Z';
+            const d = new Date(s);
+            return isNaN(d.getTime()) ? detail.created_at : d.toLocaleString('es-GT', { timeZone: 'America/Guatemala', dateStyle: 'medium', timeStyle: 'short' });
+          })(),
+          customer_name: detail.customer_name || 'CONSUMIDOR FINAL',
+          customer_nit: detail.customer_nit || 'CF',
+          customer_address: detail.customer_address || 'CIUDAD',
+          customer_phone: detail.customer_phone || '',
+          delivery_date: detail.delivery_date || 'Inmediata',
+          delivery_address: detail.delivery_address || detail.customer_address || 'CIUDAD',
+          delivery_notes: detail.delivery_notes || detail.notes || '',
+          seller_name: (detail.preventista && detail.preventista.name) || detail.user_name || this.userName || 'Preventista',
+          branch_name: detail.warehouse_name || this.activeBranchName || 'Sucursal Principal',
+          lines: (detail.lines || []).map(l => {
+            const q = Number(l.quantity !== undefined ? l.quantity : (l.qty || 1));
+            const pu = Number(l.unit_price !== undefined ? l.unit_price : (l.price || 0));
+            const lt = Number(l.total !== undefined ? l.total : (q * pu));
+            return {
+              product_name: l.product_name || l.name || 'Producto',
+              qty: q,
+              unit_price: pu,
+              total: lt
+            };
+          }),
+          subtotal: sub,
+          tax: tx,
+          total: tot,
+          notes: detail.delivery_notes || detail.notes || ''
+        };
+        this.showMyRequestsModal = false;
+        this.showProformaModal = true;
+      } catch(e) {
+        this.toast('Error al consultar el detalle de la solicitud', 'error');
+      }
+    }
+  };
+}
+</script>
+{% endblock %}

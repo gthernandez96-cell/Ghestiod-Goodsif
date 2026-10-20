@@ -9,6 +9,7 @@ from app.core.database import Base, get_db
 from app.core.security import create_access_token, get_password_hash
 from app.models import Company, User, Role, Branch, Warehouse
 import uuid
+from decimal import Decimal
 
 client = TestClient(app)
 
@@ -169,6 +170,35 @@ def test_dashboard_api():
 
     prof = client.get("/api/v1/dashboard/profitability-and-runway?period=month", headers=headers)
     assert prof.status_code == 200
+
+    # Test filtering by branch_id (both with and without specific branch)
+    branches_res = client.get("/api/v1/branches/", headers=headers)
+    assert branches_res.status_code == 200
+    b_items = branches_res.json()
+    test_b_id = b_items[0]["id"] if b_items else str(uuid.uuid4())
+
+    # KPIs with branch_id
+    kpis_b = client.get(f"/api/v1/dashboard/kpis?period=month&branch_id={test_b_id}", headers=headers)
+    assert kpis_b.status_code == 200
+
+    # Profitability with branch_id
+    prof_b = client.get(f"/api/v1/dashboard/profitability-and-runway?period=month&branch_id={test_b_id}", headers=headers)
+    assert prof_b.status_code == 200
+
+    # Stock alerts with branch_id
+    alerts_b = client.get(f"/api/v1/dashboard/stock-alerts?branch_id={test_b_id}", headers=headers)
+    assert alerts_b.status_code == 200
+
+    # Export Excel with branch_id
+    excel_b = client.get(f"/api/v1/dashboard/export-excel?period=month&branch_id={test_b_id}", headers=headers)
+    assert excel_b.status_code == 200
+
+    # Dashboard page HTML contains branch selector and Alpine data
+    dash_page = client.get("/dashboard", cookies={"access_token": token})
+    assert dash_page.status_code == 200
+    assert "bi-branch-selector-wrapper" in dash_page.text
+    assert "selectedBranchId" in dash_page.text
+    assert "loadBranches" in dash_page.text
 
 
 def test_ticket_and_zreport():
@@ -516,6 +546,36 @@ def test_multi_company_and_warehouses():
     }, headers=headers)
     assert new_wh.status_code == 200
     assert "id" in new_wh.json()
+
+    # 5. Probar CRUD completo de Sucursales (crear, consultar, editar y eliminar)
+    br_code = f"SUC-{uuid.uuid4().hex[:4].upper()}"
+    br_create = client.post("/api/v1/branches/", json={
+        "name": "Sucursal Carretera a El Salvador",
+        "code": br_code,
+        "city": "Fraijanes",
+        "address": "Km 16.5 Carretera a El Salvador",
+        "phone": "2345-6789",
+        "is_main": False
+    }, headers=headers)
+    assert br_create.status_code == 200
+    br_id = br_create.json()["id"]
+
+    # Consultar detalle
+    br_get = client.get(f"/api/v1/branches/{br_id}", headers=headers)
+    assert br_get.status_code == 200
+    assert br_get.json()["city"] == "Fraijanes"
+
+    # Actualizar datos
+    br_update = client.put(f"/api/v1/branches/{br_id}", json={
+        "name": "Sucursal Carretera Actualizada",
+        "phone": "5555-4444"
+    }, headers=headers)
+    assert br_update.status_code == 200
+
+    # Eliminar sucursal
+    br_del = client.delete(f"/api/v1/branches/{br_id}", headers=headers)
+    assert br_del.status_code == 200
+    assert br_del.json()["status"] == "deleted"
 
 
 def test_transfers_360_flow():
@@ -875,13 +935,13 @@ def test_pos_sessions_and_cash_control_suite():
     assert isinstance(orders_res.json(), list)
 
     # 6. Crear una venta al crédito y validar que NO afecte el efectivo esperado
-    prod_res = client.get("/api/v1/products/", headers=headers)
-    assert prod_res.status_code == 200
-    if not prod_res.json()["items"]:
-        p_res = client.post("/api/v1/products/", json={"name": "Prod Test POS", "sale_price": 50.0}, headers=headers)
-        prod_id = p_res.json()["id"]
-    else:
-        prod_id = prod_res.json()["items"][0]["id"]
+    p_res = client.post("/api/v1/products/", json={
+        "name": f"Prod Test POS {uuid.uuid4().hex[:6]}",
+        "sale_price": 50.0,
+        "initial_stock": 50.0
+    }, headers=headers)
+    assert p_res.status_code == 200
+    prod_id = p_res.json()["id"]
 
     unique_cust = client.post("/api/v1/partners/", json={
         "name": "Cliente Crédito POS Test",
@@ -1052,10 +1112,15 @@ def test_void_sale_and_profitability_runway_suite():
     b_id = branches[0]["id"]
     warehouses = client.get("/api/v1/branches/warehouses", headers=headers).json()
     w_id = warehouses[0]["id"]
-    products = client.get("/api/v1/products/", headers=headers).json()["items"]
-    p_id = products[0]["id"]
-    p_name = products[0]["name"]
-    p_price = products[0]["sale_price"]
+    p_res = client.post("/api/v1/products/", json={
+        "name": f"Prod Void Test {uuid.uuid4().hex[:6]}",
+        "sale_price": 50.0,
+        "initial_stock": 50.0
+    }, headers=headers)
+    assert p_res.status_code == 200
+    p_id = p_res.json()["id"]
+    p_name = "Prod Void Test"
+    p_price = 50.0
 
     sale_payload = {
         "branch_id": b_id,
@@ -1410,6 +1475,7 @@ def test_cashier_closure_exact_change_and_tendered_amount():
         "barcode": f"BAR-{p_sku}",
         "sale_price": 18.25,
         "cost_price": 12.00,
+        "initial_stock": 50.0,
         "tax_rate": 12.00  # 18.25 + 2.19 = 20.44 total
     }, headers=headers)
     assert prod_res.status_code == 200
@@ -1461,6 +1527,324 @@ def test_cashier_closure_exact_change_and_tendered_amount():
     assert close_data["closing_balance_expected"] == 120.44
     assert close_data["closing_balance_real"] == 120.44
     assert close_data["difference"] == 0.00  # Cuadra al centavo!
+
+
+def test_report_sales_detail_guatemala_timezone():
+    """
+    Verifica que la fecha y hora en el reporte Detalle de Ventas se presente
+    en el huso horario local de Guatemala (UTC-6) y no en UTC crudo.
+    """
+    import sqlite3
+    from datetime import datetime, timezone, timedelta
+
+    # 1. Crear una venta con un producto específico
+    p_res = client.post("/api/v1/products/", json={
+        "name": f"Prod TZ Test {uuid.uuid4().hex[:6]}",
+        "sale_price": 25.0,
+        "cost_price": 15.0,
+        "initial_stock": 50.0
+    }, headers=headers)
+    assert p_res.status_code == 200
+    prod = p_res.json()
+
+    unique_client = f"TZ-CLIENT-{uuid.uuid4().hex[:6]}"
+    sale_payload = {
+        "branch_id": str(COMPANY_ID),
+        "warehouse_id": str(COMPANY_ID),
+        "customer_nit": "CF",
+        "customer_name": unique_client,
+        "sale_type": "pos",
+        "lines": [{
+            "product_id": prod["id"],
+            "product_name": prod["name"],
+            "qty": 1.0,
+            "unit_price": 25.0,
+            "cost_price": 15.0
+        }],
+        "payments": [{"payment_method": "cash", "amount": 25.0}],
+        "generate_fel": False
+    }
+    sale_res = client.post("/api/v1/sales/", json=sale_payload, headers=headers)
+    assert sale_res.status_code == 200
+    sale_data = sale_res.json()
+    order_id = sale_data["id"]
+
+    # 2. Forzar un timestamp UTC específico: 2026-09-18 04:15:00 UTC (10:15 PM del 17 de sept en Guatemala)
+    db_path = "test_pos.db"
+    con = sqlite3.connect(db_path)
+    cur = con.cursor()
+    utc_time_str = "2026-09-18 04:15:00"
+    cur.execute("UPDATE sale_orders SET sale_date = ? WHERE id IN (?, ?)", (utc_time_str, order_id, str(order_id).replace("-", "")))
+    con.commit()
+    con.close()
+
+    # 3. Consultar el reporte detalle de ventas (especificando rango que cubre la fecha)
+    detail_res = client.get(f"/api/v1/reports/sales-detail?search={unique_client}&start_date=2026-09-01&end_date=2026-09-30", headers=headers)
+    assert detail_res.status_code == 200
+    items = detail_res.json().get("items", [])
+    assert len(items) >= 1
+
+    item = items[0]
+    # En Guatemala (UTC-6), 2026-09-18 04:15 UTC debe mostrarse como 17/09/2026 22:15
+    assert item["fecha_factura"] == "17/09/2026 22:15", f"Esperado '17/09/2026 22:15', obtenido '{item['fecha_factura']}'"
+
+
+def test_mfg_flow():
+    """Test integral del flujo de fabricación atómica multi-bodega, recetas favoritas y costos."""
+    # 1. Obtener bodegas activas
+    wh_res = client.get("/api/v1/mfg/warehouses", headers=headers)
+    assert wh_res.status_code == 200
+    warehouses = wh_res.json()
+    assert len(warehouses) >= 1, "Debe haber al menos 1 bodega"
+
+    # Si hay una sola bodega, crear una segunda bodega para probar multi-bodega real
+    wh_origen_1 = warehouses[0]
+    if len(warehouses) >= 2:
+        wh_origen_2 = warehouses[1]
+    else:
+        wh_origen_2 = warehouses[0]
+    wh_destino = warehouses[0]
+
+    # 2. Obtener productos disponibles
+    prod_res = client.get("/api/v1/mfg/products-stock", headers=headers)
+    assert prod_res.status_code == 200
+    products = prod_res.json()
+    assert len(products) >= 3, "Se requieren al menos 3 productos en catálogo"
+
+    finished_prod = products[0]
+    insumo_1 = products[1]
+    insumo_2 = products[2]
+
+    # Cargar stock inicial a los insumos en sus bodegas de origen para que la fabricación sea exitosa
+    # Hacemos una compra rápida o ajuste de inventario inicial
+    from app.services.inventory_service import InventoryService
+    from app.models.inventory import StockMoveType
+    from app.core.database import AsyncSessionLocal
+    import asyncio
+
+    async def _seed_stock():
+        async with AsyncSessionLocal() as session:
+            inv = InventoryService(session)
+            await inv.create_move(
+                warehouse_id=uuid.UUID(wh_origen_1["id"]),
+                product_id=uuid.UUID(insumo_1["id"]),
+                move_type=StockMoveType.INITIAL,
+                qty=Decimal("100.0"),
+                unit_cost=Decimal("15.0"),
+                reference="TEST-INIT-1"
+            )
+            await inv.create_move(
+                warehouse_id=uuid.UUID(wh_origen_2["id"]),
+                product_id=uuid.UUID(insumo_2["id"]),
+                move_type=StockMoveType.INITIAL,
+                qty=Decimal("80.0"),
+                unit_cost=Decimal("20.0"),
+                reference="TEST-INIT-2"
+            )
+            await session.commit()
+
+    asyncio.run(_seed_stock())
+
+    # 3. Regla 1: Validar que se exijan al menos 2 insumos (enviar solo 1 debe dar error 400)
+    bad_payload_1 = {
+        "producto_final_id": finished_prod["id"],
+        "bodega_destino_id": wh_destino["id"],
+        "cantidad_producida": 1.0,
+        "precio_venta": 95.0,
+        "insumos": [
+            {
+                "producto_id": insumo_1["id"],
+                "bodega_origen_id": wh_origen_1["id"],
+                "cantidad": 2.0
+            }
+        ]
+    }
+    err_res_1 = client.post("/api/v1/mfg/fabricar", json=bad_payload_1, headers=headers)
+    assert err_res_1.status_code in (400, 422)
+
+    # 4. Regla 2: Validar que la bodega de destino sea obligatoria
+    bad_payload_2 = {
+        "producto_final_id": finished_prod["id"],
+        "bodega_destino_id": "",
+        "cantidad_producida": 1.0,
+        "precio_venta": 95.0,
+        "insumos": [
+            { "producto_id": insumo_1["id"], "bodega_origen_id": wh_origen_1["id"], "cantidad": 2.0 },
+            { "producto_id": insumo_2["id"], "bodega_origen_id": wh_origen_2["id"], "cantidad": 1.0 }
+        ]
+    }
+    err_res_2 = client.post("/api/v1/mfg/fabricar", json=bad_payload_2, headers=headers)
+    assert err_res_2.status_code in (400, 422)
+
+    # 5. Regla 3: Validar que el precio de venta sea obligatorio y > 0
+    bad_payload_3 = {
+        "producto_final_id": finished_prod["id"],
+        "bodega_destino_id": wh_destino["id"],
+        "cantidad_producida": 1.0,
+        "precio_venta": 0.0,
+        "insumos": [
+            { "producto_id": insumo_1["id"], "bodega_origen_id": wh_origen_1["id"], "cantidad": 2.0 },
+            { "producto_id": insumo_2["id"], "bodega_origen_id": wh_origen_2["id"], "cantidad": 1.0 }
+        ]
+    }
+    err_res_3 = client.post("/api/v1/mfg/fabricar", json=bad_payload_3, headers=headers)
+    assert err_res_3.status_code in (400, 422)
+
+    # 6. Regla 5.a: Validar bloqueo de stock insuficiente en la bodega de origen
+    bad_payload_4 = {
+        "producto_final_id": finished_prod["id"],
+        "bodega_destino_id": wh_destino["id"],
+        "cantidad_producida": 1.0,
+        "precio_venta": 95.0,
+        "insumos": [
+            { "producto_id": insumo_1["id"], "bodega_origen_id": wh_origen_1["id"], "cantidad": 99999.0 },
+            { "producto_id": insumo_2["id"], "bodega_origen_id": wh_origen_2["id"], "cantidad": 1.0 }
+        ]
+    }
+    err_res_4 = client.post("/api/v1/mfg/fabricar", json=bad_payload_4, headers=headers)
+    assert err_res_4.status_code == 400
+    assert "Stock insuficiente" in err_res_4.text
+
+    # 7. Ejecutar FABRICACIÓN ATÓMICA VÁLIDA Creando un NUEVO PRODUCTO (con Guardar como Favorito)
+    fab_payload = {
+        "producto_nuevo": {
+            "nombre": f"Producto Ensamble Test {uuid.uuid4().hex[:6]}",
+            "codigo_barras": "7401234567890",
+            "correlativo_interno": f"TEST-SKU-{uuid.uuid4().hex[:4]}",
+            "categoria_id": None
+        },
+        "bodega_destino_id": wh_destino["id"],
+        "cantidad_producida": 3.0,
+        "precio_venta": 120.0,
+        "guardar_como_favorito": True,
+        "nombre_receta": f"Fórmula Test {uuid.uuid4().hex[:6]}",
+        "notas": "Fabricación de prueba nuevo producto",
+        "insumos": [
+            { "producto_id": insumo_1["id"], "bodega_origen_id": wh_origen_1["id"], "cantidad": 6.0 },
+            { "producto_id": insumo_2["id"], "bodega_origen_id": wh_origen_2["id"], "cantidad": 3.0 }
+        ]
+    }
+    res_fab = client.post("/api/v1/mfg/fabricar", json=fab_payload, headers=headers)
+    assert res_fab.status_code == 200, res_fab.text
+    fab_data = res_fab.json()
+    assert fab_data["numero"].startswith("FAB/")
+    assert fab_data["producto_final_nombre"] == fab_payload["producto_nuevo"]["nombre"]
+    assert fab_data["producto_final_barcode"] == "7401234567890"
+    assert fab_data["cantidad_producida"] == 3.0
+    assert fab_data["precio_venta"] == 120.0
+    assert len(fab_data["insumos"]) == 2
+
+    # 8. Verificar que se guardó en Recetas Favoritas
+    favs_res = client.get("/api/v1/mfg/recetas-favoritas", headers=headers)
+    assert favs_res.status_code == 200
+    favs = favs_res.json()
+    my_fav = next((f for f in favs if f["nombre"] == fab_payload["nombre_receta"]), None)
+    assert my_fav is not None
+    assert my_fav["producto_final_nombre"] == fab_payload["producto_nuevo"]["nombre"]
+    assert len(my_fav["detalles"]) == 2
+
+    # 9. Verificar que aparece en el Historial de Fabricaciones
+    hist_res = client.get("/api/v1/mfg/historial", headers=headers)
+    assert hist_res.status_code == 200
+    hist = hist_res.json()
+    my_hist = next((h for h in hist if h["id"] == fab_data["id"]), None)
+    assert my_hist is not None
+    assert my_hist["bodega_destino_id"] == wh_destino["id"]
+    assert len(my_hist["insumos"]) == 2
+
+    # 10. Limpiar receta favorita
+    del_fav = client.delete(f"/api/v1/mfg/recetas-favoritas/{my_fav['id']}", headers=headers)
+    assert del_fav.status_code == 200
+
+
+def test_product_datasheet_and_notes():
+    """Validar subida de ficha técnica PDF, descripción y notas internas en Producto, POS y Pre-venta."""
+    import io
+
+    # 1. Probar validación de extensión en /upload-datasheet (rechazo de .txt)
+    fake_txt = io.BytesIO(b"Hello world")
+    res_bad = client.post(
+        "/api/v1/products/upload-datasheet",
+        headers=headers,
+        files={"file": ("manual.txt", fake_txt, "text/plain")}
+    )
+    assert res_bad.status_code == 400
+    assert "PDF" in res_bad.json()["detail"]
+
+    # 2. Subir PDF válido
+    fake_pdf = io.BytesIO(b"%PDF-1.4 dummy pdf content for testing technical datasheet")
+    res_pdf = client.post(
+        "/api/v1/products/upload-datasheet",
+        headers=headers,
+        files={"file": ("ficha_tecnica_motor.pdf", fake_pdf, "application/pdf")}
+    )
+    assert res_pdf.status_code == 200
+    pdf_info = res_pdf.json()
+    assert pdf_info["status"] == "uploaded"
+    assert pdf_info["url"].startswith("/static/uploads/datasheets/")
+    assert pdf_info["url"].endswith(".pdf")
+    uploaded_pdf_url = pdf_info["url"]
+
+    # 3. Crear producto con Ficha Técnica, Descripción y Notas Internas
+    prod_payload = {
+        "name": "Bomba de Agua Sumergible Pro",
+        "barcode": "7409988776655",
+        "sale_price": 450.0,
+        "cost_price": 280.0,
+        "description": "Bomba sumergible de 1 HP para aguas limpias o residuales.",
+        "internal_notes": "⚠️ Cuidado: No encender en seco. Incluye garantía de 12 meses.",
+        "pdf_datasheet_url": uploaded_pdf_url,
+        "can_be_sold": True,
+        "is_active": True
+    }
+    create_res = client.post("/api/v1/products/", json=prod_payload, headers=headers)
+    assert create_res.status_code == 200
+    prod_id = create_res.json()["id"]
+
+    # 4. Verificar en GET /products/{id}
+    detail_res = client.get(f"/api/v1/products/{prod_id}", headers=headers)
+    assert detail_res.status_code == 200
+    detail = detail_res.json()
+    assert detail["name"] == prod_payload["name"]
+    assert detail["description"] == prod_payload["description"]
+    assert detail["internal_notes"] == prod_payload["internal_notes"]
+    assert detail["pdf_datasheet_url"] == uploaded_pdf_url
+
+    # 5. Verificar en GET /products/pos-catalog (utilizado por POS y Pre-venta)
+    cat_res = client.get("/api/v1/products/pos-catalog", headers=headers)
+    assert cat_res.status_code == 200
+    cat_prods = cat_res.json()["products"]
+    pos_prod = next((p for p in cat_prods if p["id"] == prod_id), None)
+    assert pos_prod is not None
+    assert pos_prod["description"] == prod_payload["description"]
+    assert pos_prod["internal_notes"] == prod_payload["internal_notes"]
+    assert pos_prod["pdf_datasheet_url"] == uploaded_pdf_url
+
+    # 6. Verificar en GET /products/{id}/warehouses-stock (utilizado en el modal de stock de POS y Pre-venta)
+    wh_stock_res = client.get(f"/api/v1/products/{prod_id}/warehouses-stock", headers=headers)
+    assert wh_stock_res.status_code == 200
+    wh_stock_data = wh_stock_res.json()
+    assert wh_stock_data["description"] == prod_payload["description"]
+    assert wh_stock_data["internal_notes"] == prod_payload["internal_notes"]
+    assert wh_stock_data["pdf_datasheet_url"] == uploaded_pdf_url
+
+    # 7. Actualizar notas y ficha técnica mediante PUT /products/{id}
+    new_pdf_url = "/static/uploads/datasheets/ficha_v2.pdf"
+    update_payload = {
+        "internal_notes": "Nota actualizada: Requiere revisión técnica semestral.",
+        "pdf_datasheet_url": new_pdf_url
+    }
+    up_res = client.put(f"/api/v1/products/{prod_id}", json=update_payload, headers=headers)
+    assert up_res.status_code == 200
+
+    # 8. Comprobar que los cambios persisten
+    detail_v2 = client.get(f"/api/v1/products/{prod_id}", headers=headers).json()
+    assert detail_v2["internal_notes"] == update_payload["internal_notes"]
+    assert detail_v2["pdf_datasheet_url"] == new_pdf_url
+
+
+
+
 
 
 

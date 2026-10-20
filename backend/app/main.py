@@ -14,7 +14,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
-from jose import jwt, JWTError
+from jose import jwt
 from contextlib import asynccontextmanager
 import logging
 
@@ -27,7 +27,7 @@ from app.api.v1 import (
     auth, branches, products, inventory, partners,
     cashier, sales, purchases, transfers, fel, reports, dashboard,
     hr, mfg, accounting, audit, ap, ar, quotes, delivery, users,
-    website, forecast
+    website, forecast, presale
 )
 
 # Importar router de páginas HTML
@@ -202,6 +202,7 @@ app.include_router(delivery.router, prefix=api_prefix, tags=["Entregas"])
 app.include_router(users.router, prefix=api_prefix, tags=["Usuarios & Roles"])
 app.include_router(website.router, prefix=api_prefix, tags=["Sitio Web & Landing"])
 app.include_router(forecast.router, prefix=api_prefix, tags=["Previsión & Reorden"])
+app.include_router(presale.router, prefix=api_prefix, tags=["Pre-venta & Solicitudes POS"])
 
 # ===== PAGE ROUTERS (HTML) =====
 app.include_router(pages.router, tags=["Páginas"])
@@ -220,7 +221,10 @@ class ConnectionManager:
 
     def disconnect(self, websocket: WebSocket, branch_id: str):
         if branch_id in self.active_connections:
-            self.active_connections[branch_id].remove(websocket)
+            if websocket in self.active_connections[branch_id]:
+                self.active_connections[branch_id].remove(websocket)
+            if not self.active_connections[branch_id]:
+                del self.active_connections[branch_id]
 
     async def broadcast_to_branch(self, branch_id: str, message: dict):
         connections = self.active_connections.get(branch_id, [])
@@ -228,7 +232,10 @@ class ConnectionManager:
             try:
                 await ws.send_json(message)
             except Exception:
-                connections.remove(ws)
+                if ws in connections:
+                    connections.remove(ws)
+        if branch_id in self.active_connections and not self.active_connections[branch_id]:
+            del self.active_connections[branch_id]
 
 
 ws_manager = ConnectionManager()

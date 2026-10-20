@@ -86,7 +86,7 @@
   <!-- Detalle del Ticket -->
   <div>
     <div><b>TICKET #:</b> {{ sale.number }}</div>
-    <div><b>FECHA:</b> {{ sale.sale_date.strftime('%d/%m/%Y %H:%M:%S') if sale.sale_date else 'N/A' }}</div>
+    <div><b>FECHA:</b> {{ (sale_date_local or sale.sale_date).strftime('%d/%m/%Y %H:%M:%S') if (sale_date_local or sale.sale_date) else 'N/A' }}</div>
     <div><b>CLIENTE:</b> {{ sale.customer_name or 'CONSUMIDOR FINAL' }}</div>
     <div><b>NIT:</b> {{ sale.customer_nit or 'CF' }}</div>
   </div>

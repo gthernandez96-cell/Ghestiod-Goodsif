@@ -272,8 +272,147 @@ def test_page_auth_guard_security():
     assert "Ingresar al Sistema" in res_login.text or "INGRESAR AL SISTEMA" in res_login.text or "POS Empresarial" in res_login.text
 
     # 5. Con token en cookies: '/dashboard' responde 200 OK
-    res_auth_dash = client.get("/dashboard", cookies={"access_token": token}, follow_redirects=False)
+    res_auth_dash = client.get("/dashboard", headers={"Cookie": f"access_token={token}"}, follow_redirects=False)
     assert res_auth_dash.status_code == 200
+
+
+def test_cashier_cannot_register_credit_payments():
+    """Verificar que un usuario con rol Cajero recibe 403 Forbidden al intentar registrar abonos de crédito."""
+    cajero_suffix = uuid.uuid4().hex[:6]
+    cajero_username = f"cajero_abono_{cajero_suffix}"
+    cajero_email = f"{cajero_username}@pos.gt"
+
+    # 1. Crear usuario exclusivo con rol Cajero
+    create_user_res = client.post(
+        "/api/v1/users",
+        json={
+            "full_name": f"Cajero Abonos {cajero_suffix}",
+            "username": cajero_username,
+            "email": cajero_email,
+            "password": "Password123!",
+            "role_code": "cashier"
+        },
+        headers=headers
+    )
+    assert create_user_res.status_code == 201
+    cajero_id = create_user_res.json()["id"]
+
+    cajero_token = create_access_token(data={"sub": str(cajero_id), "email": cajero_email, "company_id": str(COMPANY_ID)})
+    cajero_headers = {"Authorization": f"Bearer {cajero_token}"}
+
+    # 2. Crear un cliente con saldo de crédito como Admin
+    admin_cust_res = client.post(
+        "/api/v1/partners/",
+        json={
+            "name": f"Cliente Con Crédito {cajero_suffix}",
+            "partner_type": "customer",
+            "nit": f"NIT-CR-{cajero_suffix}",
+            "credit_limit": 5000.0
+        },
+        headers=headers
+    )
+    assert admin_cust_res.status_code == 200
+    cust_id = admin_cust_res.json()["id"]
+
+    # 3. Intentar registrar un abono como Cajero en partners -> Debe retornar 403 Forbidden
+    pay_res_partners = client.post(
+        f"/api/v1/partners/{cust_id}/credit-payments",
+        json={
+            "amount": 100.0,
+            "payment_method": "cash",
+            "reference": "Abono Cajero Prohibido"
+        },
+        headers=cajero_headers
+    )
+    assert pay_res_partners.status_code == 403
+    assert "El usuario con rol Cajero no tiene autorización para registrar abonos de crédito" in pay_res_partners.json()["detail"]
+
+    # 4. Intentar registrar un abono como Cajero en AR -> Debe retornar 403 Forbidden
+    pay_res_ar = client.post(
+        f"/api/v1/ar/invoices/{cust_id}/payments",
+        json={
+            "amount": 100.0,
+            "payment_method": "cash",
+            "reference": "Abono Cajero Prohibido AR"
+        },
+        headers=cajero_headers
+    )
+    assert pay_res_ar.status_code == 403
+    assert "El usuario con rol Cajero no tiene autorización para registrar abonos de crédito" in pay_res_ar.json()["detail"]
+
+    # 5. Como Admin sí debe ser permitido
+    pay_res_admin = client.post(
+        f"/api/v1/partners/{cust_id}/credit-payments",
+        json={
+            "amount": 50.0,
+            "payment_method": "cash",
+            "reference": "Abono Legal Admin"
+        },
+        headers=headers
+    )
+    assert pay_res_admin.status_code == 200
+    assert pay_res_admin.json()["amount_paid"] == 50.0
+
+
+def test_cashier_only_sees_assigned_terminal_caja():
+    """Verificar que un usuario con rol Cajero únicamente puede ver la caja/sucursal asignada."""
+    # 1. Crear 2 sucursales de prueba si no existen
+    b_suffix = uuid.uuid4().hex[:6]
+    b1_res = client.post(
+        "/api/v1/branches/",
+        json={"name": f"Sucursal Alfa {b_suffix}", "code": f"ALF_{b_suffix}"},
+        headers=headers
+    )
+    assert b1_res.status_code == 200
+    b1_id = b1_res.json()["id"]
+
+    b2_res = client.post(
+        "/api/v1/branches/",
+        json={"name": f"Sucursal Beta {b_suffix}", "code": f"BET_{b_suffix}"},
+        headers=headers
+    )
+    assert b2_res.status_code == 200
+    b2_id = b2_res.json()["id"]
+
+    # 2. El Administrador ve todas las terminales
+    admin_term_res = client.get("/api/v1/cashier/terminals", headers=headers)
+    assert admin_term_res.status_code == 200
+    admin_terms = admin_term_res.json()
+    assert len(admin_terms) >= 2
+    branch_ids_admin = [t["branch_id"] for t in admin_terms]
+    assert b1_id in branch_ids_admin
+    assert b2_id in branch_ids_admin
+
+    # 3. Crear un usuario Cajero asignado EXCLUSIVAMENTE a Sucursal Beta
+    cajero_username = f"cajero_beta_{b_suffix}"
+    cajero_email = f"{cajero_username}@pos.gt"
+    c_res = client.post(
+        "/api/v1/users",
+        json={
+            "full_name": f"Cajero Sucursal Beta {b_suffix}",
+            "username": cajero_username,
+            "email": cajero_email,
+            "password": "Password123!",
+            "role_code": "cashier",
+            "current_branch_id": b2_id
+        },
+        headers=headers
+    )
+    assert c_res.status_code == 201
+    cajero_id = c_res.json()["id"]
+
+    cajero_token = create_access_token(data={"sub": str(cajero_id), "email": cajero_email, "company_id": str(COMPANY_ID)})
+    cajero_headers = {"Authorization": f"Bearer {cajero_token}"}
+
+    # 4. Consultar terminales como Cajero -> Debe ver ÚNICAMENTE la caja de su sucursal asignada (Beta)
+    cashier_term_res = client.get("/api/v1/cashier/terminals", headers=cajero_headers)
+    assert cashier_term_res.status_code == 200
+    cashier_terms = cashier_term_res.json()
+    assert len(cashier_terms) == 1
+    assert cashier_terms[0]["branch_id"] == b2_id
+    assert f"Sucursal Beta {b_suffix}" in cashier_terms[0]["terminal_name"]
+
+
 
 
 

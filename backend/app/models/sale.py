@@ -12,6 +12,10 @@ from app.models.base import BaseModel
 
 class SaleState(str, enum.Enum):
     DRAFT = "draft"
+    PENDING_APPROVAL = "pending_approval"           # Solicitud POS / Pre-venta enviada
+    WAREHOUSE_VALIDATION = "warehouse_validation"   # En validación con bodega
+    APPROVED = "approved"                           # Autorizada (inventario rebajado)
+    REJECTED = "rejected"                           # Rechazada
     CONFIRMED = "confirmed"
     INVOICED = "invoiced"
     PAID = "paid"
@@ -21,6 +25,7 @@ class SaleState(str, enum.Enum):
 
 class SaleType(str, enum.Enum):
     POS = "pos"           # Venta en mostrador
+    PRESALE = "presale"   # Pre-venta (solicitud POS sujeta a autorización)
     QUOTE = "quote"       # Cotización
     ORDER = "order"       # Orden de venta
     CREDIT = "credit"     # Venta a crédito
@@ -38,6 +43,12 @@ class SaleOrder(BaseModel):
     cashier_session_id = Column(UUID(as_uuid=True), ForeignKey("cashier_sessions.id"), nullable=True)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     price_list_id = Column(UUID(as_uuid=True), ForeignKey("price_lists.id"), nullable=True)
+
+    # Aprobación y Validación (Pre-venta / Solicitudes POS)
+    approved_by_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    approved_at = Column(DateTime(timezone=True), nullable=True)
+    rejection_reason = Column(Text, nullable=True)
+    warehouse_verified = Column(Boolean, default=False)
 
     # Identificación
     number = Column(String(50), unique=True, nullable=False, index=True)
@@ -84,6 +95,9 @@ class SaleOrder(BaseModel):
     customer = relationship("Partner", back_populates="sales", foreign_keys=[customer_id])
     cashier_session = relationship("CashierSession", back_populates="sales")
     branch = relationship("Branch")
+    warehouse = relationship("Warehouse", foreign_keys=[warehouse_id], lazy="selectin")
+    user = relationship("User", foreign_keys=[user_id], lazy="selectin")
+    approver = relationship("User", foreign_keys=[approved_by_id], lazy="selectin")
 
     __table_args__ = (
         Index("ix_sale_orders_branch_date", "branch_id", "sale_date"),

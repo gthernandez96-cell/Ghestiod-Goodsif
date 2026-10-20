@@ -14,11 +14,16 @@ const API = {
   },
 
   async _request(method, endpoint, body = null) {
-    const url = this.baseUrl + endpoint;
+    let url = this.baseUrl + endpoint;
     const opts = {
       method,
       headers: this._getHeaders(),
     };
+    if (method === 'GET') {
+      opts.cache = 'no-store';
+      opts.headers['Cache-Control'] = 'no-cache';
+      opts.headers['Pragma'] = 'no-cache';
+    }
     if (body) opts.body = JSON.stringify(body);
 
     const resp = await fetch(url, opts);
@@ -40,7 +45,13 @@ const API = {
 
     if (!resp.ok) {
       const err = await resp.json().catch(() => ({}));
-      throw new Error(err.detail || `HTTP ${resp.status}`);
+      let msg = err.detail || `HTTP ${resp.status}`;
+      if (Array.isArray(msg)) {
+        msg = msg.map(m => m.msg || (m.loc ? `${m.loc.join('.')}: ${m.type}` : JSON.stringify(m))).join(', ');
+      } else if (typeof msg === 'object') {
+        msg = JSON.stringify(msg);
+      }
+      throw new Error(msg);
     }
 
     if (resp.status === 204) return null;
@@ -75,13 +86,19 @@ const API = {
  * Toast notifications
  */
 function showToast(message, type = 'info', duration = 4000) {
-  const container = document.getElementById('toastContainer');
-  if (!container) return;
+  let container = document.getElementById('toastContainer');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'toastContainer';
+    container.style.cssText = 'position:fixed; bottom:24px; right:24px; z-index:99999; display:flex; flex-direction:column; gap:8px; pointer-events:none;';
+    document.body.appendChild(container);
+  }
 
   const icons = { success: 'ph-check-circle', error: 'ph-x-circle', warning: 'ph-warning', info: 'ph-info' };
 
   const toast = document.createElement('div');
   toast.className = `toast ${type}`;
+  toast.style.pointerEvents = 'auto';
   toast.innerHTML = `
     <i class="ph ${icons[type] || icons.info}" style="font-size:18px;flex-shrink:0"></i>
     <span>${message}</span>
@@ -94,6 +111,10 @@ function showToast(message, type = 'info', duration = 4000) {
     setTimeout(() => toast.remove(), 300);
   }, duration);
 }
+
+// Global alias for compatibility
+window.toast = showToast;
+window.showToast = showToast;
 
 /**
  * Format currency

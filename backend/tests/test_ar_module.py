@@ -186,3 +186,113 @@ def test_dashboard_analytics_endpoints():
     hours = res_hours.json()
     assert "labels" in hours
     assert "sales" in hours
+
+
+def test_partner_sales_separation_cash_credit():
+    """Verificar que el historial de ventas del socio separa ventas en efectivo y a crédito."""
+    import uuid
+    uid = uuid.uuid4().hex[:6]
+
+    # 1. Crear cliente con crédito
+    cust_res = client.post("/api/v1/partners/", json={
+        "name": f"Cliente Separacion Test {uid}",
+        "nit": f"{uid}-1",
+        "partner_type": "customer",
+        "credit_limit": 1000.0,
+    }, headers=headers)
+    assert cust_res.status_code == 200
+    cust_id = cust_res.json()["id"]
+
+    # 2. Obtener sucursal y bodega
+    b_res = client.get("/api/v1/branches/", headers=headers)
+    branch_id = b_res.json()[0]["id"]
+    wh_res = client.get("/api/v1/warehouses/", headers=headers)
+    wh_id = wh_res.json()[0]["id"] if wh_res.status_code == 200 and wh_res.json() else branch_id
+
+    # 3. Crear producto
+    p_res = client.post("/api/v1/products/", json={
+        "name": f"Prod Sep {uid}",
+        "price": 50.0,
+        "cost_price": 25.0,
+        "sku": f"SKU-{uid}",
+        "initial_stock": 20.0,
+    }, headers=headers)
+    assert p_res.status_code == 200
+    prod_id = p_res.json()["id"]
+
+    # 4. Crear venta en efectivo (al contado)
+    cash_sale = client.post("/api/v1/sales/", json={
+        "customer_id": cust_id,
+        "branch_id": branch_id,
+        "warehouse_id": wh_id,
+        "lines": [{
+            "product_id": prod_id,
+            "product_name": f"Prod Sep {uid}",
+            "qty": 1.0,
+            "unit_price": 50.0,
+            "tax_rate": 0.0,
+        }],
+        "payments": [{
+            "payment_method": "cash",
+            "amount": 50.0,
+        }]
+    }, headers=headers)
+    assert cash_sale.status_code == 200
+
+    # 5. Crear venta al crédito (pendiente de pago, saldo = 100)
+    credit_sale = client.post("/api/v1/sales/", json={
+        "customer_id": cust_id,
+        "branch_id": branch_id,
+        "warehouse_id": wh_id,
+        "sale_type": "credit",
+        "lines": [{
+            "product_id": prod_id,
+            "product_name": f"Prod Sep {uid}",
+            "qty": 2.0,
+            "unit_price": 50.0,
+            "tax_rate": 0.0,
+        }],
+        "payments": []
+    }, headers=headers)
+    assert credit_sale.status_code == 200
+
+    # 6. Consultar todas las ventas del cliente
+    res_all = client.get(f"/api/v1/partners/{cust_id}/sales", headers=headers)
+    assert res_all.status_code == 200
+    data_all = res_all.json()
+    assert data_all["total"] == 2
+    assert "summary" in data_all
+
+    summary = data_all["summary"]
+    assert summary["count_cash"] == 1
+    assert summary["count_credit"] == 1
+    assert summary["total_cash"] == 50.0
+    assert summary["total_credit"] == 100.0
+    assert summary["total_credit_due"] == 100.0
+
+    # Validar atributos de cada item
+    items = data_all["items"]
+    cash_item = next(it for it in items if not it["is_credit"])
+    credit_item = next(it for it in items if it["is_credit"])
+
+    assert cash_item["payment_type"] == "cash"
+    assert cash_item["payment_type_label"] == "Efectivo"
+    assert cash_item["total"] == 50.0
+
+    assert credit_item["payment_type"] == "credit"
+    assert credit_item["payment_type_label"] == "Crédito"
+    assert credit_item["total"] == 100.0
+    assert credit_item["amount_due"] == 100.0
+
+    # 7. Consultar filtrando solo efectivo
+    res_cash_only = client.get(f"/api/v1/partners/{cust_id}/sales?payment_type=cash", headers=headers)
+    assert res_cash_only.status_code == 200
+    assert res_cash_only.json()["total"] == 1
+    assert res_cash_only.json()["items"][0]["payment_type"] == "cash"
+
+    # 8. Consultar filtrando solo crédito
+    res_credit_only = client.get(f"/api/v1/partners/{cust_id}/sales?payment_type=credit", headers=headers)
+    assert res_credit_only.status_code == 200
+    assert res_credit_only.json()["total"] == 1
+    assert res_credit_only.json()["items"][0]["payment_type"] == "credit"
+

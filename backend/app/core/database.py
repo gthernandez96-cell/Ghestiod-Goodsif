@@ -79,8 +79,28 @@ async def check_db_connection():
                 await conn.execute(text("ALTER TABLE partners ADD COLUMN image_url VARCHAR(500)"))
             except Exception:
                 pass
+            try:
+                await conn.execute(text("ALTER TABLE products ADD COLUMN pdf_datasheet_url VARCHAR(500)"))
+            except Exception:
+                pass
+            try:
+                await conn.execute(text("ALTER TABLE products ADD COLUMN internal_notes TEXT"))
+            except Exception:
+                pass
+            # Columnas para Pre-venta / Solicitudes POS
+            for col_sql in [
+                "ALTER TABLE sale_orders ADD COLUMN approved_by_id VARCHAR(36)",
+                "ALTER TABLE sale_orders ADD COLUMN approved_at TIMESTAMP",
+                "ALTER TABLE sale_orders ADD COLUMN rejection_reason TEXT",
+                "ALTER TABLE sale_orders ADD COLUMN warehouse_verified BOOLEAN DEFAULT 0",
+            ]:
+                try:
+                    await conn.execute(text(col_sql))
+                except Exception:
+                    pass
         logger.info("✅ Conexión a base de datos establecida y tablas sincronizadas")
         await ensure_initial_bootstrap()
+        await ensure_preventista_role()
         return True
     except Exception as e:
         logger.error(f"❌ Error conectando a base de datos: {e}")
@@ -206,5 +226,32 @@ async def ensure_initial_bootstrap():
             logger.info("✅ Bootstrap inicial completado con éxito.")
     except Exception as e:
         logger.warning(f"⚠️ Aviso durante bootstrap inicial: {e}")
+
+
+async def ensure_preventista_role():
+    """Asegurar que el rol 'preventista' exista en la base de datos para todas las empresas."""
+    try:
+        from app.models.user import Role
+        from app.models.company import Company
+        from sqlalchemy import select
+
+        async with AsyncSessionLocal() as db:
+            companies = (await db.execute(select(Company))).scalars().all()
+            for comp in companies:
+                role = (await db.execute(
+                    select(Role).where(Role.company_id == comp.id, Role.code == "preventista")
+                )).scalar_one_or_none()
+                if not role:
+                    new_role = Role(
+                        company_id=comp.id,
+                        name="Preventista",
+                        code="preventista",
+                        description="Operaciones del módulo de Pre-venta y generación de solicitudes POS",
+                        is_system=True,
+                    )
+                    db.add(new_role)
+            await db.commit()
+    except Exception as e:
+        logger.warning(f"⚠️ Aviso verificando rol preventista: {e}")
 
 

@@ -1,168 +1,1013 @@
 {% set show_layout = true %}
 {% extends "base.html" %}
 
-{% block title %}Fabricación y Recetas BOM — POS Empresarial{% endblock %}
+{% block title %}Fabricación & Ensamblaje — POS Empresarial{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ==========================================================================
+     ODOO ENTERPRISE FABRICATION DESIGN SYSTEM
+     ========================================================================== */
+  :root {
+    --odoo-primary: #714B67;
+    --odoo-primary-hover: #5d3d54;
+    --odoo-primary-light: #f4eff3;
+    --odoo-teal: #00A09D;
+  }
+
+  .odoo-sheet {
+    background: #ffffff;
+    border: 1px solid #dcdfe6;
+    border-radius: 6px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    padding: 24px 28px;
+    margin-bottom: 24px;
+  }
+
+  .odoo-subnav-btn {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12.5px;
+    font-weight: 700;
+    cursor: pointer;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    color: #475569;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.15s ease;
+  }
+  .odoo-subnav-btn:hover {
+    background: #f1f5f9;
+    color: #1e293b;
+  }
+  .odoo-subnav-btn.active {
+    background: var(--odoo-primary);
+    color: #ffffff;
+    border-color: var(--odoo-primary);
+    box-shadow: 0 2px 6px rgba(113, 75, 103, 0.2);
+  }
+
+  .odoo-status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 14px;
+    font-size: 11.5px;
+    font-weight: 700;
+  }
+  .status-draft { background: #f1f5f9; color: #475569; }
+  .status-done { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+
+  .odoo-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .odoo-table th {
+    background: #f8fafc;
+    border-bottom: 1.5px solid #e2e8f0;
+    color: #475569;
+    font-size: 11.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    padding: 10px 12px;
+  }
+  .odoo-table td {
+    border-bottom: 1px solid #f1f5f9;
+    padding: 8px 12px;
+    font-size: 13px;
+    color: #1e293b;
+  }
+
+  .odoo-field-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #475569;
+    margin-bottom: 4px;
+    display: block;
+  }
+  .odoo-input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    font-size: 13px;
+    color: #1e293b;
+    background: #ffffff;
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .odoo-input:focus {
+    border-color: var(--odoo-primary);
+    box-shadow: 0 0 0 3px rgba(113, 75, 103, 0.12);
+  }
+
+  .add-line-btn {
+    background: transparent;
+    color: var(--odoo-primary);
+    font-size: 12.5px;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 4px;
+    transition: background 0.15s ease;
+  }
+  .add-line-btn:hover {
+    background: var(--odoo-primary-light);
+  }
+</style>
+{% endblock %}
 
 {% block content %}
-<div x-data="mfgPage()" x-init="init()">
-  
-  <!-- ===== ODOO CONTROL PANEL SUB-HEADER ===== -->
+<div x-data="mfgOdooEnterpriseApp()" x-init="init()">
+
+  <!-- ===== ODOO CONTROL PANEL TOPBAR ===== -->
   <div style="margin:-20px -24px 20px -24px; padding:10px 24px; background:#ffffff; border-bottom:1px solid #e2e8f0; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
-    <div style="display:flex; align-items:center; gap:12px;">
-      <button class="btn btn-primary" style="background:#714B67; color:#ffffff; font-weight:700; border-radius:4px; padding:6px 16px; border:none;" @click="openNewMOModal()">
-        Nuevo
+    
+    <!-- Left: Actions & Breadcrumbs -->
+    <div style="display:flex; align-items:center; gap:14px;">
+      <button 
+        class="btn btn-primary" 
+        style="background:#714B67; color:#ffffff; font-weight:700; border-radius:4px; padding:6px 16px; border:none; display:flex; align-items:center; gap:6px; cursor:pointer;"
+        @click="nuevoProductoForm()"
+      >
+        <i class="ph ph-plus" style="font-weight:800;"></i>
+        <span>Nuevo</span>
       </button>
-      <div style="font-size:15px; font-weight:700; color:#334155; display:flex; align-items:center; gap:6px;">
-        <span>Fabricación / Órdenes de Producción & Recetas (BOM)</span>
-        <i class="ph ph-gear" style="font-size:14px; color:#64748b;"></i>
+
+      <div style="font-size:15px; font-weight:700; color:#1e293b; display:flex; align-items:center; gap:6px;">
+        <span style="color:#64748b; cursor:pointer;" @click="activeTab = 'historial'">Fabricación</span>
+        <span style="color:#94a3b8;">/</span>
+        <span x-text="activeTab === 'taller' ? (form.nombre ? form.nombre : 'Nuevo Producto / Ensamble') : (activeTab === 'historial' ? 'Órdenes de Fabricación' : 'Recetas Favoritas')"></span>
       </div>
     </div>
 
-    <!-- ODOO SEARCH BAR -->
-    <div style="position:relative; display:flex; align-items:center; width:380px; max-width:100%;">
-      <i class="ph ph-magnifying-glass" style="position:absolute; left:12px; color:#714B67 !important; font-size:18px !important; font-weight:800 !important; pointer-events:none; z-index:10;"></i>
-      <input type="text" placeholder="Buscar orden (e.g. WH/MO/0001)..." style="width:100% !important; background-color:#ffffff !important; background:#ffffff !important; border:2px solid #714B67 !important; border-radius:8px !important; padding:8px 34px 8px 38px !important; font-size:13.5px !important; font-weight:600 !important; color:#1e293b !important; box-shadow:0 2px 8px rgba(113,75,103,0.12) !important; outline:none !important;" x-model="search">
+    <!-- Right: Tabs Switcher (Odoo Enterprise Pills) -->
+    <div style="display:flex; align-items:center; gap:8px;">
+      <button 
+        class="odoo-subnav-btn" 
+        :class="activeTab === 'taller' ? 'active' : ''" 
+        @click="activeTab = 'taller'"
+      >
+        <i class="ph ph-wrench"></i>
+        <span>Taller de Fabricación</span>
+      </button>
+
+      <button 
+        class="odoo-subnav-btn" 
+        :class="activeTab === 'historial' ? 'active' : ''" 
+        @click="activeTab = 'historial'"
+      >
+        <i class="ph ph-list-dashes"></i>
+        <span>Órdenes de Fabricación</span>
+        <span style="background:rgba(0,0,0,0.08); padding:1px 6px; border-radius:10px; font-size:11px;" x-text="historial.length"></span>
+      </button>
+
+      <button 
+        class="odoo-subnav-btn" 
+        :class="activeTab === 'favoritas' ? 'active' : ''" 
+        @click="activeTab = 'favoritas'"
+      >
+        <i class="ph ph-star"></i>
+        <span>Recetas Favoritas</span>
+        <span style="background:rgba(0,0,0,0.08); padding:1px 6px; border-radius:10px; font-size:11px;" x-text="recetasFavoritas.length"></span>
+      </button>
     </div>
 
   </div>
 
-  <!-- PRODUCTION ORDERS TABLE -->
-  <div class="card p-0" style="overflow:hidden; background:#ffffff; border:1px solid #e2e8f0; border-radius:8px;">
-    <div class="table-responsive">
-      <table class="table" style="width:100%; border-collapse:collapse;">
+  <!-- ================================================================= -->
+  <!-- VISTA 1: TALLER DE FABRICACIÓN (HOJA ODOO SHEET) -->
+  <!-- ================================================================= -->
+  <div x-show="activeTab === 'taller'" x-cloak>
+    
+    <!-- ODOO ACTION BAR & STATUS BAR -->
+    <div style="background:#ffffff; border:1px solid #dcdfe6; border-radius:6px 6px 0 0; padding:10px 20px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; flex-wrap:wrap; gap:10px;">
+      
+      <div style="display:flex; align-items:center; gap:10px;">
+        <button 
+          class="btn btn-primary" 
+          style="background:#714B67; color:#ffffff; font-weight:700; border-radius:4px; padding:7px 18px; border:none; display:flex; align-items:center; gap:6px; cursor:pointer;"
+          :disabled="isSubmitting"
+          @click="submitFabricacion()"
+        >
+          <template x-if="!isSubmitting">
+            <span style="display:flex; align-items:center; gap:6px;">
+              <i class="ph ph-check-circle" style="font-size:16px;"></i>
+              <span>Producir y Guardar Producto</span>
+            </span>
+          </template>
+          <template x-if="isSubmitting">
+            <span style="display:flex; align-items:center; gap:6px;">
+              <i class="ph ph-spinner animate-spin"></i>
+              <span>Fabricando...</span>
+            </span>
+          </template>
+        </button>
+
+        <button 
+          class="btn btn-secondary" 
+          style="background:#ffffff; color:#475569; font-weight:700; border:1px solid #cbd5e1; border-radius:4px; padding:7px 14px; cursor:pointer;"
+          @click="nuevoProductoForm()"
+        >
+          Descartar
+        </button>
+      </div>
+
+      <!-- Selector de Receta Favorita & Status Badge -->
+      <div style="display:flex; align-items:center; gap:12px;">
+        <div style="display:flex; align-items:center; gap:6px;">
+          <span style="font-size:12px; font-weight:700; color:#64748b;">Receta Favorita:</span>
+          <select 
+            class="odoo-input" 
+            style="padding:5px 10px; font-size:12px; font-weight:700; border-radius:4px; width:220px;" 
+            x-model="selectedFavoriteId" 
+            @change="loadFavoriteIntoForm()"
+          >
+            <option value="">-- Cargar Plantilla --</option>
+            <template x-for="fav in recetasFavoritas" :key="fav.id">
+              <option :value="fav.id" x-text="fav.nombre"></option>
+            </template>
+          </select>
+        </div>
+
+        <div class="odoo-status-pill status-draft">
+          <i class="ph ph-circle"></i>
+          <span>Borrador / Preparación</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ODOO SHEET: DETALLE DEL NUEVO PRODUCTO FINAL -->
+    <div class="odoo-sheet" style="border-top:none; border-radius:0 0 6px 6px;">
+      
+      <!-- NOMBRE DEL PRODUCTO NUEVO (TÍTULO GRANDE ESTILO ODOO) -->
+      <div style="margin-bottom:20px;">
+        <label class="odoo-field-label" style="font-size:13px; color:#714B67;">Nombre del Producto a Fabricar *</label>
+        <input 
+          type="text" 
+          placeholder="Ej. Bandeja de Verduras Mixtas x4, Pastel de Fresa Especial..." 
+          style="width:100%; font-size:20px; font-weight:800; color:#1e293b; padding:8px 12px; border:1.5px solid #cbd5e1; border-radius:4px; outline:none;" 
+          x-model="form.nombre"
+          @input="onNombreChange()"
+        >
+      </div>
+
+      <!-- GRID DE CAMPOS DEL PRODUCTO FINAL ESTILO ODOO -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-bottom:28px;">
+        
+        <!-- Columna 1: Identificadores y Categoría -->
+        <div style="display:flex; flex-direction:column; gap:14px;">
+          
+          <!-- Correlativo Interno del Sistema (SKU) -->
+          <div>
+            <label class="odoo-field-label">Correlativo Interno del Sistema (SKU) *</label>
+            <div style="display:flex; gap:6px;">
+              <input 
+                type="text" 
+                class="odoo-input" 
+                style="font-weight:700; color:#714B67; background:#f8fafc;" 
+                placeholder="PROD-0001" 
+                x-model="form.correlativo_interno"
+              >
+              <button 
+                type="button" 
+                class="btn btn-secondary" 
+                style="padding:6px 10px; border:1px solid #cbd5e1; border-radius:4px; background:#ffffff; cursor:pointer;" 
+                @click="fetchNextSku()"
+                title="Generar siguiente correlativo"
+              >
+                <i class="ph ph-arrows-clockwise"></i>
+              </button>
+            </div>
+            <div style="font-size:11px; color:#64748b; margin-top:2px;">Código secuencial único generado para inventario.</div>
+          </div>
+
+          <!-- Código de Barras -->
+          <div>
+            <label class="odoo-field-label">Código de Barras</label>
+            <div style="position:relative;">
+              <i class="ph ph-barcode" style="position:absolute; left:10px; top:50%; transform:translateY(-50%); color:#64748b;"></i>
+              <input 
+                type="text" 
+                class="odoo-input" 
+                style="padding-left:34px;" 
+                placeholder="Escanear o ingresar código de barras..." 
+                x-model="form.codigo_barras"
+              >
+            </div>
+          </div>
+
+          <!-- Categoría del Producto -->
+          <div>
+            <label class="odoo-field-label">Categoría del Producto *</label>
+            <select class="odoo-input" style="font-weight:600;" x-model="form.categoria_id">
+              <option value="">-- Seleccionar Categoría --</option>
+              <template x-for="cat in categories" :key="cat.id">
+                <option :value="cat.id" x-text="cat.name"></option>
+              </template>
+            </select>
+          </div>
+
+        </div>
+
+        <!-- Columna 2: Bodega de Destino, Cantidad y Precio de Venta -->
+        <div style="display:flex; flex-direction:column; gap:14px;">
+          
+          <!-- Bodega de Destino (OBLIGATORIA) -->
+          <div>
+            <label class="odoo-field-label" style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="color:#047857; font-weight:800;">Bodega de Destino *</span>
+              <span style="font-size:10px; background:#ecfdf5; color:#047857; padding:1px 6px; border-radius:4px; font-weight:700;">OBLIGATORIO</span>
+            </label>
+            <select 
+              class="odoo-input" 
+              style="border-color:#22c55e; font-weight:700; color:#14532d; background:#f0fdf4;" 
+              x-model="form.bodega_destino_id"
+            >
+              <option value="">-- Seleccionar Bodega de Destino --</option>
+              <template x-for="w in warehouses" :key="w.id">
+                <option :value="w.id" x-text="w.name + ' (' + w.branch_name + ')' + (w.is_default ? ' [Principal]' : '')"></option>
+              </template>
+            </select>
+            <div style="font-size:11px; color:#15803d; margin-top:2px;">Bodega donde se almacenará e incrementará el stock del producto fabricado.</div>
+          </div>
+
+          <!-- Cantidad a Fabricar -->
+          <div>
+            <label class="odoo-field-label">Cantidad a Elaborar / Producir *</label>
+            <input 
+              type="number" 
+              min="0.01" 
+              step="any" 
+              class="odoo-input" 
+              style="font-weight:800; font-size:14px; color:#0d9488;" 
+              x-model.number="form.cantidad_producida"
+            >
+          </div>
+
+          <!-- Precio de Venta (Ingresado / Confirmado al finalizar) -->
+          <div>
+            <label class="odoo-field-label" style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-weight:800; color:#1e293b;">Precio de Venta Confirmado (Q) *</span>
+              <span style="font-size:11px; font-weight:800; color:#0d9488;" x-text="'Margen: ' + calculatedMarginPct + '%'"></span>
+            </label>
+            <input 
+              type="number" 
+              min="0.01" 
+              step="0.01" 
+              class="odoo-input" 
+              style="font-weight:800; font-size:14px; color:#1e293b;" 
+              placeholder="Q 0.00" 
+              x-model.number="form.precio_venta"
+            >
+            <div style="font-size:11px; color:#64748b; margin-top:2px;">Se asignará como precio de venta del nuevo producto al guardar.</div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- ODOO NOTEBOOK: TABLA DE COMPONENTES / INSUMOS -->
+      <div style="border-top:1px solid #e2e8f0; padding-top:18px;">
+        
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+          <div style="font-size:13px; font-weight:800; color:#334155; text-transform:uppercase; letter-spacing:0.3px;">
+            Insumos / Componentes (Multi-Bodega de Origen)
+          </div>
+
+          <div style="font-size:11.5px; color:#64748b;">
+            Mínimo 2 insumos requeridos. Cada insumo puede salir de una bodega diferente.
+          </div>
+        </div>
+
+        <div style="border:1px solid #e2e8f0; border-radius:4px; overflow:hidden;">
+          <table class="odoo-table">
+            <thead>
+              <tr>
+                <th style="width:30px;">#</th>
+                <th>Insumo (Materia Prima) *</th>
+                <th style="width:230px;">Bodega de Origen *</th>
+                <th style="width:130px; text-align:center;">Stock Disponible</th>
+                <th style="width:120px; text-align:center;">Cantidad *</th>
+                <th style="width:110px; text-align:right;">Costo Unit.</th>
+                <th style="width:120px; text-align:right;">Subtotal</th>
+                <th style="width:40px;"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="(insumo, idx) in form.insumos" :key="idx">
+                <tr>
+                  <td style="font-weight:700; color:#64748b;" x-text="idx + 1"></td>
+
+                  <!-- Insumo Producto -->
+                  <td>
+                    <select class="odoo-input" style="padding:6px 8px; font-size:12.5px; font-weight:600;" x-model="insumo.producto_id">
+                      <option value="">-- Seleccionar Materia Prima --</option>
+                      <template x-for="p in products" :key="p.id">
+                        <option :value="p.id" x-text="p.name + (p.internal_ref ? ' [' + p.internal_ref + ']' : '')"></option>
+                      </template>
+                    </select>
+                  </td>
+
+                  <!-- Bodega de Origen -->
+                  <td>
+                    <select class="odoo-input" style="padding:6px 8px; font-size:12.5px; font-weight:600;" x-model="insumo.bodega_origen_id">
+                      <option value="">-- Bodega Origen --</option>
+                      <template x-for="w in warehouses" :key="w.id">
+                        <option :value="w.id" x-text="w.name + ' (' + w.branch_name + ')'"></option>
+                      </template>
+                    </select>
+                  </td>
+
+                  <!-- Stock Disponible en la bodega seleccionada -->
+                  <td style="text-align:center;">
+                    <template x-if="insumo.producto_id && insumo.bodega_origen_id">
+                      <div>
+                        <span 
+                          style="font-size:11px; font-weight:700; padding:2px 8px; border-radius:10px;"
+                          :style="getStockInWarehouse(insumo.producto_id, insumo.bodega_origen_id) >= (insumo.cantidad || 0) && getStockInWarehouse(insumo.producto_id, insumo.bodega_origen_id) > 0 ? 'background:#ecfdf5; color:#047857;' : 'background:#fef2f2; color:#dc2626;'"
+                          x-text="getStockInWarehouse(insumo.producto_id, insumo.bodega_origen_id).toFixed(2) + ' U.'"
+                        ></span>
+                      </div>
+                    </template>
+                    <template x-if="!insumo.producto_id || !insumo.bodega_origen_id">
+                      <span style="color:#94a3b8; font-size:11px;">--</span>
+                    </template>
+                  </td>
+
+                  <!-- Cantidad -->
+                  <td style="text-align:center;">
+                    <input 
+                      type="number" 
+                      min="0.001" 
+                      step="any" 
+                      class="odoo-input" 
+                      style="padding:6px 8px; text-align:center; font-weight:700;" 
+                      x-model.number="insumo.cantidad"
+                    >
+                  </td>
+
+                  <!-- Costo Unitario -->
+                  <td style="text-align:right; color:#64748b; font-size:12.5px;" x-text="'Q ' + (getSelectedProduct(insumo.producto_id)?.cost_price || 0).toFixed(2)"></td>
+
+                  <!-- Subtotal -->
+                  <td style="text-align:right; font-weight:800; color:#0d9488; font-size:13px;" x-text="'Q ' + ((getSelectedProduct(insumo.producto_id)?.cost_price || 0) * (insumo.cantidad || 0)).toFixed(2)"></td>
+
+                  <!-- Quitar fila -->
+                  <td style="text-align:center;">
+                    <button 
+                      type="button" 
+                      style="border:none; background:none; color:#dc2626; cursor:pointer;" 
+                      @click="removeInsumoRow(idx)" 
+                      title="Eliminar fila"
+                    >
+                      <i class="ph ph-trash" style="font-size:16px;"></i>
+                    </button>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+
+          <div style="padding:8px 12px; background:#ffffff; border-top:1px solid #f1f5f9;">
+            <button type="button" class="add-line-btn" @click="addInsumoRow()">
+              <i class="ph ph-plus"></i>
+              <span>Agregar un insumo</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- TOTALES Y CÁLCULO DE COSTO AUTOMÁTICO (SUMA DE INSUMOS) -->
+        <div style="display:flex; justify-content:flex-end; margin-top:16px;">
+          <div style="width:340px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:12px 16px;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:6px; font-size:12.5px;">
+              <span style="color:#64748b; font-weight:600;">Costo Total Insumos:</span>
+              <strong style="color:#1e293b;" x-text="'Q ' + calculatedTotalCost.toFixed(2)"></strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:13.5px; border-top:1px solid #e2e8f0; padding-top:6px;">
+              <span style="color:#714B67; font-weight:800;">Costo Unitario Resultante:</span>
+              <strong style="color:#714B67; font-size:15px;" x-text="'Q ' + calculatedUnitCost.toFixed(2)"></strong>
+            </div>
+            <div style="font-size:11px; color:#64748b; text-align:right;">
+              Este costo se guardará automáticamente en el nuevo producto.
+            </div>
+          </div>
+        </div>
+
+        <!-- CHECKBOX FAVORITO (OPCIONAL) -->
+        <div style="margin-top:20px; background:#fcfaff; border:1px solid #e9d5ff; border-radius:6px; padding:12px 16px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:13px; font-weight:700; color:#581c87;">
+            <input type="checkbox" style="width:16px; height:16px; accent-color:#714B67;" x-model="form.guardar_como_favorito">
+            <span>Guardar fórmula como Receta Favorita para fabricaciones posteriores</span>
+          </label>
+
+          <div x-show="form.guardar_como_favorito" style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:12px; font-weight:700; color:#7e22ce;">Nombre de Receta:</span>
+            <input 
+              type="text" 
+              class="odoo-input" 
+              style="padding:4px 8px; font-size:12px; width:220px;" 
+              placeholder="Fórmula..." 
+              x-model="form.nombre_receta"
+            >
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- ================================================================= -->
+  <!-- VISTA 2: LISTA DE ÓRDENES DE FABRICACIÓN (TREE VIEW ESTILO ODOO) -->
+  <!-- ================================================================= -->
+  <div x-show="activeTab === 'historial'" x-cloak>
+    
+    <div class="odoo-sheet" style="padding:0; overflow:hidden;">
+      <table class="odoo-table">
         <thead>
-          <tr style="border-bottom:2px solid #e2e8f0; background:#ffffff;">
-            <th style="padding:12px 16px; text-align:left; color:#475569; font-size:11px; text-transform:uppercase; font-weight:700;">Orden de Producción</th>
-            <th style="padding:12px 16px; text-align:left; color:#475569; font-size:11px; text-transform:uppercase; font-weight:700;">Producto Terminado</th>
-            <th style="padding:12px 16px; text-align:center; color:#475569; font-size:11px; text-transform:uppercase; font-weight:700;">Lote Producido</th>
-            <th style="padding:12px 16px; text-align:left; color:#475569; font-size:11px; text-transform:uppercase; font-weight:700;">Fecha Programada</th>
-            <th style="padding:12px 16px; text-align:left; color:#475569; font-size:11px; text-transform:uppercase; font-weight:700;">Estado Odoo</th>
-            <th style="padding:12px 16px; text-align:right; color:#475569; font-size:11px; text-transform:uppercase; font-weight:700;">Acciones</th>
+          <tr>
+            <th>N° Orden</th>
+            <th>Producto Fabricado</th>
+            <th>SKU / Correlativo</th>
+            <th>Código de Barras</th>
+            <th>Bodega Destino</th>
+            <th style="text-align:center;">Cantidad</th>
+            <th style="text-align:right;">Costo Unit.</th>
+            <th style="text-align:right;">Precio Venta</th>
+            <th style="text-align:center;">Margen</th>
+            <th>Fecha</th>
+            <th style="text-align:right;">Insumos</th>
           </tr>
         </thead>
         <tbody>
-          <template x-for="mo in filteredOrders" :key="mo.id">
-            <tr style="border-bottom:1px solid #f1f5f9;">
-              <td style="padding:12px 16px; font-weight:700; color:#714B67;" x-text="mo.number"></td>
-              <td style="padding:12px 16px; font-weight:700; color:#1e293b;" x-text="mo.product_name"></td>
-              <td style="padding:12px 16px; text-align:center; font-weight:700; color:#0d9488;" x-text="mo.quantity + ' Unidades'"></td>
-              <td style="padding:12px 16px; color:#64748b;" x-text="mo.date"></td>
-              <td style="padding:12px 16px;">
-                <span
-                  style="font-size:11px; font-weight:700; padding:3px 10px; border-radius:12px;"
-                  :class="mo.state === 'done' ? 'bg-emerald-100 text-emerald-800' : 'bg-purple-100 text-purple-800'"
-                  x-text="mo.state === 'done' ? '✓ Producido / Listo' : '⚙ En Horno / Proceso'"
-                ></span>
+          <template x-for="item in historial" :key="item.id">
+            <tr style="transition:background 0.15s ease;" onmouseover="this.style.background='#faf8fb'" onmouseout="this.style.background='#ffffff'">
+              <td style="font-weight:800; color:#714B67;" x-text="item.numero"></td>
+              <td style="font-weight:700; color:#1e293b;" x-text="item.producto_final_nombre"></td>
+              <td style="color:#64748b; font-family:monospace;" x-text="item.producto_final_ref || '--'"></td>
+              <td style="color:#64748b;" x-text="item.producto_final_barcode || '--'"></td>
+              <td>
+                <span style="background:#f0fdf4; color:#166534; padding:2px 8px; border-radius:4px; font-size:11.5px; font-weight:700; border:1px solid #bbf7d0;" x-text="item.bodega_destino_nombre"></span>
               </td>
-              <td style="padding:12px 16px; text-align:right;">
-                <button class="btn btn-sm" style="background:#0d9488; color:#ffffff;" x-show="mo.state !== 'done'" @click="completeMO(mo)">
-                  Completar Horneado
+              <td style="text-align:center; font-weight:800; color:#0d9488;" x-text="item.cantidad_producida + ' U.'"></td>
+              <td style="text-align:right; font-weight:600; color:#475569;" x-text="'Q ' + item.costo_unitario.toFixed(2)"></td>
+              <td style="text-align:right; font-weight:800; color:#1e293b;" x-text="'Q ' + item.precio_venta.toFixed(2)"></td>
+              <td style="text-align:center;">
+                <span style="font-size:11px; font-weight:700; padding:2px 6px; border-radius:10px; background:#eff6ff; color:#1d4ed8;" x-text="item.margen_estimado_pct + '%'"></span>
+              </td>
+              <td style="font-size:12px; color:#64748b;" x-text="item.fecha"></td>
+              <td style="text-align:right;">
+                <button 
+                  class="btn btn-sm" 
+                  style="background:#f1f5f9; color:#334155; border:1px solid #cbd5e1; padding:3px 8px; border-radius:4px; font-size:11px; font-weight:700; cursor:pointer;" 
+                  @click="openHistorialDetailModal(item)"
+                >
+                  <i class="ph ph-eye"></i> <span x-text="item.insumos.length + ' Insumos'"></span>
                 </button>
               </td>
             </tr>
           </template>
+          <tr x-show="historial.length === 0">
+            <td colspan="11" style="text-align:center; padding:36px; color:#64748b;">
+              No hay órdenes de fabricación registradas todavía. Haz clic en "Nuevo" para fabricar tu primer producto.
+            </td>
+          </tr>
         </tbody>
       </table>
     </div>
+
   </div>
 
-  <!-- MODAL NUEVA ORDEN DE PRODUCCIÓN -->
-  <div class="modal-backdrop" x-show="showNewMOModal" style="display:none" x-cloak>
-    <div class="modal" style="max-width:650px; background:#ffffff; border-radius:8px; padding:20px; box-shadow:0 10px 25px rgba(0,0,0,0.15);">
-      <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:12px; margin-bottom:16px;">
-        <h3 class="modal-title" style="font-size:16px; font-weight:700; color:#1e293b;">Nueva Orden de Producción / Empacado</h3>
-        <button class="modal-close" style="border:none; background:none; font-size:20px; cursor:pointer;" @click="showNewMOModal = false">&times;</button>
-      </div>
-      <div class="modal-body space-y-4">
-        <div>
-          <label class="form-label" style="font-weight:600; font-size:12px; color:#475569;">Producto Elaborado / Empacado a Producir *</label>
-          <select class="form-control" style="width:100%; padding:8px 12px; margin-top:4px;" x-model="moForm.product_name">
-            <option value="Bandeja de Verduras Mixtas x4">Bandeja de Verduras Mixtas x4 (Preparación Interna)</option>
-            <option value="Bandeja de Frutas Picadas">Bandeja de Frutas Picadas x500g (Elaboración Local)</option>
-            <option value="Paquete de Frijol Rojo 2lb">Paquete de Frijol Rojo Empacado 2lb (Fraccionamiento)</option>
-            <option value="Combo Supermercado Desayuno">Combo Supermercado Desayuno (Kit Promocional)</option>
-          </select>
-        </div>
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px;">
+  <!-- ================================================================= -->
+  <!-- VISTA 3: RECETAS FAVORITAS (PLANTILLAS) -->
+  <!-- ================================================================= -->
+  <div x-show="activeTab === 'favoritas'" x-cloak>
+    
+    <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(320px, 1fr)); gap:16px;">
+      <template x-for="rec in recetasFavoritas" :key="rec.id">
+        <div class="odoo-sheet" style="padding:16px; margin-bottom:0; display:flex; flex-direction:column; justify-content:space-between;">
           <div>
-            <label class="form-label" style="font-weight:600; font-size:12px; color:#475569;">Cantidad a Elaborar (Unidades)</label>
-            <input type="number" min="1" class="form-control" style="width:100%; padding:8px 12px; margin-top:4px;" x-model="moForm.quantity">
-          </div>
-          <div>
-            <label class="form-label" style="font-weight:600; font-size:12px; color:#475569;">Responsable de Producción</label>
-            <input type="text" class="form-control" style="width:100%; padding:8px 12px; margin-top:4px;" value="Encargado de Producción Gustavo" readonly style="background:#f8fafc;">
-          </div>
-        </div>
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
+              <div>
+                <div style="font-size:15px; font-weight:800; color:#1e293b;" x-text="rec.nombre"></div>
+                <div style="font-size:12px; font-weight:700; color:#714B67; margin-top:2px;" x-text="'Producto: ' + rec.producto_final_nombre"></div>
+              </div>
+              <span style="font-size:11px; font-weight:800; background:#f4eff3; color:#714B67; padding:2px 8px; border-radius:10px;" x-text="rec.insumos_count + ' Insumos'"></span>
+            </div>
 
-        <div style="margin-top:16px; background:#f8fafc; border:1px solid #e2e8f0; padding:12px; border-radius:6px;">
-          <div style="font-size:12px; font-weight:700; color:#334155; margin-bottom:6px;">Receta / Insumos Requeridos (BOM):</div>
-          <div style="font-size:11.5px; color:#64748b; display:flex; flex-direction:column; gap:4px;">
-            <div>• Materia Prima (a Granel): 2.50 lb</div>
-            <div>• Bandejas y Film de Empaque: 1.00 Pz</div>
+            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:4px; padding:8px 12px; margin-bottom:12px; font-size:11.5px;">
+              <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                <span style="color:#64748b;">Bodega Destino:</span>
+                <strong style="color:#166534;" x-text="rec.bodega_destino_nombre || 'No definida'"></strong>
+              </div>
+              <div style="display:flex; justify-content:space-between;">
+                <span style="color:#64748b;">Precio Venta Sugerido:</span>
+                <strong style="color:#0f766e;" x-text="'Q ' + rec.precio_venta_sugerido.toFixed(2)"></strong>
+              </div>
+            </div>
+
+            <!-- Insumos resumidos -->
+            <div style="font-size:11px; font-weight:700; color:#475569; text-transform:uppercase; margin-bottom:6px;">Insumos:</div>
+            <div style="display:flex; flex-direction:column; gap:4px; max-height:110px; overflow-y:auto; margin-bottom:14px;">
+              <template x-for="det in rec.detalles" :key="det.id">
+                <div style="font-size:11.5px; background:#ffffff; border:1px solid #f1f5f9; padding:4px 8px; border-radius:4px; display:flex; justify-content:space-between;">
+                  <span style="font-weight:600;" x-text="det.producto_nombre"></span>
+                  <strong style="color:#6b21a8;" x-text="det.cantidad + ' U.'"></strong>
+                </div>
+              </template>
+            </div>
+          </div>
+
+          <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid #f1f5f9; padding-top:10px;">
+            <button 
+              type="button" 
+              class="btn btn-sm" 
+              style="background:#ffffff; color:#dc2626; border:1px solid #fecaca; border-radius:4px; padding:4px 8px; font-size:11px; cursor:pointer;" 
+              @click="deleteReceta(rec)"
+            >
+              <i class="ph ph-trash"></i> Eliminar
+            </button>
+
+            <button 
+              type="button" 
+              class="btn btn-sm btn-primary" 
+              style="background:#714B67; color:#ffffff; border:none; border-radius:4px; padding:6px 12px; font-size:12px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:6px;" 
+              @click="loadSpecificFavorite(rec)"
+            >
+              <i class="ph ph-play"></i> Cargar al Taller
+            </button>
           </div>
         </div>
+      </template>
+
+      <div x-show="recetasFavoritas.length === 0" style="grid-column:1/-1; text-align:center; padding:40px; background:#ffffff; border:1px solid #dcdfe6; border-radius:6px;">
+        <i class="ph ph-star" style="font-size:36px; color:#cbd5e1; display:block; margin-bottom:8px;"></i>
+        <div style="font-size:14px; font-weight:700; color:#475569;">No hay recetas favoritas guardadas</div>
+        <div style="font-size:12px; color:#94a3b8; margin-top:4px;">Crea una fórmula en el Taller de Fabricación y marca "Guardar fórmula como Receta Favorita".</div>
       </div>
-      <div class="modal-footer" style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px; border-top:1px solid #e2e8f0; padding-top:12px;">
-        <button class="btn btn-secondary" @click="showNewMOModal = false">Cancelar</button>
-        <button class="btn btn-primary" style="background:#714B67; color:#ffffff;" @click="saveMO()">Iniciar Producción</button>
+    </div>
+
+  </div>
+
+  <!-- ================================================================= -->
+  <!-- MODAL: DETALLE DE INSUMOS DE ORDEN HISTÓRICA -->
+  <!-- ================================================================= -->
+  <div class="modal-backdrop" x-show="showHistoryModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; display:flex; align-items:center; justify-content:center; padding:16px;" x-cloak>
+    <div class="modal" style="width:100%; max-width:650px; background:#ffffff; border-radius:8px; padding:22px; box-shadow:0 12px 30px rgba(0,0,0,0.18);" @click.away="showHistoryModal = false">
+      
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:12px; margin-bottom:16px;">
+        <div>
+          <span style="font-size:11px; font-weight:800; color:#714B67; text-transform:uppercase;" x-text="selectedHistoryItem?.numero"></span>
+          <h3 style="font-size:17px; font-weight:800; color:#1e293b; margin:2px 0 0 0;" x-text="'Fabricación: ' + (selectedHistoryItem?.producto_final_nombre || '')"></h3>
+        </div>
+        <button style="border:none; background:none; font-size:20px; color:#64748b; cursor:pointer;" @click="showHistoryModal = false">&times;</button>
       </div>
+
+      <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:12px; margin-bottom:16px;">
+        <div>
+          <div style="font-size:11px; color:#64748b;">Cantidad Fabricada</div>
+          <div style="font-size:14px; font-weight:800; color:#0d9488;" x-text="(selectedHistoryItem?.cantidad_producida || 0) + ' U.'"></div>
+        </div>
+        <div>
+          <div style="font-size:11px; color:#64748b;">Bodega de Destino</div>
+          <div style="font-size:13px; font-weight:800; color:#166534;" x-text="selectedHistoryItem?.bodega_destino_nombre"></div>
+        </div>
+        <div>
+          <div style="font-size:11px; color:#64748b;">Costo Unitario</div>
+          <div style="font-size:14px; font-weight:800; color:#1e293b;" x-text="'Q ' + (selectedHistoryItem?.costo_unitario || 0).toFixed(2)"></div>
+        </div>
+      </div>
+
+      <div style="font-size:12px; font-weight:800; color:#334155; margin-bottom:8px;">Insumos y Bodegas de Origen Descontados:</div>
+      <div style="border:1px solid #e2e8f0; border-radius:6px; overflow:hidden;">
+        <table class="odoo-table">
+          <thead>
+            <tr>
+              <th>Insumo</th>
+              <th>Bodega de Origen</th>
+              <th style="text-align:center;">Cantidad</th>
+              <th style="text-align:right;">Costo Subtotal</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="ins in (selectedHistoryItem?.insumos || [])" :key="ins.id">
+              <tr>
+                <td style="font-weight:700; color:#1e293b;" x-text="ins.producto_nombre"></td>
+                <td style="color:#64748b;" x-text="ins.bodega_origen_nombre"></td>
+                <td style="text-align:center; font-weight:800; color:#6b21a8;" x-text="ins.cantidad.toFixed(2) + ' U.'"></td>
+                <td style="text-align:right; font-weight:700; color:#0f766e;" x-text="'Q ' + ins.costo_subtotal.toFixed(2)"></td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; margin-top:20px;">
+        <button class="btn btn-secondary" style="padding:6px 18px; border-radius:4px; border:1px solid #cbd5e1; background:#ffffff; font-weight:700; cursor:pointer;" @click="showHistoryModal = false">Cerrar</button>
+      </div>
+
     </div>
   </div>
 
 </div>
 
 <script>
-  function mfgPage() {
+  function mfgOdooEnterpriseApp() {
     return {
-      search: '',
-      showNewMOModal: false,
-      moForm: { product_name: 'Apple Pie', quantity: 24 },
-      orders: [],
+      activeTab: 'taller',
+      isSubmitting: false,
 
-      get filteredOrders() {
-        if (!this.search) return this.orders;
-        const q = this.search.toLowerCase();
-        return this.orders.filter(o => o.number.toLowerCase().includes(q) || o.product_name.toLowerCase().includes(q));
+      warehouses: [],
+      categories: [],
+      products: [],
+      recetasFavoritas: [],
+      historial: [],
+
+      selectedFavoriteId: '',
+      showHistoryModal: false,
+      selectedHistoryItem: null,
+
+      form: {
+        nombre: '',
+        codigo_barras: '',
+        correlativo_interno: '',
+        categoria_id: '',
+        bodega_destino_id: '',
+        cantidad_producida: 1.0,
+        precio_venta: 0.0,
+        insumos: [
+          { producto_id: '', bodega_origen_id: '', cantidad: 1.0 },
+          { producto_id: '', bodega_origen_id: '', cantidad: 1.0 }
+        ],
+        guardar_como_favorito: false,
+        nombre_receta: '',
+        notas: ''
       },
 
       async init() {
-        await this.loadOrders();
+        await this.loadAll();
+        await this.fetchNextSku();
       },
 
-      async loadOrders() {
+      async loadAll() {
         try {
-          this.orders = await API.get('/mfg/orders');
+          const [whs, prods, cats, favs, hist] = await Promise.all([
+            API.get('/mfg/warehouses'),
+            API.get('/mfg/products-stock'),
+            API.get('/mfg/categories'),
+            API.get('/mfg/recetas-favoritas'),
+            API.get('/mfg/historial')
+          ]);
+
+          this.warehouses = whs || [];
+          this.products = prods || [];
+          this.categories = cats || [];
+          this.recetasFavoritas = favs || [];
+          this.historial = hist || [];
+
+          // Preseleccionar bodega principal por defecto
+          if (!this.form.bodega_destino_id && this.warehouses.length > 0) {
+            const defWh = this.warehouses.find(w => w.is_default) || this.warehouses[0];
+            this.form.bodega_destino_id = defWh.id;
+            this.form.insumos.forEach(i => {
+              if (!i.bodega_origen_id) i.bodega_origen_id = defWh.id;
+            });
+          }
+
+          // Preseleccionar primera categoría si existe
+          if (!this.form.categoria_id && this.categories.length > 0) {
+            this.form.categoria_id = this.categories[0].id;
+          }
         } catch (e) {
-          showToast('Error al cargar órdenes de producción: ' + e.message, 'error');
+          showToast('Error al cargar datos de fabricación: ' + e.message, 'error');
         }
       },
 
-      openNewMOModal() {
-        this.moForm = { product_name: 'Apple Pie', quantity: 24 };
-        this.showNewMOModal = true;
-      },
-
-      async saveMO() {
+      async fetchNextSku() {
         try {
-          const newMO = await API.post('/mfg/orders', this.moForm);
-          this.orders.unshift(newMO);
-          this.showNewMOModal = false;
-          showToast(`Producción de ${this.moForm.product_name} iniciada`, 'success');
+          const res = await API.get('/mfg/next-sku');
+          if (res && res.next_sku) {
+            this.form.correlativo_interno = res.next_sku;
+          }
         } catch (e) {
-          showToast('Error al iniciar producción: ' + e.message, 'error');
+          console.warn('Error al obtener correlativo:', e);
         }
       },
 
-      async completeMO(mo) {
+      getSelectedProduct(id) {
+        if (!id) return null;
+        return this.products.find(p => p.id === id);
+      },
+
+      getStockInWarehouse(productId, warehouseId) {
+        if (!productId || !warehouseId) return 0.0;
+        const prod = this.getSelectedProduct(productId);
+        if (!prod || !prod.stock_by_warehouse) return 0.0;
+        return prod.stock_by_warehouse[warehouseId] || 0.0;
+      },
+
+      onNombreChange() {
+        if (this.form.nombre) {
+          this.form.nombre_receta = 'Fórmula ' + this.form.nombre.trim();
+        }
+      },
+
+      addInsumoRow() {
+        const defaultWhId = this.form.bodega_destino_id || (this.warehouses[0]?.id || '');
+        this.form.insumos.push({
+          producto_id: '',
+          bodega_origen_id: defaultWhId,
+          cantidad: 1.0
+        });
+      },
+
+      removeInsumoRow(idx) {
+        if (this.form.insumos.length <= 2) {
+          showToast('Se requieren al menos 2 insumos de materia prima para la fabricación', 'warning');
+          return;
+        }
+        this.form.insumos.splice(idx, 1);
+      },
+
+      get calculatedTotalCost() {
+        let total = 0;
+        for (const item of this.form.insumos) {
+          const p = this.getSelectedProduct(item.producto_id);
+          const cost = p ? (p.cost_price || 0) : 0;
+          total += cost * (item.cantidad || 0);
+        }
+        return total;
+      },
+
+      get calculatedUnitCost() {
+        const total = this.calculatedTotalCost;
+        const qty = this.form.cantidad_producida || 1;
+        return qty > 0 ? (total / qty) : 0;
+      },
+
+      get calculatedMarginPct() {
+        const pv = this.form.precio_venta || 0;
+        const cu = this.calculatedUnitCost;
+        if (pv <= 0 || cu <= 0) return 0.0;
+        return Math.round(((pv - cu) / pv) * 100);
+      },
+
+      async nuevoProductoForm() {
+        const defWh = this.warehouses.find(w => w.is_default) || this.warehouses[0];
+        const defWhId = defWh ? defWh.id : '';
+        const defCatId = this.categories.length > 0 ? this.categories[0].id : '';
+
+        this.selectedFavoriteId = '';
+        this.form = {
+          nombre: '',
+          codigo_barras: '',
+          correlativo_interno: '',
+          categoria_id: defCatId,
+          bodega_destino_id: defWhId,
+          cantidad_producida: 1.0,
+          precio_venta: 0.0,
+          insumos: [
+            { producto_id: '', bodega_origen_id: defWhId, cantidad: 1.0 },
+            { producto_id: '', bodega_origen_id: defWhId, cantidad: 1.0 }
+          ],
+          guardar_como_favorito: false,
+          nombre_receta: '',
+          notas: ''
+        };
+        await this.fetchNextSku();
+        this.activeTab = 'taller';
+      },
+
+      loadFavoriteIntoForm() {
+        if (!this.selectedFavoriteId) return;
+        const fav = this.recetasFavoritas.find(r => r.id === this.selectedFavoriteId);
+        if (!fav) return;
+        this.loadSpecificFavorite(fav);
+      },
+
+      loadSpecificFavorite(fav) {
+        this.form.nombre = fav.producto_final_nombre;
+        if (fav.bodega_destino_id) {
+          this.form.bodega_destino_id = fav.bodega_destino_id;
+        }
+        this.form.cantidad_producida = fav.cantidad_producida || 1.0;
+        this.form.precio_venta = fav.precio_venta_sugerido || 0.0;
+        this.form.guardar_como_favorito = true;
+        this.form.nombre_receta = fav.nombre;
+
+        if (fav.detalles && fav.detalles.length >= 2) {
+          this.form.insumos = fav.detalles.map(d => ({
+            producto_id: d.producto_id,
+            bodega_origen_id: d.bodega_origen_id || this.form.bodega_destino_id,
+            cantidad: d.cantidad || 1.0
+          }));
+        }
+
+        this.selectedFavoriteId = fav.id;
+        this.activeTab = 'taller';
+        showToast(`Receta '${fav.nombre}' cargada`, 'success');
+      },
+
+      async submitFabricacion() {
+        // Validaciones obligatorias de nuevo producto
+        if (!this.form.nombre || !this.form.nombre.trim()) {
+          showToast('Ingresa el Nombre del nuevo producto a fabricar', 'warning');
+          return;
+        }
+        if (!this.form.bodega_destino_id) {
+          showToast('CRÍTICO: Debes seleccionar la Bodega de Destino', 'warning');
+          return;
+        }
+        if (!this.form.cantidad_producida || this.form.cantidad_producida <= 0) {
+          showToast('La cantidad producida debe ser mayor a 0', 'warning');
+          return;
+        }
+        if (!this.form.precio_venta || this.form.precio_venta <= 0) {
+          showToast('Ingresa el Precio de Venta para el nuevo producto (mayor a 0)', 'warning');
+          return;
+        }
+        if (!this.form.insumos || this.form.insumos.length < 2) {
+          showToast('Debes seleccionar al menos 2 productos insumo para fabricar', 'warning');
+          return;
+        }
+
+        for (let i = 0; i < this.form.insumos.length; i++) {
+          const item = this.form.insumos[i];
+          if (!item.producto_id) {
+            showToast(`Selecciona el insumo #${i + 1}`, 'warning');
+            return;
+          }
+          if (!item.bodega_origen_id) {
+            showToast(`Selecciona la Bodega de Origen para el insumo #${i + 1}`, 'warning');
+            return;
+          }
+          if (!item.cantidad || item.cantidad <= 0) {
+            showToast(`Ingresa una cantidad válida para el insumo #${i + 1}`, 'warning');
+            return;
+          }
+        }
+
+        this.isSubmitting = true;
         try {
-          const res = await API.post(`/mfg/orders/${mo.id}/complete`);
-          mo.state = 'done';
-          showToast(res.message, 'success');
+          const payload = {
+            producto_nuevo: {
+              nombre: this.form.nombre.trim(),
+              codigo_barras: this.form.codigo_barras ? this.form.codigo_barras.trim() : null,
+              correlativo_interno: this.form.correlativo_interno ? this.form.correlativo_interno.trim() : null,
+              categoria_id: this.form.categoria_id || null
+            },
+            bodega_destino_id: this.form.bodega_destino_id,
+            cantidad_producida: this.form.cantidad_producida,
+            precio_venta: this.form.precio_venta,
+            insumos: this.form.insumos.map(i => ({
+              producto_id: i.producto_id,
+              bodega_origen_id: i.bodega_origen_id,
+              cantidad: i.cantidad
+            })),
+            guardar_como_favorito: this.form.guardar_como_favorito,
+            nombre_receta: this.form.nombre_receta || ('Fórmula ' + this.form.nombre.trim()),
+            notas: this.form.notas
+          };
+
+          const res = await API.post('/mfg/fabricar', payload);
+          showToast(`¡Producto '${this.form.nombre}' fabricado exitosamente! Orden ${res.numero}.`, 'success');
+
+          await this.loadAll();
+          this.activeTab = 'historial';
         } catch (e) {
-          showToast('Error al completar producción: ' + e.message, 'error');
+          showToast('Error en la fabricación: ' + e.message, 'error');
+        } finally {
+          this.isSubmitting = false;
+        }
+      },
+
+      openHistorialDetailModal(item) {
+        this.selectedHistoryItem = item;
+        this.showHistoryModal = true;
+      },
+
+      async deleteReceta(rec) {
+        if (!confirm(`¿Eliminar la receta favorita '${rec.nombre}'?`)) return;
+        try {
+          await API.delete(`/mfg/recetas-favoritas/${rec.id}`);
+          this.recetasFavoritas = this.recetasFavoritas.filter(r => r.id !== rec.id);
+          showToast(`Receta '${rec.nombre}' eliminada`, 'success');
+        } catch (e) {
+          showToast('Error al eliminar receta: ' + e.message, 'error');
         }
       }
-    }
+    };
   }
 </script>
 {% endblock %}

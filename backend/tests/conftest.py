@@ -30,8 +30,22 @@ def setup_test_db():
 
     async def _init():
         import app.models  # noqa
+        from sqlalchemy import text
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
+            for col_sql in [
+                "ALTER TABLE sale_orders ADD COLUMN approved_by_id VARCHAR(36)",
+                "ALTER TABLE sale_orders ADD COLUMN approved_at TIMESTAMP",
+                "ALTER TABLE sale_orders ADD COLUMN rejection_reason TEXT",
+                "ALTER TABLE sale_orders ADD COLUMN warehouse_verified BOOLEAN DEFAULT 0",
+                "ALTER TABLE products ADD COLUMN wholesale_price NUMERIC(18, 4) DEFAULT 0",
+                "ALTER TABLE products ADD COLUMN wholesale_uom_id VARCHAR(36)",
+                "ALTER TABLE products ADD COLUMN wholesale_ratio NUMERIC(18, 4) DEFAULT 1.0",
+            ]:
+                try:
+                    await conn.execute(text(col_sql))
+                except Exception:
+                    pass
 
         async_session = async_sessionmaker(engine, expire_on_commit=False)
         async with async_session() as session:

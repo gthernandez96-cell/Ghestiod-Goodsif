@@ -6,7 +6,7 @@ from sqlalchemy.orm import selectinload
 from pydantic import BaseModel
 from typing import Optional, List
 from decimal import Decimal
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import uuid
 
 from app.core.database import get_db
@@ -14,7 +14,8 @@ from app.core.security import get_current_user
 from app.models.sale import SaleOrder, SaleOrderLine, SalePayment, SaleState, SaleType
 from app.models.cashier import CashierSession, SessionState, CashMovementType, PaymentMethod, CashMovement
 from app.models.company import Branch, Warehouse
-from app.models.inventory import StockMoveType
+from app.models.product import Product, ProductType
+from app.models.inventory import StockMoveType, StockQuant
 from app.services.inventory_service import InventoryService
 from app.services.fel_service import FELService
 
@@ -227,6 +228,71 @@ async def create_sale(
         notes=notes_content,
     )
 
+    # Validar que ningún producto sobrepase la existencia disponible en bodega ni las reservas de pre-ventas
+    cutoff_7d = datetime.now(timezone.utc) - timedelta(days=7)
+    for line_data in data.lines:
+        p_uuid = to_uuid(line_data.product_id)
+        if not p_uuid:
+            continue
+        prod_chk = (await db.execute(select(Product).where(Product.id == p_uuid))).scalar_one_or_none()
+        if not prod_chk or getattr(prod_chk, "product_type", None) == ProductType.SERVICE:
+            continue
+
+        # 1. Stock reservado por pre-ventas pendientes (vigencia 7 días)
+        froz_q = float((await db.execute(
+            select(func.coalesce(func.sum(SaleOrderLine.qty), 0))
+            .join(SaleOrder, SaleOrderLine.sale_id == SaleOrder.id)
+            .where(
+                SaleOrder.company_id == company_uuid,
+                SaleOrder.sale_type == SaleType.PRESALE,
+                SaleOrder.state.in_([SaleState.PENDING_APPROVAL, SaleState.WAREHOUSE_VALIDATION]),
+                SaleOrder.created_at >= cutoff_7d,
+                SaleOrder.is_deleted == False,
+                SaleOrderLine.is_deleted == False,
+                SaleOrderLine.product_id == p_uuid,
+            )
+        )).scalar() or 0.0)
+
+        # 2. Stock físico real en las bodegas activas de la empresa
+        phys_q = float((await db.execute(
+            select(func.coalesce(func.sum(StockQuant.qty_on_hand), 0))
+            .join(Warehouse, StockQuant.warehouse_id == Warehouse.id)
+            .join(Branch, Warehouse.branch_id == Branch.id)
+            .where(
+                StockQuant.product_id == p_uuid,
+                StockQuant.is_deleted == False,
+                Warehouse.is_active == True,
+                Warehouse.is_deleted == False,
+                Branch.company_id == company_uuid,
+            )
+        )).scalar() or 0.0)
+
+        avail_q = phys_q - froz_q
+
+        # 3. Factor multiplicador si es presentación mayorista o unidad de medida
+        ratio = 1.0
+        if getattr(line_data, "is_wholesale", False):
+            ratio = float(prod_chk.wholesale_ratio or 12.0)
+        elif getattr(line_data, "uom_id", None):
+            from app.models.product import UnitOfMeasure
+            uom_res = await db.execute(select(UnitOfMeasure).where(UnitOfMeasure.id == to_uuid(line_data.uom_id)))
+            uom = uom_res.scalar_one_or_none()
+            if uom:
+                ratio = float(uom.ratio or 1.0)
+        req_qty = float(line_data.qty) * ratio
+
+        if avail_q < req_qty:
+            if froz_q > 0:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"No se puede realizar la venta de '{prod_chk.name}'. El producto está reservado en pre-venta y no tiene existencia disponible suficiente (Disponible: {max(0, avail_q):.0f}, Bodega: {phys_q:.0f}, Reservadas en pre-ventas: {froz_q:.0f}, Solicitado: {req_qty:.0f})."
+                )
+            else:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"No se puede realizar la venta de '{prod_chk.name}'. No cuenta con existencia disponible suficiente en bodega (Disponible: {max(0, phys_q):.0f}, Solicitado: {req_qty:.0f})."
+                )
+
     # Agregar líneas y calcular totales
     subtotal = Decimal("0")
     tax_amount = Decimal("0")
@@ -373,7 +439,6 @@ async def create_sale(
     for idx, line in enumerate(sale.lines):
         line_data = data.lines[idx] if idx < len(data.lines) else None
         if warehouse_uuid and line.product_id:
-            from app.models.product import Product
             prod_obj_res = await db.execute(select(Product).where(Product.id == to_uuid(line.product_id)))
             prod_obj = prod_obj_res.scalar_one_or_none()
 
@@ -497,7 +562,6 @@ async def void_or_cancel_sale(
 
     # 1. Revertir movimientos de inventario (incluyendo combos)
     inv_service = InventoryService(db)
-    from app.models.product import Product
     for line in sale.lines:
         prod_obj_res = await db.execute(select(Product).where(Product.id == uuid.UUID(str(line.product_id))))
         prod_obj = prod_obj_res.scalar_one_or_none()

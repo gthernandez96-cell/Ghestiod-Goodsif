@@ -73,6 +73,133 @@
     border-color: #714B67;
     box-shadow: 0 2px 8px rgba(113, 75, 103, 0.25);
   }
+
+  /* Responsive Transfers Header & Filters */
+  .tr-header-bar {
+    margin: -20px -24px 20px -24px;
+    padding: 14px 24px;
+    background: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 14px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+  }
+
+  .tr-header-main-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .tr-header-title-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .tr-header-title {
+    font-size: 15px;
+    font-weight: 800;
+    color: #1e293b;
+    margin: 0;
+    padding: 0;
+  }
+
+  .tr-btn-new {
+    background: #714B67;
+    color: #ffffff;
+    font-weight: 800;
+    border-radius: 8px;
+    padding: 8px 18px;
+    border: none;
+    box-shadow: 0 2px 8px rgba(113,75,103,0.25);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    text-decoration: none;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+
+  .tr-sec-btn {
+    background: #f8fafc;
+    color: #334155;
+    border: 1px solid #cbd5e1;
+    font-weight: 700;
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 12px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    min-height: 34px;
+  }
+
+  .tr-pills-scroll {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding-bottom: 2px;
+    width: 100%;
+  }
+
+  .tr-pills-scroll::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tr-pills-scroll .filter-pill {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  @media screen and (max-width: 768px) {
+    .tr-header-bar {
+      margin: -14px -12px 14px -12px !important;
+      padding: 12px 14px !important;
+      flex-direction: column !important;
+      align-items: stretch !important;
+      gap: 10px !important;
+      border-radius: 0 0 10px 10px !important;
+    }
+
+    .tr-header-main-row {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      width: 100% !important;
+    }
+
+    .tr-header-title {
+      font-size: 16px !important;
+    }
+
+    .tr-btn-new {
+      padding: 6px 12px !important;
+      font-size: 12px !important;
+      min-height: 34px !important;
+    }
+
+    .tr-sec-btn {
+      width: 100% !important;
+      justify-content: center !important;
+    }
+
+    .tr-search-container {
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+  }
 </style>
 {% endblock %}
 
@@ -80,19 +207,18 @@
 <div x-data="transfersPage()" x-init="init()">
   
   <!-- ===== TOP HEADER BAR ===== -->
-  <div style="margin:-20px -24px 20px -24px; padding:14px 24px; background:#ffffff; border-bottom:1px solid #e2e8f0; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+  <div class="tr-header-bar">
     
-    <!-- Left: Actions & Title -->
-    <div style="display:flex; align-items:center; gap:12px;">
-      <a href="/transfers/new" class="btn btn-primary" style="background:#714B67; color:#ffffff; font-weight:800; border-radius:8px; padding:8px 20px; border:none; box-shadow:0 2px 8px rgba(113,75,103,0.25); display:flex; align-items:center; gap:6px; cursor:pointer; text-decoration:none;">
-        <i class="ph ph-plus" style="font-weight:800;"></i> Nuevo Traslado
-      </a>
-      <a href="/warehouses" class="btn btn-secondary" style="background:#f8fafc; color:#334155; border:1px solid #cbd5e1; font-weight:700; border-radius:8px; padding:7px 14px; font-size:12.5px; text-decoration:none; display:flex; align-items:center; gap:6px;">
-        <i class="ph ph-warehouse" style="color:#714B67;"></i> Gestionar Bodegas
-      </a>
-      <div style="font-size:15px; font-weight:800; color:#1e293b; display:flex; align-items:center; gap:8px; margin-left:6px;">
-        <span>Traslados de Inventario entre Bodegas</span>
+    <!-- Top Row: Title on Left, New Button on Right -->
+    <div class="tr-header-main-row">
+      <div class="tr-header-title-box">
+        <h1 class="tr-header-title">Traslados de Inventario</h1>
       </div>
+
+      <a href="/transfers/new" class="btn btn-primary tr-btn-new">
+        <i class="ph ph-plus" style="font-weight:800;"></i>
+        <span>Nuevo Traslado</span>
+      </a>
     </div>
 
     <!-- Center: Search Input -->
@@ -108,32 +234,43 @@
       <i class="ph ph-x-circle" style="position:absolute; right:12px; color:#94a3b8; font-size:17px; cursor:pointer;" x-show="search.length > 0" @click="search = ''; applyFilters()"></i>
     </div>
 
+    <!-- Secondary Action: Warehouses -->
+    <div style="display:flex; align-items:center;">
+      <a href="/warehouses" class="btn btn-secondary tr-sec-btn">
+        <i class="ph ph-warehouse" style="color:#714B67; font-size:15px;"></i>
+        <span>Gestionar Bodegas</span>
+      </a>
+    </div>
+
   </div>
 
   <!-- ===== 2. SEGMENTATION & FILTER PILLS WITH RESUMEN BUTTON ===== -->
-  <div style="position:relative; display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:20px;">
-    <span style="font-size:12px; font-weight:800; color:#64748b; margin-right:4px;">FILTRAR:</span>
-    <button class="filter-pill" :class="filterType === 'all' ? 'active' : ''" @click="filterType = 'all'; applyFilters()">
-      <span>Todos</span>
-      <span style="background:rgba(0,0,0,0.08); padding:1px 6px; border-radius:10px; font-size:11px;" x-text="transfers.length"></span>
-    </button>
-    <button class="filter-pill" :class="filterType === 'in_transit' ? 'active' : ''" @click="filterType = 'in_transit'; applyFilters()" style="color:#d97706;">
-      <span>🚚 En Tránsito</span>
-    </button>
-    <button class="filter-pill" :class="filterType === 'partial' ? 'active' : ''" @click="filterType = 'partial'; applyFilters()" style="color:#b45309;">
-      <span>⚠️ Parcial / Discrepancias</span>
-    </button>
-    <button class="filter-pill" :class="filterType === 'received' ? 'active' : ''" @click="filterType = 'received'; applyFilters()" style="color:#15803d;">
-      <span>✅ Recibidos</span>
-    </button>
-    <button class="filter-pill" :class="filterType === 'cancelled' ? 'active' : ''" @click="filterType = 'cancelled'; applyFilters()" style="color:#b91c1c;">
-      <span>🚫 Anulados</span>
-    </button>
+  <div style="position:relative; display:flex; align-items:center; gap:8px; margin-bottom:20px;">
+    <div class="tr-pills-scroll">
+      <span class="hide-on-mobile" style="font-size:12px; font-weight:800; color:#64748b; margin-right:4px; flex-shrink:0;">FILTRAR:</span>
+      <button class="filter-pill" :class="filterType === 'all' ? 'active' : ''" @click="filterType = 'all'; applyFilters()">
+        <span>Todos</span>
+        <span style="background:rgba(0,0,0,0.08); padding:1px 6px; border-radius:10px; font-size:11px;" x-text="transfers.length"></span>
+      </button>
+      <button class="filter-pill" :class="filterType === 'in_transit' ? 'active' : ''" @click="filterType = 'in_transit'; applyFilters()" style="color:#d97706;">
+        <span>🚚 En Tránsito</span>
+      </button>
+      <button class="filter-pill" :class="filterType === 'partial' ? 'active' : ''" @click="filterType = 'partial'; applyFilters()" style="color:#b45309;">
+        <span>⚠️ Parcial / Discrepancias</span>
+      </button>
+      <button class="filter-pill" :class="filterType === 'received' ? 'active' : ''" @click="filterType = 'received'; applyFilters()" style="color:#15803d;">
+        <span>✅ Recibidos</span>
+      </button>
+      <button class="filter-pill" :class="filterType === 'cancelled' ? 'active' : ''" @click="filterType = 'cancelled'; applyFilters()" style="color:#b91c1c;">
+        <span>🚫 Anulados</span>
+      </button>
+    </div>
 
     <!-- Right Controls: Resumen KPI Button -->
-    <div style="margin-left:auto; display:flex; align-items:center; gap:10px; position:relative;">
+    <div class="hide-on-mobile" style="margin-left:auto; display:flex; align-items:center; gap:10px; position:relative;">
       <button
         type="button"
+        class="hide-on-mobile"
         @click="showKpis = !showKpis"
         style="
           display:inline-flex; align-items:center; gap:7px;
@@ -159,6 +296,7 @@
 
       <!-- Floating KPI Dropdown Panel (alineado a la derecha) -->
       <div
+        class="hide-on-mobile"
         x-show="showKpis"
         @click.outside="showKpis = false"
         x-transition:enter="transition ease-out duration-200"

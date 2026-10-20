@@ -239,7 +239,7 @@
         <i class="ph ph-barcode"></i> 4. Etiquetas & Código de Barras
       </button>
       <button class="inv-tab-btn" :class="activeTab === 'notes' ? 'active' : ''" @click="activeTab = 'notes'">
-        <i class="ph ph-notepad"></i> 5. Descripción & Notas
+        <i class="ph ph-file-pdf"></i> 5. Ficha Técnica, Descripción & Notas
       </button>
     </div>
 
@@ -681,7 +681,7 @@
             <div style="font-size:14px; font-weight:800; color:#1e293b;">Historial de Movimientos de Inventario (Kardex)</div>
             <div style="font-size:12px; color:#64748b;" x-text="kardexMoves.length + ' movimientos registrados' + (kardexBalance !== null ? ' · Saldo Kardex: ' + kardexBalance + ' unidades' : '')"></div>
           </div>
-          <div style="display:flex; align-items:center; gap:8px;">
+          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
             <button 
               type="button" 
               class="inv-secondary-btn" 
@@ -692,6 +692,16 @@
             >
               <i class="ph ph-arrows-clockwise" :class="isSyncingKardex ? 'spin' : ''" style="font-size:16px;"></i>
               <span x-text="isSyncingKardex ? 'Sincronizando...' : '🔄 Sincronizar Stock con Kardex'"></span>
+            </button>
+
+            <button 
+              type="button" 
+              @click="openFullKardexModal()" 
+              title="Ver historial completo del Kardex con filtros por fecha y descarga en Excel o PDF"
+              style="display:inline-flex; align-items:center; gap:6px; background:#0284c7; color:#ffffff; border:none; padding:8px 14px; border-radius:8px; font-size:12.5px; font-weight:800; cursor:pointer; box-shadow:0 1px 3px rgba(2,132,199,0.25);"
+            >
+              <i class="ph ph-clock-counter-clockwise" style="font-size:16px;"></i>
+              <span>📊 Ver Historial Completo</span>
             </button>
           </div>
         </div>
@@ -728,7 +738,7 @@
             <table style="width:100%; border-collapse:collapse; font-size:13px; min-width:650px;">
               <thead style="background:#f8fafc; color:#475569; font-weight:800; border-bottom:1px solid #e2e8f0;">
                 <tr>
-                  <th style="padding:12px 16px; text-align:left;">Fecha</th>
+                  <th style="padding:12px 16px; text-align:left; white-space:nowrap;">Fecha y Hora</th>
                   <th style="padding:12px 16px; text-align:left;">Tipo de Movimiento</th>
                   <th style="padding:12px 16px; text-align:left;">Bodega</th>
                   <th style="padding:12px 16px; text-align:right;">Cantidad</th>
@@ -738,9 +748,9 @@
                 </tr>
               </thead>
               <tbody>
-                <template x-for="m in kardexMoves" :key="m.id">
+                <template x-for="m in kardexMoves.slice(0, 10)" :key="m.id">
                   <tr style="border-bottom:1px solid #f1f5f9;">
-                    <td style="padding:12px 16px; color:#64748b;" x-text="m.date"></td>
+                    <td style="padding:12px 16px; color:#334155; font-weight:600; white-space:nowrap;" x-text="formatDateGT(m.date || m.created_at)"></td>
                     <td style="padding:12px 16px;">
                       <span 
                         style="padding:3px 8px; border-radius:8px; font-size:11px; font-weight:800;"
@@ -757,6 +767,19 @@
                 </template>
               </tbody>
             </table>
+
+            <!-- Aviso informativo de límite de 10 filas -->
+            <div x-show="kardexMoves.length > 10" style="padding:12px 16px; background:#f8fafc; border-top:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; font-size:12px; color:#64748b; flex-wrap:wrap; gap:8px;">
+              <span>Mostrando los <strong>últimos 10 movimientos</strong> de un total de <strong x-text="kardexMoves.length"></strong> registros.</span>
+              <button 
+                type="button" 
+                @click="openFullKardexModal()"
+                style="background:none; border:none; color:#0284c7; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:4px;"
+              >
+                <span>Ver todos los registros con filtros y exportación</span>
+                <i class="ph ph-arrow-right"></i>
+              </button>
+            </div>
           </div>
         </template>
       </div>
@@ -799,12 +822,119 @@
         </div>
       </div>
 
-      <!-- TAB 5: NOTAS & DESCRIPCIÓN -->
-      <div x-show="activeTab === 'notes'" style="display:flex; flex-direction:column; gap:20px;">
-        <div>
-          <label class="form-label-inv">DESCRIPCIÓN COMERCIAL & ESPECIFICACIONES</label>
-          <textarea class="form-control-inv" style="height:140px;" x-model="form.description" placeholder="Detalles técnicos, ingredientes, garantía o notas internas del producto..."></textarea>
+      <!-- TAB 5: FICHA TÉCNICA, NOTAS & DESCRIPCIÓN -->
+      <div x-show="activeTab === 'notes'" style="display:flex; flex-direction:column; gap:24px;">
+        
+        <!-- SECCIÓN: FICHA TÉCNICA EN PDF -->
+        <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:14px; padding:24px; box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; padding-bottom:12px; border-bottom:1px solid #f1f5f9;">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <div style="width:36px; height:36px; border-radius:8px; background:#fee2e2; color:#dc2626; display:flex; align-items:center; justify-content:center; font-size:20px;">
+                <i class="ph ph-file-pdf"></i>
+              </div>
+              <div>
+                <h3 style="font-size:15px; font-weight:700; color:#0f172a; margin:0;">Ficha Técnica en PDF</h3>
+                <p style="font-size:12px; color:#64748b; margin:0;">Documento técnico o catálogo adjunto disponible directamente en el Punto de Venta y Pre-venta.</p>
+              </div>
+            </div>
+            
+            <button 
+              type="button" 
+              class="inv-btn inv-btn-default" 
+              style="padding:7px 14px; font-size:13px; font-weight:700;"
+              :disabled="isUploadingPdf"
+              @click="$refs.pdfFileInput.click()"
+            >
+              <i class="ph ph-upload-simple" :class="isUploadingPdf ? 'ph-spin' : ''" style="font-size:16px;"></i>
+              <span x-text="isUploadingPdf ? 'Subiendo PDF...' : (form.pdf_datasheet_url ? 'Reemplazar PDF' : 'Subir Ficha Técnica en PDF')"></span>
+            </button>
+            <input type="file" x-ref="pdfFileInput" style="display:none;" accept=".pdf,application/pdf" @change="uploadDatasheet($event)">
+          </div>
+
+          <!-- Si ya tiene ficha técnica adjunta -->
+          <template x-if="form.pdf_datasheet_url">
+            <div style="display:flex; align-items:center; justify-content:space-between; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:14px 18px;">
+              <div style="display:flex; align-items:center; gap:14px;">
+                <div style="width:42px; height:42px; border-radius:8px; background:#ef4444; color:#ffffff; display:flex; align-items:center; justify-content:center; font-size:24px; box-shadow:0 2px 4px rgba(239,68,68,0.25);">
+                  <i class="ph ph-file-pdf"></i>
+                </div>
+                <div>
+                  <div style="font-weight:700; font-size:14px; color:#1e293b; display:flex; align-items:center; gap:8px;">
+                    <span>Ficha Técnica Oficial Adjunta</span>
+                    <span style="background:#dcfce7; color:#15803d; font-size:11px; padding:2px 8px; border-radius:999px; font-weight:800;">Activa</span>
+                  </div>
+                  <div style="font-size:12px; color:#64748b; margin-top:2px;" x-text="form.pdf_datasheet_url"></div>
+                </div>
+              </div>
+              <div style="display:flex; align-items:center; gap:10px;">
+                <a 
+                  :href="form.pdf_datasheet_url" 
+                  target="_blank" 
+                  class="inv-btn" 
+                  style="background:#0284c7; color:#ffffff; padding:7px 14px; font-size:12px; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:6px; border-radius:8px;"
+                >
+                  <i class="ph ph-arrow-square-out" style="font-size:16px;"></i> Ver / Descargar PDF
+                </a>
+                <button 
+                  type="button" 
+                  class="inv-btn" 
+                  style="background:#fef2f2; color:#dc2626; border:1px solid #fecaca; padding:7px 12px; font-size:12px; font-weight:700; border-radius:8px;"
+                  @click="removeDatasheet()"
+                >
+                  <i class="ph ph-trash" style="font-size:15px;"></i> Quitar
+                </button>
+              </div>
+            </div>
+          </template>
+
+          <!-- Si no tiene PDF aún -->
+          <template x-if="!form.pdf_datasheet_url">
+            <div style="background:#f8fafc; border:1px dashed #cbd5e1; border-radius:10px; padding:20px; text-align:center; color:#64748b;">
+              <i class="ph ph-file-dashed" style="font-size:32px; color:#94a3b8; margin-bottom:6px; display:inline-block;"></i>
+              <div style="font-size:13px; font-weight:600; color:#475569;">No hay ficha técnica adjunta para este producto</div>
+              <div style="font-size:12px; color:#94a3b8; margin-top:4px;">Haz clic en "Subir Ficha Técnica en PDF" para adjuntar el manual o especificaciones que verán en caja y ventas.</div>
+            </div>
+          </template>
         </div>
+
+        <!-- SECCIÓN: DESCRIPCIÓN COMERCIAL -->
+        <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:14px; padding:24px; box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+          <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px; padding-bottom:12px; border-bottom:1px solid #f1f5f9;">
+            <div style="width:36px; height:36px; border-radius:8px; background:#eff6ff; color:#2563eb; display:flex; align-items:center; justify-content:center; font-size:20px;">
+              <i class="ph ph-article"></i>
+            </div>
+            <div>
+              <h3 style="font-size:15px; font-weight:700; color:#0f172a; margin:0;">Descripción Comercial & Especificaciones</h3>
+              <p style="font-size:12px; color:#64748b; margin:0;">Texto visible para el cliente y el personal de ventas sobre características, garantía o composición.</p>
+            </div>
+          </div>
+          <textarea 
+            class="form-control-inv" 
+            style="height:120px; font-size:13px; line-height:1.5;" 
+            x-model="form.description" 
+            placeholder="Escribe la descripción comercial, detalles técnicos, ingredientes o términos de garantía del producto..."
+          ></textarea>
+        </div>
+
+        <!-- SECCIÓN: NOTAS INTERNAS PARA POS Y PRE-VENTA -->
+        <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:14px; padding:24px; box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+          <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px; padding-bottom:12px; border-bottom:1px solid #fef3c7;">
+            <div style="width:36px; height:36px; border-radius:8px; background:#fef3c7; color:#d97706; display:flex; align-items:center; justify-content:center; font-size:20px;">
+              <i class="ph ph-warning-circle"></i>
+            </div>
+            <div>
+              <h3 style="font-size:15px; font-weight:700; color:#92400e; margin:0;">Notas Internas para POS & Pre-Venta</h3>
+              <p style="font-size:12px; color:#b45309; margin:0;">Avisos operativos que el cajero y asesor de ventas verán al consultar o facturar este producto.</p>
+            </div>
+          </div>
+          <textarea 
+            class="form-control-inv" 
+            style="height:100px; font-size:13px; line-height:1.5; background:#ffffff; border-color:#fcd34d;" 
+            x-model="form.internal_notes" 
+            placeholder="Ejemplo: 'Verificar fecha de caducidad en lote antes de entregar', 'Frágil: manipular con cuidado', 'Incluye garantía de 1 año con factura física'..."
+          ></textarea>
+        </div>
+
       </div>
 
     </div>
@@ -861,6 +991,188 @@
     </div>
   </div>
 
+  <!-- ===== MODAL HISTORIAL COMPLETO DE KARDEX ===== -->
+  <div class="modal-backdrop" x-show="showFullKardexModal" style="display:none; z-index:2200; background:rgba(15,23,42,0.6); backdrop-filter:blur(4px);" x-cloak>
+    <div style="background:#ffffff; width:1100px; max-width:96vw; max-height:92vh; border-radius:16px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25); display:flex; flex-direction:column; overflow:hidden; border:1px solid #cbd5e1;">
+      <!-- Header -->
+      <div style="background:#714B67; color:#ffffff; padding:16px 24px; display:flex; justify-content:space-between; align-items:center; flex-shrink:0;">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="width:40px; height:40px; border-radius:10px; background:rgba(255,255,255,0.15); display:flex; align-items:center; justify-content:center; font-size:20px;">
+            📜
+          </div>
+          <div>
+            <div style="font-weight:900; font-size:16px;" x-text="'Historial Completo de Kardex: ' + (form.name || 'Producto')"></div>
+            <div style="font-size:12px; color:rgba(255,255,255,0.8); margin-top:2px;">
+              <span x-text="'SKU: ' + (form.internal_ref || 'N/A')"></span>
+              <span style="margin:0 6px;">•</span>
+              <span x-text="'Saldo Actual en Kardex: ' + (kardexBalance !== null ? kardexBalance : form.total_stock) + ' unidades'"></span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:10px;">
+          <button 
+            type="button" 
+            @click="openKardexInNewWindow()"
+            title="Abrir reporte en nueva pestaña del navegador"
+            style="background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.3); color:#ffffff; padding:7px 12px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:6px; transition:all 0.15s;"
+            onmouseover="this.style.background='rgba(255,255,255,0.3)';"
+            onmouseout="this.style.background='rgba(255,255,255,0.2)';"
+          >
+            <i class="ph ph-arrow-square-out" style="font-size:14px;"></i>
+            <span>Nueva Pestaña</span>
+          </button>
+          <button 
+            type="button" 
+            @click="showFullKardexModal = false" 
+            style="background:none; border:none; color:white; font-size:26px; cursor:pointer; line-height:1;"
+          >&times;</button>
+        </div>
+      </div>
+
+      <!-- Filtros y Acciones de Exportación -->
+      <div style="background:#f8fafc; border-bottom:1px solid #e2e8f0; padding:14px 24px; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; flex-shrink:0;">
+        <!-- Filtros -->
+        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+          <div>
+            <label style="display:block; font-size:10px; font-weight:800; color:#64748b; text-transform:uppercase; margin-bottom:3px;">Desde Fecha</label>
+            <input 
+              type="date" 
+              class="form-control-inv" 
+              x-model="kardexFilterStartDate" 
+              style="padding:5px 10px; font-size:12px; width:140px;"
+            >
+          </div>
+          <div>
+            <label style="display:block; font-size:10px; font-weight:800; color:#64748b; text-transform:uppercase; margin-bottom:3px;">Hasta Fecha</label>
+            <input 
+              type="date" 
+              class="form-control-inv" 
+              x-model="kardexFilterEndDate" 
+              style="padding:5px 10px; font-size:12px; width:140px;"
+            >
+          </div>
+          <div>
+            <label style="display:block; font-size:10px; font-weight:800; color:#64748b; text-transform:uppercase; margin-bottom:3px;">Tipo Movimiento</label>
+            <select 
+              class="form-control-inv" 
+              x-model="kardexFilterType" 
+              style="padding:5px 10px; font-size:12px; min-width:140px;"
+            >
+              <option value="">Todos los tipos</option>
+              <option value="sale">Ventas POS</option>
+              <option value="purchase">Compras Proveedor</option>
+              <option value="adj_in">Ajustes Entrada</option>
+              <option value="adj_out">Ajustes Salida</option>
+              <option value="initial">Inventario Inicial</option>
+              <option value="transfer_in">Traslados</option>
+              <option value="ret_sale">Devolución Venta</option>
+            </select>
+          </div>
+          <button 
+            type="button" 
+            @click="kardexFilterStartDate = ''; kardexFilterEndDate = ''; kardexFilterType = '';"
+            title="Limpiar filtros"
+            style="margin-top:16px; background:#ffffff; border:1px solid #cbd5e1; color:#64748b; padding:6px 10px; border-radius:6px; font-size:11.5px; font-weight:700; cursor:pointer;"
+          >
+            Limpiar
+          </button>
+        </div>
+
+        <!-- Botones de Descarga Excel / PDF -->
+        <div style="display:flex; align-items:center; gap:8px;">
+          <!-- Exportar Excel -->
+          <button 
+            type="button" 
+            @click="exportProductKardexExcel()"
+            style="background:#16a34a; color:#ffffff; border:none; padding:8px 16px; border-radius:8px; font-size:12.5px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:6px; box-shadow:0 1px 3px rgba(22,163,74,0.3);"
+          >
+            <i class="ph ph-file-xls" style="font-size:16px;"></i>
+            <span>Descargar Excel</span>
+          </button>
+
+          <!-- Exportar PDF / Imprimir -->
+          <button 
+            type="button" 
+            @click="printProductKardexPDF()"
+            style="background:#dc2626; color:#ffffff; border:none; padding:8px 16px; border-radius:8px; font-size:12.5px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:6px; box-shadow:0 1px 3px rgba(220,38,38,0.3);"
+          >
+            <i class="ph ph-file-pdf" style="font-size:16px;"></i>
+            <span>Descargar / Imprimir PDF</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Resumen estadístico del período filtrado -->
+      <div style="background:#ffffff; padding:10px 24px; border-bottom:1px solid #f1f5f9; display:flex; gap:20px; align-items:center; flex-wrap:wrap; font-size:12px; color:#475569; flex-shrink:0;">
+        <div>
+          Mostrando <strong style="color:#0f172a;" x-text="filteredKardexMoves.length"></strong> movimientos
+        </div>
+        <div style="color:#cbd5e1;">|</div>
+        <div>
+          Entradas: <strong style="color:#15803d;" x-text="'+' + calculateKardexInflow(filteredKardexMoves) + ' unid.'"></strong>
+        </div>
+        <div style="color:#cbd5e1;">|</div>
+        <div>
+          Salidas: <strong style="color:#b91c1c;" x-text="'-' + calculateKardexOutflow(filteredKardexMoves) + ' unid.'"></strong>
+        </div>
+        <div style="color:#cbd5e1;">|</div>
+        <div>
+          Flujo Neto: <strong :style="calculateKardexNet(filteredKardexMoves) >= 0 ? 'color:#15803d;' : 'color:#b91c1c;'" x-text="(calculateKardexNet(filteredKardexMoves) >= 0 ? '+' : '') + calculateKardexNet(filteredKardexMoves) + ' unid.'"></strong>
+        </div>
+      </div>
+
+      <!-- Tabla scrolleable -->
+      <div style="flex:1; overflow-y:auto; padding:0 24px 24px 24px;">
+        <table style="width:100%; border-collapse:collapse; font-size:12.5px; text-align:left; margin-top:12px;">
+          <thead style="background:#f8fafc; color:#475569; font-weight:800; border-bottom:2px solid #e2e8f0; position:sticky; top:0; z-index:10;">
+            <tr>
+              <th style="padding:10px 14px; white-space:nowrap;">Fecha y Hora</th>
+              <th style="padding:10px 14px;">Tipo Movimiento</th>
+              <th style="padding:10px 14px;">Bodega</th>
+              <th style="padding:10px 14px; text-align:right;">Cantidad</th>
+              <th style="padding:10px 14px; text-align:right;">Stock Ant.</th>
+              <th style="padding:10px 14px; text-align:right;">Stock Post.</th>
+              <th style="padding:10px 14px;">Referencia / Notas</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="m in filteredKardexMoves" :key="m.id">
+              <tr style="border-bottom:1px solid #f1f5f9;">
+                <td style="padding:10px 14px; color:#334155; font-weight:600; white-space:nowrap;" x-text="formatDateGT(m.date || m.created_at)"></td>
+                <td style="padding:10px 14px;">
+                  <span 
+                    style="padding:2px 7px; border-radius:6px; font-size:11px; font-weight:800;"
+                    :style="m.move_type.includes('in') || m.move_type === 'purchase' || m.move_type === 'ret_sale' ? 'background:#dcfce7; color:#15803d;' : 'background:#fee2e2; color:#b91c1c;'"
+                    x-text="m.move_type"
+                  ></span>
+                </td>
+                <td style="padding:10px 14px; color:#475569; font-weight:700;" x-text="m.warehouse_name || 'Bodega Central'"></td>
+                <td style="padding:10px 14px; text-align:right; font-weight:800;" :style="m.move_type.includes('in') || m.move_type === 'purchase' || m.move_type === 'ret_sale' ? 'color:#15803d;' : 'color:#b91c1c;'" x-text="(m.move_type.includes('in') || m.move_type === 'purchase' || m.move_type === 'ret_sale' ? '+' : '-') + m.qty"></td>
+                <td style="padding:10px 14px; text-align:right; color:#64748b;" x-text="m.qty_before"></td>
+                <td style="padding:10px 14px; text-align:right; font-weight:800; color:#0f172a;" x-text="m.qty_after"></td>
+                <td style="padding:10px 14px; color:#475569;" x-text="m.reference + (m.notes ? ' · ' + m.notes : '')"></td>
+              </tr>
+            </template>
+            <tr x-show="filteredKardexMoves.length === 0">
+              <td colspan="7" style="text-align:center; padding:40px; color:#94a3b8;">
+                No se encontraron movimientos con los filtros seleccionados.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Footer -->
+      <div style="padding:12px 24px; background:#f8fafc; border-top:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; flex-shrink:0;">
+        <div style="font-size:11.5px; color:#64748b;">
+          Zona Horaria: <strong>Guatemala (UTC-6)</strong> · Reporte oficial de Kardex
+        </div>
+        <button type="button" @click="showFullKardexModal = false" style="background:#ffffff; border:1px solid #cbd5e1; color:#475569; padding:6px 16px; border-radius:6px; font-weight:700; font-size:12.5px; cursor:pointer;">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <script>
@@ -870,6 +1182,10 @@
       activeTab: 'general',
       isSaving: false,
       showAdjustModal: false,
+      showFullKardexModal: false,
+      kardexFilterStartDate: '',
+      kardexFilterEndDate: '',
+      kardexFilterType: '',
       categories: [],
       suppliers: [],
       uoms: [],
@@ -877,6 +1193,7 @@
       kardexBalance: null,
       hasKardexDiscrepancy: false,
       isSyncingKardex: false,
+      isUploadingPdf: false,
       form: {
         id: null,
         name: '',
@@ -890,6 +1207,8 @@
         wholesale_ratio: 1,
         enable_wholesale: false,
         description: '',
+        internal_notes: '',
+        pdf_datasheet_url: '',
         product_type: 'product',
         tracking: 'none',
         sale_price: 0,
@@ -1016,7 +1335,9 @@
         try {
           const res = await API.get(`/products/${this.productId}`);
           if (res) {
-            this.form = res;
+            this.form = Object.assign({}, this.form, res);
+            this.form.internal_notes = res.internal_notes || '';
+            this.form.pdf_datasheet_url = res.pdf_datasheet_url || '';
             this.form.enable_wholesale = !!(res.wholesale_price && res.wholesale_price > 0);
             if (!this.form.wholesale_ratio) this.form.wholesale_ratio = 1;
             if (res.warehouses && res.warehouses.length > 0) {
@@ -1034,7 +1355,7 @@
       async loadProductKardex() {
         if (this.productId === 'new') return;
         try {
-          const res = await API.get(`/products/${this.productId}/kardex`);
+          const res = await API.get(`/products/${this.productId}/kardex?limit=500`);
           this.kardexMoves = res.items || [];
           if (res.kardex_balance !== undefined) {
             this.kardexBalance = res.kardex_balance;
@@ -1099,6 +1420,59 @@
         }
       },
 
+      async uploadDatasheet(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        if (!file.name.toLowerCase().endsWith('.pdf')) {
+          alert('Por favor selecciona un archivo PDF válido (.pdf).');
+          event.target.value = '';
+          return;
+        }
+
+        if (file.size > 15 * 1024 * 1024) {
+          alert('El archivo PDF no debe exceder los 15MB.');
+          event.target.value = '';
+          return;
+        }
+
+        this.isUploadingPdf = true;
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+          const token = localStorage.getItem('pos_token') || localStorage.getItem('access_token');
+          const headers = {};
+          if (token) headers['Authorization'] = `Bearer ${token}`;
+
+          const res = await fetch('/api/v1/products/upload-datasheet', {
+            method: 'POST',
+            headers: headers,
+            body: formData
+          });
+
+          if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.detail || 'Error al subir la ficha técnica');
+          }
+
+          const data = await res.json();
+          this.form.pdf_datasheet_url = data.url;
+          alert('¡Ficha técnica en PDF subida con éxito!');
+        } catch(e) {
+          alert('Error al subir ficha técnica: ' + (e.message || e));
+        } finally {
+          this.isUploadingPdf = false;
+          event.target.value = '';
+        }
+      },
+
+      removeDatasheet() {
+        if (confirm('¿Estás seguro de quitar la ficha técnica adjunta a este producto?')) {
+          this.form.pdf_datasheet_url = '';
+        }
+      },
+
       generateRandomBarcode() {
         const prefix = '740';
         const randomDigits = Math.floor(100000000 + Math.random() * 900000000).toString();
@@ -1117,6 +1491,12 @@
       },
 
       async submitStockAdjustment() {
+        if (this.adjustForm.new_qty === null || this.adjustForm.new_qty === undefined || this.adjustForm.new_qty === '' || isNaN(Number(this.adjustForm.new_qty))) {
+          alert('Por favor ingresa un número válido en la casilla "Nueva Existencia Real Contada".');
+          return;
+        }
+        this.adjustForm.new_qty = Number(this.adjustForm.new_qty);
+
         try {
           await API.post(`/products/${this.productId}/adjust-stock`, this.adjustForm);
           this.showAdjustModal = false;
@@ -1126,7 +1506,8 @@
           }
           alert('¡Existencia ajustada con éxito en la bodega seleccionada!');
         } catch(e) {
-          alert('Error al ajustar stock: ' + (e.message || e));
+          const msg = (e && e.message) ? e.message : (typeof e === 'object' ? JSON.stringify(e) : String(e));
+          alert('Error al ajustar stock: ' + msg);
         }
       },
 
@@ -1208,6 +1589,219 @@
         } finally {
           this.isSaving = false;
         }
+      },
+
+      formatDateGT(val) {
+        if (!val) return '—';
+        if (typeof val === 'string' && (val.includes('AM') || val.includes('PM') || val.includes('p. m.') || val.includes('a. m.'))) {
+          return val;
+        }
+        let s = String(val).trim();
+        if (!s.endsWith('Z') && !s.includes('+') && !s.match(/-\d{2}:\d{2}$/)) {
+          s += 'Z';
+        }
+        const d = new Date(s);
+        if (isNaN(d.getTime())) return val;
+        return d.toLocaleString('es-GT', {
+          timeZone: 'America/Guatemala',
+          day: '2-digit', month: '2-digit', year: 'numeric',
+          hour: '2-digit', minute: '2-digit', hour12: true
+        });
+      },
+
+      get filteredKardexMoves() {
+        return (this.kardexMoves || []).filter(m => {
+          if (this.kardexFilterType && m.move_type !== this.kardexFilterType) {
+            return false;
+          }
+          if (this.kardexFilterStartDate || this.kardexFilterEndDate) {
+            let mDateStr = '';
+            if (m.created_at) {
+              mDateStr = m.created_at.slice(0, 10);
+            } else if (m.date) {
+              const parts = m.date.split(' ')[0].split('/');
+              if (parts.length === 3) {
+                mDateStr = `${parts[2]}-${parts[1]}-${parts[0]}`;
+              }
+            }
+            if (this.kardexFilterStartDate && mDateStr && mDateStr < this.kardexFilterStartDate) {
+              return false;
+            }
+            if (this.kardexFilterEndDate && mDateStr && mDateStr > this.kardexFilterEndDate) {
+              return false;
+            }
+          }
+          return true;
+        });
+      },
+
+      openFullKardexModal() {
+        this.kardexFilterStartDate = '';
+        this.kardexFilterEndDate = '';
+        this.kardexFilterType = '';
+        this.showFullKardexModal = true;
+      },
+
+      calculateKardexInflow(moves) {
+        return (moves || []).filter(m => m.move_type.includes('in') || m.move_type === 'purchase' || m.move_type === 'ret_sale').reduce((acc, m) => acc + Number(m.qty || 0), 0);
+      },
+
+      calculateKardexOutflow(moves) {
+        return (moves || []).filter(m => !(m.move_type.includes('in') || m.move_type === 'purchase' || m.move_type === 'ret_sale')).reduce((acc, m) => acc + Number(m.qty || 0), 0);
+      },
+
+      calculateKardexNet(moves) {
+        return this.calculateKardexInflow(moves) - this.calculateKardexOutflow(moves);
+      },
+
+      exportProductKardexExcel() {
+        const moves = this.filteredKardexMoves;
+        if (!moves || moves.length === 0) {
+          alert('No hay movimientos con los filtros seleccionados para exportar.');
+          return;
+        }
+        const productName = (this.form.name || 'Producto').replace(/"/g, '""');
+        const sku = (this.form.internal_ref || this.form.barcode || 'SKU').replace(/"/g, '""');
+        
+        let csv = '\uFEFF';
+        csv += `"REPORTE DE KARDEX - ${productName}"\n`;
+        csv += `"SKU: ${sku}","Saldo Kardex: ${this.kardexBalance !== null ? this.kardexBalance : this.form.total_stock} unid."\n`;
+        csv += `"Fecha Desde: ${this.kardexFilterStartDate || 'Inicio'}","Fecha Hasta: ${this.kardexFilterEndDate || 'Hoy'}"\n\n`;
+        csv += `"Fecha y Hora","Tipo de Movimiento","Bodega","Cantidad","Stock Anterior","Stock Posterior","Costo Unitario","Referencia","Notas"\n`;
+        
+        moves.forEach(m => {
+          const dt = (this.formatDateGT(m.date || m.created_at) || '').replace(/"/g, '""');
+          const type = (m.move_type || '').replace(/"/g, '""');
+          const wh = (m.warehouse_name || 'Bodega Central').replace(/"/g, '""');
+          const isPositive = m.move_type.includes('in') || m.move_type === 'purchase' || m.move_type === 'ret_sale';
+          const qty = (isPositive ? '+' : '-') + Number(m.qty || 0);
+          const qBefore = Number(m.qty_before || 0);
+          const qAfter = Number(m.qty_after || 0);
+          const cost = Number(m.unit_cost || 0).toFixed(2);
+          const ref = (m.reference || '').replace(/"/g, '""');
+          const notes = (m.notes || '').replace(/"/g, '""');
+          
+          csv += `"${dt}","${type}","${wh}",${qty},${qBefore},${qAfter},${cost},"${ref}","${notes}"\n`;
+        });
+
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        const cleanName = (this.form.name || 'kardex').toLowerCase().replace(/[^a-z0-9]/g, '_').slice(0, 30);
+        link.setAttribute('download', `Kardex_${cleanName}_${new Date().toISOString().slice(0, 10)}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      },
+
+      printProductKardexPDF(autoPrint = true) {
+        const moves = this.filteredKardexMoves;
+        const productName = this.form.name || 'Producto';
+        const sku = this.form.internal_ref || this.form.barcode || 'N/A';
+        const currentStock = this.form.total_stock || 0;
+        const kardexBal = this.kardexBalance !== null ? this.kardexBalance : currentStock;
+        const nowGT = new Date().toLocaleString('es-GT', { timeZone: 'America/Guatemala', dateStyle: 'medium', timeStyle: 'short' });
+        const periodStr = (this.kardexFilterStartDate ? `Desde: ${this.kardexFilterStartDate} ` : '') + (this.kardexFilterEndDate ? `Hasta: ${this.kardexFilterEndDate}` : (this.kardexFilterStartDate ? '' : 'Historial Completo'));
+
+        let rowsHtml = '';
+        moves.forEach((m, idx) => {
+          const isPos = m.move_type.includes('in') || m.move_type === 'purchase' || m.move_type === 'ret_sale';
+          const qtyFormatted = (isPos ? '+' : '-') + m.qty;
+          const qtyColor = isPos ? '#15803d' : '#b91c1c';
+          rowsHtml += `
+            <tr style="border-bottom: 1px solid #e2e8f0; ${idx % 2 === 1 ? 'background:#f8fafc;' : ''}">
+              <td style="padding: 6px 10px; white-space:nowrap; font-weight:600;">${this.formatDateGT(m.date || m.created_at)}</td>
+              <td style="padding: 6px 10px;"><span style="display:inline-block; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:bold; background:${isPos ? '#dcfce7' : '#fee2e2'}; color:${isPos ? '#15803d' : '#b91c1c'};">${m.move_type}</span></td>
+              <td style="padding: 6px 10px;">${m.warehouse_name || 'Bodega Central'}</td>
+              <td style="padding: 6px 10px; text-align:right; font-weight:bold; color:${qtyColor};">${qtyFormatted}</td>
+              <td style="padding: 6px 10px; text-align:right; color:#64748b;">${m.qty_before}</td>
+              <td style="padding: 6px 10px; text-align:right; font-weight:bold; color:#0f172a;">${m.qty_after}</td>
+              <td style="padding: 6px 10px; font-size:11px; color:#475569;">${m.reference || ''} ${m.notes ? '· ' + m.notes : ''}</td>
+            </tr>
+          `;
+        });
+
+        const printWin = window.open('', '_blank');
+        if (!printWin) {
+          alert('Por favor permita las ventanas emergentes (popups) para abrir el reporte imprimible.');
+          return;
+        }
+        printWin.document.write(`
+          <!DOCTYPE html>
+          <html lang="es">
+          <head>
+            <meta charset="UTF-8">
+            <title>Reporte de Kardex - ${productName}</title>
+            <style>
+              body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; font-size: 12px; color: #1e293b; margin: 20px; }
+              .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #714B67; padding-bottom: 12px; margin-bottom: 16px; }
+              .title { font-size: 18px; font-weight: 900; color: #714B67; }
+              .meta-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 16px; display: flex; justify-content: space-between; }
+              table { width: 100%; border-collapse: collapse; font-size: 11px; }
+              th { background: #f1f5f9; padding: 8px 10px; text-align: left; font-weight: 800; border-bottom: 2px solid #cbd5e1; font-size: 11px; }
+              @media print {
+                body { margin: 10mm; }
+                .no-print { display: none !important; }
+              }
+            </style>
+          </head>
+          <body>
+            <div class="no-print" style="margin-bottom: 14px; text-align: right; display:flex; justify-content:flex-end; gap:8px;">
+              <button onclick="window.print()" style="background:#714B67; color:white; border:none; padding:8px 18px; border-radius:6px; font-weight:bold; font-size:12px; cursor:pointer;">🖨️ Imprimir / Guardar como PDF</button>
+              <button onclick="window.close()" style="background:#e2e8f0; color:#334155; border:none; padding:8px 14px; border-radius:6px; font-weight:bold; font-size:12px; cursor:pointer;">Cerrar</button>
+            </div>
+            <div class="header">
+              <div>
+                <div class="title">POS EMPRESARIAL — REPORTE DE KARDEX</div>
+                <div style="font-size: 14px; font-weight: bold; margin-top: 4px; color: #0f172a;">${productName}</div>
+                <div style="font-size: 11px; color: #64748b; margin-top: 2px;">SKU: ${sku}</div>
+              </div>
+              <div style="text-align: right; font-size: 11px; color: #64748b;">
+                <div><strong>Fecha Emisión:</strong> ${nowGT}</div>
+                <div><strong>Filtro:</strong> ${periodStr}</div>
+                <div><strong>Horario:</strong> Guatemala (UTC-6)</div>
+              </div>
+            </div>
+
+            <div class="meta-box">
+              <div>Total de Movimientos: <strong>${moves.length}</strong></div>
+              <div>Entradas: <strong style="color:#15803d;">+${this.calculateKardexInflow(moves)} unid.</strong></div>
+              <div>Salidas: <strong style="color:#b91c1c;">-${this.calculateKardexOutflow(moves)} unid.</strong></div>
+              <div>Saldo Kardex: <strong style="color:#714B67; font-size:13px;">${kardexBal} unid.</strong></div>
+            </div>
+
+            <table>
+              <thead>
+                <tr>
+                  <th style="white-space:nowrap;">Fecha y Hora</th>
+                  <th>Tipo</th>
+                  <th>Bodega</th>
+                  <th style="text-align:right;">Cantidad</th>
+                  <th style="text-align:right;">Stock Ant.</th>
+                  <th style="text-align:right;">Stock Post.</th>
+                  <th>Referencia / Notas</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rowsHtml}
+              </tbody>
+            </table>
+
+            <div style="margin-top: 30px; border-top: 1px solid #cbd5e1; padding-top: 10px; font-size: 10px; color: #94a3b8; display: flex; justify-content: space-between;">
+              <div>Documento generado desde módulo de inventario POS Empresarial</div>
+              <div>Página 1 de 1</div>
+            </div>
+            <script>
+              ${autoPrint ? 'window.onload = function() { setTimeout(function() { window.print(); }, 400); };' : ''}
+            <\/script>
+          </body>
+          </html>
+        `);
+        printWin.document.close();
+      },
+
+      openKardexInNewWindow() {
+        this.printProductKardexPDF(false);
       }
     }
   }

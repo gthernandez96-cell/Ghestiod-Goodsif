@@ -180,37 +180,198 @@
       padding: 15px;
     }
   }
+  @media (max-width: 768px) {
+    .ar-header-bar {
+      margin: -12px -12px 14px -12px !important;
+      padding: 12px !important;
+      gap: 10px !important;
+      flex-direction: column !important;
+      align-items: stretch !important;
+    }
+    .ar-header-main-row {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      width: 100% !important;
+      gap: 8px !important;
+    }
+    .ar-pills-scroll {
+      display: flex !important;
+      align-items: center !important;
+      gap: 6px !important;
+      overflow-x: auto !important;
+      padding-bottom: 6px !important;
+      margin-bottom: 14px !important;
+      scrollbar-width: none !important;
+      -webkit-overflow-scrolling: touch !important;
+      flex-wrap: nowrap !important;
+    }
+    .ar-pills-scroll::-webkit-scrollbar {
+      display: none !important;
+    }
+    .ar-pills-scroll .filter-pill {
+      flex-shrink: 0 !important;
+      padding: 5px 12px !important;
+      font-size: 11.5px !important;
+    }
+    .odoo-search-container {
+      width: 100% !important;
+    }
+  }
+
+  /* =============================================
+     CROSS-BROWSER MODAL & COMPONENT STYLES
+     Optimized for Chrome, Firefox, Safari & Mobile
+     ============================================= */
+  @keyframes arModalPop {
+    from {
+      opacity: 0;
+      transform: scale(0.96) translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
+
+  .ar-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    z-index: 1050;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .ar-modal-dialog {
+    background: #ffffff;
+    border-radius: 16px;
+    width: 100%;
+    max-height: calc(100vh - 32px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05);
+    animation: arModalPop 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    margin: auto;
+  }
+
+  .ar-modal-header {
+    padding: 16px 22px;
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+
+  .ar-modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    padding: 20px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+  }
+
+  .ar-modal-body::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .ar-modal-body::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .ar-modal-body::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+  }
+  .ar-modal-body::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+
+  .ar-modal-footer {
+    padding: 14px 22px;
+    background: #f8fafc;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    gap: 10px;
+  }
+
+  @media (max-width: 640px) {
+    .ar-modal-backdrop {
+      padding: 8px;
+    }
+    .ar-modal-dialog {
+      max-height: calc(100vh - 16px);
+      border-radius: 12px;
+    }
+    .ar-modal-header {
+      padding: 12px 16px;
+    }
+    .ar-modal-body {
+      padding: 16px;
+      gap: 12px;
+    }
+    .ar-modal-footer {
+      padding: 12px 16px;
+      flex-direction: column-reverse;
+      align-items: stretch;
+    }
+    .ar-modal-footer button {
+      width: 100% !important;
+      justify-content: center !important;
+    }
+  }
 </style>
 {% endblock %}
 
 {% block content %}
 <div x-data="arApp()" x-init="init()">
   
-  <!-- ===== 1. TOP HEADER BAR (Exact match with other modules) ===== -->
-  <div style="margin:-20px -24px 20px -24px; padding:14px 24px; background:#ffffff; border-bottom:1px solid #e2e8f0; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+  <!-- ===== 1. TOP HEADER BAR ===== -->
+  <div class="ar-header-bar" style="margin:-20px -24px 20px -24px; padding:14px 24px; background:#ffffff; border-bottom:1px solid #e2e8f0; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; box-shadow:0 1px 3px rgba(0,0,0,0.02);">
     
     <!-- Left: Actions & Title -->
-    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-      <button 
-        type="button"
-        @click="openNewInvoiceModal()" 
-        class="btn btn-primary" 
-        style="background:#714B67; color:#ffffff; font-weight:800; border-radius:8px; padding:8px 18px; border:none; box-shadow:0 2px 8px rgba(113,75,103,0.25); display:flex; align-items:center; gap:6px; cursor:pointer;"
-      >
-        <i class="ph ph-plus" style="font-weight:800;"></i> Nueva CxC
-      </button>
+    <div class="ar-header-main-row" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+      <div style="font-size:15px; font-weight:800; color:#1e293b; display:flex; align-items:center; gap:8px;">
+        <i class="ph ph-receipt" style="font-size:18px; color:#714B67;"></i>
+        <span>Cuentas por Cobrar</span>
+      </div>
 
-      <a 
-        href="/api/v1/ar/export" 
-        class="btn btn-secondary" 
-        style="background:#ffffff; color:#334155; border:1px solid #cbd5e1; font-weight:700; border-radius:8px; padding:7px 14px; font-size:12.5px; display:flex; align-items:center; gap:6px; cursor:pointer; text-decoration:none;" 
-        download
-      >
-        <i class="ph ph-file-arrow-down" style="font-size:16px; color:#0d9488;"></i> Exportar Excel / CSV
-      </a>
+      <div style="display:flex; align-items:center; gap:8px; margin-left:auto;">
+        <button 
+          type="button"
+          @click="openNewInvoiceModal()" 
+          class="btn btn-primary" 
+          style="background:#714B67; color:#ffffff; font-weight:800; border-radius:8px; padding:8px 14px; border:none; box-shadow:0 2px 8px rgba(113,75,103,0.25); display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px;"
+        >
+          <i class="ph ph-plus" style="font-weight:800;"></i> Nueva CxC
+        </button>
 
-      <div style="font-size:15px; font-weight:800; color:#1e293b; display:flex; align-items:center; gap:8px; margin-left:4px;">
-        <span>Cuentas por Cobrar & Créditos</span>
+        <a 
+          href="/api/v1/ar/export" 
+          class="btn btn-secondary hide-on-mobile" 
+          style="background:#ffffff; color:#334155; border:1px solid #cbd5e1; font-weight:700; border-radius:8px; padding:7px 12px; font-size:12.5px; display:flex; align-items:center; gap:6px; cursor:pointer; text-decoration:none;" 
+          download
+        >
+          <i class="ph ph-file-arrow-down" style="font-size:16px; color:#0d9488;"></i> Exportar
+        </a>
       </div>
     </div>
 
@@ -282,7 +443,7 @@
 
 
   <!-- ===== 2. SEGMENTATION & FILTER PILLS ===== -->
-  <div style="position:relative; display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:20px;">
+  <div class="ar-pills-scroll" style="position:relative; display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:20px;">
 
     <!-- Filter Pills -->
     <span style="font-size:12px; font-weight:800; color:#64748b;">FILTRAR:</span>
@@ -304,10 +465,11 @@
     </button>
 
     <!-- Right Controls: Resumen Button -->
-    <div style="margin-left:auto; display:flex; align-items:center; gap:10px; position:relative;">
+    <div class="hide-on-mobile" style="margin-left:auto; display:flex; align-items:center; gap:10px; position:relative;">
       <!-- KPI Toggle Button exactly like Inventory/Customers -->
       <button
         type="button"
+        class="hide-on-mobile"
         @click="showKpis = !showKpis"
         style="
           display:inline-flex; align-items:center; gap:7px;
@@ -331,6 +493,7 @@
 
       <!-- KPI Floating Panel Dropdown -->
       <div
+        class="hide-on-mobile"
         x-show="showKpis"
         @click.outside="showKpis = false"
         x-transition
@@ -438,7 +601,7 @@
           </div>
 
           <!-- Bottom Action Button -->
-          <div style="margin-top:10px;" x-show="inv.balance > 0" @click.stop>
+          <div style="margin-top:10px;" x-show="canRegisterPayment && inv.balance > 0" @click.stop>
             <button 
               type="button" 
               @click="openPaymentModal(inv)"
@@ -508,7 +671,7 @@
                   <div style="display:inline-flex; align-items:center; gap:6px;">
                     <button 
                       type="button" 
-                      x-show="inv.balance > 0"
+                      x-show="canRegisterPayment && inv.balance > 0"
                       @click="openPaymentModal(inv)" 
                       style="background:#059669; color:#ffffff; font-size:11.5px; font-weight:800; padding:4px 10px; border-radius:6px; border:none; cursor:pointer;"
                     >
@@ -687,7 +850,7 @@
                     <td style="text-align:center;">
                       <button 
                         type="button" 
-                        x-show="inv.balance > 0"
+                        x-show="canRegisterPayment && inv.balance > 0"
                         @click="openPaymentModal(inv)" 
                         style="background:#059669; color:#ffffff; font-size:11px; font-weight:800; padding:3px 8px; border-radius:6px; border:none; cursor:pointer;"
                       >
@@ -744,67 +907,72 @@
 
 
   <!-- ===== MODAL: REGISTRAR ABONO ===== -->
-  <div x-show="showPaymentModal" style="position:fixed; inset:0; background:rgba(15,23,42,0.6); z-index:1000; display:flex; align-items:center; justify-content:center; padding:16px;" x-cloak>
-    <div style="background:#ffffff; border-radius:12px; width:100%; max-width:520px; overflow:hidden; box-shadow:0 20px 25px -5px rgba(0,0,0,0.1);" @click.outside="showPaymentModal = false">
-      <div style="padding:14px 20px; background:#f8fafc; border-bottom:1px solid #e2e8f0; display:flex; align-items:center; justify-content:space-between;">
-        <div style="font-weight:800; font-size:14px; color:#1e293b;">Registrar Abono a Cuenta</div>
-        <button type="button" @click="showPaymentModal = false" style="background:none; border:none; font-size:18px; color:#94a3b8; cursor:pointer;">
+  <div x-show="canRegisterPayment && showPaymentModal" class="ar-modal-backdrop" x-cloak>
+    <div class="ar-modal-dialog" style="max-width:540px;" @click.outside="showPaymentModal = false">
+      <div class="ar-modal-header">
+        <div style="font-weight:900; font-size:14.5px; color:#1e293b; display:flex; align-items:center; gap:8px;">
+          <i class="ph ph-hand-coins" style="color:#059669; font-size:20px;"></i>
+          Registrar Abono a Cuenta
+        </div>
+        <button type="button" @click="showPaymentModal = false" style="background:#f1f5f9; border:none; width:30px; height:30px; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:18px; color:#64748b; cursor:pointer;">
           <i class="ph ph-x"></i>
         </button>
       </div>
 
-      <form @submit.prevent="submitPayment()" style="padding:20px; display:flex; flex-direction:column; gap:14px;">
-        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px; display:flex; justify-content:space-between; align-items:center;">
+      <form @submit.prevent="submitPayment()" style="display:flex; flex-direction:column; overflow:hidden; flex:1 1 auto; min-height:0; margin:0;">
+        <div class="ar-modal-body">
+          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px 14px; display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <div style="font-weight:900; font-size:13.5px; color:#1e293b;" x-text="selectedInvoice?.customer_name"></div>
+              <div style="font-size:11.5px; color:#64748b; margin-top:2px;" x-text="'Documento: ' + selectedInvoice?.number"></div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:10px; font-weight:800; color:#94a3b8; text-transform:uppercase;">Saldo Pendiente</div>
+              <div style="font-size:17px; font-weight:900; color:#dc2626;" x-text="formatMoney(selectedInvoice?.balance)"></div>
+            </div>
+          </div>
+
           <div>
-            <div style="font-weight:800; font-size:13px; color:#1e293b;" x-text="selectedInvoice?.customer_name"></div>
-            <div style="font-size:11.5px; color:#64748b;" x-text="'Documento: ' + selectedInvoice?.number"></div>
+            <label style="display:block; font-size:12px; font-weight:800; color:#334155; margin-bottom:5px;">Monto a Abonar (Q):</label>
+            <input 
+              type="number" 
+              step="0.01" 
+              x-model="paymentForm.amount" 
+              :max="selectedInvoice?.balance"
+              required
+              style="width:100%; padding:10px 12px; font-size:17px; font-weight:900; border:1.5px solid #cbd5e1; border-radius:8px; outline:none; box-sizing:border-box;"
+            >
+            <div style="display:flex; justify-content:space-between; font-size:11.5px; font-weight:700; color:#64748b; margin-top:5px;">
+              <span>Nuevo Saldo Restante:</span>
+              <span style="color:#059669; font-weight:900;" x-text="formatMoney(Math.max(0, (selectedInvoice?.balance || 0) - (paymentForm.amount || 0)))"></span>
+            </div>
           </div>
-          <div style="text-align:right;">
-            <div style="font-size:10px; font-weight:800; color:#94a3b8; text-transform:uppercase;">Saldo Pendiente</div>
-            <div style="font-size:16px; font-weight:900; color:#dc2626;" x-text="formatMoney(selectedInvoice?.balance)"></div>
-          </div>
-        </div>
 
-        <div>
-          <label style="display:block; font-size:12px; font-weight:800; color:#334155; margin-bottom:4px;">Monto a Abonar (Q):</label>
-          <input 
-            type="number" 
-            step="0.01" 
-            x-model="paymentForm.amount" 
-            :max="selectedInvoice?.balance"
-            required
-            style="width:100%; padding:10px 12px; font-size:16px; font-weight:900; border:1.5px solid #cbd5e1; border-radius:8px; outline:none;"
-          >
-          <div style="display:flex; justify-content:space-between; font-size:11px; font-weight:700; color:#64748b; margin-top:4px;">
-            <span>Nuevo Saldo:</span>
-            <span style="color:#059669;" x-text="formatMoney(Math.max(0, (selectedInvoice?.balance || 0) - (paymentForm.amount || 0)))"></span>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div>
+              <label style="display:block; font-size:12px; font-weight:800; color:#334155; margin-bottom:5px;">Forma de Pago:</label>
+              <select x-model="paymentForm.payment_method" style="width:100%; padding:9px 10px; font-size:12.5px; font-weight:600; border:1.5px solid #cbd5e1; border-radius:8px; box-sizing:border-box;">
+                <option value="cash">💵 Efectivo</option>
+                <option value="transfer">🏦 Transferencia</option>
+                <option value="card">💳 Tarjeta</option>
+                <option value="check">📑 Cheque</option>
+              </select>
+            </div>
+            <div>
+              <label style="display:block; font-size:12px; font-weight:800; color:#334155; margin-bottom:5px;">Referencia:</label>
+              <input type="text" x-model="paymentForm.reference" placeholder="No. Boleta / Transf" style="width:100%; padding:9px 10px; font-size:12.5px; border:1.5px solid #cbd5e1; border-radius:8px; box-sizing:border-box;">
+            </div>
           </div>
-        </div>
 
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
           <div>
-            <label style="display:block; font-size:12px; font-weight:800; color:#334155; margin-bottom:4px;">Forma de Pago:</label>
-            <select x-model="paymentForm.payment_method" style="width:100%; padding:8px 10px; font-size:12.5px; font-weight:600; border:1.5px solid #cbd5e1; border-radius:8px;">
-              <option value="cash">💵 Efectivo</option>
-              <option value="transfer">🏦 Transferencia</option>
-              <option value="card">💳 Tarjeta</option>
-              <option value="check">📑 Cheque</option>
-            </select>
-          </div>
-          <div>
-            <label style="display:block; font-size:12px; font-weight:800; color:#334155; margin-bottom:4px;">Referencia:</label>
-            <input type="text" x-model="paymentForm.reference" placeholder="No. Boleta / Transf" style="width:100%; padding:8px 10px; font-size:12.5px; border:1.5px solid #cbd5e1; border-radius:8px;">
+            <label style="display:block; font-size:12px; font-weight:800; color:#334155; margin-bottom:5px;">Notas / Observaciones:</label>
+            <textarea x-model="paymentForm.notes" rows="2" placeholder="Observaciones adicionales del abono..." style="width:100%; padding:9px 10px; font-size:12.5px; border:1.5px solid #cbd5e1; border-radius:8px; box-sizing:border-box;"></textarea>
           </div>
         </div>
 
-        <div>
-          <label style="display:block; font-size:12px; font-weight:800; color:#334155; margin-bottom:4px;">Notas:</label>
-          <textarea x-model="paymentForm.notes" rows="2" placeholder="Observaciones..." style="width:100%; padding:8px 10px; font-size:12.5px; border:1.5px solid #cbd5e1; border-radius:8px;"></textarea>
-        </div>
-
-        <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:8px; padding-top:12px; border-top:1px solid #e2e8f0;">
-          <button type="button" @click="showPaymentModal = false" style="background:#f1f5f9; border:none; padding:8px 16px; border-radius:8px; font-weight:700; font-size:12px; color:#475569; cursor:pointer;">Cancelar</button>
-          <button type="submit" style="background:#059669; color:#ffffff; border:none; padding:8px 18px; border-radius:8px; font-weight:800; font-size:12px; cursor:pointer;">Confirmar Abono</button>
+        <div class="ar-modal-footer">
+          <button type="button" @click="showPaymentModal = false" style="background:#f1f5f9; border:none; padding:8px 18px; border-radius:8px; font-weight:700; font-size:12.5px; color:#475569; cursor:pointer;">Cancelar</button>
+          <button type="submit" style="background:#059669; color:#ffffff; border:none; padding:9px 22px; border-radius:8px; font-weight:800; font-size:12.5px; cursor:pointer; box-shadow:0 2px 6px rgba(5,150,105,0.25);">Confirmar Abono</button>
         </div>
       </form>
     </div>
@@ -812,72 +980,77 @@
 
 
   <!-- ===== MODAL: NUEVA CUENTA POR COBRAR ===== -->
-  <div x-show="showNewInvoiceModal" style="position:fixed; inset:0; background:rgba(15,23,42,0.6); z-index:1000; display:flex; align-items:center; justify-content:center; padding:16px;" x-cloak>
-    <div style="background:#ffffff; border-radius:12px; width:100%; max-width:540px; overflow:hidden; box-shadow:0 20px 25px -5px rgba(0,0,0,0.1);" @click.outside="showNewInvoiceModal = false">
-      <div style="padding:14px 20px; background:#f8fafc; border-bottom:1px solid #e2e8f0; display:flex; align-items:center; justify-content:space-between;">
-        <div style="font-weight:800; font-size:14px; color:#1e293b;">Registrar Nueva Cuenta por Cobrar</div>
-        <button type="button" @click="showNewInvoiceModal = false" style="background:none; border:none; font-size:18px; color:#94a3b8; cursor:pointer;">
+  <div x-show="showNewInvoiceModal" class="ar-modal-backdrop" x-cloak>
+    <div class="ar-modal-dialog" style="max-width:560px;" @click.outside="showNewInvoiceModal = false">
+      <div class="ar-modal-header">
+        <div style="font-weight:900; font-size:14.5px; color:#1e293b; display:flex; align-items:center; gap:8px;">
+          <i class="ph ph-plus-circle" style="color:#714B67; font-size:20px;"></i>
+          Registrar Nueva Cuenta por Cobrar
+        </div>
+        <button type="button" @click="showNewInvoiceModal = false" style="background:#f1f5f9; border:none; width:30px; height:30px; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:18px; color:#64748b; cursor:pointer;">
           <i class="ph ph-x"></i>
         </button>
       </div>
 
-      <form @submit.prevent="submitNewInvoice()" style="padding:20px; display:flex; flex-direction:column; gap:12px;">
-        <div>
-          <label style="display:block; font-size:12px; font-weight:800; color:#334155; margin-bottom:4px;">Seleccionar Cliente Registrado:</label>
-          <select 
-            x-model="selectedNewCustomer" 
-            @change="onSelectNewCustomerChange()"
-            style="width:100%; padding:8px 10px; font-size:12.5px; border:1.5px solid #cbd5e1; border-radius:8px; margin-bottom:6px;"
-          >
-            <option value="">-- Buscar en clientes existentes --</option>
-            <template x-for="c in customersLookupList" :key="c.id">
-              <option :value="JSON.stringify(c)" x-text="c.name + ' (NIT: ' + c.nit + ')'"></option>
-            </template>
-          </select>
-          <input 
-            type="text" 
-            x-model="newInvoiceForm.customer_name" 
-            required 
-            placeholder="Nombre del cliente o empresa" 
-            style="width:100%; padding:8px 10px; font-size:12.5px; border:1.5px solid #cbd5e1; border-radius:8px;"
-          >
-        </div>
-
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+      <form @submit.prevent="submitNewInvoice()" style="display:flex; flex-direction:column; overflow:hidden; flex:1 1 auto; min-height:0; margin:0;">
+        <div class="ar-modal-body">
           <div>
-            <label style="display:block; font-size:12px; font-weight:800; color:#334155; margin-bottom:4px;">NIT:</label>
-            <input type="text" x-model="newInvoiceForm.customer_nit" placeholder="CF o NIT" style="width:100%; padding:8px 10px; font-size:12.5px; border:1.5px solid #cbd5e1; border-radius:8px;">
-          </div>
-          <div>
-            <label style="display:block; font-size:12px; font-weight:800; color:#334155; margin-bottom:4px;">No. Factura / Documento:</label>
-            <input type="text" x-model="newInvoiceForm.number" required placeholder="FAC-1002" style="width:100%; padding:8px 10px; font-size:12.5px; font-family:monospace; border:1.5px solid #cbd5e1; border-radius:8px;">
-          </div>
-        </div>
-
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-          <div>
-            <label style="display:block; font-size:12px; font-weight:800; color:#334155; margin-bottom:4px;">Monto Total (Q):</label>
-            <input type="number" step="0.01" x-model="newInvoiceForm.total" required placeholder="0.00" style="width:100%; padding:8px 10px; font-size:14px; font-weight:800; border:1.5px solid #cbd5e1; border-radius:8px;">
-          </div>
-          <div>
-            <label style="display:block; font-size:12px; font-weight:800; color:#334155; margin-bottom:4px;">Plazo de Crédito:</label>
-            <select x-model="newInvoiceForm.credit_days" style="width:100%; padding:8px 10px; font-size:12.5px; border:1.5px solid #cbd5e1; border-radius:8px;">
-              <option value="15">15 Días</option>
-              <option value="30">30 Días</option>
-              <option value="45">45 Días</option>
-              <option value="60">60 Días</option>
+            <label style="display:block; font-size:12px; font-weight:800; color:#334155; margin-bottom:5px;">Seleccionar Cliente Registrado:</label>
+            <select 
+              x-model="selectedNewCustomer" 
+              @change="onSelectNewCustomerChange()"
+              style="width:100%; padding:9px 10px; font-size:12.5px; border:1.5px solid #cbd5e1; border-radius:8px; margin-bottom:8px; box-sizing:border-box;"
+            >
+              <option value="">-- Buscar en clientes existentes --</option>
+              <template x-for="c in customersLookupList" :key="c.id">
+                <option :value="JSON.stringify(c)" x-text="c.name + ' (NIT: ' + c.nit + ')'"></option>
+              </template>
             </select>
+            <input 
+              type="text" 
+              x-model="newInvoiceForm.customer_name" 
+              required 
+              placeholder="Nombre del cliente o empresa" 
+              style="width:100%; padding:9px 10px; font-size:12.5px; border:1.5px solid #cbd5e1; border-radius:8px; box-sizing:border-box;"
+            >
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div>
+              <label style="display:block; font-size:12px; font-weight:800; color:#334155; margin-bottom:5px;">NIT:</label>
+              <input type="text" x-model="newInvoiceForm.customer_nit" placeholder="CF o NIT" style="width:100%; padding:9px 10px; font-size:12.5px; border:1.5px solid #cbd5e1; border-radius:8px; box-sizing:border-box;">
+            </div>
+            <div>
+              <label style="display:block; font-size:12px; font-weight:800; color:#334155; margin-bottom:5px;">No. Factura / Documento:</label>
+              <input type="text" x-model="newInvoiceForm.number" required placeholder="FAC-1002" style="width:100%; padding:9px 10px; font-size:12.5px; font-family:monospace; border:1.5px solid #cbd5e1; border-radius:8px; box-sizing:border-box;">
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div>
+              <label style="display:block; font-size:12px; font-weight:800; color:#334155; margin-bottom:5px;">Monto Total (Q):</label>
+              <input type="number" step="0.01" x-model="newInvoiceForm.total" required placeholder="0.00" style="width:100%; padding:9px 10px; font-size:14px; font-weight:800; border:1.5px solid #cbd5e1; border-radius:8px; box-sizing:border-box;">
+            </div>
+            <div>
+              <label style="display:block; font-size:12px; font-weight:800; color:#334155; margin-bottom:5px;">Plazo de Crédito:</label>
+              <select x-model="newInvoiceForm.credit_days" style="width:100%; padding:9px 10px; font-size:12.5px; border:1.5px solid #cbd5e1; border-radius:8px; box-sizing:border-box;">
+                <option value="15">15 Días</option>
+                <option value="30">30 Días</option>
+                <option value="45">45 Días</option>
+                <option value="60">60 Días</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label style="display:block; font-size:12px; font-weight:800; color:#334155; margin-bottom:5px;">Notas / Observaciones:</label>
+            <textarea x-model="newInvoiceForm.notes" rows="2" placeholder="Observaciones adicionales..." style="width:100%; padding:9px 10px; font-size:12.5px; border:1.5px solid #cbd5e1; border-radius:8px; box-sizing:border-box;"></textarea>
           </div>
         </div>
 
-        <div>
-          <label style="display:block; font-size:12px; font-weight:800; color:#334155; margin-bottom:4px;">Notas:</label>
-          <textarea x-model="newInvoiceForm.notes" rows="2" placeholder="Observaciones..." style="width:100%; padding:8px 10px; font-size:12.5px; border:1.5px solid #cbd5e1; border-radius:8px;"></textarea>
-        </div>
-
-        <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:8px; padding-top:12px; border-top:1px solid #e2e8f0;">
-          <button type="button" @click="showNewInvoiceModal = false" style="background:#f1f5f9; border:none; padding:8px 16px; border-radius:8px; font-weight:700; font-size:12px; color:#475569; cursor:pointer;">Cancelar</button>
-          <button type="submit" style="background:#714B67; color:#ffffff; border:none; padding:8px 18px; border-radius:8px; font-weight:800; font-size:12px; cursor:pointer;">Guardar Cuenta</button>
+        <div class="ar-modal-footer">
+          <button type="button" @click="showNewInvoiceModal = false" style="background:#f1f5f9; border:none; padding:8px 18px; border-radius:8px; font-weight:700; font-size:12.5px; color:#475569; cursor:pointer;">Cancelar</button>
+          <button type="submit" style="background:#714B67; color:#ffffff; border:none; padding:9px 22px; border-radius:8px; font-weight:800; font-size:12.5px; cursor:pointer; box-shadow:0 2px 6px rgba(113,75,103,0.25);">Guardar Cuenta</button>
         </div>
       </form>
     </div>
@@ -885,16 +1058,19 @@
 
 
   <!-- ===== MODAL: RECIBO DE PAGO TÉRMICO ===== -->
-  <div x-show="showReceiptModal" style="position:fixed; inset:0; background:rgba(15,23,42,0.6); z-index:1000; display:flex; align-items:center; justify-content:center; padding:16px;" x-cloak>
-    <div style="background:#ffffff; border-radius:12px; width:100%; max-width:400px; overflow:hidden; box-shadow:0 20px 25px -5px rgba(0,0,0,0.1);" @click.outside="showReceiptModal = false">
-      <div style="padding:14px 18px; background:#f8fafc; border-bottom:1px solid #e2e8f0; display:flex; align-items:center; justify-content:space-between;">
-        <div style="font-weight:800; font-size:13px; color:#1e293b;">Comprobante de Abono</div>
-        <button type="button" @click="showReceiptModal = false" style="background:none; border:none; font-size:18px; color:#94a3b8; cursor:pointer;">
+  <div x-show="showReceiptModal" class="ar-modal-backdrop" x-cloak>
+    <div class="ar-modal-dialog" style="max-width:440px;" @click.outside="showReceiptModal = false">
+      <div class="ar-modal-header">
+        <div style="font-weight:900; font-size:14px; color:#1e293b; display:flex; align-items:center; gap:8px;">
+          <i class="ph ph-printer" style="color:#714B67; font-size:20px;"></i>
+          Comprobante de Abono
+        </div>
+        <button type="button" @click="showReceiptModal = false" style="background:#f1f5f9; border:none; width:30px; height:30px; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:18px; color:#64748b; cursor:pointer;">
           <i class="ph ph-x"></i>
         </button>
       </div>
 
-      <div style="padding:16px; display:flex; flex-direction:column; gap:12px;">
+      <div class="ar-modal-body">
         <div id="printableReceipt" class="receipt-thermal-paper">
           <div style="text-align:center; border-bottom:1px dashed #cbd5e1; padding-bottom:8px; margin-bottom:8px;">
             <div style="font-weight:bold; font-size:13px;" x-text="receiptData.company?.name || 'POS EMPRESARIAL'"></div>
@@ -931,139 +1107,219 @@
             <div x-show="receiptData.reference"><strong>Ref:</strong> <span x-text="receiptData.reference"></span></div>
           </div>
         </div>
+      </div>
 
-        <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:6px; padding-top:10px; border-top:1px solid #e2e8f0;">
+      <div class="ar-modal-footer">
+        <button 
+          type="button" 
+          @click="shareReceiptWhatsApp()" 
+          style="background:#22c55e; color:#ffffff; font-size:12px; font-weight:800; padding:8px 14px; border-radius:8px; border:none; cursor:pointer; display:inline-flex; align-items:center; gap:6px;"
+        >
+          <i class="ph ph-whatsapp-logo text-base"></i> WhatsApp
+        </button>
+        <div style="display:flex; gap:8px;">
           <button 
             type="button" 
-            @click="shareReceiptWhatsApp()" 
-            style="background:#22c55e; color:#ffffff; font-size:12px; font-weight:800; padding:6px 12px; border-radius:6px; border:none; cursor:pointer; display:inline-flex; align-items:center; gap:5px;"
+            @click="printReceipt()" 
+            style="background:#714B67; color:#ffffff; font-size:12px; font-weight:800; padding:8px 16px; border-radius:8px; border:none; cursor:pointer; display:inline-flex; align-items:center; gap:6px;"
           >
-            <i class="ph ph-whatsapp-logo text-base"></i> WhatsApp
+            <i class="ph ph-printer"></i> Imprimir
           </button>
-          <div style="display:flex; gap:6px;">
-            <button 
-              type="button" 
-              @click="printReceipt()" 
-              style="background:#714B67; color:#ffffff; font-size:12px; font-weight:800; padding:6px 14px; border-radius:6px; border:none; cursor:pointer; display:inline-flex; align-items:center; gap:5px;"
-            >
-              <i class="ph ph-printer"></i> Imprimir
-            </button>
-            <button 
-              type="button" 
-              @click="showReceiptModal = false" 
-              style="background:#f1f5f9; color:#475569; font-size:12px; font-weight:700; padding:6px 10px; border-radius:6px; border:none; cursor:pointer;"
-            >
-              Cerrar
-            </button>
-          </div>
+          <button 
+            type="button" 
+            @click="showReceiptModal = false" 
+            style="background:#f1f5f9; color:#475569; font-size:12px; font-weight:700; padding:8px 14px; border-radius:8px; border:none; cursor:pointer;"
+          >
+            Cerrar
+          </button>
         </div>
       </div>
     </div>
   </div>
 
 
-  <!-- ===== MODAL: DETALLE DE CUENTA ===== -->
-  <div x-show="showDetailModal" style="position:fixed; inset:0; background:rgba(15,23,42,0.6); z-index:1000; display:flex; align-items:center; justify-content:center; padding:16px;" x-cloak>
-    <div style="background:#ffffff; border-radius:12px; width:100%; max-width:580px; overflow:hidden; box-shadow:0 20px 25px -5px rgba(0,0,0,0.1);" @click.outside="showDetailModal = false">
-      <div style="padding:14px 20px; background:#f8fafc; border-bottom:1px solid #e2e8f0; display:flex; align-items:center; justify-content:space-between;">
-        <div style="font-weight:800; font-size:14px; color:#1e293b;">Detalle de Cuenta por Cobrar</div>
-        <button type="button" @click="showDetailModal = false" style="background:none; border:none; font-size:18px; color:#94a3b8; cursor:pointer;">
-          <i class="ph ph-x"></i>
-        </button>
+  <!-- ===== MODAL: DETALLE DE CUENTA POR COBRAR (OPTIMIZADO PARA TODOS LOS NAVEGADORES) ===== -->
+  <div x-show="showDetailModal" class="ar-modal-backdrop" x-cloak>
+    <div class="ar-modal-dialog" style="max-width:760px;" @click.outside="showDetailModal = false">
+      <!-- Header Fijo Superior -->
+      <div class="ar-modal-header">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="width:38px; height:38px; border-radius:10px; background:#f4eff3; color:#714B67; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;">
+            <i class="ph ph-receipt"></i>
+          </div>
+          <div>
+            <div style="font-weight:900; font-size:15px; color:#1e293b; line-height:1.2;">Detalle de Cuenta por Cobrar</div>
+            <div style="font-size:11.5px; color:#64748b; margin-top:2px;">Estado consolidado de facturas a crédito y comprobantes de abono</div>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span 
+            style="padding:4px 10px; border-radius:12px; font-size:11px; font-weight:800; text-transform:uppercase;"
+            :style="detailData.balance <= 0 ? 'background:#dcfce7; color:#166534;' : 'background:#fee2e2; color:#991b1b;'"
+            x-text="detailData.balance <= 0 ? 'AL DÍA' : 'SALDO PENDIENTE'"
+          ></span>
+          <button 
+            type="button" 
+            @click="showDetailModal = false" 
+            style="background:#f1f5f9; border:none; width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:18px; color:#64748b; cursor:pointer; transition:all 0.15s;"
+            title="Cerrar modal"
+          >
+            <i class="ph ph-x"></i>
+          </button>
+        </div>
       </div>
 
-      <div style="padding:20px; display:flex; flex-direction:column; gap:14px;">
-        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px; display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+      <!-- Cuerpo Scrolleable con scrollbar cross-browser -->
+      <div class="ar-modal-body">
+        <!-- Ficha Cliente & Documento -->
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:14px 16px; display:grid; grid-template-columns:1.2fr 0.8fr; gap:14px; align-items:center;">
           <div>
-            <div style="font-size:10px; font-weight:800; color:#94a3b8; text-transform:uppercase;">Cliente</div>
-            <div style="font-weight:800; font-size:13px; color:#1e293b;" x-text="detailData.customer_name"></div>
-            <div style="font-size:11.5px; color:#64748b;" x-text="'NIT: ' + detailData.customer_nit"></div>
+            <div style="font-size:10px; font-weight:800; color:#94a3b8; text-transform:uppercase; letter-spacing:0.5px;">Cliente / Razón Social</div>
+            <div style="font-weight:900; font-size:14px; color:#1e293b; margin-top:2px;" x-text="detailData.customer_name"></div>
+            <div style="font-size:11.5px; color:#64748b; margin-top:2px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+              <span x-text="'NIT: ' + (detailData.customer_nit || 'CF')"></span>
+              <span x-show="detailData.customer_phone" x-text="'• Tel: ' + detailData.customer_phone"></span>
+            </div>
           </div>
-          <div style="text-align:right;">
-            <div style="font-size:10px; font-weight:800; color:#94a3b8; text-transform:uppercase;">Documento</div>
-            <div style="font-weight:800; font-size:13px; font-family:monospace; color:#714B67;" x-text="detailData.number"></div>
-            <div style="font-size:11.5px; color:#64748b;" x-text="'Vence: ' + detailData.due_date"></div>
+          <div style="text-align:right; border-left:1px solid #e2e8f0; padding-left:14px;">
+            <div style="font-size:10px; font-weight:800; color:#94a3b8; text-transform:uppercase; letter-spacing:0.5px;">Documento</div>
+            <div style="font-weight:900; font-size:13.5px; font-family:monospace; color:#714B67; margin-top:2px;" x-text="detailData.number"></div>
+            <div style="font-size:11.5px; color:#64748b; margin-top:2px;">
+              <span>Vence: </span>
+              <strong :style="detailData.status === 'overdue' ? 'color:#dc2626;' : 'color:#1e293b;'" x-text="detailData.due_date || 'Sin fecha'"></strong>
+            </div>
           </div>
         </div>
 
-        <div style="background:#fdf4ff; border:1px solid #f0abfc; border-radius:8px; padding:10px 14px; display:flex; justify-content:space-between; align-items:center;">
-          <div>
-            <span style="font-size:12px; color:#475569;">Total Facturado:</span>
-            <strong style="color:#1e293b; margin-left:4px;" x-text="formatMoney(detailData.total)"></strong>
+        <!-- Indicadores Financieros: Facturado, Abonado, Pendiente -->
+        <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:10px;">
+          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px 14px;">
+            <div style="font-size:10.5px; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.3px;">Total Facturado</div>
+            <div style="font-size:16px; font-weight:900; color:#1e293b; margin-top:4px;" x-text="formatMoney(detailData.total)"></div>
           </div>
-          <div>
-            <span style="font-size:12px; color:#475569;">Saldo Pendiente:</span>
-            <strong style="color:#dc2626; font-size:15px; margin-left:4px;" x-text="formatMoney(detailData.balance)"></strong>
+          <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:12px 14px;">
+            <div style="font-size:10.5px; font-weight:800; color:#166534; text-transform:uppercase; letter-spacing:0.3px;">Total Abonado</div>
+            <div style="font-size:16px; font-weight:900; color:#15803d; margin-top:4px;" x-text="formatMoney(Math.max(0, (detailData.total || 0) - (detailData.balance || 0)))"></div>
+          </div>
+          <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:10px; padding:12px 14px;">
+            <div style="font-size:10.5px; font-weight:800; color:#991b1b; text-transform:uppercase; letter-spacing:0.3px;">Saldo Pendiente</div>
+            <div style="font-size:17px; font-weight:900; color:#dc2626; margin-top:4px;" x-text="formatMoney(detailData.balance)"></div>
           </div>
         </div>
 
         <!-- Ventas / Facturas a Crédito -->
         <div x-show="detailData.credits && detailData.credits.length > 0">
-          <div style="font-size:12px; font-weight:800; color:#334155; margin-bottom:6px;">Ventas a Crédito Registradas:</div>
-          <table class="crm-table">
-            <thead>
-              <tr>
-                <th>Documento</th>
-                <th>Fecha</th>
-                <th style="text-align:right;">Monto</th>
-                <th style="text-align:right;">Saldo</th>
-              </tr>
-            </thead>
-            <tbody>
-              <template x-for="c in detailData.credits" :key="c.id">
-                <tr>
-                  <td style="font-family:monospace; font-weight:800; color:#714B67;" x-text="c.number"></td>
-                  <td style="color:#64748b; font-size:11.5px;" x-text="c.date"></td>
-                  <td style="text-align:right; font-weight:700;" x-text="formatMoney(c.total)"></td>
-                  <td style="text-align:right; font-weight:800; color:#dc2626;" x-text="formatMoney(c.balance)"></td>
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+            <div style="font-size:12px; font-weight:900; color:#334155; text-transform:uppercase; letter-spacing:0.4px; display:flex; align-items:center; gap:6px;">
+              <i class="ph ph-shopping-cart-simple" style="color:#714B67;"></i> Ventas a Crédito Registradas
+            </div>
+            <span style="font-size:11px; font-weight:700; color:#64748b;" x-text="(detailData.credits?.length || 0) + ' transacciones'"></span>
+          </div>
+          <div style="border:1px solid #e2e8f0; border-radius:10px; overflow-x:auto; background:#ffffff; box-shadow:0 1px 2px rgba(0,0,0,0.02);">
+            <table style="width:100%; border-collapse:collapse; font-size:12px; text-align:left; min-width:480px;">
+              <thead>
+                <tr style="background:#f8fafc; border-bottom:1px solid #e2e8f0;">
+                  <th style="padding:10px 14px; font-size:10.5px; font-weight:800; color:#475569; text-transform:uppercase;">Documento</th>
+                  <th style="padding:10px 14px; font-size:10.5px; font-weight:800; color:#475569; text-transform:uppercase;">Fecha</th>
+                  <th style="padding:10px 14px; font-size:10.5px; font-weight:800; color:#475569; text-transform:uppercase; text-align:right;">Monto</th>
+                  <th style="padding:10px 14px; font-size:10.5px; font-weight:800; color:#475569; text-transform:uppercase; text-align:right;">Saldo</th>
+                  <th style="padding:10px 14px; font-size:10.5px; font-weight:800; color:#475569; text-transform:uppercase; text-align:center;">Estado</th>
                 </tr>
-              </template>
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                <template x-for="c in detailData.credits" :key="c.id">
+                  <tr style="border-bottom:1px solid #f1f5f9; transition:background 0.1s;">
+                    <td style="padding:10px 14px; font-family:monospace; font-weight:800; color:#714B67;" x-text="c.number"></td>
+                    <td style="padding:10px 14px; color:#64748b; font-size:11.5px;" x-text="c.date"></td>
+                    <td style="padding:10px 14px; text-align:right; font-weight:700; color:#1e293b;" x-text="formatMoney(c.total)"></td>
+                    <td style="padding:10px 14px; text-align:right; font-weight:900;" :style="c.balance > 0 ? 'color:#dc2626;' : 'color:#15803d;'" x-text="formatMoney(c.balance)"></td>
+                    <td style="padding:10px 14px; text-align:center;">
+                      <span 
+                        style="display:inline-block; padding:2px 8px; border-radius:10px; font-size:10px; font-weight:800; text-transform:uppercase;"
+                        :style="c.balance <= 0 ? 'background:#dcfce7; color:#166534;' : 'background:#fee2e2; color:#991b1b;'"
+                        x-text="c.balance <= 0 ? 'PAGADO' : 'PENDIENTE'"
+                      ></span>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
         </div>
 
+        <!-- Historial de Abonos / Pagos -->
         <div>
-          <div style="font-size:12px; font-weight:800; color:#334155; margin-bottom:6px;">Historial de Abonos / Pagos:</div>
-          <table class="crm-table">
-            <thead>
-              <tr>
-                <th>Recibo</th>
-                <th>Fecha</th>
-                <th>Método</th>
-                <th style="text-align:right;">Monto</th>
-                <th style="text-align:center;">Ticket</th>
-              </tr>
-            </thead>
-            <tbody>
-              <template x-if="!detailData.payments || detailData.payments.length === 0">
-                <tr><td colspan="5" style="text-align:center; padding:12px; color:#94a3b8;">Sin abonos registrados.</td></tr>
-              </template>
-              <template x-for="pmt in detailData.payments" :key="pmt.id">
-                <tr>
-                  <td style="font-family:monospace; font-weight:800;" x-text="pmt.receipt_number"></td>
-                  <td style="color:#64748b;" x-text="pmt.date"></td>
-                  <td style="text-transform:uppercase; font-size:11px;" x-text="pmt.method"></td>
-                  <td style="text-align:right; font-weight:800; color:#059669;" x-text="formatMoney(pmt.amount)"></td>
-                  <td style="text-align:center;">
-                    <button 
-                      type="button" 
-                      @click="openReceiptModal(pmt.id)" 
-                      style="background:#f1f5f9; border:1px solid #cbd5e1; padding:2px 6px; border-radius:4px; cursor:pointer;"
-                    >
-                      <i class="ph ph-printer"></i>
-                    </button>
-                  </td>
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+            <div style="font-size:12px; font-weight:900; color:#334155; text-transform:uppercase; letter-spacing:0.4px; display:flex; align-items:center; gap:6px;">
+              <i class="ph ph-hand-coins" style="color:#059669;"></i> Historial de Abonos / Pagos
+            </div>
+            <span style="font-size:11px; font-weight:700; color:#64748b;" x-text="(detailData.payments?.length || 0) + ' abonos'"></span>
+          </div>
+          <div style="border:1px solid #e2e8f0; border-radius:10px; overflow-x:auto; background:#ffffff; box-shadow:0 1px 2px rgba(0,0,0,0.02);">
+            <table style="width:100%; border-collapse:collapse; font-size:12px; text-align:left; min-width:480px;">
+              <thead>
+                <tr style="background:#f8fafc; border-bottom:1px solid #e2e8f0;">
+                  <th style="padding:10px 14px; font-size:10.5px; font-weight:800; color:#475569; text-transform:uppercase;">Recibo</th>
+                  <th style="padding:10px 14px; font-size:10.5px; font-weight:800; color:#475569; text-transform:uppercase;">Fecha</th>
+                  <th style="padding:10px 14px; font-size:10.5px; font-weight:800; color:#475569; text-transform:uppercase;">Método</th>
+                  <th style="padding:10px 14px; font-size:10.5px; font-weight:800; color:#475569; text-transform:uppercase; text-align:right;">Monto</th>
+                  <th style="padding:10px 14px; font-size:10.5px; font-weight:800; color:#475569; text-transform:uppercase; text-align:center;">Ticket</th>
                 </tr>
-              </template>
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                <template x-if="!detailData.payments || detailData.payments.length === 0">
+                  <tr>
+                    <td colspan="5" style="text-align:center; padding:24px; color:#94a3b8;">
+                      <i class="ph ph-receipt-x" style="font-size:24px; display:block; margin-bottom:4px; opacity:0.6;"></i>
+                      Sin abonos registrados aún en esta cuenta.
+                    </td>
+                  </tr>
+                </template>
+                <template x-for="pmt in detailData.payments" :key="pmt.id">
+                  <tr style="border-bottom:1px solid #f1f5f9; transition:background 0.1s;">
+                    <td style="padding:10px 14px; font-family:monospace; font-weight:800; color:#1e293b;" x-text="pmt.receipt_number"></td>
+                    <td style="padding:10px 14px; color:#64748b; font-size:11.5px;" x-text="pmt.date"></td>
+                    <td style="padding:10px 14px;">
+                      <span style="display:inline-block; padding:2px 8px; border-radius:6px; background:#f1f5f9; font-size:10.5px; font-weight:700; color:#334155; text-transform:uppercase;" x-text="pmt.method"></span>
+                    </td>
+                    <td style="padding:10px 14px; text-align:right; font-weight:900; color:#059669; font-size:13px;" x-text="formatMoney(pmt.amount)"></td>
+                    <td style="padding:10px 14px; text-align:center;">
+                      <button 
+                        type="button" 
+                        @click="openReceiptModal(pmt.id)" 
+                        style="background:#f8fafc; border:1px solid #cbd5e1; padding:4px 10px; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700; color:#475569; display:inline-flex; align-items:center; gap:4px; transition:all 0.15s;"
+                        title="Ver e Imprimir Comprobante"
+                      >
+                        <i class="ph ph-printer" style="color:#714B67;"></i> Imprimir
+                      </button>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
         </div>
+      </div>
 
-        <div style="display:flex; justify-content:flex-end; margin-top:6px;">
-          <button type="button" @click="showDetailModal = false" style="background:#334155; color:#ffffff; padding:7px 16px; border-radius:8px; font-size:12px; font-weight:700; border:none; cursor:pointer;">
-            Cerrar
+      <!-- Footer Fijo Inferior -->
+      <div class="ar-modal-footer">
+        <div>
+          <button 
+            type="button" 
+            x-show="canRegisterPayment && detailData.balance > 0"
+            @click="showDetailModal = false; openPaymentModal(detailData)"
+            style="background:#059669; color:#ffffff; padding:9px 20px; border-radius:8px; font-size:12.5px; font-weight:800; border:none; cursor:pointer; display:inline-flex; align-items:center; gap:6px; box-shadow:0 2px 6px rgba(5,150,105,0.25);"
+          >
+            <i class="ph ph-hand-coins" style="font-size:17px;"></i> Registrar Abono
           </button>
         </div>
+        <button 
+          type="button" 
+          @click="showDetailModal = false" 
+          style="background:#334155; color:#ffffff; padding:9px 22px; border-radius:8px; font-size:12.5px; font-weight:700; border:none; cursor:pointer; transition:all 0.15s;"
+        >
+          Cerrar
+        </button>
       </div>
     </div>
   </div>
@@ -1102,6 +1358,16 @@ function arApp() {
       reference: '',
       notes: ''
     },
+
+    canRegisterPayment: (() => {
+      try {
+        const u = JSON.parse(localStorage.getItem('user') || '{}');
+        if (u.is_superuser || u.is_admin || u.username === 'admin' || (u.email && u.email.includes('admin'))) return true;
+        const codes = (u.role_codes || (u.roles || []).map(r => r.code || r));
+        if (codes.includes('cashier') && !codes.includes('admin') && !codes.includes('store_manager') && !codes.includes('accountant')) return false;
+        return codes.includes('admin') || codes.includes('store_manager') || codes.includes('accountant');
+      } catch(e) { return false; }
+    })(),
 
     newInvoiceForm: {
       customer_id: null,
@@ -1201,6 +1467,10 @@ function arApp() {
     },
 
     openPaymentModal(inv) {
+      if (!this.canRegisterPayment) {
+        alert("Acceso denegado: El usuario con rol Cajero no tiene autorización para registrar abonos de crédito.");
+        return;
+      }
       this.selectedInvoice = inv;
       this.paymentForm = {
         amount: inv.balance,
@@ -1212,6 +1482,10 @@ function arApp() {
     },
 
     async submitPayment() {
+      if (!this.canRegisterPayment) {
+        alert("Acceso denegado: El usuario con rol Cajero no tiene autorización para registrar abonos de crédito.");
+        return;
+      }
       if (!this.selectedInvoice) return;
       try {
         const targetId = this.selectedInvoice.customer_id || this.selectedInvoice.id;

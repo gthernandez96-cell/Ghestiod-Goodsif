@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pos-empresarial-cache-v15';
+const CACHE_NAME = 'pos-empresarial-cache-v16';
 const ASSETS_TO_CACHE = [
   '/login',
   '/dashboard',

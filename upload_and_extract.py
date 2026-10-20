@@ -14,8 +14,8 @@ root_dir = os.path.dirname(os.path.abspath(__file__))
 temp_zip = tempfile.NamedTemporaryFile(suffix=".zip", delete=False)
 temp_zip.close()
 
-exclude_dirs = {'.git', '.pytest_cache', '__pycache__', 'venv', '.env', '.system_generated', 'scratch'}
-exclude_exts = {'.pyc', '.pyo', '.db-journal'}
+exclude_dirs = {'.git', '.pytest_cache', '__pycache__', 'venv', '.env', '.system_generated', 'scratch', 'node_modules', '.tempmediaStorage', '.user_uploaded'}
+exclude_exts = {'.pyc', '.pyo', '.db-journal', '.zip', '.tar.gz', '.webp', '.db'}
 
 print("📦 Empaquetando archivos locales...")
 with zipfile.ZipFile(temp_zip.name, 'w', zipfile.ZIP_DEFLATED) as z:
@@ -39,5 +39,11 @@ with httpx.Client(verify=False, timeout=120.0) as client:
     upload_url = f"{base_url}/files/path/home/{username}/pos-empresarial.zip"
     resp = client.post(upload_url, files={"content": ("pos-empresarial.zip", zip_bytes, "application/zip")}, headers=headers)
     print("Upload Status:", resp.status_code)
+    
+    # 3. Recargar Webapp
+    domain = f"{username}.pythonanywhere.com"
+    r_reload = client.post(f"{base_url}/webapps/{domain}/reload/", headers=headers)
+    print("Reload Status:", r_reload.status_code)
 
 os.remove(temp_zip.name)
+print("✅ Despliegue completado con éxito.")

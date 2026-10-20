@@ -1424,14 +1424,11 @@
       <div style="margin-bottom:18px; padding:10px; background:#f8fafc; border-radius:10px; border:1px solid #e2e8f0;">
         <div style="font-size:11px; font-weight:700; color:#64748b; margin-bottom:6px;">Acceso Rápido de Prueba:</div>
         <div style="display:flex; gap:6px; flex-wrap:wrap;">
-          <button type="button" class="role-quick-btn" @click="setCredentials('admin', 'admin123')">
+          <button type="button" class="role-quick-btn" @click="setCredentials('admin', 'Admin2024!')">
             👑 Admin
           </button>
-          <button type="button" class="role-quick-btn" @click="setCredentials('cajero', 'cajero123')">
+          <button type="button" class="role-quick-btn" @click="setCredentials('cajero01', 'Cajero2024!')">
             🛒 Cajero POS
-          </button>
-          <button type="button" class="role-quick-btn" @click="setCredentials('bodega', 'bodega123')">
-            🏢 Bodega
           </button>
         </div>
       </div>
@@ -1630,6 +1627,9 @@
             localStorage.setItem('access_token', data.access_token);
             localStorage.setItem('refresh_token', data.refresh_token);
             localStorage.setItem('user', JSON.stringify(data.user));
+            if (data.user && data.user.current_branch_id) {
+              localStorage.setItem('branch_id', data.user.current_branch_id);
+            }
 
             const isHttps = window.location.protocol === 'https:';
             document.cookie = `access_token=${data.access_token}; path=/; max-age=86400; SameSite=Lax${isHttps ? '; Secure' : ''}`;

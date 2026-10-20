@@ -16,7 +16,10 @@ from app.models.fel import FELDocument, FELSequence
 
 # Nuevos Módulos Odoo
 from app.models.hr import Employee, Attendance
-from app.models.mfg import BOM, BOMItem, ProductionOrder
+from app.models.mfg import (
+    BOM, BOMItem, ProductionOrder,
+    RecetaFavorita, DetalleReceta, OrdenFabricacion, DetalleFabricacion
+)
 from app.models.accounting import Account, JournalEntry, JournalEntryLine
 from app.models.audit import AuditLog
 from app.models.ap import SupplierBill
@@ -39,6 +42,7 @@ __all__ = [
     # Nuevos modelos
     "Employee", "Attendance",
     "BOM", "BOMItem", "ProductionOrder",
+    "RecetaFavorita", "DetalleReceta", "OrdenFabricacion", "DetalleFabricacion",
     "Account", "JournalEntry", "JournalEntryLine",
     "AuditLog",
     "SupplierBill",

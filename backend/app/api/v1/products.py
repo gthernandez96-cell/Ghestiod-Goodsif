@@ -1,5 +1,5 @@
 """API v1 — Productos y Categorías."""
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, or_, func
 from sqlalchemy.orm import selectinload
@@ -14,6 +14,22 @@ from app.core.security import get_current_user
 from app.models.product import Product, ProductCategory, ProductType, TrackingMethod, UnitOfMeasure
 from app.models.inventory import StockQuant, StockMove, StockMoveType
 from app.models.company import Warehouse, Branch
+from app.models.sale import SaleOrder, SaleOrderLine, SaleState, SaleType
+from app.api.v1.presale import auto_expire_stale_presales
+from datetime import datetime, timezone, timedelta
+from zoneinfo import ZoneInfo
+
+GUATEMALA_TZ = ZoneInfo("America/Guatemala")
+
+
+def format_guatemala_datetime(dt: Optional[datetime]) -> str:
+    if not dt:
+        return ""
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    local_dt = dt.astimezone(GUATEMALA_TZ)
+    return local_dt.strftime("%d/%m/%Y %I:%M %p")
+
 
 router = APIRouter(prefix="/products")
 
@@ -66,6 +82,39 @@ async def upload_product_image(
     }
 
 
+@router.post("/upload-datasheet")
+async def upload_product_datasheet(
+    file: UploadFile = File(...),
+    current_user=Depends(get_current_user),
+):
+    """Subir ficha técnica en PDF del producto."""
+    filename = file.filename or "datasheet.pdf"
+    ext = os.path.splitext(filename)[1].lower()
+    if ext != ".pdf":
+        raise HTTPException(status_code=400, detail="Formato no soportado. El archivo debe ser un PDF (.pdf).")
+
+    app_dir = os.path.dirname(os.path.abspath(__file__))
+    upload_dir = os.path.abspath(os.path.join(app_dir, "../../../../frontend/static/uploads/datasheets"))
+    os.makedirs(upload_dir, exist_ok=True)
+
+    unique_name = f"{uuid.uuid4().hex}.pdf"
+    file_path = os.path.join(upload_dir, unique_name)
+
+    content = await file.read()
+    if len(content) > 15 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="La ficha técnica en PDF no debe exceder los 15MB.")
+
+    with open(file_path, "wb") as f:
+        f.write(content)
+
+    url_path = f"/static/uploads/datasheets/{unique_name}"
+    return {
+        "url": url_path,
+        "filename": filename,
+        "status": "uploaded"
+    }
+
+
 def _val_to_str(val) -> str:
     if val is None:
         return ""
@@ -111,10 +160,14 @@ class ProductCreateIn(BaseModel):
     includes_tax: bool = True
     min_stock: Decimal = Decimal("0")
     max_stock: Decimal = Decimal("0")
+    stock: Optional[Decimal] = None
+    initial_stock: Optional[Decimal] = None
     is_active: bool = True
     can_be_sold: bool = True
     can_be_purchased: bool = True
     image_url: Optional[str] = None
+    pdf_datasheet_url: Optional[str] = None
+    internal_notes: Optional[str] = None
 
 
 class ProductUpdateIn(BaseModel):
@@ -136,10 +189,12 @@ class ProductUpdateIn(BaseModel):
     tax_rate: Optional[Decimal] = None
     is_active: Optional[bool] = None
     image_url: Optional[str] = None
+    pdf_datasheet_url: Optional[str] = None
+    internal_notes: Optional[str] = None
 
 
 class StockAdjustIn(BaseModel):
-    new_qty: Decimal
+    new_qty: Optional[Decimal] = None
     warehouse_id: Optional[str] = None
     reason: str = "conteo_fisico"
     notes: Optional[str] = None
@@ -347,7 +402,10 @@ async def list_products(
     # Obtener stock global por producto (filtrado por sucursal o bodega si se especifica)
     product_ids = [p.id for p in products]
     stock_map = {}
+    frozen_map = {}
     if product_ids:
+        await auto_expire_stale_presales(db, current_user.company_id)
+
         quant_stmt = (
             select(
                 StockQuant.product_id,
@@ -382,9 +440,46 @@ async def list_products(
         for p_id, total in quant_res.all():
             stock_map[str(p_id)] = float(total or 0)
 
+        # Stock congelado por solicitudes de pre-venta pendientes (vigencia máxima 7 días)
+        cutoff_7d = datetime.now(timezone.utc) - timedelta(days=7)
+        frozen_stmt = (
+            select(
+                SaleOrderLine.product_id,
+                func.coalesce(func.sum(SaleOrderLine.qty), 0).label("frozen_stock")
+            )
+            .join(SaleOrder, SaleOrderLine.sale_id == SaleOrder.id)
+            .where(
+                SaleOrder.company_id == current_user.company_id,
+                SaleOrder.sale_type == SaleType.PRESALE,
+                SaleOrder.state.in_([SaleState.PENDING_APPROVAL, SaleState.WAREHOUSE_VALIDATION]),
+                SaleOrder.created_at >= cutoff_7d,
+                SaleOrder.is_deleted == False,
+                SaleOrderLine.is_deleted == False,
+                SaleOrderLine.product_id.in_(product_ids)
+            )
+        )
+        if branch_id and isinstance(branch_id, str) and branch_id.strip():
+            try:
+                frozen_stmt = frozen_stmt.where(SaleOrder.branch_id == uuid.UUID(branch_id.strip()))
+            except (ValueError, AttributeError):
+                pass
+        if warehouse_id and isinstance(warehouse_id, str) and warehouse_id.strip():
+            try:
+                frozen_stmt = frozen_stmt.where(SaleOrder.warehouse_id == uuid.UUID(warehouse_id.strip()))
+            except (ValueError, AttributeError):
+                pass
+
+        frozen_stmt = frozen_stmt.group_by(SaleOrderLine.product_id)
+        frozen_res = await db.execute(frozen_stmt)
+        for p_id, frozen_total in frozen_res.all():
+            frozen_map[str(p_id)] = float(frozen_total or 0)
+
     items = []
     for p in products:
         p_id_str = str(p.id)
+        phys_stock = stock_map.get(p_id_str, 0.0)
+        froz_stock = frozen_map.get(p_id_str, 0.0)
+        avail_stock = phys_stock - froz_stock
         items.append({
             "id": p_id_str,
             "name": p.name,
@@ -409,12 +504,17 @@ async def list_products(
             "tax_rate": float(p.tax_rate or 12.0),
             "includes_tax": p.includes_tax,
             "min_stock": float(p.min_stock or 0),
-            "stock": stock_map.get(p_id_str, 0.0),
+            "stock": avail_stock,
+            "stock_physical": phys_stock,
+            "stock_frozen": froz_stock,
+            "stock_available": avail_stock,
             "product_type": _val_to_str(p.product_type),
             "tracking": _val_to_str(p.tracking),
             "is_active": p.is_active,
             "can_be_sold": p.can_be_sold,
             "image_url": p.image_url,
+            "pdf_datasheet_url": getattr(p, "pdf_datasheet_url", None),
+            "internal_notes": getattr(p, "internal_notes", None),
         })
 
     return {"items": items, "total": len(items)}
@@ -461,7 +561,10 @@ async def get_pos_catalog(
     # 3. Stock
     product_ids = [p.id for p in products]
     stock_map = {}
+    frozen_map = {}
     if product_ids:
+        await auto_expire_stale_presales(db, current_user.company_id)
+
         quant_stmt = (
             select(
                 StockQuant.product_id,
@@ -496,9 +599,46 @@ async def get_pos_catalog(
         for p_id, total in quant_res.all():
             stock_map[str(p_id)] = float(total or 0)
 
+        # Stock congelado por solicitudes de pre-venta pendientes (vigencia máxima 7 días)
+        cutoff_7d = datetime.now(timezone.utc) - timedelta(days=7)
+        frozen_stmt = (
+            select(
+                SaleOrderLine.product_id,
+                func.coalesce(func.sum(SaleOrderLine.qty), 0).label("frozen_stock")
+            )
+            .join(SaleOrder, SaleOrderLine.sale_id == SaleOrder.id)
+            .where(
+                SaleOrder.company_id == current_user.company_id,
+                SaleOrder.sale_type == SaleType.PRESALE,
+                SaleOrder.state.in_([SaleState.PENDING_APPROVAL, SaleState.WAREHOUSE_VALIDATION]),
+                SaleOrder.created_at >= cutoff_7d,
+                SaleOrder.is_deleted == False,
+                SaleOrderLine.is_deleted == False,
+                SaleOrderLine.product_id.in_(product_ids)
+            )
+        )
+        if branch_id and isinstance(branch_id, str) and branch_id.strip():
+            try:
+                frozen_stmt = frozen_stmt.where(SaleOrder.branch_id == uuid.UUID(branch_id.strip()))
+            except (ValueError, AttributeError):
+                pass
+        if warehouse_id and isinstance(warehouse_id, str) and warehouse_id.strip():
+            try:
+                frozen_stmt = frozen_stmt.where(SaleOrder.warehouse_id == uuid.UUID(warehouse_id.strip()))
+            except (ValueError, AttributeError):
+                pass
+
+        frozen_stmt = frozen_stmt.group_by(SaleOrderLine.product_id)
+        frozen_res = await db.execute(frozen_stmt)
+        for p_id, frozen_total in frozen_res.all():
+            frozen_map[str(p_id)] = float(frozen_total or 0)
+
     items = []
     for p in products:
         p_id_str = str(p.id)
+        phys_stock = stock_map.get(p_id_str, 0.0)
+        froz_stock = frozen_map.get(p_id_str, 0.0)
+        avail_stock = phys_stock - froz_stock
         w_price = float(p.wholesale_price or (p.attributes or {}).get("wholesale_price", 0)) if (p.wholesale_price or (p.attributes or {}).get("wholesale_price")) else None
         items.append({
             "id": p_id_str,
@@ -522,8 +662,13 @@ async def get_pos_catalog(
             "tax_rate": float(p.tax_rate or 12.0),
             "includes_tax": p.includes_tax,
             "is_active": p.is_active,
-            "stock": stock_map.get(p_id_str, 0.0),
+            "stock": avail_stock,
+            "stock_physical": phys_stock,
+            "stock_frozen": froz_stock,
+            "stock_available": avail_stock,
             "image_url": p.image_url,
+            "pdf_datasheet_url": getattr(p, "pdf_datasheet_url", None),
+            "internal_notes": getattr(p, "internal_notes", None),
             "product_type": _val_to_str(p.product_type),
             "attributes": p.attributes or {},
             "wholesale_min_qty": float((p.attributes or {}).get("wholesale_min_qty", 0)) if (p.attributes or {}).get("wholesale_min_qty") else None,
@@ -531,7 +676,6 @@ async def get_pos_catalog(
             "combo_items": (p.attributes or {}).get("combo_items", []),
         })
 
-    from datetime import datetime, timezone
     return {
         "products": items,
         "categories": categories,
@@ -548,12 +692,21 @@ async def get_inventory_kpis(
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    """Obtener métricas y KPIs ejecutivos de inventario y valoración de bodega."""
-    stmt = select(Product).where(Product.company_id == current_user.company_id, Product.is_active == True, Product.is_deleted == False)
+    """Obtener métricas y KPIs ejecutivos de inventario y valoración de bodega (consulta optimizada y ligera)."""
+    # Consulta proyectada ligera: solo id, cost_price y min_stock (evita cargar miles de objetos ORM completos)
+    stmt = select(
+        Product.id,
+        Product.cost_price,
+        Product.min_stock
+    ).where(
+        Product.company_id == current_user.company_id,
+        Product.is_active == True,
+        Product.is_deleted == False
+    )
     res = await db.execute(stmt)
-    products = res.scalars().all()
+    products = res.all()
 
-    product_ids = [p.id for p in products]
+    product_ids = [p[0] for p in products]
     stock_map = {}
     if product_ids:
         quant_stmt = (
@@ -596,14 +749,14 @@ async def get_inventory_kpis(
     out_of_stock_count = 0
     in_stock_count = 0
 
-    for p in products:
-        stk = stock_map.get(p.id, 0.0)
-        c_cost = Decimal(str(p.cost_price or 0))
+    for p_id, cost_price, min_stock in products:
+        stk = stock_map.get(p_id, 0.0)
+        c_cost = Decimal(str(cost_price or 0))
         total_valuation += Decimal(str(stk)) * c_cost
 
         if stk <= 0:
             out_of_stock_count += 1
-        elif stk <= float(p.min_stock or 5.0):
+        elif stk <= float(min_stock or 5.0):
             low_stock_count += 1
             in_stock_count += 1
         else:
@@ -621,12 +774,19 @@ async def get_inventory_kpis(
 @router.get("/stock-levels")
 @router.get("/stock-sync")
 async def get_products_stock_levels(
+    response: Response,
     branch_id: Optional[str] = Query(None),
     warehouse_id: Optional[str] = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
     """Retorna mapeo ligero {product_id: stock} para sincronización automática en tiempo real del POS."""
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+
+    await auto_expire_stale_presales(db, current_user.company_id)
+
     quant_stmt = (
         select(
             StockQuant.product_id,
@@ -662,7 +822,58 @@ async def get_products_stock_levels(
     quant_stmt = quant_stmt.group_by(StockQuant.product_id)
     res = await db.execute(quant_stmt)
     stock_map = {str(row[0]): float(row[1] or 0) for row in res.all()}
-    return {"stock": stock_map, "count": len(stock_map)}
+
+    # Stock congelado por solicitudes de pre-venta pendientes (vigencia máxima 7 días)
+    cutoff_7d = datetime.now(timezone.utc) - timedelta(days=7)
+    frozen_stmt = (
+        select(
+            SaleOrderLine.product_id,
+            func.coalesce(func.sum(SaleOrderLine.qty), 0).label("frozen_stock")
+        )
+        .join(SaleOrder, SaleOrderLine.sale_id == SaleOrder.id)
+        .where(
+            SaleOrder.company_id == current_user.company_id,
+            SaleOrder.sale_type == SaleType.PRESALE,
+            SaleOrder.state.in_([SaleState.PENDING_APPROVAL, SaleState.WAREHOUSE_VALIDATION]),
+            SaleOrder.created_at >= cutoff_7d,
+            SaleOrder.is_deleted == False,
+            SaleOrderLine.is_deleted == False,
+        )
+    )
+    if branch_id and isinstance(branch_id, str) and branch_id.strip():
+        try:
+            frozen_stmt = frozen_stmt.where(SaleOrder.branch_id == uuid.UUID(branch_id.strip()))
+        except (ValueError, AttributeError):
+            pass
+    if warehouse_id and isinstance(warehouse_id, str) and warehouse_id.strip():
+        try:
+            frozen_stmt = frozen_stmt.where(
+                or_(
+                    SaleOrder.warehouse_id == uuid.UUID(warehouse_id.strip()),
+                    SaleOrder.warehouse_id.is_(None)
+                )
+            )
+        except (ValueError, AttributeError):
+            pass
+
+    frozen_stmt = frozen_stmt.group_by(SaleOrderLine.product_id)
+    froz_res = await db.execute(frozen_stmt)
+    frozen_map = {str(row[0]): float(row[1] or 0) for row in froz_res.all()}
+
+    final_stock_map = {}
+    all_pids = set(stock_map.keys()).union(set(frozen_map.keys()))
+    for p_id_str in all_pids:
+        phys_qty = stock_map.get(p_id_str, 0.0)
+        froz_qty = frozen_map.get(p_id_str, 0.0)
+        final_stock_map[p_id_str] = phys_qty - froz_qty
+
+    return {
+        "stock": final_stock_map,
+        "stock_physical": stock_map,
+        "stock_frozen": frozen_map,
+        "stock_available": final_stock_map,
+        "count": len(stock_map)
+    }
 
 
 # ===== IMPORTACIÓN / EXPORTACIÓN CSV =====
@@ -1008,6 +1219,8 @@ async def get_product(
         "kardex_stock": kardex_stock if len(k_moves) > 0 else total_stock,
         "has_kardex_discrepancy": has_kardex_discrepancy,
         "image_url": p.image_url,
+        "pdf_datasheet_url": getattr(p, "pdf_datasheet_url", None),
+        "internal_notes": getattr(p, "internal_notes", None),
     }
 
 
@@ -1047,24 +1260,55 @@ async def get_product_warehouses_stock(
     wh_res = await db.execute(wh_stmt)
     warehouses = wh_res.scalars().all()
 
-    # 3. Obtener quants de stock
+    # 3. Obtener quants de stock físico
     quant_stmt = select(StockQuant).where(StockQuant.product_id == prod.id)
     quant_res = await db.execute(quant_stmt)
     quants = quant_res.scalars().all()
     quant_map = {str(q.warehouse_id): float(q.qty_on_hand or 0) for q in quants}
 
+    # 4. Obtener stock congelado por bodega por pre-ventas pendientes (vigencia 7 días)
+    cutoff_7d = datetime.now(timezone.utc) - timedelta(days=7)
+    frozen_stmt = (
+        select(
+            SaleOrder.warehouse_id,
+            func.coalesce(func.sum(SaleOrderLine.qty), 0).label("frozen_stock")
+        )
+        .join(SaleOrder, SaleOrderLine.sale_id == SaleOrder.id)
+        .where(
+            SaleOrder.company_id == current_user.company_id,
+            SaleOrder.sale_type == SaleType.PRESALE,
+            SaleOrder.state.in_([SaleState.PENDING_APPROVAL, SaleState.WAREHOUSE_VALIDATION]),
+            SaleOrder.created_at >= cutoff_7d,
+            SaleOrder.is_deleted == False,
+            SaleOrderLine.is_deleted == False,
+            SaleOrderLine.product_id == prod.id
+        )
+        .group_by(SaleOrder.warehouse_id)
+    )
+    frozen_res = await db.execute(frozen_stmt)
+    frozen_by_wh = {str(row[0]): float(row[1] or 0) for row in frozen_res.all()}
+
     warehouse_list = []
-    total_stock = 0.0
+    total_physical = 0.0
+    total_frozen = 0.0
+    total_available = 0.0
     for wh in warehouses:
-        qty = quant_map.get(str(wh.id), 0.0)
-        total_stock += qty
+        wh_id_str = str(wh.id)
+        qty_phys = quant_map.get(wh_id_str, 0.0)
+        qty_froz = frozen_by_wh.get(wh_id_str, 0.0)
+        qty_avail = qty_phys - qty_froz
+        total_physical += qty_phys
+        total_frozen += qty_froz
+        total_available += qty_avail
         warehouse_list.append({
-            "warehouse_id": str(wh.id),
+            "warehouse_id": wh_id_str,
             "warehouse_name": wh.name,
             "warehouse_code": wh.code or "",
             "branch_id": str(wh.branch_id) if wh.branch_id else None,
             "branch_name": wh.branch.name if wh.branch else "Principal",
-            "qty_on_hand": qty,
+            "qty_on_hand": qty_phys,
+            "qty_frozen": qty_froz,
+            "qty_available": qty_avail,
             "is_main": getattr(wh, "is_main", False),
         })
 
@@ -1074,8 +1318,14 @@ async def get_product_warehouses_stock(
         "internal_ref": prod.internal_ref or "",
         "barcode": prod.barcode or "",
         "sale_price": float(prod.sale_price or 0),
+        "description": prod.description or "",
+        "internal_notes": getattr(prod, "internal_notes", None) or "",
+        "pdf_datasheet_url": getattr(prod, "pdf_datasheet_url", None) or "",
         "min_stock": float(prod.min_stock or 5),
-        "total_stock": total_stock,
+        "total_stock": total_physical,
+        "total_physical": total_physical,
+        "total_frozen": total_frozen,
+        "total_available": total_available,
         "warehouses": warehouse_list,
     }
 
@@ -1084,7 +1334,7 @@ async def get_product_warehouses_stock(
 async def get_product_kardex(
     product_id: str,
     warehouse_id: Optional[str] = Query(None),
-    limit: int = Query(100, ge=1, le=500),
+    limit: int = Query(500, ge=1, le=2000),
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
@@ -1111,9 +1361,12 @@ async def get_product_kardex(
 
     items = []
     for m in moves:
+        dt_str = format_guatemala_datetime(m.created_at)
+        iso_str = m.created_at.replace(tzinfo=timezone.utc).isoformat() if m.created_at else None
         items.append({
             "id": str(m.id),
-            "date": m.created_at.strftime("%d/%m/%Y %H:%M") if m.created_at else "",
+            "date": dt_str,
+            "created_at": iso_str,
             "move_type": m.move_type.value if hasattr(m.move_type, "value") else str(m.move_type),
             "warehouse_id": str(m.warehouse_id) if m.warehouse_id else None,
             "warehouse_name": m.warehouse.name if m.warehouse else "Bodega Central",
@@ -1278,6 +1531,8 @@ async def adjust_product_stock(
 ):
     """Ajustar el stock físico de un producto y registrar movimiento Kardex."""
     check_product_management_permission(current_user)
+    if data.new_qty is None:
+        raise HTTPException(status_code=400, detail="Debe ingresar la nueva cantidad de existencia física.")
     try:
         p_uuid = uuid.UUID(product_id)
     except ValueError:
@@ -1296,7 +1551,13 @@ async def adjust_product_stock(
         except ValueError:
             pass
     if not wh_uuid:
-        wh_stmt = select(Warehouse).join(Branch).where(Branch.company_id == current_user.company_id).limit(1)
+        wh_stmt = (
+            select(Warehouse)
+            .join(Branch, Warehouse.branch_id == Branch.id)
+            .where(Branch.company_id == current_user.company_id, Warehouse.is_active == True, Warehouse.is_deleted == False)
+            .order_by(Warehouse.is_default.desc(), Warehouse.created_at.asc())
+            .limit(1)
+        )
         wh_res = await db.execute(wh_stmt)
         wh = wh_res.scalar_one_or_none()
         wh_uuid = wh.id if wh else None
@@ -1412,10 +1673,46 @@ async def create_product(
         can_be_sold=data.can_be_sold,
         can_be_purchased=data.can_be_purchased,
         image_url=data.image_url,
+        pdf_datasheet_url=data.pdf_datasheet_url,
+        internal_notes=data.internal_notes,
     )
     db.add(product)
     await db.commit()
     await db.refresh(product)
+
+    init_qty = Decimal(str(data.initial_stock if data.initial_stock is not None else (data.stock or 0)))
+    if init_qty > 0:
+        wh_stmt = (
+            select(Warehouse)
+            .join(Branch, Warehouse.branch_id == Branch.id)
+            .where(Branch.company_id == current_user.company_id)
+            .order_by(Warehouse.is_default.desc(), Warehouse.created_at.asc())
+            .limit(1)
+        )
+        wh = (await db.execute(wh_stmt)).scalar_one_or_none()
+        if wh:
+            quant = StockQuant(
+                warehouse_id=wh.id,
+                product_id=product.id,
+                qty_on_hand=init_qty,
+                avg_cost=data.cost_price or Decimal("0"),
+            )
+            db.add(quant)
+            move = StockMove(
+                warehouse_id=wh.id,
+                product_id=product.id,
+                move_type=StockMoveType.INITIAL,
+                qty=init_qty,
+                qty_before=Decimal("0"),
+                qty_after=init_qty,
+                unit_cost=data.cost_price or Decimal("0"),
+                total_cost=init_qty * (data.cost_price or Decimal("0")),
+                reference="Stock inicial al crear producto",
+                user_id=current_user.id,
+            )
+            db.add(move)
+            await db.commit()
+
     return {"id": str(product.id), "name": product.name, "status": "created"}
 
 
@@ -1457,6 +1754,8 @@ async def update_product(
     if data.tax_rate is not None: p.tax_rate = data.tax_rate
     if data.is_active is not None: p.is_active = data.is_active
     if data.image_url is not None: p.image_url = data.image_url
+    if data.pdf_datasheet_url is not None: p.pdf_datasheet_url = data.pdf_datasheet_url
+    if data.internal_notes is not None: p.internal_notes = data.internal_notes
 
     await db.commit()
     return {"id": str(p.id), "status": "updated"}
@@ -1558,7 +1857,6 @@ async def delete_product(
 ):
     """Eliminar un producto del catálogo (soft delete seguro)."""
     check_product_management_permission(current_user)
-    from datetime import datetime, timezone
     try:
         p_uuid = uuid.UUID(product_id)
     except ValueError:

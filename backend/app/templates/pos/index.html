@@ -485,15 +485,17 @@
     border-color: #fde047;
   }
 
-  /* Product Card Grid */
+  /* Product Card Grid (Matching Image 2 specifications) */
   .product-grid-container {
-    flex: 1;
-    overflow-y: auto;
-    padding: 10px 16px 24px 16px;
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    flex: 1 1 auto;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    padding: 14px 16px 40px 16px;
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(165px, 1fr)) !important;
+    grid-auto-rows: minmax(215px, max-content) !important;
     grid-gap: 14px;
-    align-content: start;
+    align-content: start !important;
     max-height: calc(100vh - 125px);
     max-height: calc(100dvh - 125px);
     -webkit-overflow-scrolling: touch;
@@ -504,56 +506,41 @@
     border-radius: 12px;
     border: 1px solid #e2e8f0;
     padding: 0;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    min-height: 215px !important;
+    height: 100% !important;
     position: relative;
     cursor: pointer;
     overflow: hidden;
-    transition: transform 0.15s, box-shadow 0.15s;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
     box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    box-sizing: border-box;
+    user-select: none;
   }
   .product-card-ref:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.08);
     border-color: #0d9488;
   }
-
-  .product-stock-pill {
-    font-size: 10.5px;
-    font-weight: 800;
-    color: #475569;
-    background: #f1f5f9;
-    padding: 2px 7px;
-    border-radius: 6px;
-    border: 1px solid #e2e8f0;
-    display: inline-flex;
-    align-items: center;
-    white-space: nowrap;
-  }
-  .product-stock-pill.low {
-    background: #ffedd5;
-    color: #c2410c;
-    border-color: #fed7aa;
-  }
-  .product-stock-pill.out {
-    background: #fee2e2;
-    color: #b91c1c;
-    border-color: #fca5a5;
+  .product-card-ref:active {
+    transform: scale(0.98);
   }
 
   .card-img-wrapper {
-    height: 120px;
+    height: 120px !important;
     width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
     overflow: hidden;
     border-bottom: 1px solid #f1f5f9;
     background: #ffffff;
     padding: 8px;
-    flex-shrink: 0;
+    flex-shrink: 0 !important;
     position: relative;
+    box-sizing: border-box;
   }
   .card-img-wrapper img {
     max-width: 100%;
@@ -568,45 +555,96 @@
   .product-card-ref:hover .card-img-wrapper img {
     transform: scale(1.06);
   }
-  .card-img-emoji { font-size: 44px; }
+  .card-img-emoji {
+    font-size: 44px;
+    line-height: 1;
+  }
 
   .card-bottom-info {
-    display: flex;
-    flex-direction: column;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
     gap: 4px;
-    padding: 10px 12px 12px;
+    padding: 10px 12px 12px 12px !important;
+    flex: 1 0 auto !important;
+    background: #ffffff;
+    box-sizing: border-box;
   }
 
   .card-product-title {
-    font-size: 12px;
-    font-weight: 700;
-    color: #1e293b;
-    line-height: 1.3;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    min-height: 30px;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    color: #1e293b !important;
+    line-height: 1.35 !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+    min-height: 32px !important;
+    word-break: break-word;
   }
 
   .card-price-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-top: 4px;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    margin-top: 6px !important;
+    gap: 6px !important;
+    flex-wrap: wrap !important;
   }
 
   .eye-info-icon {
-    color: #94a3b8;
-    font-size: 14px;
-    cursor: pointer;
+    background: #f1f5f9 !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 6px !important;
+    width: 26px !important;
+    height: 24px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    color: #475569 !important;
+    padding: 0 !important;
+    transition: all 0.15s ease !important;
+    flex-shrink: 0 !important;
   }
-  .eye-info-icon:hover { color: #0d9488; }
+  .eye-info-icon:hover {
+    background: #e2e8f0 !important;
+    color: #714B67 !important;
+  }
+
+  .product-stock-pill {
+    font-size: 10.5px !important;
+    font-weight: 800 !important;
+    color: #475569 !important;
+    background: #f1f5f9 !important;
+    padding: 2px 7px !important;
+    border-radius: 6px !important;
+    border: 1px solid #e2e8f0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+  }
+  .product-stock-pill.low {
+    background: #ffedd5 !important;
+    color: #c2410c !important;
+    border-color: #fed7aa !important;
+  }
+  .product-stock-pill.out {
+    background: #fee2e2 !important;
+    color: #b91c1c !important;
+    border-color: #fca5a5 !important;
+  }
 
   .card-price-text {
-    font-size: 14px;
-    font-weight: 900;
-    color: #0d9488;
+    font-size: 13.5px !important;
+    font-weight: 800 !important;
+    color: #0d9488 !important;
+    white-space: nowrap !important;
+    text-align: right !important;
+    flex-shrink: 0 !important;
+    margin-left: auto !important;
   }
 
   /* Modal Backup Overlay */
@@ -1709,9 +1747,14 @@
       flex-shrink: 0;
     }
     .product-grid-container {
-      grid-template-columns: repeat(auto-fill, minmax(135px, 1fr)) !important;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)) !important;
+      grid-auto-rows: minmax(195px, max-content) !important;
       grid-gap: 10px !important;
       padding: 10px 14px 20px 14px !important;
+    }
+    .product-card-ref {
+      min-height: 195px !important;
+      height: 100% !important;
     }
     .card-img-wrapper {
       height: 100px !important;
@@ -2897,7 +2940,8 @@
   .dark-mode .pos-left-panel, 
   .dark-mode .pos-right-panel, 
   .dark-mode .numpad-container, 
-  .dark-mode .product-card, 
+  .dark-mode .product-card,
+  .dark-mode .product-card-ref,
   .dark-mode .settings-dropdown-menu,
   .dark-mode .catalog-top-bar,
   .dark-mode .totals-summary-box,
@@ -2906,6 +2950,26 @@
     background: #1e293b !important;
     border-color: #334155 !important;
     color: #f8fafc !important;
+  }
+  .dark-mode .product-card-ref .card-img-wrapper {
+    background: #0f172a !important;
+    border-bottom-color: #334155 !important;
+  }
+  .dark-mode .product-card-ref .card-bottom-info {
+    background: #1e293b !important;
+  }
+  .dark-mode .product-card-ref .card-product-title {
+    color: #f8fafc !important;
+  }
+  .dark-mode .product-card-ref .eye-info-icon {
+    background: #334155 !important;
+    border-color: #475569 !important;
+    color: #cbd5e1 !important;
+  }
+  .dark-mode .product-card-ref .product-stock-pill {
+    background: #334155 !important;
+    border-color: #475569 !important;
+    color: #cbd5e1 !important;
   }
   .dark-mode .pos-topbar { background: #334155 !important; }
   .dark-mode .numpad-btn,
@@ -2916,7 +2980,8 @@
     color: #e2e8f0 !important;
     border-color: #475569 !important;
   }
-  .dark-mode .product-card:hover {
+  .dark-mode .product-card:hover,
+  .dark-mode .product-card-ref:hover {
     border-color: #0ea5e9 !important;
     box-shadow: 0 4px 12px rgba(0,0,0,0.5) !important;
   }
@@ -3848,27 +3913,37 @@
               <div class="card-bottom-info">
                 <div class="card-product-title" x-text="product.name"></div>
                 <div class="card-price-row">
-                  <div style="display:flex; align-items:center; gap:6px;">
+                  <div style="display:flex; align-items:center; gap:4px; flex-shrink:1; min-width:0; overflow:hidden;">
                     <button 
                       type="button" 
                       class="eye-info-icon" 
                       @click.stop="showProductInfo(product)" 
-                      title="Ver existencias en todas las bodegas"
+                      title="Ver ficha técnica, información y existencias"
                       style="background:#f1f5f9; border:1px solid #cbd5e1; border-radius:6px; width:26px; height:24px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; color:#475569; padding:0; transition:all 0.15s ease;"
                       onmouseover="this.style.background='#e2e8f0'; this.style.color='#714B67';"
                       onmouseout="this.style.background='#f1f5f9'; this.style.color='#475569';"
                     >
-                      <i class="ph ph-eye" style="font-size:15px;"></i>
+                      <i class="ph ph-eye" style="font-size:14px;"></i>
                     </button>
                     <!-- Stock Badge Outside Image -->
                     <span 
                       class="product-stock-pill"
-                      :class="product.stock <= 0 ? 'out' : (product.stock <= (product.min_stock || 5) ? 'low' : '')"
-                      x-text="product.stock <= 0 ? 'Agotado' : 'Stk: ' + product.stock"
+                      :class="((product.stock_available !== undefined ? product.stock_available : ((product.stock_physical !== undefined ? product.stock_physical : product.stock) - (product.stock_frozen || 0))) <= 0) ? 'out' : (((product.stock_physical !== undefined ? product.stock_physical : product.stock) <= (product.min_stock || 5)) ? 'low' : '')"
+                      x-text="((product.stock_available !== undefined ? product.stock_available : ((product.stock_physical !== undefined ? product.stock_physical : product.stock) - (product.stock_frozen || 0))) <= 0) ? (product.stock_frozen > 0 ? '❄️ Reservado' : 'Agotado') : 'Stk: ' + (product.stock_physical !== undefined ? product.stock_physical : product.stock)"
                       @click.stop="showProductInfo(product)"
                       style="cursor:pointer;"
-                      title="Click para ver existencias por bodega"
+                      :title="product.stock_frozen > 0 ? ('❄️ ' + product.stock_frozen + ' unidades reservadas en pre-ventas pendientes') : 'Click para ver existencias por bodega'"
                     ></span>
+                    <!-- Indicador de Stock Congelado / Reservado solo si hay stock libre disponible -->
+                    <template x-if="product.stock_frozen > 0 && ((product.stock_available !== undefined ? product.stock_available : ((product.stock_physical !== undefined ? product.stock_physical : product.stock) - product.stock_frozen)) > 0)">
+                      <span 
+                        @click.stop="showProductInfo(product)"
+                        style="cursor:pointer; font-size: 10px; font-weight: 700; color: #0284c7; background: #e0f2fe; border: 1px solid #bae6fd; border-radius: 4px; padding: 2px 5px; display: inline-flex; align-items: center; gap: 2px; flex-shrink: 0;" 
+                        :title="'❄️ ' + product.stock_frozen + ' unidades reservadas en pre-ventas pendientes'"
+                      >
+                        ❄️ <span x-text="product.stock_frozen"></span>
+                      </span>
+                    </template>
                   </div>
                   <span class="card-price-text" x-text="'Q' + formatPrice(product.sale_price) + (wholesaleMode && product.uom_symbol ? ' / ' + product.uom_symbol : '')"></span>
                 </div>
@@ -5345,21 +5420,84 @@
       </div>
 
       <!-- Resumen de Producto y Total Consolidado -->
-      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:16px; margin:16px 0; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
-        <div>
-          <div style="font-size:11.5px; font-weight:800; color:#64748b; text-transform:uppercase;">Identificación</div>
-          <div style="font-size:12.5px; font-weight:800; color:#1e293b; margin-top:2px;" x-text="'SKU: ' + (stockProductData?.internal_ref || selectedStockProduct?.internal_ref || 'N/A') + (stockProductData?.barcode ? ' • EAN: ' + stockProductData.barcode : '')"></div>
-          <div style="font-size:14px; font-weight:900; color:#714B67; margin-top:4px;" x-text="'Precio: Q ' + formatPrice(stockProductData?.sale_price || selectedStockProduct?.sale_price)"></div>
+      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:16px; margin:16px 0;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+          <div>
+            <div style="font-size:11.5px; font-weight:800; color:#64748b; text-transform:uppercase;">Identificación</div>
+            <div style="font-size:12.5px; font-weight:800; color:#1e293b; margin-top:2px;" x-text="'SKU: ' + (stockProductData?.internal_ref || selectedStockProduct?.internal_ref || 'N/A') + (stockProductData?.barcode ? ' • EAN: ' + stockProductData.barcode : '')"></div>
+            <div style="font-size:14px; font-weight:900; color:#714B67; margin-top:4px;" x-text="'Precio: Q ' + formatPrice(stockProductData?.sale_price || selectedStockProduct?.sale_price)"></div>
+          </div>
+
+          <div style="text-align:right;">
+            <div style="font-size:11.5px; font-weight:800; color:#64748b; text-transform:uppercase;">Stock Total Empresa</div>
+            <div 
+              style="font-size:18px; font-weight:900; padding:4px 14px; border-radius:10px; display:inline-block; margin-top:4px;"
+              :style="(stockProductData?.total_physical !== undefined ? stockProductData.total_physical : (stockProductData?.total_stock || 0)) <= 0 ? 'background:#fee2e2; color:#b91c1c;' : 'background:#dcfce7; color:#15803d;'"
+              x-text="(stockProductData?.total_physical !== undefined ? stockProductData.total_physical : (stockProductData?.total_stock || 0)) + ' unidades'"
+            ></div>
+          </div>
         </div>
 
-        <div style="text-align:right;">
-          <div style="font-size:11.5px; font-weight:800; color:#64748b; text-transform:uppercase;">Stock Total Empresa</div>
-          <div 
-            style="font-size:18px; font-weight:900; padding:4px 14px; border-radius:10px; display:inline-block; margin-top:4px;"
-            :style="(stockProductData?.total_stock || 0) <= 0 ? 'background:#fee2e2; color:#b91c1c;' : 'background:#dcfce7; color:#15803d;'"
-            x-text="(stockProductData?.total_stock || 0) + ' unidades'"
-          ></div>
-        </div>
+        <!-- Línea destacada que indica que el producto está reservado -->
+        <template x-if="(stockProductData?.total_frozen || 0) > 0">
+          <div style="margin-top:14px; padding:10px 14px; background:#f0f9ff; border:1.5px solid #bae6fd; border-radius:10px; display:flex; align-items:center; justify-content:space-between; gap:12px;">
+            <div style="display:flex; align-items:center; gap:9px;">
+              <span style="font-size:20px; line-height:1;">❄️</span>
+              <div>
+                <div style="font-size:13px; color:#0369a1; font-weight:800;">
+                  Producto con reserva: <span style="font-weight:900; color:#0284c7;" x-text="(stockProductData?.total_frozen || 0) + ' unidades reservadas'"></span>
+                </div>
+                <div style="font-size:11.5px; color:#0284c7; font-weight:600; margin-top:1px;">
+                  Apartadas en pre-ventas pendientes. El stock físico no se rebaja hasta procesar la venta.
+                </div>
+              </div>
+            </div>
+            <span style="font-size:11px; font-weight:800; background:#0284c7; color:#ffffff; padding:4px 12px; border-radius:20px; white-space:nowrap; box-shadow:0 1px 3px rgba(2,132,199,0.3);">
+              ❄️ Reservado
+            </span>
+          </div>
+        </template>
+
+        <!-- Banner Ficha Técnica PDF Oficial -->
+        <template x-if="stockProductData?.pdf_datasheet_url || selectedStockProduct?.pdf_datasheet_url">
+          <div style="margin-top:14px; padding:12px 16px; background:#fef2f2; border:1.5px solid #fecaca; border-radius:10px; display:flex; align-items:center; justify-content:space-between; gap:12px;">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <div style="width:34px; height:34px; border-radius:8px; background:#ef4444; color:#ffffff; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;">
+                <i class="ph ph-file-pdf"></i>
+              </div>
+              <div>
+                <div style="font-size:13px; font-weight:800; color:#991b1b;">Ficha Técnica Oficial Disponible</div>
+                <div style="font-size:11.5px; color:#b91c1c;">Consulta las especificaciones técnicas completas o manual del fabricante.</div>
+              </div>
+            </div>
+            <a 
+              :href="stockProductData?.pdf_datasheet_url || selectedStockProduct?.pdf_datasheet_url" 
+              target="_blank" 
+              style="background:#dc2626; color:#ffffff; padding:6px 14px; font-size:12px; font-weight:800; text-decoration:none; border-radius:8px; display:inline-flex; align-items:center; gap:6px; box-shadow:0 2px 4px rgba(220,38,38,0.25); white-space:nowrap;"
+            >
+              <i class="ph ph-file-pdf" style="font-size:15px;"></i> Ver PDF
+            </a>
+          </div>
+        </template>
+
+        <!-- Alerta de Notas Internas para Vendedor / Cajero -->
+        <template x-if="stockProductData?.internal_notes || selectedStockProduct?.internal_notes">
+          <div style="margin-top:12px; padding:12px 14px; background:#fffbeb; border:1.5px solid #fde68a; border-radius:10px; display:flex; align-items:flex-start; gap:10px;">
+            <i class="ph-fill ph-warning-circle" style="font-size:20px; color:#d97706; flex-shrink:0; margin-top:1px;"></i>
+            <div style="flex:1;">
+              <div style="font-size:11.5px; font-weight:800; color:#92400e; text-transform:uppercase; letter-spacing:0.5px;">Nota Interna para Vendedor / Cajero:</div>
+              <div style="font-size:12.5px; font-weight:600; color:#78350f; margin-top:3px; line-height:1.4;" x-text="stockProductData?.internal_notes || selectedStockProduct?.internal_notes"></div>
+            </div>
+          </div>
+        </template>
+
+        <!-- Descripción Comercial del Producto -->
+        <template x-if="stockProductData?.description || selectedStockProduct?.description">
+          <div style="margin-top:12px; padding:10px 14px; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:10px; font-size:12px; color:#334155; line-height:1.45;">
+            <div style="font-size:11px; font-weight:800; color:#64748b; text-transform:uppercase; margin-bottom:3px;">Descripción & Especificaciones:</div>
+            <div x-text="stockProductData?.description || selectedStockProduct?.description"></div>
+          </div>
+        </template>
       </div>
 
       <!-- Spinner mientras carga -->
@@ -5376,6 +5514,7 @@
               <th style="padding:10px 14px; text-align:left;">Bodega / Almacén</th>
               <th style="padding:10px 14px; text-align:left;">Sucursal</th>
               <th style="padding:10px 14px; text-align:right;">Existencia</th>
+              <th style="padding:10px 14px; text-align:right;">Reservado</th>
               <th style="padding:10px 14px; text-align:center;">Estado</th>
             </tr>
           </thead>
@@ -5391,23 +5530,36 @@
                 </td>
                 <td style="padding:10px 14px; color:#64748b; font-weight:600;" x-text="wh.branch_name || 'Central'"></td>
                 <td style="padding:10px 14px; text-align:right; font-weight:900; font-size:13.5px; color:#0f172a;" x-text="wh.qty_on_hand + ' unid.'"></td>
+                <td style="padding:10px 14px; text-align:right;">
+                  <span 
+                    style="font-size:11.5px; font-weight:800;"
+                    :style="(wh.qty_frozen || 0) > 0 ? 'color:#0284c7; background:#e0f2fe; padding:2px 8px; border-radius:6px; border:1px solid #bae6fd;' : 'color:#94a3b8;'"
+                    x-text="(wh.qty_frozen || 0) > 0 ? ('❄️ ' + wh.qty_frozen + ' unid.') : '0 unid.'"
+                  ></span>
+                </td>
                 <td style="padding:10px 14px; text-align:center;">
                   <span 
                     style="font-size:10.5px; font-weight:800; padding:2px 8px; border-radius:8px;"
-                    :style="wh.qty_on_hand <= 0 ? 'background:#fee2e2; color:#b91c1c;' : (wh.qty_on_hand <= (stockProductData?.min_stock || 5) ? 'background:#ffedd5; color:#c2410c;' : 'background:#dcfce7; color:#15803d;')"
-                    x-text="wh.qty_on_hand <= 0 ? 'Sin Stock' : (wh.qty_on_hand <= (stockProductData?.min_stock || 5) ? 'Bajo' : 'Disponible')"
+                    :style="wh.qty_on_hand <= 0 ? 'background:#fee2e2; color:#b91c1c;' : ((wh.qty_frozen || 0) > 0 && (wh.qty_frozen || 0) >= wh.qty_on_hand ? 'background:#e0f2fe; color:#0284c7;' : (wh.qty_on_hand <= (stockProductData?.min_stock || 5) ? 'background:#ffedd5; color:#c2410c;' : 'background:#dcfce7; color:#15803d;'))"
+                    x-text="wh.qty_on_hand <= 0 ? 'Sin Stock' : ((wh.qty_frozen || 0) > 0 && (wh.qty_frozen || 0) >= wh.qty_on_hand ? 'Reservado' : (wh.qty_on_hand <= (stockProductData?.min_stock || 5) ? 'Bajo' : 'Disponible'))"
                   ></span>
                 </td>
               </tr>
             </template>
 
             <tr x-show="!stockProductData?.warehouses || stockProductData.warehouses.length === 0">
-              <td colspan="4" style="text-align:center; padding:24px; color:#94a3b8; font-size:12.5px;">
+              <td colspan="5" style="text-align:center; padding:24px; color:#94a3b8; font-size:12.5px;">
                 No hay otras bodegas registradas en la empresa.
               </td>
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <!-- Nota explicativa cuando hay reservas activas -->
+      <div x-show="(stockProductData?.total_frozen || 0) > 0" style="margin-top:12px; padding:9px 13px; background:#f0f9ff; border:1px solid #e0f2fe; border-radius:8px; font-size:11.5px; color:#0369a1; display:flex; align-items:flex-start; gap:8px; line-height:1.4;">
+        <i class="ph-fill ph-snowflake" style="font-size:15px; margin-top:2px; flex-shrink:0;"></i>
+        <span>El <strong>stock congelado</strong> reserva unidades para pre-ventas pendientes. Si en <strong>7 días</strong> la solicitud no es autorizada ni anulada, se libera automáticamente. El inventario físico no se descuenta hasta procesar o facturar la venta.</span>
       </div>
 
       <!-- Botones Footer -->
@@ -5416,10 +5568,22 @@
         <button 
           type="button" 
           class="btn-confirm-opening" 
-          style="background:#714B67; padding:9px 20px; font-weight:800;" 
-          @click="if(selectedStockProduct) { addToCart(selectedStockProduct); showStockInfoModal = false; }"
+          :style="((stockProductData?.total_physical || 0) - (stockProductData?.total_frozen || 0) <= 0) ? 'background:#94a3b8; cursor:not-allowed; padding:9px 20px; font-weight:800;' : 'background:#714B67; padding:9px 20px; font-weight:800;'" 
+          @click="if(selectedStockProduct) { 
+            const avail = (stockProductData?.total_physical || 0) - (stockProductData?.total_frozen || 0);
+            if (avail <= 0) {
+              if ((stockProductData?.total_frozen || 0) > 0) {
+                toast('❌ Este producto no tiene existencias disponibles para venta (' + stockProductData.total_frozen + ' unid. reservadas en pre-venta).', 'error');
+              } else {
+                toast('❌ Este producto no cuenta con existencias disponibles en bodega.', 'error');
+              }
+              return;
+            }
+            addToCart(selectedStockProduct); 
+            showStockInfoModal = false; 
+          }"
         >
-          🛒 Agregar al Carrito
+          <span x-text="((stockProductData?.total_physical || 0) - (stockProductData?.total_frozen || 0) <= 0) ? ((stockProductData?.total_frozen || 0) > 0 ? '🔒 Producto Reservado' : '🚫 Sin Stock') : '🛒 Agregar al Carrito'"></span>
         </button>
       </div>
     </div>
@@ -6599,7 +6763,7 @@ function posApp() {
             url += `&category_id=${this.selectedCategory}`;
           }
           const res = await API.get(url);
-          const items = res.items || (Array.isArray(res) ? res : []);
+          const items = res.products || res.items || (Array.isArray(res) ? res : []);
           const activeOnly = items.filter(p => p.is_active === true && !p.is_deleted);
           
           if (window.posDB) {
@@ -6636,19 +6800,33 @@ function posApp() {
       this.products = [];
     },
 
+    broadcastStockChange(type = 'STOCK_UPDATED', delta = null) {
+      if ('BroadcastChannel' in window) {
+        try {
+          const ch = new BroadcastChannel('pos_stock_channel');
+          ch.postMessage({ type: type, delta: delta, timestamp: Date.now() });
+          setTimeout(() => ch.close(), 200);
+        } catch(_) {}
+      }
+      try {
+        localStorage.setItem('pos_stock_updated_timestamp', Date.now().toString());
+      } catch(_) {}
+    },
+
     initRealtimeStockSync() {
-      // 1. Canal BroadcastChannel para sincronización instantánea entre pestañas del POS
+      // 1. Canal BroadcastChannel para sincronización instantánea entre pestañas del POS y Pre-venta
       if ('BroadcastChannel' in window) {
         try {
           this.stockChannel = new BroadcastChannel('pos_stock_channel');
           this.stockChannel.onmessage = (ev) => {
-            if (ev.data && ev.data.type === 'STOCK_UPDATED') {
+            if (ev.data) {
               if (ev.data.delta && Array.isArray(ev.data.delta)) {
                 for (const item of ev.data.delta) {
                   if (this.products && item.product_id) {
                     const p = this.products.find(x => String(x.id) === String(item.product_id));
                     if (p) {
                       p.stock = Math.max(0, Number((p.stock || 0) - (item.qty || 0)).toFixed(2) * 1);
+                      p.stock_available = Math.max(0, Number((p.stock_available !== undefined ? p.stock_available : p.stock) - (item.qty || 0)).toFixed(2) * 1);
                     }
                   }
                 }
@@ -6680,13 +6858,13 @@ function posApp() {
         }
       });
 
-      // 4. Temporizador de actualización periódica en segundo plano (cada 6 segundos si la pestaña está activa)
+      // 4. Temporizador de actualización periódica en segundo plano (cada 3 segundos si la pestaña está activa)
       if (this._stockSyncInterval) clearInterval(this._stockSyncInterval);
       this._stockSyncInterval = setInterval(() => {
         if (!document.hidden && this.online && !this.isSyncingStock) {
           this.syncLiveStock().catch(() => {});
         }
-      }, 6000);
+      }, 3000);
     },
 
     async syncLiveStock() {
@@ -6702,24 +6880,37 @@ function posApp() {
           url += `?branch_id=${encodeURIComponent(branchId)}`;
         }
         const res = await API.get(url);
-        if (res && res.stock && typeof res.stock === 'object') {
-          const stockMap = res.stock;
+        if (res && (res.stock || res.stock_available) && typeof (res.stock || res.stock_available) === 'object') {
+          const availMap = res.stock_available || res.stock || {};
+          const physMap = res.stock_physical || {};
+          const frozMap = res.stock_frozen || {};
           // Actualizar reactivamente this.products en memoria
           if (this.products && Array.isArray(this.products)) {
             for (let i = 0; i < this.products.length; i++) {
               const p = this.products[i];
-              if (stockMap[p.id] !== undefined) {
-                p.stock = Number(stockMap[p.id]);
+              const pid = String(p.id);
+              if (availMap[pid] !== undefined) {
+                p.stock = Number(availMap[pid]);
+                p.stock_available = Number(availMap[pid]);
               }
+              if (physMap[pid] !== undefined) {
+                p.stock_physical = Number(physMap[pid]);
+              }
+              p.stock_frozen = Number(frozMap[pid] || 0);
             }
           }
           // Si hay modal de detalle de producto abierto, actualizarlo también
-          if (this.selectedStockProduct && stockMap[this.selectedStockProduct.id] !== undefined) {
-            this.selectedStockProduct.stock = Number(stockMap[this.selectedStockProduct.id]);
+          if (this.selectedStockProduct && availMap[this.selectedStockProduct.id] !== undefined) {
+            this.selectedStockProduct.stock = Number(availMap[this.selectedStockProduct.id]);
+            this.selectedStockProduct.stock_available = Number(availMap[this.selectedStockProduct.id]);
+            if (physMap[this.selectedStockProduct.id] !== undefined) {
+              this.selectedStockProduct.stock_physical = Number(physMap[this.selectedStockProduct.id]);
+            }
+            this.selectedStockProduct.stock_frozen = Number(frozMap[this.selectedStockProduct.id] || 0);
           }
           // Actualizar en IndexedDB
           if (window.posDB && typeof window.posDB.updateStockMap === 'function') {
-            window.posDB.updateStockMap(stockMap).catch(() => {});
+            window.posDB.updateStockMap(availMap).catch(() => {});
           }
         }
       } catch(err) {
@@ -7004,12 +7195,21 @@ function posApp() {
     },
 
     addToCart(product) {
-      if (product.stock !== undefined && product.stock <= 0) {
-        this.toast(`❌ Sin stock disponible para ${product.name}`, 'error');
+      const physStock = Number(product.stock_physical !== undefined ? product.stock_physical : (product.stock || 0));
+      const frozenStock = Number(product.stock_frozen || 0);
+      const availStock = product.stock_available !== undefined ? Number(product.stock_available) : (physStock - frozenStock);
+      const isService = product.product_type === 'service';
+
+      if (!isService && availStock <= 0) {
+        if (frozenStock > 0) {
+          this.toast(`❌ El producto "${product.name}" está reservado (${frozenStock} en pre-venta) y no cuenta con existencia disponible para realizar otra venta.`, 'error');
+        } else {
+          this.toast(`❌ Sin stock disponible en bodega para "${product.name}".`, 'error');
+        }
         return;
       }
-      if (product.stock !== undefined && product.stock <= 5) {
-        this.toast(`⚠️ Atención: Stock bajo para ${product.name} (${product.stock} unidades restantes)`, 'info');
+      if (!isService && availStock <= 5 && availStock > 0) {
+        this.toast(`⚠️ Atención: Stock bajo para ${product.name} (${availStock} unidades disponibles restantes)`, 'info');
       }
 
       const cartEl = document.getElementById('posCartContainer');
@@ -7053,6 +7253,15 @@ function posApp() {
       const effectiveUomSymbol = product.uom_symbol || 'Pz';
 
       const existing = this.cart.find(x => x.product_id === product.id && x.is_wholesale === isWholesale);
+      const currentInCart = existing ? existing.qty : 0;
+      if (!isService && (currentInCart + qtyToAdd) > availStock) {
+        if (frozenStock > 0) {
+          this.toast(`❌ Existencia disponible insuficiente para "${product.name}". Solo hay ${Math.max(0, availStock)} disponible(s) (${frozenStock} reservadas en pre-ventas).`, 'error');
+        } else {
+          this.toast(`❌ Existencia insuficiente en bodega para "${product.name}". Solo hay ${Math.max(0, physStock)} unidad(es) disponible(s) (en carrito: ${currentInCart}).`, 'error');
+        }
+        return;
+      }
       if (existing) {
         existing.qty += qtyToAdd;
         this.recalcLinePricing(existing);
@@ -7148,6 +7357,20 @@ function posApp() {
           this.selectedLineIdx = -1;
           this.numpadBuffer = '';
           return;
+        }
+        const prod = (this.products || []).find(p => p.id === item.product_id);
+        if (prod && prod.product_type !== 'service') {
+          const phys = Number(prod.stock_physical !== undefined ? prod.stock_physical : (prod.stock || 0));
+          const frozen = Number(prod.stock_frozen || 0);
+          const avail = prod.stock_available !== undefined ? Number(prod.stock_available) : (phys - frozen);
+          if (val > avail) {
+            const msg = frozen > 0
+              ? `❌ No se pueden vender ${val} unidades de "${item.product_name}". Solo hay ${Math.max(0, avail)} disponible(s) (${frozen} reservadas en pre-ventas).`
+              : `❌ No se pueden vender ${val} unidades de "${item.product_name}". Solo hay ${Math.max(0, phys)} unidad(es) disponibles en bodega.`;
+            this.toast(msg, 'error');
+            this.numpadBuffer = '';
+            return;
+          }
         }
         item.qty = val;
       } else if (this.numpadMode === 'price') {
@@ -7292,6 +7515,20 @@ function posApp() {
 
     goToPayment() {
       if (this.cart.length === 0) return;
+      for (const item of this.cart) {
+        const prod = (this.products || []).find(p => p.id === item.product_id);
+        if (prod && prod.product_type !== 'service') {
+          const phys = Number(prod.stock_physical !== undefined ? prod.stock_physical : (prod.stock || 0));
+          const frozen = Number(prod.stock_frozen || 0);
+          const avail = prod.stock_available !== undefined ? Number(prod.stock_available) : (phys - frozen);
+          if (avail <= 0) {
+            return this.toast(`❌ No se puede cobrar: "${item.product_name}" no tiene existencias disponibles en bodega${frozen > 0 ? ' (' + frozen + ' reservadas en pre-ventas)' : ''}.`, 'error');
+          }
+          if (item.qty > avail) {
+            return this.toast(`❌ No se puede cobrar: "${item.product_name}" supera la existencia disponible (Disponible: ${Math.max(0, avail)}, Solicitado: ${item.qty}${frozen > 0 ? ', Reservadas: ' + frozen : ''}).`, 'error');
+          }
+        }
+      }
       this.paymentMethod = 'cash';
       this.payBuffer = '0.00';
       this.receivedAmount = 0;
@@ -7305,6 +7542,22 @@ function posApp() {
       }
       if (this.paymentMethod === 'credit' && (!this.customer || !this.customer.nit || this.customer.nit === 'CF')) {
         return this.toast('Debes seleccionar un cliente registrado para otorgar crédito', 'error');
+      }
+
+      // Validar que ningún producto en el carrito supere el stock disponible en bodega o reservas
+      for (const item of this.cart) {
+        const prod = (this.products || []).find(p => p.id === item.product_id);
+        if (prod && prod.product_type !== 'service') {
+          const phys = Number(prod.stock_physical !== undefined ? prod.stock_physical : (prod.stock || 0));
+          const frozen = Number(prod.stock_frozen || 0);
+          const avail = prod.stock_available !== undefined ? Number(prod.stock_available) : (phys - frozen);
+          if (avail <= 0) {
+            return this.toast(`❌ No se puede facturar: "${item.product_name}" no cuenta con existencias disponibles en bodega${frozen > 0 ? ' (' + frozen + ' reservadas en pre-ventas)' : ''}.`, 'error');
+          }
+          if (item.qty > avail) {
+            return this.toast(`❌ No se puede facturar: "${item.product_name}" supera la existencia disponible (Disponible: ${Math.max(0, avail)}, Solicitado: ${item.qty}${frozen > 0 ? ', Reservadas: ' + frozen : ''}).`, 'error');
+          }
+        }
       }
 
       try {
@@ -7405,24 +7658,20 @@ function posApp() {
             if (l.product_id) {
               const prod = this.products.find(p => String(p.id) === String(l.product_id));
               if (prod) {
-                prod.stock = Math.max(0, Number((prod.stock || 0) - (l.qty || 0)).toFixed(2) * 1);
+                const q = Number(l.qty || 0);
+                prod.stock = Math.max(0, Number((prod.stock || 0) - q).toFixed(2) * 1);
+                prod.stock_available = Math.max(0, Number((prod.stock_available !== undefined ? prod.stock_available : prod.stock) - q).toFixed(2) * 1);
+                if (prod.stock_physical !== undefined) {
+                  prod.stock_physical = Math.max(0, Number(prod.stock_physical - q).toFixed(2) * 1);
+                }
               }
             }
           }
         }
 
-        // Notificar a otras pestañas/ventanas del POS mediante BroadcastChannel y Storage
-        if (this.stockChannel && saleData && saleData.lines) {
-          try {
-            this.stockChannel.postMessage({
-              type: 'STOCK_UPDATED',
-              delta: saleData.lines.map(l => ({ product_id: l.product_id, qty: l.qty }))
-            });
-          } catch(e) {}
-        }
-        try {
-          localStorage.setItem('pos_stock_updated_timestamp', Date.now().toString());
-        } catch(e) {}
+        // Notificar instantáneamente a otras pestañas/ventanas del POS y Pre-venta
+        const deltas = (saleData && saleData.lines) ? saleData.lines.map(l => ({ product_id: l.product_id, qty: l.qty })) : null;
+        this.broadcastStockChange('SALE_COMPLETED', deltas);
 
         // Sincronizar en segundo plano con el servidor para cuadrar stock exacto
         if (this.online) {

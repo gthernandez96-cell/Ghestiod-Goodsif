@@ -17,10 +17,102 @@ from app.models.product import Product, ProductCategory
 from app.models.inventory import StockQuant
 from app.models.ap import SupplierBill
 from app.models.ar import CustomerInvoiceCredit
+from app.models.company import Branch, Warehouse
 
 from app.models.user import User
 
 router = APIRouter(prefix="/dashboard")
+
+try:
+    from zoneinfo import ZoneInfo
+    GUATEMALA_TZ = ZoneInfo("America/Guatemala")
+except Exception:
+    GUATEMALA_TZ = timezone(timedelta(hours=-6))
+
+
+def to_local_dt(dt: Optional[datetime], tz=GUATEMALA_TZ) -> Optional[datetime]:
+    """Convierte un datetime (almacenado en UTC en la BD) a la zona horaria local (Guatemala UTC-6)."""
+    if not dt:
+        return None
+    if isinstance(dt, str):
+        try:
+            dt = datetime.fromisoformat(dt.replace("Z", "+00:00"))
+        except Exception:
+            return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(tz)
+
+
+def to_utc_naive(dt: datetime) -> datetime:
+    """Convierte un datetime a naive UTC para filtros compatibles con SQLite y PostgreSQL."""
+    if not dt:
+        return dt
+    if dt.tzinfo is None:
+        return dt
+    return dt.astimezone(timezone.utc).replace(tzinfo=None)
+
+
+def resolve_period_dates(
+    period: str = "month",
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+) -> tuple[datetime, datetime, datetime, datetime, str]:
+    """Calcula rango de fechas en UTC (inicio, fin, previo_inicio, previo_fin, etiqueta) según el huso horario local de Guatemala."""
+    now_local = datetime.now(GUATEMALA_TZ)
+    today_local = now_local.date()
+    start_of_today_local = datetime.combine(today_local, datetime.min.time(), tzinfo=GUATEMALA_TZ)
+    start_of_yesterday_local = start_of_today_local - timedelta(days=1)
+    start_of_month_local = datetime.combine(today_local.replace(day=1), datetime.min.time(), tzinfo=GUATEMALA_TZ)
+
+    if period == "today":
+        p_start_loc = start_of_today_local
+        p_end_loc = datetime.combine(today_local, datetime.max.time(), tzinfo=GUATEMALA_TZ)
+        prev_start_loc = start_of_yesterday_local
+        prev_end_loc = datetime.combine(today_local - timedelta(days=1), datetime.max.time(), tzinfo=GUATEMALA_TZ)
+        period_label = "Hoy"
+    elif period == "week":
+        p_start_loc = datetime.combine(today_local - timedelta(days=today_local.weekday()), datetime.min.time(), tzinfo=GUATEMALA_TZ)
+        p_end_loc = datetime.combine(today_local, datetime.max.time(), tzinfo=GUATEMALA_TZ)
+        duration = p_end_loc - p_start_loc
+        prev_start_loc = p_start_loc - duration
+        prev_end_loc = p_start_loc
+        period_label = "Esta Semana"
+    elif period == "year":
+        p_start_loc = datetime.combine(today_local.replace(month=1, day=1), datetime.min.time(), tzinfo=GUATEMALA_TZ)
+        p_end_loc = datetime.combine(today_local, datetime.max.time(), tzinfo=GUATEMALA_TZ)
+        prev_start_loc = datetime.combine(today_local.replace(year=today_local.year - 1, month=1, day=1), datetime.min.time(), tzinfo=GUATEMALA_TZ)
+        prev_end_loc = datetime.combine(today_local.replace(year=today_local.year - 1, month=today_local.month, day=today_local.day), datetime.max.time(), tzinfo=GUATEMALA_TZ)
+        period_label = "Este Año"
+    elif period == "custom" and start_date and end_date:
+        try:
+            p_start_loc = datetime.combine(datetime.strptime(start_date[:10], "%Y-%m-%d").date(), datetime.min.time(), tzinfo=GUATEMALA_TZ)
+            p_end_loc = datetime.combine(datetime.strptime(end_date[:10], "%Y-%m-%d").date(), datetime.max.time(), tzinfo=GUATEMALA_TZ)
+            duration = p_end_loc - p_start_loc
+            prev_start_loc = p_start_loc - duration
+            prev_end_loc = p_start_loc
+            period_label = f"{start_date[:10]} al {end_date[:10]}"
+        except Exception:
+            p_start_loc = start_of_month_local
+            p_end_loc = datetime.combine(today_local, datetime.max.time(), tzinfo=GUATEMALA_TZ)
+            prev_month_last = today_local.replace(day=1) - timedelta(days=1)
+            prev_start_loc = datetime.combine(prev_month_last.replace(day=1), datetime.min.time(), tzinfo=GUATEMALA_TZ)
+            prev_end_loc = start_of_month_local
+            period_label = "Este Mes"
+    else:  # "month" por defecto
+        p_start_loc = start_of_month_local
+        p_end_loc = datetime.combine(today_local, datetime.max.time(), tzinfo=GUATEMALA_TZ)
+        prev_month_last = today_local.replace(day=1) - timedelta(days=1)
+        prev_start_loc = datetime.combine(prev_month_last.replace(day=1), datetime.min.time(), tzinfo=GUATEMALA_TZ)
+        prev_end_loc = start_of_month_local
+        period_label = "Este Mes"
+
+    p_start = to_utc_naive(p_start_loc)
+    p_end = to_utc_naive(p_end_loc)
+    prev_start = to_utc_naive(prev_start_loc)
+    prev_end = to_utc_naive(prev_end_loc)
+
+    return p_start, p_end, prev_start, prev_end, period_label
 
 
 @router.get("/kpis")
@@ -33,53 +125,11 @@ async def get_kpis(
     current_user=Depends(get_current_user),
 ):
     """Obtener resumen de KPIs en tiempo real con filtro temporal dinámico y cálculo de utilidades."""
-    now = datetime.now()
-    today = now.date()
-    start_of_today = datetime.combine(today, datetime.min.time())
-    start_of_yesterday = start_of_today - timedelta(days=1)
-    start_of_month = datetime.combine(today.replace(day=1), datetime.min.time())
-
-    # Calcular rango del período seleccionado y del período anterior equivalente
-    if period == "today":
-        p_start = start_of_today
-        p_end = now
-        prev_start = start_of_yesterday
-        prev_end = start_of_today
-        period_label = "Hoy"
-    elif period == "week":
-        p_start = datetime.combine(today - timedelta(days=today.weekday()), datetime.min.time())
-        p_end = now
-        duration = p_end - p_start
-        prev_start = p_start - duration
-        prev_end = p_start
-        period_label = "Esta Semana"
-    elif period == "year":
-        p_start = datetime.combine(today.replace(month=1, day=1), datetime.min.time())
-        p_end = now
-        prev_start = datetime.combine(today.replace(year=today.year - 1, month=1, day=1), datetime.min.time())
-        prev_end = datetime.combine(today.replace(year=today.year - 1, month=today.month, day=today.day), datetime.max.time())
-        period_label = "Este Año"
-    elif period == "custom" and start_date and end_date:
-        try:
-            p_start = datetime.strptime(start_date, "%Y-%m-%d")
-            p_end = datetime.combine(datetime.strptime(end_date, "%Y-%m-%d").date(), datetime.max.time())
-            duration = p_end - p_start
-            prev_start = p_start - duration
-            prev_end = p_start
-            period_label = f"{start_date} al {end_date}"
-        except Exception:
-            p_start = start_of_month
-            p_end = now
-            prev_start = datetime.combine((today.replace(day=1) - timedelta(days=1)).replace(day=1), datetime.min.time())
-            prev_end = start_of_month
-            period_label = "Este Mes"
-    else:  # "month" by default
-        p_start = start_of_month
-        p_end = now
-        prev_month_last = today.replace(day=1) - timedelta(days=1)
-        prev_start = datetime.combine(prev_month_last.replace(day=1), datetime.min.time())
-        prev_end = start_of_month
-        period_label = "Este Mes"
+    p_start, p_end, prev_start, prev_end, period_label = resolve_period_dates(period, start_date, end_date)
+    now_local = datetime.now(GUATEMALA_TZ)
+    today_local = now_local.date()
+    start_of_today = to_utc_naive(datetime.combine(today_local, datetime.min.time(), tzinfo=GUATEMALA_TZ))
+    start_of_month = to_utc_naive(datetime.combine(today_local.replace(day=1), datetime.min.time(), tzinfo=GUATEMALA_TZ))
 
     # 1. Ventas y Facturas del Período
     sales_period_stmt = select(
@@ -276,21 +326,14 @@ async def get_kpis(
 @router.get("/cashier-performance")
 async def get_cashier_performance(
     period: str = Query("month"),
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None),
     branch_id: Optional[str] = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
     """Obtener rendimiento y ranking de ventas por cajero/vendedor."""
-    now = datetime.now()
-    today = now.date()
-    if period == "today":
-        p_start = datetime.combine(today, datetime.min.time())
-    elif period == "week":
-        p_start = datetime.combine(today - timedelta(days=today.weekday()), datetime.min.time())
-    elif period == "year":
-        p_start = datetime.combine(today.replace(month=1, day=1), datetime.min.time())
-    else:
-        p_start = datetime.combine(today.replace(day=1), datetime.min.time())
+    p_start, p_end, _, _, _ = resolve_period_dates(period, start_date, end_date)
 
     stmt = (
         select(
@@ -308,6 +351,7 @@ async def get_cashier_performance(
         .where(
             SaleOrder.company_id == current_user.company_id,
             SaleOrder.sale_date >= p_start,
+            SaleOrder.sale_date <= p_end,
             SaleOrder.state != SaleState.CANCELLED
         )
         .group_by(User.id, User.full_name, User.username, User.email)
@@ -332,7 +376,7 @@ async def get_cashier_performance(
         items.append({
             "rank": rank,
             "user_id": str(r.id),
-            "name": r.name or r.username or "Colaborador",
+            "name": getattr(r, "full_name", None) or r.username or "Colaborador",
             "username": r.username,
             "email": r.email,
             "tickets": int(r.total_tickets or 0),
@@ -348,6 +392,8 @@ async def get_cashier_performance(
 @router.get("/export-excel")
 async def export_bi_excel(
     period: str = Query("month"),
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None),
     branch_id: Optional[str] = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
@@ -359,14 +405,7 @@ async def export_bi_excel(
 
     now = datetime.now()
     today = now.date()
-    if period == "today":
-        p_start = datetime.combine(today, datetime.min.time())
-    elif period == "week":
-        p_start = datetime.combine(today - timedelta(days=today.weekday()), datetime.min.time())
-    elif period == "year":
-        p_start = datetime.combine(today.replace(month=1, day=1), datetime.min.time())
-    else:
-        p_start = datetime.combine(today.replace(day=1), datetime.min.time())
+    p_start, p_end, _, _, period_label = resolve_period_dates(period, start_date, end_date)
 
     # Ventas del período
     stmt = (
@@ -375,6 +414,7 @@ async def export_bi_excel(
         .where(
             SaleOrder.company_id == current_user.company_id,
             SaleOrder.sale_date >= p_start,
+            SaleOrder.sale_date <= p_end,
             SaleOrder.state != SaleState.CANCELLED
         )
         .order_by(SaleOrder.sale_date.desc())
@@ -388,12 +428,24 @@ async def export_bi_excel(
     res = await db.execute(stmt)
     sales = res.scalars().all()
 
+    branch_title = "Todas las Sucursales"
+    if branch_id:
+        try:
+            b_stmt = select(Branch).where(Branch.id == uuid.UUID(branch_id))
+            b_res = await db.execute(b_stmt)
+            b_obj = b_res.scalar_one_or_none()
+            if b_obj:
+                branch_title = b_obj.name
+        except Exception:
+            pass
+
     output = io.StringIO()
     writer = csv.writer(output, delimiter=",")
     writer.writerow([
         "REPORTE EJECUTIVO DE VENTAS Y BI — POS EMPRESARIAL",
         f"Generado: {now.strftime('%d/%m/%Y %H:%M')}",
-        f"Período: {period.upper()}"
+        f"Período: {period.upper()}",
+        f"Sucursal: {branch_title}"
     ])
     writer.writerow([])
     writer.writerow([
@@ -403,7 +455,8 @@ async def export_bi_excel(
     total_amount = 0.0
     for s in sales:
         total_amount += float(s.total or 0)
-        s_date_str = s.sale_date.strftime("%d/%m/%Y %H:%M") if s.sale_date else ""
+        loc_dt = to_local_dt(s.sale_date)
+        s_date_str = loc_dt.strftime("%d/%m/%Y %H:%M") if loc_dt else ""
         writer.writerow([
             s.number,
             s_date_str,
@@ -429,31 +482,123 @@ async def export_bi_excel(
 
 @router.get("/sales-chart")
 async def get_sales_chart(
-    days: int = Query(30, le=90),
+    period: Optional[str] = Query(None),
+    days: Optional[int] = Query(None),
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None),
     branch_id: Optional[str] = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    """Obtener serie temporal de ventas continuas por día."""
-    now = datetime.now()
-    today = now.date()
-    start_date = datetime.combine(today - timedelta(days=days - 1), datetime.min.time())
+    """Obtener serie temporal de ventas continuas por día u hora según el período o días seleccionados en hora local."""
+    now_local = datetime.now(GUATEMALA_TZ)
+    today_local = now_local.date()
 
-    # Generar todos los días del período para asegurar continuidad en el gráfico
+    if period:
+        p_start, p_end, _, _, _ = resolve_period_dates(period, start_date, end_date)
+    else:
+        num_days = days or 30
+        p_start_loc = datetime.combine(today_local - timedelta(days=num_days - 1), datetime.min.time(), tzinfo=GUATEMALA_TZ)
+        p_end_loc = datetime.combine(today_local, datetime.max.time(), tzinfo=GUATEMALA_TZ)
+        p_start = to_utc_naive(p_start_loc)
+        p_end = to_utc_naive(p_end_loc)
+
+    # Si es "today", graficar horas del día en horario local
+    if period == "today":
+        hours_dict = {f"{h:02d}:00": 0.0 for h in range(0, 24)}
+        counts_dict = {f"{h:02d}:00": 0 for h in range(0, 24)}
+        stmt = select(SaleOrder.sale_date, SaleOrder.total).where(
+            SaleOrder.company_id == current_user.company_id,
+            SaleOrder.sale_date >= p_start,
+            SaleOrder.sale_date <= p_end,
+            SaleOrder.state != SaleState.CANCELLED
+        ).order_by(SaleOrder.sale_date.asc())
+        if branch_id:
+            try:
+                stmt = stmt.where(SaleOrder.branch_id == uuid.UUID(branch_id))
+            except ValueError:
+                pass
+        res = await db.execute(stmt)
+        has_early = False
+        for s_date, total in res.all():
+            loc_dt = to_local_dt(s_date)
+            if loc_dt:
+                h = loc_dt.hour
+                h_key = f"{h:02d}:00"
+                hours_dict[h_key] += float(total or 0)
+                counts_dict[h_key] += 1
+                if h < 6:
+                    has_early = True
+        display_range = range(0, 24) if has_early else range(6, 24)
+        return {
+            "labels": [f"{h:02d}:00" for h in display_range],
+            "data": [round(hours_dict[f"{h:02d}:00"], 2) for h in display_range],
+            "counts": [counts_dict[f"{h:02d}:00"] for h in display_range],
+            "period": "today"
+        }
+
+    # Si el período es anual o mayor a 60 días, agrupar por mes
+    total_days = max(1, (to_local_dt(p_end).date() - to_local_dt(p_start).date()).days + 1)
+    if period == "year" or total_days > 90:
+        months_dict = {}
+        counts_dict = {}
+        curr = to_local_dt(p_start).replace(day=1)
+        p_end_loc = to_local_dt(p_end)
+        while curr <= p_end_loc:
+            m_key = curr.strftime("%Y-%m")
+            months_dict[m_key] = 0.0
+            counts_dict[m_key] = 0
+            if curr.month == 12:
+                curr = curr.replace(year=curr.year + 1, month=1)
+            else:
+                curr = curr.replace(month=curr.month + 1)
+
+        stmt = select(SaleOrder.sale_date, SaleOrder.total).where(
+            SaleOrder.company_id == current_user.company_id,
+            SaleOrder.sale_date >= p_start,
+            SaleOrder.sale_date <= p_end,
+            SaleOrder.state != SaleState.CANCELLED
+        ).order_by(SaleOrder.sale_date.asc())
+        if branch_id:
+            try:
+                stmt = stmt.where(SaleOrder.branch_id == uuid.UUID(branch_id))
+            except ValueError:
+                pass
+        res = await db.execute(stmt)
+        for s_date, total in res.all():
+            loc_dt = to_local_dt(s_date)
+            if loc_dt:
+                m_key = loc_dt.strftime("%Y-%m")
+                if m_key in months_dict:
+                    months_dict[m_key] += float(total or 0)
+                    counts_dict[m_key] += 1
+        m_names = {"01":"Ene","02":"Feb","03":"Mar","04":"Abr","05":"May","06":"Jun","07":"Jul","08":"Ago","09":"Sep","10":"Oct","11":"Nov","12":"Dic"}
+        labels = [m_names.get(k[5:7], k[5:7]) for k in months_dict.keys()]
+        return {
+            "labels": labels,
+            "data": [round(v, 2) for v in months_dict.values()],
+            "counts": list(counts_dict.values()),
+            "period": period or "custom"
+        }
+
+    # Días continuos para week, month, custom o num_days en fecha local
     days_dict = {}
     counts_dict = {}
-    for i in range(days):
-        d = today - timedelta(days=(days - 1 - i))
-        d_key = d.strftime("%Y-%m-%d")
+    curr = to_local_dt(p_start).date()
+    end_d = to_local_dt(p_end).date()
+    while curr <= end_d:
+        d_key = curr.strftime("%Y-%m-%d")
         days_dict[d_key] = 0.0
         counts_dict[d_key] = 0
+        curr += timedelta(days=1)
 
     stmt = select(
         SaleOrder.sale_date,
         SaleOrder.total
     ).where(
         SaleOrder.company_id == current_user.company_id,
-        SaleOrder.sale_date >= start_date,
+        SaleOrder.sale_date >= p_start,
+        SaleOrder.sale_date <= p_end,
         SaleOrder.state != SaleState.CANCELLED
     ).order_by(SaleOrder.sale_date.asc())
 
@@ -467,15 +612,10 @@ async def get_sales_chart(
     rows = res.all()
 
     for sale_date, total in rows:
-        if not sale_date:
+        loc_dt = to_local_dt(sale_date)
+        if not loc_dt:
             continue
-        if isinstance(sale_date, str):
-            day_key = sale_date[:10]
-        elif hasattr(sale_date, "strftime"):
-            day_key = sale_date.strftime("%Y-%m-%d")
-        else:
-            day_key = str(sale_date)[:10]
-
+        day_key = loc_dt.strftime("%Y-%m-%d")
         if day_key in days_dict:
             days_dict[day_key] += float(total or 0)
             counts_dict[day_key] += 1
@@ -491,17 +631,20 @@ async def get_sales_chart(
     data = [round(v, 2) for v in days_dict.values()]
     counts = list(counts_dict.values())
 
-    return {"labels": labels, "data": data, "counts": counts}
+    return {"labels": labels, "data": data, "counts": counts, "period": period or f"{days or 30}d"}
 
 
 @router.get("/category-breakdown")
 async def get_category_breakdown(
+    period: str = Query("month"),
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None),
     branch_id: Optional[str] = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
     """Distribución de ingresos por categoría de producto para gráfico Doughnut."""
-    start_date = datetime.now() - timedelta(days=30)
+    p_start, p_end, _, _, _ = resolve_period_dates(period, start_date, end_date)
 
     stmt = (
         select(
@@ -513,7 +656,8 @@ async def get_category_breakdown(
         .outerjoin(ProductCategory, Product.category_id == ProductCategory.id)
         .where(
             SaleOrder.company_id == current_user.company_id,
-            SaleOrder.sale_date >= start_date,
+            SaleOrder.sale_date >= p_start,
+            SaleOrder.sale_date <= p_end,
             SaleOrder.state != SaleState.CANCELLED
         )
         .group_by("cat_name")
@@ -536,20 +680,23 @@ async def get_category_breakdown(
         data.append(round(float(total or 0), 2))
 
     if not data:
-        labels = ["Bebidas & Snacks", "Abarrotes", "Electrónica", "Limpieza & Hogar", "Otros"]
-        data = [4500.0, 3200.0, 2800.0, 1900.0, 1100.0]
+        labels = ["Sin ventas en el período"]
+        data = [0.0]
 
-    return {"labels": labels, "data": data}
+    return {"labels": labels, "data": data, "period": period}
 
 
 @router.get("/payment-methods")
 async def get_payment_methods_breakdown(
+    period: str = Query("month"),
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None),
     branch_id: Optional[str] = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
     """Distribución de recaudación por método de pago."""
-    start_date = datetime.now() - timedelta(days=30)
+    p_start, p_end, _, _, _ = resolve_period_dates(period, start_date, end_date)
 
     stmt = (
         select(
@@ -559,7 +706,8 @@ async def get_payment_methods_breakdown(
         .join(SaleOrder, SalePayment.sale_id == SaleOrder.id)
         .where(
             SaleOrder.company_id == current_user.company_id,
-            SaleOrder.sale_date >= start_date,
+            SaleOrder.sale_date >= p_start,
+            SaleOrder.sale_date <= p_end,
             SaleOrder.state != SaleState.CANCELLED
         )
         .group_by(SalePayment.payment_method)
@@ -591,8 +739,10 @@ async def get_payment_methods_breakdown(
         data.append(round(float(amount or 0), 2))
 
     if not data:
-        labels = ["Efectivo", "Tarjeta POS", "Transferencia", "Crédito Cliente"]
-        data = [8500.0, 4200.0, 3100.0, 1800.0]
+        labels = ["Sin cobros registrados"]
+        data = [0.0]
+
+    return {"labels": labels, "data": data, "period": period}
 
     return {"labels": labels, "data": data}
 
@@ -662,6 +812,7 @@ async def get_recent_sales(
     items = []
     for s in sales:
         pm = s.payments[0].payment_method.value if s.payments and hasattr(s.payments[0].payment_method, 'value') else "Efectivo"
+        loc_dt = to_local_dt(s.sale_date)
         items.append({
             "id": str(s.id),
             "number": s.number,
@@ -669,7 +820,7 @@ async def get_recent_sales(
             "payment_method": pm,
             "total": float(s.total or 0),
             "fel_status": s.fel_status or "certified",
-            "time": s.sale_date.strftime("%H:%M") if s.sale_date else "",
+            "time": loc_dt.strftime("%H:%M") if loc_dt else "",
         })
 
     return items
@@ -677,19 +828,23 @@ async def get_recent_sales(
 
 @router.get("/sales-by-hour")
 async def get_sales_by_hour(
+    period: str = Query("month"),
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None),
     branch_id: Optional[str] = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    """Obtener distribución de transacciones y ventas por hora (Horas Pico)."""
-    start_date = datetime.now() - timedelta(days=7)
+    """Obtener distribución de transacciones y ventas por hora (Horas Pico) en hora local de Guatemala."""
+    p_start, p_end, _, _, _ = resolve_period_dates(period, start_date, end_date)
 
     stmt = select(
         SaleOrder.sale_date,
         SaleOrder.total
     ).where(
         SaleOrder.company_id == current_user.company_id,
-        SaleOrder.sale_date >= start_date,
+        SaleOrder.sale_date >= p_start,
+        SaleOrder.sale_date <= p_end,
         SaleOrder.state != SaleState.CANCELLED
     )
     if branch_id:
@@ -701,29 +856,36 @@ async def get_sales_by_hour(
     res = await db.execute(stmt)
     rows = res.all()
 
-    hours_sales = {h: 0.0 for h in range(8, 22)}
-    hours_count = {h: 0 for h in range(8, 22)}
+    hours_sales = {h: 0.0 for h in range(0, 24)}
+    hours_count = {h: 0 for h in range(0, 24)}
 
+    has_early_sales = False
     for s_date, total in rows:
-        if s_date and hasattr(s_date, "hour"):
-            h = s_date.hour
-            if h in hours_sales:
-                hours_sales[h] += float(total or 0)
-                hours_count[h] += 1
+        loc_dt = to_local_dt(s_date)
+        if loc_dt:
+            h = loc_dt.hour
+            hours_sales[h] += float(total or 0)
+            hours_count[h] += 1
+            if h < 6:
+                has_early_sales = True
 
-    labels = [f"{h:02d}:00" for h in range(8, 22)]
-    sales_values = [round(hours_sales[h], 2) for h in range(8, 22)]
-    counts_values = [hours_count[h] for h in range(8, 22)]
+    # Rango de horas: de 06:00 a 23:00 (o 00:00 a 23:00 si hubo ventas en la madrugada)
+    display_range = range(0, 24) if has_early_sales else range(6, 24)
+    labels = [f"{h:02d}:00" for h in display_range]
+    sales_values = [round(hours_sales[h], 2) for h in display_range]
+    counts_values = [hours_count[h] for h in display_range]
 
     return {
         "labels": labels,
         "sales": sales_values,
-        "counts": counts_values
+        "counts": counts_values,
+        "period": period
     }
 
 
 @router.get("/stock-alerts")
 async def get_stock_alerts(
+    branch_id: Optional[str] = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
@@ -742,9 +904,14 @@ async def get_stock_alerts(
 
     alerts = []
     for p in products:
-        sq_res = await db.execute(
-            select(func.coalesce(func.sum(StockQuant.qty_on_hand), Decimal("0"))).where(StockQuant.product_id == p.id)
-        )
+        sq_query = select(func.coalesce(func.sum(StockQuant.qty_on_hand), Decimal("0"))).where(StockQuant.product_id == p.id)
+        if branch_id:
+            try:
+                b_uuid = uuid.UUID(branch_id)
+                sq_query = sq_query.join(Warehouse, StockQuant.warehouse_id == Warehouse.id).where(Warehouse.branch_id == b_uuid)
+            except ValueError:
+                pass
+        sq_res = await db.execute(sq_query)
         current_stock = float(sq_res.scalar() or 0)
         min_stock = float(p.min_stock or 0)
         if current_stock <= min_stock:
@@ -773,11 +940,15 @@ async def get_stock_alerts(
 
 @router.get("/profitability-and-runway")
 async def get_profitability_and_runway(
+    period: str = Query("month"),
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None),
+    branch_id: Optional[str] = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
     """Obtener métricas de rentabilidad por producto, runway de inventario y clientes VIP."""
-    cutoff_date = datetime.now() - timedelta(days=30)
+    p_start, p_end, _, _, _ = resolve_period_dates(period, start_date, end_date)
     
     # 1. Rentabilidad por producto
     line_stmt = (
@@ -792,10 +963,16 @@ async def get_profitability_and_runway(
         .where(
             SaleOrder.company_id == current_user.company_id,
             SaleOrder.state != SaleState.CANCELLED,
-            SaleOrder.sale_date >= cutoff_date
+            SaleOrder.sale_date >= p_start,
+            SaleOrder.sale_date <= p_end
         )
         .group_by(SaleOrderLine.product_name, SaleOrderLine.product_id)
     )
+    if branch_id:
+        try:
+            line_stmt = line_stmt.where(SaleOrder.branch_id == uuid.UUID(branch_id))
+        except ValueError:
+            pass
     line_res = await db.execute(line_stmt)
     profitability_items = []
     sold_qty_map = {}
@@ -831,9 +1008,14 @@ async def get_profitability_and_runway(
     runway_items = []
     for p in products:
         p_id_str = str(p.id)
-        sq_res = await db.execute(
-            select(func.coalesce(func.sum(StockQuant.qty_on_hand), Decimal("0"))).where(StockQuant.product_id == p.id)
-        )
+        sq_query = select(func.coalesce(func.sum(StockQuant.qty_on_hand), Decimal("0"))).where(StockQuant.product_id == p.id)
+        if branch_id:
+            try:
+                b_uuid = uuid.UUID(branch_id)
+                sq_query = sq_query.join(Warehouse, StockQuant.warehouse_id == Warehouse.id).where(Warehouse.branch_id == b_uuid)
+            except ValueError:
+                pass
+        sq_res = await db.execute(sq_query)
         current_stock = float(sq_res.scalar() or 0)
         qty_sold_30d = sold_qty_map.get(p_id_str, 0.0)
         daily_velocity = qty_sold_30d / 30.0
@@ -873,6 +1055,11 @@ async def get_profitability_and_runway(
         .order_by(func.sum(SaleOrder.total).desc())
         .limit(10)
     )
+    if branch_id:
+        try:
+            vip_stmt = vip_stmt.where(SaleOrder.branch_id == uuid.UUID(branch_id))
+        except ValueError:
+            pass
     vip_res = await db.execute(vip_stmt)
     vip_customers = [
         {

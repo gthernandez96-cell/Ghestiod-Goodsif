@@ -16,13 +16,14 @@ from app.core.security import get_current_user
 from app.models.ar import CustomerInvoiceCredit, CustomerCreditPayment
 from app.models.partner import Partner, PartnerType, CreditStatus
 from app.models.company import Company
-from app.models.sale import SaleOrder, SalePayment, SaleState
+from app.models.sale import SaleOrder, SalePayment, SaleState, SaleType
+from app.api.v1.partners import check_credit_payment_permission
 
 router = APIRouter(prefix="/ar")
 
 
 async def _sync_sales_to_credits(db: AsyncSession, company_id: uuid.UUID):
-    """Sincronizar exclusivamente ventas al crédito y clientes con saldo de crédito pendiente hacia Cuentas por Cobrar."""
+    """Sincronizar ventas al crédito, pre-ventas y clientes con saldo de crédito pendiente hacia Cuentas por Cobrar."""
     try:
         # 1. Obtener todas las cuentas por cobrar existentes
         credits_stmt = select(CustomerInvoiceCredit).where(
@@ -37,7 +38,21 @@ async def _sync_sales_to_credits(db: AsyncSession, company_id: uuid.UUID):
 
         synced_any = False
 
-        # 2. Sincronizar ÚNICAMENTE Ventas registradas al Crédito con cliente identificado
+        # Si alguna orden vinculada fue cancelada o rechazada, anular su cuenta por cobrar
+        cancelled_sales_stmt = select(CustomerInvoiceCredit).join(
+            SaleOrder, CustomerInvoiceCredit.sale_id == SaleOrder.id
+        ).where(
+            CustomerInvoiceCredit.company_id == company_id,
+            CustomerInvoiceCredit.is_deleted == False,
+            SaleOrder.state.in_([SaleState.CANCELLED, SaleState.REJECTED])
+        )
+        cancelled_invs = (await db.execute(cancelled_sales_stmt)).scalars().all()
+        for cinv in cancelled_invs:
+            cinv.is_deleted = True
+            cinv.state = "cancelled"
+            synced_any = True
+
+        # 2. Sincronizar Ventas al Crédito y Pre-ventas con cliente identificado
         sales_stmt = (
             select(SaleOrder)
             .options(selectinload(SaleOrder.payments))
@@ -57,10 +72,22 @@ async def _sync_sales_to_credits(db: AsyncSession, company_id: uuid.UUID):
             # Verificar si la venta tuvo pago explícito al CRÉDITO
             credit_paid = sum(float(p.amount or 0) for p in (s.payments or []) if p.payment_method and "credit" in str(p.payment_method).lower())
             
-            if credit_paid > 0.01:
-                order_dt = s.sale_date or datetime.now(timezone.utc)
+            # O si es una Pre-venta con cliente identificado (no cancelada ni rechazada)
+            is_presale = (
+                (s.sale_type == SaleType.PRESALE or (s.number and s.number.startswith("PRE-")))
+                and s.state not in [SaleState.CANCELLED, SaleState.REJECTED]
+                and (s.total or 0) > 0.01
+            )
+
+            if credit_paid > 0.01 or is_presale:
+                tot_amount = Decimal(str(credit_paid if credit_paid > 0.01 else (s.total or 0)))
+                bal_amount = Decimal(str(credit_paid if credit_paid > 0.01 else (s.amount_due if (s.amount_due is not None and s.amount_due > 0) else s.total or 0)))
+
+                order_dt = s.sale_date or s.created_at or datetime.now(timezone.utc)
                 credit_days = 30
-                due_date = order_dt + timedelta(days=credit_days)
+                due_date = s.due_date or (order_dt + timedelta(days=credit_days))
+
+                doc_notes = f"Pre-venta {s.number} - Cliente: {s.customer_name or 'Cliente'}" if is_presale else f"Venta al Crédito {s.number} - Cliente: {s.customer_name or 'Cliente'}"
 
                 credit_inv = CustomerInvoiceCredit(
                     company_id=company_id,
@@ -69,14 +96,15 @@ async def _sync_sales_to_credits(db: AsyncSession, company_id: uuid.UUID):
                     number=s.number or f"CRED-{str(s.id)[:8].upper()}",
                     issue_date=order_dt,
                     due_date=due_date,
-                    total=Decimal(str(credit_paid)),
-                    balance=Decimal(str(credit_paid)),
-                    state="open",
-                    notes=f"Venta al Crédito {s.number} - Cliente: {s.customer_name or 'Cliente'}"
+                    total=tot_amount,
+                    balance=bal_amount,
+                    state="open" if bal_amount > 0 else "paid",
+                    notes=doc_notes
                 )
                 db.add(credit_inv)
                 existing_numbers.add(credit_inv.number)
                 existing_sale_ids.add(s.id)
+                existing_credits.append(credit_inv)
                 synced_any = True
 
         # 3. Sincronizar Clientes con saldo pendiente de crédito en su cuenta (Partner.balance > 0)
@@ -127,7 +155,7 @@ async def _sync_sales_to_credits(db: AsyncSession, company_id: uuid.UUID):
             await db.commit()
     except Exception as e:
         import logging
-        logging.getLogger(__name__).error(f"Error sincronizando créditos en AR: {e}")
+        logging.getLogger(__name__).warning(f"Error sincronizando ventas a créditos: {e}")
 
 
 # ===== SCHEMAS =====
@@ -391,6 +419,7 @@ async def get_customer_invoice_credit(
         raise HTTPException(status_code=400, detail="ID inválido")
 
     c_uuid = uuid.UUID(str(current_user.company_id))
+    await _sync_sales_to_credits(db, c_uuid)
 
     # Buscar cliente o factura
     p_stmt = select(Partner).where(Partner.id == target_uuid, Partner.company_id == c_uuid)
@@ -435,6 +464,12 @@ async def get_customer_invoice_credit(
     payments = p_res.scalars().all()
 
     total_invoiced = sum(float(c.total or 0.0) for c in credits) if credits else float(partner.balance or 0.0)
+    open_credits_bal = sum(float(c.balance or 0.0) for c in credits if (c.balance or 0) > 0)
+    curr_balance = max(float(partner.balance or 0.0), open_credits_bal)
+
+    if float(partner.balance or 0.0) < open_credits_bal:
+        partner.balance = Decimal(str(open_credits_bal))
+        await db.commit()
     
     first_dt = credits[-1].issue_date if credits else partner.created_at
     due_dt = (first_dt + timedelta(days=partner.payment_days or 30)) if first_dt else None
@@ -449,10 +484,10 @@ async def get_customer_invoice_credit(
         "issue_date": first_dt.strftime("%d/%m/%Y") if first_dt else "",
         "due_date": due_dt.strftime("%d/%m/%Y") if due_dt else "Sin fecha",
         "payment_days": partner.payment_days or 30,
-        "total": max(total_invoiced, float(partner.balance or 0.0)),
-        "balance": float(partner.balance or 0.0),
+        "total": max(total_invoiced, curr_balance),
+        "balance": curr_balance,
         "credit_limit": float(partner.credit_limit or 0.0),
-        "state": "open" if (partner.balance or 0) > 0 else "paid",
+        "state": "open" if curr_balance > 0 else "paid",
         "notes": f"Crédito unificado de {partner.name}",
         "credits": [
             {
@@ -562,6 +597,7 @@ async def register_customer_payment(
     current_user=Depends(get_current_user),
 ):
     """Registrar un abono al cliente (aplicando a su saldo y a sus facturas de crédito FIFO)."""
+    check_credit_payment_permission(current_user)
     try:
         target_uuid = uuid.UUID(invoice_id)
     except ValueError:

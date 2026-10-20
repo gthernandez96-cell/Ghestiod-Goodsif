@@ -2,6 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, or_, func
+from sqlalchemy.orm import selectinload
 from pydantic import BaseModel
 from typing import Optional, List
 from decimal import Decimal
@@ -10,7 +11,7 @@ import uuid
 from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.partner import Partner, PartnerType, CreditStatus
-from app.models.sale import SaleOrder
+from app.models.sale import SaleOrder, SaleType, SaleState
 from app.services.fel_service import lookup_nit_sat
 
 router = APIRouter(prefix="/partners")
@@ -21,13 +22,26 @@ def check_partner_management_permission(current_user):
     if getattr(current_user, "is_superuser", False) or getattr(current_user, "is_admin", False) or getattr(current_user, "username", "") == "admin" or (getattr(current_user, "email", "") and "admin" in getattr(current_user, "email", "")):
         return
     role_codes = [r.code for r in current_user.roles] if hasattr(current_user, "roles") and current_user.roles else []
-    if any(code in role_codes for code in ["admin", "store_manager", "accountant", "inventory_manager"]):
+    if any(code in role_codes for code in ["admin", "store_manager", "accountant", "inventory_manager", "seller", "preventista"]):
         return
     if "cashier" in role_codes or not role_codes:
         raise HTTPException(
             status_code=403,
             detail="Acceso denegado: El usuario con rol Cajero no tiene autorización para crear o modificar fichas de clientes."
         )
+
+
+def check_credit_payment_permission(current_user):
+    """Verifica que el usuario tenga autorización para registrar abonos de crédito (Cajeros bloqueados)."""
+    if getattr(current_user, "is_superuser", False) or getattr(current_user, "is_admin", False) or getattr(current_user, "username", "") == "admin" or (getattr(current_user, "email", "") and "admin" in getattr(current_user, "email", "")):
+        return
+    role_codes = [r.code for r in current_user.roles] if hasattr(current_user, "roles") and current_user.roles else []
+    if any(code in role_codes for code in ["admin", "store_manager", "accountant"]):
+        return
+    raise HTTPException(
+        status_code=403,
+        detail="Acceso denegado: El usuario con rol Cajero no tiene autorización para registrar abonos de crédito."
+    )
 
 
 
@@ -85,20 +99,33 @@ class CreditPaymentIn(BaseModel):
 async def list_partners(
     search: Optional[str] = Query(None),
     partner_type: Optional[str] = Query(None),
+    type: Optional[str] = Query(None),
+    credit_status: Optional[str] = Query(None),
     is_active: Optional[bool] = Query(True),
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
     """Listar y buscar clientes o proveedores."""
-    stmt = select(Partner).where(Partner.company_id == current_user.company_id)
+    stmt = select(Partner).where(
+        Partner.company_id == current_user.company_id,
+        Partner.is_deleted == False
+    )
 
     if is_active is not None:
         stmt = stmt.where(Partner.is_active == is_active)
 
-    if partner_type:
+    p_type = partner_type or type
+    if p_type:
         try:
-            pt_enum = PartnerType(partner_type.lower())
+            pt_enum = PartnerType(p_type.lower())
             stmt = stmt.where(or_(Partner.partner_type == pt_enum, Partner.partner_type == PartnerType.BOTH))
+        except ValueError:
+            pass
+
+    if credit_status:
+        try:
+            cs_enum = CreditStatus(credit_status.lower())
+            stmt = stmt.where(Partner.credit_status == cs_enum)
         except ValueError:
             pass
 
@@ -117,8 +144,12 @@ async def list_partners(
     res = await db.execute(stmt)
     partners = res.scalars().all()
 
-    items = [
-        {
+    items = []
+    for p in partners:
+        c_limit = Decimal(str(p.credit_limit or 0))
+        c_balance = Decimal(str(p.balance or 0))
+        c_available = max(Decimal("0"), c_limit - c_balance)
+        items.append({
             "id": str(p.id),
             "name": p.name,
             "nit": p.nit or "CF",
@@ -130,15 +161,14 @@ async def list_partners(
             "mobile": p.mobile or "",
             "address": p.address or "",
             "city": p.city or "Guatemala",
-            "credit_limit": float(p.credit_limit or 0),
+            "credit_limit": float(c_limit),
             "payment_days": p.payment_days or 0,
             "credit_status": p.credit_status.value if hasattr(p.credit_status, 'value') else str(p.credit_status),
-            "balance": float(p.balance or 0),
+            "balance": float(c_balance),
+            "available_credit": float(c_available),
             "image_url": p.image_url or "",
             "is_active": p.is_active,
-        }
-        for p in partners
-    ]
+        })
 
     return {"items": items, "total": len(items)}
 
@@ -566,38 +596,104 @@ async def get_partner(
 @router.get("/{partner_id}/sales")
 async def get_partner_sales_history(
     partner_id: str,
-    limit: int = Query(20, ge=1, le=100),
+    limit: int = Query(50, ge=1, le=200),
+    payment_type: Optional[str] = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    """Obtener historial de compras del cliente."""
+    """Obtener historial de compras del cliente separando ventas en efectivo y a crédito con resumen financiero."""
     try:
         p_uuid = uuid.UUID(partner_id)
     except ValueError:
         raise HTTPException(status_code=400, detail="ID de socio inválido")
 
-    stmt = select(SaleOrder).where(
-        SaleOrder.customer_id == p_uuid,
-        SaleOrder.company_id == current_user.company_id
-    ).order_by(SaleOrder.created_at.desc()).limit(limit)
+    stmt = (
+        select(SaleOrder)
+        .options(selectinload(SaleOrder.payments))
+        .where(
+            SaleOrder.customer_id == p_uuid,
+            SaleOrder.company_id == current_user.company_id,
+            SaleOrder.is_deleted == False
+        )
+        .order_by(SaleOrder.sale_date.desc(), SaleOrder.created_at.desc())
+        .limit(limit)
+    )
 
     res = await db.execute(stmt)
     sales = res.scalars().all()
 
     items = []
+    total_cash = Decimal("0")
+    total_credit = Decimal("0")
+    count_cash = 0
+    count_credit = 0
+    total_credit_due = Decimal("0")
+
     for s in sales:
+        total_val = Decimal(str(s.total or 0))
+        due_val = Decimal(str(s.amount_due or 0))
+        paid_val = Decimal(str(s.amount_paid or 0))
+
+        p_methods = [p.payment_method for p in (s.payments or [])]
+
+        is_presale = bool(
+            (s.sale_type and (s.sale_type == SaleType.PRESALE or getattr(s.sale_type, "value", str(s.sale_type)) == "presale"))
+            or (s.number and s.number.startswith("PRE-"))
+        )
+
+        if is_presale and due_val <= Decimal("0") and paid_val <= Decimal("0"):
+            due_val = total_val
+
+        # Una venta es crédito si: tiene saldo pendiente > 0, o es pre-venta, o su tipo es credit, o se pagó vía crédito
+        is_credit = bool(
+            due_val > Decimal("0")
+            or is_presale
+            or (s.sale_type and (s.sale_type == SaleType.CREDIT or getattr(s.sale_type, "value", str(s.sale_type)) == "credit"))
+            or "credit" in p_methods
+        )
+
+        if is_credit:
+            p_type = "credit"
+            p_label = "Crédito"
+            total_credit += total_val
+            count_credit += 1
+            total_credit_due += due_val
+        else:
+            p_type = "cash"
+            p_label = "Efectivo"
+            total_cash += total_val
+            count_cash += 1
+
+        if payment_type and payment_type != "all" and p_type != payment_type:
+            continue
+
         items.append({
             "id": str(s.id),
             "number": s.number,
             "sale_date": s.sale_date.strftime("%d/%m/%Y %H:%M") if s.sale_date else s.created_at.strftime("%d/%m/%Y %H:%M"),
-            "total": float(s.total or 0),
-            "amount_paid": float(s.amount_paid or 0),
-            "amount_due": float(s.amount_due or 0),
+            "total": float(total_val),
+            "amount_paid": float(paid_val),
+            "amount_due": float(due_val),
+            "is_credit": is_credit,
+            "payment_type": p_type,
+            "payment_type_label": p_label,
+            "payment_methods": p_methods or (["credit"] if is_credit else ["cash"]),
             "state": s.state.value if hasattr(s.state, "value") else str(s.state),
             "fel_uuid": s.fel_uuid,
             "fel_number": s.fel_number,
         })
-    return {"items": items, "total": len(items)}
+
+    return {
+        "items": items,
+        "total": len(items),
+        "summary": {
+            "total_cash": float(total_cash),
+            "count_cash": count_cash,
+            "total_credit": float(total_credit),
+            "count_credit": count_credit,
+            "total_credit_due": float(total_credit_due),
+        }
+    }
 
 
 @router.get("/{partner_id}/statement")
@@ -620,13 +716,21 @@ async def get_partner_statement(
 
     sales_stmt = select(SaleOrder).where(
         SaleOrder.customer_id == p_uuid,
-        SaleOrder.company_id == current_user.company_id
+        SaleOrder.company_id == current_user.company_id,
+        SaleOrder.is_deleted == False
     ).order_by(SaleOrder.created_at.desc()).limit(50)
     sales_res = await db.execute(sales_stmt)
     sales = sales_res.scalars().all()
 
     c_limit = Decimal(str(p.credit_limit or 0))
-    c_balance = Decimal(str(p.balance or 0))
+
+    # Calcular saldo pendiente real de ventas no canceladas
+    active_due = sum(
+        Decimal(str(s.amount_due if (s.amount_due is not None and s.amount_due > 0) else (s.total if s.state not in [SaleState.PAID] else 0)))
+        for s in sales
+        if s.state not in [SaleState.CANCELLED, SaleState.REJECTED]
+    )
+    c_balance = max(Decimal(str(p.balance or 0)), active_due)
 
     return {
         "customer": {
@@ -652,14 +756,14 @@ async def get_partner_statement(
                 "date": s.sale_date.strftime("%d/%m/%Y %H:%M") if s.sale_date else s.created_at.strftime("%d/%m/%Y %H:%M"),
                 "total": float(s.total or 0),
                 "amount_paid": float(s.amount_paid or 0),
-                "amount_due": float(s.amount_due or 0),
+                "amount_due": float(s.amount_due if (s.amount_due is not None and s.amount_due > 0) else (s.total if s.state not in [SaleState.PAID, SaleState.CANCELLED, SaleState.REJECTED] else 0)),
                 "state": s.state.value if hasattr(s.state, "value") else str(s.state),
                 "fel_uuid": s.fel_uuid,
             }
             for s in sales
         ],
         "summary": {
-            "total_purchases": sum(float(s.total or 0) for s in sales),
+            "total_purchases": sum(float(s.total or 0) for s in sales if s.state not in [SaleState.CANCELLED, SaleState.REJECTED]),
             "total_pending_due": float(c_balance),
             "credit_utilization_pct": float(min(Decimal("100"), (c_balance / c_limit * 100))) if c_limit > 0 else 0.0,
         }
@@ -769,6 +873,7 @@ async def pay_customer_credit(
     current_user=Depends(get_current_user),
 ):
     """Registrar un abono o pago a la deuda del cliente."""
+    check_credit_payment_permission(current_user)
     try:
         p_uuid = uuid.UUID(partner_id)
     except ValueError:
@@ -802,5 +907,36 @@ async def pay_customer_credit(
         "available_credit": float(available),
         "status": "payment_registered"
     }
+
+
+@router.delete("/{partner_id}")
+async def delete_partner(
+    partner_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """Eliminar cliente o proveedor (soft-delete seguro)."""
+    check_partner_management_permission(current_user)
+    try:
+        p_uuid = uuid.UUID(partner_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="ID de socio inválido")
+
+    stmt = select(Partner).where(Partner.id == p_uuid, Partner.company_id == current_user.company_id)
+    res = await db.execute(stmt)
+    partner = res.scalar_one_or_none()
+
+    if not partner:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+
+    partner.is_deleted = True
+    partner.is_active = False
+    await db.commit()
+    return {
+        "success": True,
+        "status": "deleted",
+        "message": f"Cliente {partner.name} eliminado exitosamente."
+    }
+
 
 

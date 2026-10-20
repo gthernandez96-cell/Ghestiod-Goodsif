@@ -74,6 +74,115 @@
   .quote-table tr:hover td {
     background: #fdfaff;
   }
+
+  /* Responsive Quotes Header & Filters */
+  .quote-header-bar {
+    margin: -20px -24px 20px -24px;
+    padding: 12px 24px;
+    background: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 14px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+  }
+
+  .quote-header-main-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .quote-header-title-box {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .quote-header-title {
+    font-size: 15px;
+    font-weight: 800;
+    color: #1e293b;
+    margin: 0;
+    padding: 0;
+  }
+
+  .quote-btn-new {
+    background: var(--odoo-purple);
+    color: #ffffff;
+    font-weight: 800;
+    border-radius: 8px;
+    padding: 7px 18px;
+    border: none;
+    box-shadow: 0 2px 8px rgba(113,75,103,0.25);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .quote-pills-scroll {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding-bottom: 2px;
+  }
+
+  .quote-pills-scroll::-webkit-scrollbar {
+    display: none;
+  }
+
+  .quote-pills-scroll .status-filter-btn {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  @media screen and (max-width: 768px) {
+    .quote-header-bar {
+      margin: -14px -12px 14px -12px !important;
+      padding: 12px 14px !important;
+      flex-direction: column !important;
+      align-items: stretch !important;
+      gap: 10px !important;
+      border-radius: 0 0 10px 10px !important;
+    }
+
+    .quote-header-main-row {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      width: 100% !important;
+    }
+
+    .quote-header-title {
+      font-size: 16px !important;
+    }
+
+    .quote-btn-new {
+      padding: 6px 12px !important;
+      font-size: 12px !important;
+      min-height: 34px !important;
+    }
+
+    .quote-search-box {
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+
+    .quote-pills-scroll {
+      width: 100% !important;
+    }
+  }
 </style>
 {% endblock %}
 
@@ -81,26 +190,25 @@
 <div x-data="quotesDashboardPage()" x-init="init()">
   
   <!-- ===== TOP ODOO CONTROL PANEL SUB-HEADER ===== -->
-  <div style="margin:-20px -24px 20px -24px; padding:12px 24px; background:#ffffff; border-bottom:1px solid #e2e8f0; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px; box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+  <div class="quote-header-bar">
     
-    <!-- Left: New Button & Title -->
-    <div style="display:flex; align-items:center; gap:12px;">
+    <!-- Top Row: Title on Left, New Button on Right -->
+    <div class="quote-header-main-row">
+      <div class="quote-header-title-box">
+        <h1 class="quote-header-title">Cotizaciones & Proformas</h1>
+      </div>
+
       <a 
         href="/quotes/new"
-        class="btn btn-primary" 
-        style="background:var(--odoo-purple); color:#ffffff; font-weight:800; border-radius:8px; padding:7px 18px; border:none; box-shadow:0 2px 8px rgba(113,75,103,0.25); display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px; text-decoration:none;" 
+        class="btn btn-primary quote-btn-new" 
       >
-        <i class="ph ph-plus" style="font-weight:800;"></i> Nueva Cotización
+        <i class="ph ph-plus" style="font-weight:800;"></i>
+        <span>Nueva Cotización</span>
       </a>
-
-      <div style="font-size:15px; font-weight:800; color:#1e293b; display:flex; align-items:center; gap:6px; margin-left:4px;">
-        <span style="color:#64748b; font-weight:600;">Ventas /</span>
-        <span>Cotizaciones & Proformas</span>
-      </div>
     </div>
 
     <!-- Center: Search Input -->
-    <div style="position:relative; display:flex; align-items:center; width:320px; max-width:100%;">
+    <div class="quote-search-box" style="position:relative; display:flex; align-items:center; width:320px; max-width:100%;">
       <i class="ph ph-magnifying-glass" style="position:absolute; left:12px; color:var(--odoo-purple); font-size:16px; font-weight:800; pointer-events:none;"></i>
       <input 
         type="text" 
@@ -113,7 +221,7 @@
     </div>
 
     <!-- Right: Quick Filters & Resumen Dropdown -->
-    <div style="display:flex; align-items:center; gap:10px; position:relative;">
+    <div class="quote-pills-scroll" style="position:relative;">
       <button class="status-filter-btn" :class="statusFilter === '' ? 'active' : ''" @click="setStatusFilter('')">Todas</button>
       <button class="status-filter-btn" :class="statusFilter === 'draft' ? 'active' : ''" @click="setStatusFilter('draft')">📝 Borradores</button>
       <button class="status-filter-btn" :class="statusFilter === 'converted' ? 'active' : ''" @click="setStatusFilter('converted')">✅ Convertidas a Venta</button>
@@ -121,6 +229,7 @@
       <!-- Botón Píldora Resumen -->
       <button
         type="button"
+        class="hide-on-mobile"
         @click="showKpis = !showKpis"
         style="
           display:inline-flex; align-items:center; gap:7px;
@@ -146,6 +255,7 @@
 
       <!-- Floating Popover Dropdown Panel (alineado a la derecha) -->
       <div
+        class="hide-on-mobile"
         x-show="showKpis"
         @click.outside="showKpis = false"
         x-transition:enter="transition ease-out duration-200"

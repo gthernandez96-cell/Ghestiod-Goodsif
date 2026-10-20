@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, or_, func
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import selectinload, contains_eager
 from pydantic import BaseModel
 from typing import Optional, List
 from decimal import Decimal
@@ -14,6 +14,20 @@ from app.models.inventory import StockQuant, StockMove, StockMoveType
 from app.models.product import Product
 from app.models.company import Warehouse
 from app.services.inventory_service import InventoryService
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
+
+GUATEMALA_TZ = ZoneInfo("America/Guatemala")
+
+
+def format_guatemala_datetime(dt: Optional[datetime]) -> str:
+    if not dt:
+        return ""
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    local_dt = dt.astimezone(GUATEMALA_TZ)
+    return local_dt.strftime("%d/%m/%Y %I:%M %p")
+
 
 router = APIRouter(prefix="/inventory")
 
@@ -95,9 +109,9 @@ async def list_moves(
     """Kardex: Listar movimientos de inventario con filtros y resumen cuantitativo."""
     stmt = (
         select(StockMove)
-        .options(selectinload(StockMove.product), selectinload(StockMove.warehouse))
         .join(Product, StockMove.product_id == Product.id)
         .outerjoin(Warehouse, StockMove.warehouse_id == Warehouse.id)
+        .options(contains_eager(StockMove.product), contains_eager(StockMove.warehouse))
         .where(Product.company_id == current_user.company_id)
         .order_by(StockMove.created_at.desc(), StockMove.id.desc())
     )
@@ -171,10 +185,12 @@ async def list_moves(
         else:
             total_outflow += qty_val
 
+        dt_str = format_guatemala_datetime(m.created_at)
+        iso_str = m.created_at.replace(tzinfo=timezone.utc).isoformat() if m.created_at else None
         items.append({
             "id": str(m.id),
-            "date": m.created_at.strftime("%d/%m/%Y %H:%M") if m.created_at else "",
-            "created_at_iso": m.created_at.isoformat() if m.created_at else None,
+            "date": dt_str,
+            "created_at_iso": iso_str,
             "product_id": str(m.product_id) if m.product_id else None,
             "product_name": m.product.name if m.product else "N/A",
             "product_sku": m.product.internal_ref or m.product.barcode or "" if m.product else "",

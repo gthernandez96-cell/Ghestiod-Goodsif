@@ -82,7 +82,9 @@ class Product(BaseModel):
     description = Column(Text)
     description_sale = Column(Text)
     description_purchase = Column(Text)
+    internal_notes = Column(Text)  # Notas / Observaciones para POS y Preventa
     image_url = Column(String(500))
+    pdf_datasheet_url = Column(String(500))  # Ficha técnica en PDF
 
     # Tipo y seguimiento
     product_type = Column(SAEnum(ProductType), default=ProductType.PRODUCT)

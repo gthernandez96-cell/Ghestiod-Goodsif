@@ -122,16 +122,40 @@
     gap: 36px 24px;
     justify-items: center;
   }
-  @media (max-width: 990px) {
+  @media (min-width: 601px) and (max-width: 990px) {
     .launcher-grid {
-      grid-template-columns: repeat(3, 1fr);
-      gap: 28px 18px;
+      grid-template-columns: repeat(3, 1fr) !important;
+      gap: 28px 18px !important;
     }
   }
-  @media (max-width: 640px) {
+
+  @media (max-width: 768px) {
+    .dashboard-root {
+      padding: 14px 12px 76px 12px !important;
+    }
+    .view-switcher-btn {
+      padding: 6px 12px !important;
+      font-size: 12px !important;
+    }
+  }
+
+  @media (max-width: 600px) {
     .launcher-grid {
-      grid-template-columns: repeat(2, 1fr);
-      gap: 20px 14px;
+      grid-template-columns: repeat(2, 1fr) !important;
+      gap: 16px 10px !important;
+    }
+    .app-launcher-card {
+      width: 100% !important;
+      max-width: 130px !important;
+    }
+    .app-icon-wrapper {
+      width: 68px !important;
+      height: 68px !important;
+      border-radius: 18px !important;
+      margin-bottom: 8px !important;
+    }
+    .app-label {
+      font-size: 12px !important;
     }
   }
 
@@ -168,6 +192,105 @@
     color: #1e1b4b;
     text-align: center;
   }
+
+  /* BI Executive Dashboard Responsive Overhaul */
+  .bi-header-card {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(12px);
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 18px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  }
+  .bi-grid-row-1 {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 20px;
+  }
+  .bi-grid-row-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  .bi-grid-row-3 {
+    display: grid;
+    grid-template-columns: 1.2fr 0.8fr;
+    gap: 20px;
+  }
+  .bi-grid-row-4 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  .bi-chart-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 22px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+    overflow: hidden;
+  }
+
+  @media (max-width: 992px) {
+    .bi-grid-row-1,
+    .bi-grid-row-2,
+    .bi-grid-row-3,
+    .bi-grid-row-4 {
+      grid-template-columns: 1fr !important;
+      gap: 16px !important;
+    }
+    .bi-header-card {
+      padding: 14px 16px !important;
+      flex-direction: column !important;
+      align-items: stretch !important;
+      gap: 14px !important;
+    }
+    .bi-header-controls {
+      flex-direction: column !important;
+      align-items: stretch !important;
+      width: 100% !important;
+      gap: 10px !important;
+    }
+    .period-segmented-control {
+      width: 100% !important;
+      display: flex !important;
+    }
+    .period-segment-btn {
+      flex: 1 !important;
+      padding: 8px 4px !important;
+      font-size: 12px !important;
+      text-align: center !important;
+    }
+    .bi-date-pickers {
+      width: 100% !important;
+      display: flex !important;
+      justify-content: space-between !important;
+    }
+    .bi-date-pickers input {
+      max-width: 110px !important;
+    }
+    .bi-actions-row {
+      width: 100% !important;
+      display: flex !important;
+      gap: 8px !important;
+    }
+    .bi-actions-row a,
+    .bi-actions-row button {
+      flex: 1 !important;
+      justify-content: center !important;
+      font-size: 12px !important;
+      padding: 7px 10px !important;
+    }
+    .bi-chart-card {
+      padding: 16px !important;
+      border-radius: 14px !important;
+    }
+  }
 </style>
 {% endblock %}
 
@@ -175,6 +298,7 @@
 <div 
   x-data="mainDashboardPage()" 
   x-init="init()"
+  class="dashboard-root"
   style="min-height:100vh; background:linear-gradient(135deg, #f4eff3 0%, #ebe4f0 50%, #f4eff3 100%); font-family:inherit; padding:24px 32px;"
 >
 
@@ -294,6 +418,30 @@
             </svg>
           </div>
           <div class="app-label" style="font-weight:800; color:#5b21b6;">Punto de venta</div>
+        </div>
+
+        <!-- 1.1 Pre-Venta (Preventistas & Comercial) -->
+        <div class="app-launcher-card" x-show="matchesSearch('Pre-Venta Preventa Preventista Pedidos Solicitudes')" @click="openApp('/preventa')">
+          <div class="app-icon-wrapper" style="box-shadow:0 12px 28px rgba(79, 70, 229, 0.22); border:2px solid #6366f1;">
+            <i class="ph ph-lightning" style="font-size:40px; color:#4f46e5;"></i>
+          </div>
+          <div class="app-label" style="font-weight:800; color:#4338ca;">Pre-Venta</div>
+        </div>
+
+        <!-- 1.2 Solicitudes POS (Autorizaciones & Bodega) -->
+        <div class="app-launcher-card" x-show="matchesSearch('Solicitudes POS Autorizaciones Pre-venta Bodega Aprobaciones')" @click="openApp('/pos-solicitudes')">
+          <div class="app-icon-wrapper" style="box-shadow:0 12px 28px rgba(245, 158, 11, 0.22); border:2px solid #f59e0b;">
+            <i class="ph ph-clipboard-text" style="font-size:40px; color:#d97706;"></i>
+          </div>
+          <div class="app-label" style="font-weight:800; color:#b45309;">Solicitudes POS</div>
+        </div>
+
+        <!-- 1.3 Preparación en Bodega (Delivery / Picking) -->
+        <div class="app-launcher-card" x-show="matchesSearch('Preparación en Bodega Delivery Picking Alistamiento Despacho')" @click="openApp('/pos/preparacion')">
+          <div class="app-icon-wrapper" style="box-shadow:0 12px 28px rgba(37, 99, 235, 0.22); border:2px solid #2563eb; background:#eff6ff;">
+            <i class="ph ph-package" style="font-size:40px; color:#2563eb;"></i>
+          </div>
+          <div class="app-label" style="font-weight:800; color:#1d4ed8;">Preparación Bodega</div>
         </div>
 
         <!-- 2. Inventario (Todos) -->
@@ -471,9 +619,9 @@
   <div x-show="viewMode === 'analytics'" class="space-y-6 mt-6" x-cloak>
 
     <!-- SUB-HEADER EJECUTIVO DE BI CON SELECTOR TEMPORAL -->
-    <div style="background:rgba(255,255,255,0.9); backdrop-filter:blur(12px); border:1px solid #e2e8f0; border-radius:16px; padding:18px 24px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; box-shadow:0 4px 20px rgba(0,0,0,0.03);">
+    <div class="bi-header-card">
       <div style="display:flex; align-items:center; gap:12px;">
-        <div style="width:44px; height:44px; border-radius:12px; background:linear-gradient(135deg, #714B67 0%, #4a2e44 100%); color:#ffffff; display:flex; align-items:center; justify-content:center; font-size:22px; box-shadow:0 4px 12px rgba(113,75,103,0.3);">
+        <div style="width:44px; height:44px; border-radius:12px; background:linear-gradient(135deg, #714B67 0%, #4a2e44 100%); color:#ffffff; display:flex; align-items:center; justify-content:center; font-size:22px; box-shadow:0 4px 12px rgba(113,75,103,0.3); flex-shrink:0;">
           <i class="ph ph-chart-line-up"></i>
         </div>
         <div>
@@ -482,9 +630,26 @@
         </div>
       </div>
 
-      <!-- Timeframe Period Selector & Export Actions -->
-      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+      <!-- Timeframe Period Selector, Branch Filter & Export Actions -->
+      <div class="bi-header-controls" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
         
+        <!-- Selector de Sucursal (Filtro BI) -->
+        <div class="bi-branch-selector-wrapper" style="display:flex; align-items:center; gap:7px; background:#ffffff; border:1.5px solid #cbd5e1; border-radius:10px; padding:4px 10px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+          <i class="ph ph-storefront" style="color:#714B67; font-size:17px; flex-shrink:0;"></i>
+          <span style="font-size:11px; font-weight:800; color:#64748b; text-transform:uppercase;">Sucursal:</span>
+          <select 
+            x-model="selectedBranchId" 
+            @change="onBranchChange()" 
+            style="border:none; background:transparent; font-size:12.5px; font-weight:800; color:#1e1b4b; outline:none; cursor:pointer; padding-right:4px;"
+            title="Filtrar todas las métricas por sucursal o consolidado"
+          >
+            <option value="">🏢 Todas las Sucursales (Consolidado)</option>
+            <template x-for="b in branches" :key="b.id">
+              <option :value="b.id" x-text="'📍 ' + b.name + (b.code ? ' (' + b.code + ')' : '')"></option>
+            </template>
+          </select>
+        </div>
+
         <!-- Period Selector Modern Segmented Control -->
         <div class="period-segmented-control">
           <button 
@@ -513,26 +678,37 @@
           >Año</button>
         </div>
 
-        <!-- Export to Excel (CSV) Button -->
-        <a 
-          :href="'/api/v1/dashboard/export-excel?period=' + selectedPeriod"
-          target="_blank"
-          style="background:#f8fafc; border:1.5px solid #cbd5e1; color:#059669; padding:7px 14px; border-radius:10px; font-size:12.5px; font-weight:800; cursor:pointer; display:flex; align-items:center; gap:6px; box-shadow:0 1px 3px rgba(0,0,0,0.04); text-decoration:none; transition:all 0.2s;"
-          onmouseover="this.style.borderColor='#059669'; this.style.background='#ecfdf5'"
-          onmouseout="this.style.borderColor='#cbd5e1'; this.style.background='#f8fafc'"
-          title="Descargar reporte analítico completo en Excel"
-        >
-          <i class="ph ph-file-xls" style="font-size:16px;"></i> Exportar Excel
-        </a>
+        <!-- Custom Date Range Pickers -->
+        <div class="bi-date-pickers" style="display:flex; align-items:center; gap:6px; background:#ffffff; border:1.5px solid #cbd5e1; border-radius:10px; padding:4px 10px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+          <span style="font-size:11px; font-weight:800; color:#64748b;">DESDE:</span>
+          <input type="date" style="border:none; background:transparent; font-size:12px; font-weight:800; color:#1e1b4b; outline:none;" x-model="startDate" @change="setCustomDates()">
+          <span style="font-size:11px; font-weight:800; color:#64748b; margin-left:4px;">HASTA:</span>
+          <input type="date" style="border:none; background:transparent; font-size:12px; font-weight:800; color:#1e1b4b; outline:none;" x-model="endDate" @change="setCustomDates()">
+        </div>
 
-        <!-- Print BI Report Button -->
-        <button 
-          type="button" 
-          onclick="window.print()" 
-          style="background:linear-gradient(135deg, #714B67 0%, #58334f 100%); border:none; color:#ffffff; padding:7px 16px; border-radius:10px; font-size:12.5px; font-weight:800; cursor:pointer; display:flex; align-items:center; gap:6px; box-shadow:0 4px 12px rgba(113,75,103,0.25);"
-        >
-          <i class="ph ph-printer" style="font-size:15px;"></i> Imprimir Informe
-        </button>
+        <!-- Actions Row -->
+        <div class="bi-actions-row" style="display:flex; align-items:center; gap:8px;">
+          <!-- Export to Excel (CSV) Button -->
+          <a 
+            :href="'/api/v1/dashboard/export-excel?period=' + selectedPeriod + (startDate ? '&start_date=' + startDate : '') + (endDate ? '&end_date=' + endDate : '') + (selectedBranchId ? '&branch_id=' + selectedBranchId : '')"
+            target="_blank"
+            style="background:#f8fafc; border:1.5px solid #cbd5e1; color:#059669; padding:7px 14px; border-radius:10px; font-size:12.5px; font-weight:800; cursor:pointer; display:flex; align-items:center; gap:6px; box-shadow:0 1px 3px rgba(0,0,0,0.04); text-decoration:none; transition:all 0.2s;"
+            onmouseover="this.style.borderColor='#059669'; this.style.background='#ecfdf5'"
+            onmouseout="this.style.borderColor='#cbd5e1'; this.style.background='#f8fafc'"
+            title="Descargar reporte analítico completo en Excel"
+          >
+            <i class="ph ph-file-xls" style="font-size:16px;"></i> Exportar Excel
+          </a>
+
+          <!-- Print BI Report Button -->
+          <button 
+            type="button" 
+            onclick="window.print()" 
+            style="background:linear-gradient(135deg, #714B67 0%, #58334f 100%); border:none; color:#ffffff; padding:7px 16px; border-radius:10px; font-size:12.5px; font-weight:800; cursor:pointer; display:flex; align-items:center; gap:6px; box-shadow:0 4px 12px rgba(113,75,103,0.25);"
+          >
+            <i class="ph ph-printer" style="font-size:15px;"></i> Imprimir
+          </button>
+        </div>
       </div>
     </div>
 
@@ -618,13 +794,13 @@
     </div>
 
     <!-- CHARTS ROW 1: SALES TIMELINE & CATEGORY BREAKDOWN -->
-    <div style="display:grid; grid-template-columns:2fr 1fr; gap:20px;">
+    <div class="bi-grid-row-1">
       
-      <!-- Sales Timeline Chart (2 Columnas) -->
-      <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:16px; padding:22px; box-shadow:0 4px 16px rgba(0,0,0,0.03);">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+      <!-- Sales Timeline Chart (2 Columnas en desktop) -->
+      <div class="bi-chart-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:8px;">
           <div style="display:flex; align-items:center; gap:10px;">
-            <div style="width:36px; height:36px; border-radius:10px; background:#f4eff3; color:#714B67; display:flex; align-items:center; justify-content:center; font-size:18px;">
+            <div style="width:36px; height:36px; border-radius:10px; background:#f4eff3; color:#714B67; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;">
               <i class="ph ph-chart-line"></i>
             </div>
             <div>
@@ -636,14 +812,14 @@
           <div class="period-segmented-control">
             <button 
               type="button" 
-              @click="chartDays = 7; loadSalesChart()" 
+              @click="setChartDays(7)" 
               class="period-segment-btn"
               :class="{ 'active': chartDays === 7 }"
               style="padding:5px 12px; font-size:11.5px;"
             >7 Días</button>
             <button 
               type="button" 
-              @click="chartDays = 30; loadSalesChart()" 
+              @click="setChartDays(30)" 
               class="period-segment-btn"
               :class="{ 'active': chartDays === 30 }"
               style="padding:5px 12px; font-size:11.5px;"
@@ -656,10 +832,10 @@
         </div>
       </div>
 
-      <!-- Categories Breakdown (1 Columna) -->
-      <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:16px; padding:22px; box-shadow:0 4px 16px rgba(0,0,0,0.03);">
+      <!-- Categories Breakdown (1 Columna en desktop) -->
+      <div class="bi-chart-card">
         <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
-          <div style="width:36px; height:36px; border-radius:10px; background:#eff6ff; color:#2563eb; display:flex; align-items:center; justify-content:center; font-size:18px;">
+          <div style="width:36px; height:36px; border-radius:10px; background:#eff6ff; color:#2563eb; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;">
             <i class="ph ph-chart-pie-slice"></i>
           </div>
           <div>
@@ -676,12 +852,12 @@
     </div>
 
     <!-- CHARTS ROW 2: PEAK HOURS & PAYMENT METHODS -->
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+    <div class="bi-grid-row-2">
       
       <!-- Peak Hours Chart -->
-      <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:16px; padding:22px; box-shadow:0 4px 16px rgba(0,0,0,0.03);">
+      <div class="bi-chart-card">
         <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
-          <div style="width:36px; height:36px; border-radius:10px; background:#fef3c7; color:#d97706; display:flex; align-items:center; justify-content:center; font-size:18px;">
+          <div style="width:36px; height:36px; border-radius:10px; background:#fef3c7; color:#d97706; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;">
             <i class="ph ph-clock-countdown"></i>
           </div>
           <div>
@@ -696,9 +872,9 @@
       </div>
 
       <!-- Payment Methods Breakdown -->
-      <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:16px; padding:22px; box-shadow:0 4px 16px rgba(0,0,0,0.03);">
+      <div class="bi-chart-card">
         <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
-          <div style="width:36px; height:36px; border-radius:10px; background:#ecfdf5; color:#059669; display:flex; align-items:center; justify-content:center; font-size:18px;">
+          <div style="width:36px; height:36px; border-radius:10px; background:#ecfdf5; color:#059669; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;">
             <i class="ph ph-credit-card"></i>
           </div>
           <div>
@@ -715,10 +891,10 @@
     </div>
 
     <!-- RANKING & ALERTS ROW: PODIO DE CAJEROS & ALERTA DE STOCK CRÍTICO -->
-    <div style="display:grid; grid-template-columns:1.2fr 0.8fr; gap:20px;">
+    <div class="bi-grid-row-3">
       
       <!-- Podio & Rendimiento de Cajeros / Vendedores -->
-      <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:16px; padding:22px; box-shadow:0 4px 16px rgba(0,0,0,0.03);">
+      <div class="bi-chart-card">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid #f1f5f9; padding-bottom:10px;">
           <div style="display:flex; align-items:center; gap:8px;">
             <i class="ph ph-users-three" style="font-size:20px; color:#714B67;"></i>
@@ -770,7 +946,7 @@
       </div>
 
       <!-- Radar de Alertas de Inventario Crítico -->
-      <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:16px; padding:22px; box-shadow:0 4px 16px rgba(0,0,0,0.03);">
+      <div class="bi-chart-card">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid #f1f5f9; padding-bottom:10px;">
           <div style="display:flex; align-items:center; gap:8px;">
             <i class="ph ph-warning-circle" style="font-size:20px; color:#ea580c;"></i>
@@ -804,10 +980,10 @@
     </div>
 
     <!-- TABLES ROW: TOP PRODUCTS & RECENT LIVE SALES -->
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+    <div class="bi-grid-row-4">
       
       <!-- Top 5 Profitable Products -->
-      <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:16px; padding:22px; box-shadow:0 4px 16px rgba(0,0,0,0.03);">
+      <div class="bi-chart-card">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid #f1f5f9; padding-bottom:10px;">
           <div style="display:flex; align-items:center; gap:8px;">
             <i class="ph ph-trophy" style="font-size:20px; color:#f59e0b;"></i>
@@ -849,7 +1025,7 @@
       </div>
 
       <!-- Recent Transactions Live -->
-      <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:16px; padding:22px; box-shadow:0 4px 16px rgba(0,0,0,0.03);">
+      <div class="bi-chart-card">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid #f1f5f9; padding-bottom:10px;">
           <div style="display:flex; align-items:center; gap:8px;">
             <i class="ph ph-receipt" style="font-size:20px; color:#714B67;"></i>
@@ -884,7 +1060,29 @@
 
     </div>
 
-  </div>
+  <!-- Mobile Bottom Navigation Dock (Visible on <= 768px) -->
+  <nav class="mobile-bottom-nav">
+    <a href="/dashboard" class="mobile-nav-btn active">
+      <i class="ph ph-squares-four"></i>
+      <span>Inicio</span>
+    </a>
+    <a href="/pos" class="mobile-nav-btn">
+      <i class="ph ph-shopping-cart"></i>
+      <span>POS</span>
+    </a>
+    <a href="/inventory" class="mobile-nav-btn">
+      <i class="ph ph-package"></i>
+      <span>Inventario</span>
+    </a>
+    <a href="/customers" class="mobile-nav-btn">
+      <i class="ph ph-users"></i>
+      <span>Clientes</span>
+    </a>
+    <a href="/quotes" class="mobile-nav-btn">
+      <i class="ph ph-file-text"></i>
+      <span>Cotizar</span>
+    </a>
+  </nav>
 
 </div>
 
@@ -892,11 +1090,20 @@
 function mainDashboardPage() {
   return {
     viewMode: 'apps', // 'apps' or 'analytics'
-    selectedPeriod: 'month', // 'today', 'week', 'month', 'year'
+    selectedPeriod: 'month', // 'today', 'week', 'month', 'year', 'custom'
+    startDate: '',
+    endDate: '',
     searchQuery: '',
     currentUser: JSON.parse(localStorage.getItem('user') || '{}'),
-    activeBranchName: localStorage.getItem('branch_name') || 'Sucursal Principal',
+    branches: [],
+    selectedBranchId: '',
     chartDays: 30,
+
+    get activeBranchName() {
+      if (!this.selectedBranchId) return 'Todas las Sucursales (Consolidado)';
+      const found = this.branches.find(b => String(b.id) === String(this.selectedBranchId));
+      return found ? (found.name || 'Sucursal') : (localStorage.getItem('branch_name') || 'Sucursal');
+    },
 
     // Data models
     kpis: {},
@@ -924,6 +1131,22 @@ function mainDashboardPage() {
       return d.toLocaleDateString('es-GT', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
     },
 
+    formatLocalDate(d) {
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    },
+
+    getQueryString(extraDays = null) {
+      let q = `period=${encodeURIComponent(this.selectedPeriod)}`;
+      if (this.startDate) q += `&start_date=${encodeURIComponent(this.startDate)}`;
+      if (this.endDate) q += `&end_date=${encodeURIComponent(this.endDate)}`;
+      if (this.selectedBranchId) q += `&branch_id=${encodeURIComponent(this.selectedBranchId)}`;
+      if (extraDays) q += `&days=${encodeURIComponent(extraDays)}`;
+      return q;
+    },
+
     matchesSearch(label) {
       if (!this.searchQuery) return true;
       return label.toLowerCase().includes(this.searchQuery.toLowerCase());
@@ -948,15 +1171,6 @@ function mainDashboardPage() {
       } catch(e) { return false; }
     })(),
 
-    async init() {
-      await this.checkAdminRole();
-      await this.loadKpis();
-      await this.loadCashierPerformance();
-      await this.loadStockAlerts();
-      await this.loadRecentSales();
-      await this.loadProfitability();
-    },
-
     async authFetch(url, options = {}) {
       const token = localStorage.getItem('access_token');
       const headers = {
@@ -966,22 +1180,102 @@ function mainDashboardPage() {
       return fetch(url, { ...options, headers });
     },
 
+    async loadBranches() {
+      try {
+        const res = await this.authFetch('/api/v1/branches/');
+        if (res.ok) {
+          const data = await res.json();
+          this.branches = Array.isArray(data) ? data : [];
+        }
+      } catch (e) {
+        console.error("Error loading branches for BI filter:", e);
+      }
+    },
+
+    async onBranchChange() {
+      await this.refreshAllAnalytics();
+    },
+
     async init() {
       await this.checkAdminRole();
-      await Promise.all([
-        this.loadKpis(),
-        this.loadCashierPerformance(),
-        this.loadStockAlerts(),
-        this.loadRecentSales(),
-        this.loadProfitability()
-      ]);
+      await this.loadBranches();
+      const now = new Date();
+      const s = new Date(now.getFullYear(), now.getMonth(), 1);
+      const e = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      this.startDate = this.formatLocalDate(s);
+      this.endDate = this.formatLocalDate(e);
+
+      await this.refreshAllAnalytics();
     },
 
     async setPeriod(p) {
       this.selectedPeriod = p;
+      const now = new Date();
+      let s = new Date();
+      let e = new Date();
+
+      if (p === 'today') {
+        s = now;
+        e = now;
+        this.chartDays = 1;
+      } else if (p === 'week') {
+        const dayOfWeek = now.getDay() || 7;
+        s.setDate(now.getDate() - (dayOfWeek - 1));
+        e = now;
+        this.chartDays = 7;
+      } else if (p === 'month') {
+        s = new Date(now.getFullYear(), now.getMonth(), 1);
+        e = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        this.chartDays = 30;
+      } else if (p === 'year') {
+        s = new Date(now.getFullYear(), 0, 1);
+        e = new Date(now.getFullYear(), 11, 31);
+        this.chartDays = 365;
+      }
+
+      this.startDate = this.formatLocalDate(s);
+      this.endDate = this.formatLocalDate(e);
+      await this.refreshAllAnalytics();
+    },
+
+    async setCustomDates() {
+      if (!this.startDate || !this.endDate) return;
+      this.selectedPeriod = 'custom';
+      await this.refreshAllAnalytics();
+    },
+
+    async setChartDays(days) {
+      this.chartDays = days;
+      if (days === 7) {
+        this.selectedPeriod = 'week';
+        const now = new Date();
+        const dayOfWeek = now.getDay() || 7;
+        const s = new Date();
+        s.setDate(now.getDate() - (dayOfWeek - 1));
+        this.startDate = this.formatLocalDate(s);
+        this.endDate = this.formatLocalDate(now);
+      } else if (days === 30) {
+        this.selectedPeriod = 'month';
+        const now = new Date();
+        const s = new Date(now.getFullYear(), now.getMonth(), 1);
+        const e = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        this.startDate = this.formatLocalDate(s);
+        this.endDate = this.formatLocalDate(e);
+      }
+      await this.refreshAllAnalytics();
+    },
+
+    async refreshAllAnalytics() {
       await Promise.all([
         this.loadKpis(),
-        this.loadCashierPerformance()
+        this.loadCashierPerformance(),
+        this.loadSalesChart(),
+        this.loadCategoryChart(),
+        this.loadPeakHoursChart(),
+        this.loadPaymentMethodsChart(),
+        this.loadRecentSales(),
+        this.loadProfitability(),
+        this.loadStockAlerts()
       ]);
     },
 
@@ -1013,7 +1307,7 @@ function mainDashboardPage() {
 
     async loadKpis() {
       try {
-        const res = await this.authFetch(`/api/v1/dashboard/kpis?period=${this.selectedPeriod}`);
+        const res = await this.authFetch(`/api/v1/dashboard/kpis?${this.getQueryString()}`);
         if (res.ok) this.kpis = await res.json();
       } catch (e) {
         console.error("Error loading dashboard KPIs:", e);
@@ -1022,7 +1316,7 @@ function mainDashboardPage() {
 
     async loadCashierPerformance() {
       try {
-        const res = await this.authFetch(`/api/v1/dashboard/cashier-performance?period=${this.selectedPeriod}`);
+        const res = await this.authFetch(`/api/v1/dashboard/cashier-performance?${this.getQueryString()}`);
         if (res.ok) {
           const data = await res.json();
           this.cashierRankings = data.items || [];
@@ -1034,7 +1328,9 @@ function mainDashboardPage() {
 
     async loadStockAlerts() {
       try {
-        const res = await this.authFetch('/api/v1/dashboard/stock-alerts');
+        let url = '/api/v1/dashboard/stock-alerts';
+        if (this.selectedBranchId) url += `?branch_id=${encodeURIComponent(this.selectedBranchId)}`;
+        const res = await this.authFetch(url);
         if (res.ok) {
           const data = await res.json();
           this.stockAlerts = data.items || [];
@@ -1046,7 +1342,9 @@ function mainDashboardPage() {
 
     async loadRecentSales() {
       try {
-        const res = await this.authFetch('/api/v1/dashboard/recent-sales?limit=5');
+        let url = `/api/v1/dashboard/recent-sales?limit=5`;
+        if (this.selectedBranchId) url += `&branch_id=${encodeURIComponent(this.selectedBranchId)}`;
+        const res = await this.authFetch(url);
         if (res.ok) this.recentSales = await res.json();
       } catch (e) {
         console.error("Error loading recent sales:", e);
@@ -1055,27 +1353,45 @@ function mainDashboardPage() {
 
     async loadProfitability() {
       try {
-        const res = await this.authFetch('/api/v1/dashboard/profitability-and-runway');
+        const res = await this.authFetch(`/api/v1/dashboard/profitability-and-runway?${this.getQueryString()}`);
         if (res.ok) this.profitabilityData = await res.json();
       } catch (e) {
         console.error("Error loading profitability data:", e);
       }
     },
 
+    renderChart(canvasId, config, propName) {
+      const canvas = document.getElementById(canvasId);
+      if (!canvas) return null;
+      
+      const existing = Chart.getChart(canvas);
+      if (existing) {
+        if (existing.config.type === config.type) {
+          existing.data.labels = config.data.labels;
+          existing.data.datasets = config.data.datasets;
+          if (config.options) existing.options = config.options;
+          existing.update();
+          this[propName] = existing;
+          return existing;
+        } else {
+          existing.destroy();
+        }
+      }
+      const ctx = canvas.getContext('2d');
+      const inst = new Chart(ctx, config);
+      this[propName] = inst;
+      return inst;
+    },
+
     async initCharts() {
       this.$nextTick(async () => {
-        await Promise.all([
-          this.loadSalesChart(),
-          this.loadCategoryChart(),
-          this.loadPeakHoursChart(),
-          this.loadPaymentMethodsChart()
-        ]);
+        await this.refreshAllAnalytics();
       });
     },
 
     async loadSalesChart() {
       try {
-        const res = await this.authFetch(`/api/v1/dashboard/sales-chart?days=${this.chartDays}`);
+        const res = await this.authFetch(`/api/v1/dashboard/sales-chart?${this.getQueryString(this.chartDays)}`);
         if (!res.ok) return;
         const data = await res.json();
 
@@ -1083,21 +1399,16 @@ function mainDashboardPage() {
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
 
-        if (this.salesChartInst) {
-          this.salesChartInst.destroy();
-          this.salesChartInst = null;
-        }
-
         const gradient = ctx.createLinearGradient(0, 0, 0, 260);
         gradient.addColorStop(0, 'rgba(113, 75, 103, 0.35)');
         gradient.addColorStop(1, 'rgba(113, 75, 103, 0.0)');
 
-        this.salesChartInst = new Chart(ctx, {
+        this.renderChart('salesTrendsChart', {
           type: 'line',
           data: {
             labels: data.labels,
             datasets: [{
-              label: 'Ventas Diarias (Q)',
+              label: 'Ventas (Q)',
               data: data.data,
               borderColor: '#714B67',
               backgroundColor: gradient,
@@ -1128,12 +1439,10 @@ function mainDashboardPage() {
                   callback: (v) => `Q ${v >= 1000 ? (v/1000) + 'k' : v}`
                 }
               },
-              x: {
-                grid: { display: false }
-              }
+              x: { grid: { display: false } }
             }
           }
-        });
+        }, 'salesChartInst');
       } catch (e) {
         console.error("Error loading sales chart:", e);
       }
@@ -1141,20 +1450,11 @@ function mainDashboardPage() {
 
     async loadCategoryChart() {
       try {
-        const res = await this.authFetch('/api/v1/dashboard/category-breakdown');
+        const res = await this.authFetch(`/api/v1/dashboard/category-breakdown?${this.getQueryString()}`);
         if (!res.ok) return;
         const data = await res.json();
 
-        const canvas = document.getElementById('categoryChart');
-        if (!canvas) return;
-        const ctx = canvas.getContext('2d');
-
-        if (this.categoryChartInst) {
-          this.categoryChartInst.destroy();
-          this.categoryChartInst = null;
-        }
-
-        this.categoryChartInst = new Chart(ctx, {
+        this.renderChart('categoryChart', {
           type: 'doughnut',
           data: {
             labels: data.labels,
@@ -1183,7 +1483,7 @@ function mainDashboardPage() {
             },
             cutout: '65%'
           }
-        });
+        }, 'categoryChartInst');
       } catch (e) {
         console.error("Error loading category chart:", e);
       }
@@ -1191,7 +1491,7 @@ function mainDashboardPage() {
 
     async loadPeakHoursChart() {
       try {
-        const res = await this.authFetch('/api/v1/dashboard/sales-by-hour');
+        const res = await this.authFetch(`/api/v1/dashboard/sales-by-hour?${this.getQueryString()}`);
         if (!res.ok) return;
         const data = await res.json();
 
@@ -1199,16 +1499,11 @@ function mainDashboardPage() {
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
 
-        if (this.peakHoursChartInst) {
-          this.peakHoursChartInst.destroy();
-          this.peakHoursChartInst = null;
-        }
-
         const gradient = ctx.createLinearGradient(0, 0, 0, 240);
         gradient.addColorStop(0, '#00A09D');
         gradient.addColorStop(1, 'rgba(0, 160, 157, 0.15)');
 
-        this.peakHoursChartInst = new Chart(ctx, {
+        this.renderChart('peakHoursChart', {
           type: 'bar',
           data: {
             labels: data.labels,
@@ -1243,7 +1538,7 @@ function mainDashboardPage() {
               x: { grid: { display: false } }
             }
           }
-        });
+        }, 'peakHoursChartInst');
       } catch (e) {
         console.error("Error loading peak hours chart:", e);
       }
@@ -1251,20 +1546,11 @@ function mainDashboardPage() {
 
     async loadPaymentMethodsChart() {
       try {
-        const res = await this.authFetch('/api/v1/dashboard/payment-methods');
+        const res = await this.authFetch(`/api/v1/dashboard/payment-methods?${this.getQueryString()}`);
         if (!res.ok) return;
         const data = await res.json();
 
-        const canvas = document.getElementById('paymentMethodsChart');
-        if (!canvas) return;
-        const ctx = canvas.getContext('2d');
-
-        if (this.paymentMethodsChartInst) {
-          this.paymentMethodsChartInst.destroy();
-          this.paymentMethodsChartInst = null;
-        }
-
-        this.paymentMethodsChartInst = new Chart(ctx, {
+        this.renderChart('paymentMethodsChart', {
           type: 'doughnut',
           data: {
             labels: data.labels,
@@ -1298,7 +1584,7 @@ function mainDashboardPage() {
               }
             }
           }
-        });
+        }, 'paymentMethodsChartInst');
       } catch (e) {
         console.error("Error loading payment methods chart:", e);
       }

@@ -1,0 +1,1352 @@
+{% set show_layout = true %}
+{% extends "base.html" %}
+
+{% block title %}Preparación en Bodega (Picking & Delivery) — POS Empresarial{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* =========================================================
+     ODOO ENTERPRISE DESIGN SYSTEM: PREPARACIÓN EN BODEGA
+  ========================================================= */
+
+  .prep-header-bar {
+    margin: -20px -24px 20px -24px;
+    padding: 14px 24px;
+    background: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 14px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+  }
+
+  .prep-header-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: #eff6ff;
+    color: #2563eb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+
+  .prep-header-title {
+    font-size: 16px;
+    font-weight: 800;
+    color: #1e293b;
+    margin: 0;
+    line-height: 1.2;
+  }
+
+  .prep-header-subtitle {
+    font-size: 11.5px;
+    color: #64748b;
+    margin-top: 2px;
+  }
+
+  /* KPIs Bar */
+  .prep-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+
+  .prep-kpi-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 14px 18px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: all 0.2s ease;
+  }
+
+  .prep-kpi-val {
+    font-size: 22px;
+    font-weight: 900;
+    line-height: 1.1;
+  }
+
+  .prep-kpi-label {
+    font-size: 11.5px;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 2px;
+  }
+
+  /* Filter Tabs */
+  .prep-tabs-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+  }
+
+  .prep-tab-btn {
+    padding: 7px 16px;
+    border-radius: 8px;
+    font-size: 12.5px;
+    font-weight: 700;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    color: #475569;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.15s ease;
+  }
+
+  .prep-tab-btn:hover {
+    background: #f8fafc;
+    border-color: #94a3b8;
+  }
+
+  .prep-tab-btn.active {
+    background: #2563eb;
+    border-color: #2563eb;
+    color: #ffffff;
+  }
+
+  /* Delivery / Preparation Cards Grid */
+  .prep-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 16px;
+  }
+
+  .prep-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: all 0.2s ease;
+  }
+
+  .prep-card:hover {
+    box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+    border-color: #cbd5e1;
+  }
+
+  .prep-card.is-prepared {
+    border-left: 4px solid #10b981;
+    background: #fcfdfd;
+  }
+
+  .prep-card.is-pending {
+    border-left: 4px solid #f59e0b;
+  }
+
+  .prep-card-header {
+    padding: 14px 16px;
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .prep-order-num {
+    font-size: 14px;
+    font-weight: 900;
+    color: #0f172a;
+    letter-spacing: 0.3px;
+  }
+
+  .prep-badge {
+    font-size: 11px;
+    font-weight: 800;
+    padding: 3px 8px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .prep-badge-pending {
+    background: #fef3c7;
+    color: #b45309;
+    border: 1px solid #fde68a;
+  }
+
+  .prep-badge-prepared {
+    background: #d1fae5;
+    color: #047857;
+    border: 1px solid #a7f3d0;
+  }
+
+  .prep-card-body {
+    padding: 14px 16px;
+    flex: 1;
+  }
+
+  .prep-customer-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 800;
+    font-size: 13.5px;
+    color: #1e293b;
+    margin-bottom: 6px;
+  }
+
+  .prep-info-row {
+    font-size: 12px;
+    color: #64748b;
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    margin-bottom: 4px;
+  }
+
+  /* Checklist of items */
+  .prep-items-list {
+    margin-top: 10px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #f8fafc;
+    padding: 6px;
+    max-height: 250px;
+    overflow-y: auto;
+  }
+
+  .prep-item-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 10px;
+    border-radius: 6px;
+    margin-bottom: 4px;
+    font-size: 12px;
+    gap: 10px;
+    transition: all 0.15s ease;
+    border: 1px solid transparent;
+  }
+
+  .prep-item-row:last-child {
+    margin-bottom: 0;
+  }
+
+  .prep-item-row.item-ready {
+    background: #ffffff;
+    border-color: #cbd5e1;
+  }
+
+  .prep-item-row.item-missing {
+    background: #fef2f2;
+    border-color: #fecaca;
+  }
+
+  .prep-item-check {
+    width: 18px;
+    height: 18px;
+    accent-color: #10b981;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .prep-card-footer {
+    padding: 12px 16px;
+    background: #ffffff;
+    border-top: 1px solid #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .btn-mark-ready {
+    background: #10b981;
+    color: #ffffff;
+    border: none;
+    height: 38px;
+    min-height: 38px;
+    padding: 0 14px;
+    border-radius: 8px;
+    font-size: 12.5px;
+    font-weight: 800;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    flex: 1;
+    transition: all 0.15s ease;
+  }
+
+  .btn-mark-ready:hover {
+    background: #059669;
+    box-shadow: 0 3px 8px rgba(16, 185, 129, 0.3);
+  }
+
+  .btn-unmark-ready {
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #cbd5e1;
+    height: 38px;
+    width: 38px;
+    padding: 0;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.15s ease;
+  }
+
+  .btn-unmark-ready:hover {
+    background: #fee2e2;
+    border-color: #fca5a5;
+    color: #b91c1c;
+  }
+
+  .btn-print-slip {
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    color: #334155;
+    height: 38px;
+    width: 38px;
+    padding: 0;
+    border-radius: 8px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    flex-shrink: 0;
+    transition: all 0.15s ease;
+  }
+
+  .btn-print-slip:hover {
+    background: #e2e8f0;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div x-data="preparacionBodegaApp()" x-init="init()">
+  <!-- Header Bar -->
+  <div class="prep-header-bar">
+    <div style="display:flex; align-items:center; gap:12px;">
+      <div class="prep-header-icon">
+        <i class="ph ph-package"></i>
+      </div>
+      <div>
+        <h1 class="prep-header-title">Preparación en Bodega</h1>
+        <div class="prep-header-subtitle">Alistamiento de pedidos aprobados para entrega y despacho físico</div>
+      </div>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:10px;">
+      <!-- Selector de Bodega -->
+      <select 
+        x-model="selectedWarehouseId" 
+        @change="loadOrders()" 
+        style="padding:7px 12px; border-radius:8px; border:1px solid #cbd5e1; font-size:12.5px; font-weight:700; color:#334155; background:#f8fafc; outline:none;"
+      >
+        <option value="">🏢 Todas las Bodegas</option>
+        <template x-for="w in warehouses" :key="w.id">
+          <option :value="w.id" x-text="'📦 ' + w.name"></option>
+        </template>
+      </select>
+
+      <!-- Botón Audio On/Off -->
+      <button 
+        type="button" 
+        class="prep-tab-btn" 
+        @click="toggleSound()" 
+        :style="soundEnabled ? 'color:#059669; border-color:#86efac; background:#f0fdf4;' : 'color:#94a3b8; border-color:#cbd5e1;'"
+        :title="soundEnabled ? 'Silenciar timbres de alertas' : 'Activar timbre sonoro de nuevos pedidos'"
+      >
+        <i class="ph" :class="soundEnabled ? 'ph-speaker-high' : 'ph-speaker-slash'" style="font-size:16px;"></i>
+        <span x-text="soundEnabled ? 'Alerta Sonora: ON' : 'Audio Silenciado'"></span>
+      </button>
+
+      <!-- Botón Refrescar -->
+      <button 
+        type="button" 
+        class="prep-tab-btn" 
+        @click="loadOrders()" 
+        :disabled="isLoading"
+        title="Actualizar listado"
+      >
+        <i class="ph ph-arrows-clockwise" :class="isLoading ? 'ph-spin' : ''"></i>
+        <span>Actualizar</span>
+      </button>
+
+      <!-- Enlace a Solicitudes POS -->
+      <a href="/pos/solicitudes" class="prep-tab-btn" style="text-decoration:none; color:#714B67; border-color:#e2d9e0; background:#faf7f9;">
+        <i class="ph ph-clipboard-text"></i>
+        <span>Solicitudes POS</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- KPIs de Preparación -->
+  <div class="prep-kpi-grid">
+    <div class="prep-kpi-card" style="border-left:4px solid #f59e0b;">
+      <div>
+        <div class="prep-kpi-val" style="color:#b45309;" x-text="pendingCount">0</div>
+        <div class="prep-kpi-label">Pendientes de Preparar</div>
+      </div>
+      <div style="width:36px; height:36px; border-radius:8px; background:#fef3c7; color:#b45309; display:flex; align-items:center; justify-content:center; font-size:18px;">
+        <i class="ph ph-clock-countdown"></i>
+      </div>
+    </div>
+
+    <div class="prep-kpi-card" style="border-left:4px solid #10b981;">
+      <div>
+        <div class="prep-kpi-val" style="color:#047857;" x-text="preparedCount">0</div>
+        <div class="prep-kpi-label">Preparados / Listos</div>
+      </div>
+      <div style="width:36px; height:36px; border-radius:8px; background:#d1fae5; color:#047857; display:flex; align-items:center; justify-content:center; font-size:18px;">
+        <i class="ph ph-check-circle"></i>
+      </div>
+    </div>
+
+    <div class="prep-kpi-card" style="border-left:4px solid #2563eb;">
+      <div>
+        <div class="prep-kpi-val" style="color:#1d4ed8;" x-text="totalOrders">0</div>
+        <div class="prep-kpi-label">Total en Cola de Bodega</div>
+      </div>
+      <div style="width:36px; height:36px; border-radius:8px; background:#dbeafe; color:#1d4ed8; display:flex; align-items:center; justify-content:center; font-size:18px;">
+        <i class="ph ph-tray"></i>
+      </div>
+    </div>
+  </div>
+
+  <!-- Banner flotante cuando entra nuevo pedido -->
+  <div 
+    x-show="showNewOrderBanner" 
+    x-transition:enter="transition ease-out duration-300"
+    x-transition:enter-start="opacity-0 -translate-y-2"
+    x-transition:enter-end="opacity-100 translate-y-0"
+    x-transition:leave="transition ease-in duration-200"
+    style="margin-bottom:14px; background:linear-gradient(135deg, #1e40af, #2563eb); color:#ffffff; padding:12px 18px; border-radius:10px; display:flex; align-items:center; justify-content:space-between; box-shadow:0 4px 14px rgba(37,99,235,0.25);"
+  >
+    <div style="display:flex; align-items:center; gap:10px;">
+      <span style="font-size:20px; animation: bounce 1s infinite;">🔔</span>
+      <div>
+        <strong style="font-size:13.5px;">¡Nuevo Pedido Recibido en Bodega!</strong>
+        <div style="font-size:12px; opacity:0.9;" x-text="newOrdersAlert"></div>
+      </div>
+    </div>
+    <button type="button" @click="showNewOrderBanner = false" style="background:rgba(255,255,255,0.2); border:none; color:#fff; padding:4px 10px; border-radius:6px; font-size:12px; cursor:pointer; font-weight:700;">Entendido</button>
+  </div>
+
+  <!-- Toast flotante para escaneo de código de barras -->
+  <div 
+    x-show="toastMessage" 
+    x-transition
+    style="position:fixed; bottom:24px; right:24px; z-index:9999; background:#0f172a; color:#ffffff; padding:12px 20px; border-radius:8px; font-size:13px; font-weight:800; box-shadow:0 8px 24px rgba(0,0,0,0.2); display:flex; align-items:center; gap:10px; border-left:4px solid #10b981;"
+  >
+    <i class="ph ph-barcode" style="font-size:20px; color:#10b981;"></i>
+    <span x-text="toastMessage"></span>
+  </div>
+
+  <!-- Barra de Filtros & Búsqueda / Escaneo -->
+  <div class="prep-tabs-bar" style="justify-content:space-between;">
+    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+      <button type="button" class="prep-tab-btn" :class="activeFilter === 'all' ? 'active' : ''" @click="activeFilter = 'all'">
+        Todos (<span x-text="totalOrders"></span>)
+      </button>
+      <button type="button" class="prep-tab-btn" :class="activeFilter === 'pending' ? 'active' : ''" @click="activeFilter = 'pending'">
+        ⏳ Pendientes (<span x-text="pendingCount"></span>)
+      </button>
+      <button type="button" class="prep-tab-btn" :class="activeFilter === 'prepared' ? 'active' : ''" @click="activeFilter = 'prepared'">
+        ✅ Listos para Despacho (<span x-text="preparedCount"></span>)
+      </button>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+      <!-- Lector de Código de Barras Físico o Manual -->
+      <div style="position:relative; width:260px;">
+        <i class="ph ph-barcode" style="position:absolute; left:10px; top:8px; color:#2563eb; font-size:17px;"></i>
+        <input 
+          type="text" 
+          x-ref="barcodeScannerInput"
+          x-model="barcodeScanInput" 
+          @keydown.enter="handleBarcodeScan()"
+          placeholder="Escanear producto con lector..."
+          title="Escanea código de barras o escribe y pulsa Enter"
+          style="width:100%; padding:7px 10px 7px 32px; border:2px solid #3b82f6; border-radius:8px; font-size:12px; font-weight:700; outline:none; box-sizing:border-box; background:#eff6ff;"
+        >
+      </div>
+
+      <!-- Buscador de Texto -->
+      <div style="position:relative; width:220px;">
+        <i class="ph ph-magnifying-glass" style="position:absolute; left:10px; top:8px; color:#94a3b8;"></i>
+        <input 
+          type="text" 
+          x-model="searchQuery" 
+          placeholder="Buscar # orden, cliente..."
+          style="width:100%; padding:7px 10px 7px 30px; border:1px solid #cbd5e1; border-radius:8px; font-size:12px; outline:none; box-sizing:border-box;"
+        >
+      </div>
+    </div>
+  </div>
+
+  <!-- Estado de Carga / Sin Resultados -->
+  <div x-show="isLoading" style="text-align:center; padding:50px 20px; color:#64748b;">
+    <i class="ph ph-spinner ph-spin" style="font-size:32px; color:#2563eb;"></i>
+    <div style="margin-top:8px; font-weight:700; font-size:14px;">Cargando pedidos de bodega...</div>
+  </div>
+
+  <div x-show="!isLoading && filteredOrders.length === 0" style="text-align:center; padding:60px 20px; background:#ffffff; border:1px dashed #cbd5e1; border-radius:12px;">
+    <i class="ph ph-package" style="font-size:42px; color:#cbd5e1;"></i>
+    <div style="font-size:16px; font-weight:800; color:#334155; margin-top:10px;">No hay pedidos pendientes en bodega</div>
+    <div style="font-size:12.5px; color:#64748b; margin-top:4px;">Las solicitudes aprobadas en el módulo POS aparecerán aquí automáticamente para su alistamiento.</div>
+  </div>
+
+  <!-- Cuadrícula de Tarjetas de Preparación -->
+  <div class="prep-cards-grid" x-show="!isLoading && filteredOrders.length > 0">
+    <template x-for="order in filteredOrders" :key="order.id">
+      <div class="prep-card" :class="order.warehouse_verified ? 'is-prepared' : 'is-pending'">
+        <!-- Encabezado de Tarjeta -->
+        <div class="prep-card-header">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span class="prep-order-num" x-text="order.number"></span>
+            <span style="font-size:11px; color:#64748b;" x-text="formatTimeAgo(order.created_at)"></span>
+          </div>
+
+          <span 
+            class="prep-badge" 
+            :class="order.warehouse_verified ? 'prep-badge-prepared' : 'prep-badge-pending'"
+            x-text="order.warehouse_verified ? '✅ Listo para Despacho' : '⏳ Por Preparar'"
+          ></span>
+        </div>
+
+        <!-- Cuerpo con datos de entrega y productos -->
+        <div class="prep-card-body">
+          <div class="prep-customer-row">
+            <i class="ph ph-user" style="color:#2563eb;"></i>
+            <span x-text="order.customer_name"></span>
+          </div>
+
+          <div class="prep-info-row" x-show="order.delivery_address">
+            <i class="ph ph-map-pin" style="color:#ef4444; flex-shrink:0; margin-top:2px;"></i>
+            <span x-text="order.delivery_address"></span>
+          </div>
+
+          <div class="prep-info-row" x-show="order.delivery_notes">
+            <i class="ph ph-note" style="color:#f59e0b; flex-shrink:0; margin-top:2px;"></i>
+            <span x-text="'Nota: ' + order.delivery_notes"></span>
+          </div>
+
+          <div class="prep-info-row" style="margin-top:4px;">
+            <i class="ph ph-storefront" style="color:#64748b;"></i>
+            <span x-text="order.warehouse_name"></span>
+            <span style="margin:0 4px; color:#cbd5e1;">•</span>
+            <span x-text="order.seller_name"></span>
+          </div>
+
+          <!-- Checklist interactivo de productos -->
+          <div style="margin-top:10px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; font-size:11.5px; font-weight:800; color:#475569; margin-bottom:6px;">
+              <span>ARTÍCULOS A PREPARAR (<span x-text="order.lines ? order.lines.length : 0"></span>)</span>
+              <div>
+                <span style="color:#10b981; font-weight:900;" x-text="countPrepared(order) + ' / ' + (order.lines ? order.lines.length : 0) + ' listos'"></span>
+                <span 
+                  x-show="countMissing(order) > 0" 
+                  style="margin-left:4px; padding:1px 6px; border-radius:4px; background:#fee2e2; color:#b91c1c; font-size:10px; font-weight:800;"
+                  x-text="countMissing(order) + ' faltante(s)'"
+                ></span>
+              </div>
+            </div>
+
+            <div class="prep-items-list">
+              <template x-for="item in order.lines" :key="item.id">
+                <div class="prep-item-row" :class="isItemPrepared(order.id, item.id) ? 'item-ready' : 'item-missing'">
+                  <div style="display:flex; align-items:center; gap:8px; flex:1; min-width:0;">
+                    <input 
+                      type="checkbox" 
+                      class="prep-item-check" 
+                      :checked="isItemPrepared(order.id, item.id)"
+                      :disabled="order.warehouse_verified"
+                      @change="toggleItemCheck(order.id, item.id)"
+                      title="Marcar si el producto está disponible y empacado"
+                    >
+                    <div style="min-width:0;">
+                      <div style="font-weight:700; color:#1e293b;" x-text="item.name"></div>
+                      <div style="display:flex; align-items:center; gap:6px; margin-top:2px; flex-wrap:wrap;">
+                        <span style="font-size:10.5px; color:#64748b;" x-show="item.sku" x-text="'SKU: ' + item.sku"></span>
+                        <span 
+                          style="font-size:10px; font-weight:800; padding:1px 5px; border-radius:4px;"
+                          :style="isItemPrepared(order.id, item.id) ? 'background:#dcfce7; color:#15803d; border:1px solid #86efac;' : 'background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5;'"
+                          x-text="isItemPrepared(order.id, item.id) ? '✓ Preparado' : '❌ Faltante en Bodega'"
+                        ></span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style="text-align:right; flex-shrink:0;">
+                    <template x-if="item.qty > 1 && isItemPrepared(order.id, item.id) && !order.warehouse_verified">
+                      <div style="display:flex; align-items:center; gap:3px; margin-bottom:2px;">
+                        <input 
+                          type="number" 
+                          min="1" 
+                          :max="item.qty" 
+                          :value="getItemPreparedQty(order.id, item.id, item.qty)" 
+                          @input="setItemPreparedQty(order.id, item.id, $event.target.value, item.qty)"
+                          style="width:48px; padding:2px 3px; font-size:11.5px; font-weight:bold; border:1px solid #94a3b8; border-radius:4px; text-align:center; background:#ffffff;"
+                          title="Cantidad real preparada en bodega"
+                        >
+                        <span style="font-size:10.5px; color:#64748b;" x-text="'de ' + item.qty"></span>
+                      </div>
+                    </template>
+                    <div 
+                      style="font-size:12.5px; font-weight:900;" 
+                      :style="isItemPrepared(order.id, item.id) ? 'color:#0f172a;' : 'color:#ef4444; text-decoration:line-through;'" 
+                      x-text="(isItemPrepared(order.id, item.id) ? getItemPreparedQty(order.id, item.id, item.qty) : 0) + ' ' + (item.uom || 'und')"
+                    ></div>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pie de tarjeta / Botón de Acción -->
+        <div class="prep-card-footer">
+          <div style="display:flex; align-items:center; gap:5px;">
+            <button 
+              type="button" 
+              class="btn-print-slip" 
+              @click="printPickingSlip(order)" 
+              title="Imprimir boleta de empaque / picking"
+            >
+              <i class="ph ph-printer"></i>
+            </button>
+
+            <button 
+              type="button" 
+              class="btn-print-slip" 
+              @click="printPackageLabel(order)" 
+              title="Imprimir etiqueta térmica de bulto (58mm / 80mm) con QR"
+              style="color: #4338ca; border-color: #c7d2fe; background: #eef2ff;"
+            >
+              <i class="ph ph-tag"></i>
+            </button>
+
+            <a 
+              :href="getWhatsAppLink(order)" 
+              target="_blank" 
+              class="btn-print-slip" 
+              title="Notificar al cliente por WhatsApp"
+              style="text-decoration:none; color: #15803d; border-color: #bbf7d0; background: #f0fdf4;"
+            >
+              <i class="ph ph-whatsapp-logo"></i>
+            </a>
+          </div>
+
+          <template x-if="!order.warehouse_verified">
+            <button 
+              type="button" 
+              class="btn-mark-ready" 
+              @click="markPrepared(order)"
+              :disabled="isSubmitting"
+            >
+              <i class="ph ph-check-bold"></i>
+              <span>📦 Producto Preparado</span>
+            </button>
+          </template>
+
+          <template x-if="order.warehouse_verified">
+            <div style="display:flex; align-items:center; gap:6px; flex:1; min-width:0;">
+              <div 
+                style="flex:1; background:#d1fae5; color:#065f46; font-size:12px; font-weight:800; height:38px; min-height:38px; padding:0 12px; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; gap:6px; text-align:center; border:1px solid #a7f3d0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"
+                title="Listo para Despacho en Solicitudes"
+              >
+                <i class="ph ph-check-bold" style="font-size:14px; color:#059669; flex-shrink:0;"></i>
+                <span style="white-space:nowrap;">Listo para Despacho</span>
+              </div>
+              <button 
+                type="button" 
+                class="btn-unmark-ready" 
+                @click="unmarkPrepared(order)"
+                :disabled="isSubmitting"
+                title="Deshacer y regresar a pendiente"
+              >
+                <i class="ph ph-arrow-counter-clockwise"></i>
+              </button>
+            </div>
+          </template>
+        </div>
+      </div>
+    </template>
+  </div>
+</div>
+
+<script>
+function preparacionBodegaApp() {
+  return {
+    orders: [],
+    warehouses: [],
+    selectedWarehouseId: '',
+    activeFilter: 'all',
+    searchQuery: '',
+    isLoading: false,
+    isSubmitting: false,
+    checkedItemsMap: {},
+
+    // Mejoras de Audio, Escaneo y Alertas
+    soundEnabled: true,
+    audioCtx: null,
+    barcodeScanInput: '',
+    toastMessage: '',
+    showNewOrderBanner: false,
+    newOrdersAlert: '',
+    knownOrderIds: new Set(),
+    firstLoadDone: false,
+
+    async init() {
+      // Cargar checks guardados localmente
+      try {
+        const saved = localStorage.getItem('prep_checked_items');
+        if (saved) this.checkedItemsMap = JSON.parse(saved);
+      } catch(e) {}
+
+      await this.loadWarehouses();
+      await this.loadOrders();
+      this.initRealtimeSync();
+
+      // Enfocar lector si está disponible
+      this.$nextTick(() => {
+        if (this.$refs.barcodeScannerInput) {
+          this.$refs.barcodeScannerInput.focus();
+        }
+      });
+    },
+
+    toggleSound() {
+      this.soundEnabled = !this.soundEnabled;
+      if (this.soundEnabled) {
+        this.playBeepSound();
+      }
+    },
+
+    getAudioContext() {
+      if (!this.audioCtx) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) this.audioCtx = new AudioCtx();
+      }
+      if (this.audioCtx && this.audioCtx.state === 'suspended') {
+        this.audioCtx.resume();
+      }
+      return this.audioCtx;
+    },
+
+    playChimeSound() {
+      if (!this.soundEnabled) return;
+      try {
+        const ctx = this.getAudioContext();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+        // Tri-tone chime (E5 -> G#5 -> B5 arpeggio)
+        [659.25, 830.61, 987.77].forEach((freq, i) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, now + i * 0.12);
+          gain.gain.setValueAtTime(0.25, now + i * 0.12);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.12 + 0.6);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now + i * 0.12);
+          osc.stop(now + i * 0.12 + 0.65);
+        });
+      } catch(e) { console.warn("Audio chime error:", e); }
+    },
+
+    playBeepSound() {
+      if (!this.soundEnabled) return;
+      try {
+        const ctx = this.getAudioContext();
+        if (!ctx) return;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(1300, ctx.currentTime);
+        gain.gain.setValueAtTime(0.2, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.12);
+      } catch(e) {}
+    },
+
+    playErrorSound() {
+      if (!this.soundEnabled) return;
+      try {
+        const ctx = this.getAudioContext();
+        if (!ctx) return;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(220, ctx.currentTime);
+        gain.gain.setValueAtTime(0.25, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.28);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.28);
+      } catch(e) {}
+    },
+
+    showToast(msg) {
+      this.toastMessage = msg;
+      setTimeout(() => {
+        if (this.toastMessage === msg) this.toastMessage = '';
+      }, 3500);
+    },
+
+    handleBarcodeScan() {
+      const raw = (this.barcodeScanInput || '').trim();
+      if (!raw) return;
+      this.barcodeScanInput = '';
+      const code = raw.toLowerCase();
+
+      let matched = false;
+      const pending = this.orders.filter(o => !o.warehouse_verified);
+      for (const order of pending) {
+        const lines = order.lines || [];
+        for (const line of lines) {
+          const sku = (line.sku || '').toLowerCase();
+          const name = (line.name || '').toLowerCase();
+          if ((sku && sku === code) || (code.length >= 3 && name.includes(code))) {
+            const key = `${order.id}_${line.id}`;
+            delete this.unpreparedMap[key];
+            this.playBeepSound();
+            this.showToast(`✅ "${line.name}" marcado listo en Orden ${order.number}`);
+            matched = true;
+            break;
+          }
+        }
+        if (matched) break;
+      }
+      if (!matched) {
+        this.playErrorSound();
+        this.showToast(`⚠️ No se encontró producto con código/SKU "${raw}"`);
+      }
+    },
+
+    initRealtimeSync() {
+      if ('BroadcastChannel' in window) {
+        try {
+          const ch = new BroadcastChannel('pos_stock_channel');
+          ch.onmessage = (ev) => {
+            if (ev.data) {
+              this.loadOrders(true);
+            }
+          };
+        } catch(e) {}
+      }
+
+      window.addEventListener('storage', (e) => {
+        if (e.key === 'pos_stock_updated_timestamp') {
+          this.loadOrders(true);
+        }
+      });
+
+      // Intervalo en segundo plano cada 20 segundos (para no saturar servidor)
+      setInterval(() => {
+        if (!document.hidden && !this.isLoading) {
+          this.loadOrders(true);
+        }
+      }, 20000);
+    },
+
+    broadcastChange() {
+      if ('BroadcastChannel' in window) {
+        try {
+          const ch = new BroadcastChannel('pos_stock_channel');
+          ch.postMessage({ type: 'PREPARATION_UPDATED', timestamp: Date.now() });
+          setTimeout(() => ch.close(), 200);
+        } catch(_) {}
+      }
+      try {
+        localStorage.setItem('pos_stock_updated_timestamp', Date.now().toString());
+      } catch(_) {}
+    },
+
+    async loadWarehouses() {
+      try {
+        const token = localStorage.getItem('access_token') || this.getCookie('access_token');
+        const res = await fetch('/api/v1/inventory/warehouses', {
+          headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          this.warehouses = Array.isArray(data) ? data : (data.items || []);
+        }
+      } catch(e) {
+        console.warn("Error cargando bodegas:", e);
+      }
+    },
+
+    async loadOrders(silent = false) {
+      if (!silent) this.isLoading = true;
+      try {
+        const token = localStorage.getItem('access_token') || this.getCookie('access_token');
+        let url = `/api/v1/presale/preparation/orders?_t=${Date.now()}`;
+        if (this.selectedWarehouseId) {
+          url += `&warehouse_id=${encodeURIComponent(this.selectedWarehouseId)}`;
+        }
+        const res = await fetch(url, {
+          headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const newOrders = data.items || [];
+
+          if (this.firstLoadDone) {
+            const pendingNew = newOrders.filter(o => !o.warehouse_verified && !this.knownOrderIds.has(o.id));
+            if (pendingNew.length > 0) {
+              this.playChimeSound();
+              this.newOrdersAlert = `${pendingNew.length} nueva(s) orden(es) recibida(s): ${pendingNew.map(o => o.number).join(', ')}`;
+              this.showNewOrderBanner = true;
+              setTimeout(() => { this.showNewOrderBanner = false; }, 12000);
+            }
+          } else {
+            this.firstLoadDone = true;
+          }
+          this.knownOrderIds = new Set(newOrders.map(o => o.id));
+          this.orders = newOrders;
+        }
+      } catch(e) {
+        console.error("Error cargando órdenes para preparación:", e);
+      } finally {
+        if (!silent) this.isLoading = false;
+      }
+    },
+
+    get totalOrders() {
+      return this.orders.length;
+    },
+
+    get pendingCount() {
+      return this.orders.filter(o => !o.warehouse_verified).length;
+    },
+
+    get preparedCount() {
+      return this.orders.filter(o => o.warehouse_verified).length;
+    },
+
+    get filteredOrders() {
+      let list = [...this.orders];
+
+      if (this.activeFilter === 'pending') {
+        list = list.filter(o => !o.warehouse_verified);
+      } else if (this.activeFilter === 'prepared') {
+        list = list.filter(o => o.warehouse_verified);
+      }
+
+      if (this.searchQuery && this.searchQuery.trim()) {
+        const q = this.searchQuery.toLowerCase().trim();
+        list = list.filter(o => 
+          (o.number && o.number.toLowerCase().includes(q)) ||
+          (o.customer_name && o.customer_name.toLowerCase().includes(q)) ||
+          (o.delivery_address && o.delivery_address.toLowerCase().includes(q))
+        );
+      }
+
+      return list;
+    },
+
+    unpreparedMap: {},
+    preparedQtyMap: {},
+
+    isItemPrepared(orderId, itemId) {
+      const key = `${orderId}_${itemId}`;
+      return !this.unpreparedMap[key];
+    },
+
+    toggleItemCheck(orderId, itemId) {
+      const key = `${orderId}_${itemId}`;
+      if (this.unpreparedMap[key]) {
+        delete this.unpreparedMap[key];
+      } else {
+        this.unpreparedMap[key] = true;
+      }
+    },
+
+    getItemPreparedQty(orderId, itemId, defaultQty) {
+      const key = `${orderId}_${itemId}`;
+      if (this.preparedQtyMap[key] !== undefined) {
+        return this.preparedQtyMap[key];
+      }
+      return defaultQty;
+    },
+
+    setItemPreparedQty(orderId, itemId, val, maxQty) {
+      const key = `${orderId}_${itemId}`;
+      let num = parseFloat(val);
+      if (isNaN(num) || num < 1) num = 1;
+      if (num > maxQty) num = maxQty;
+      this.preparedQtyMap[key] = num;
+    },
+
+    countPrepared(order) {
+      if (!order.lines) return 0;
+      return order.lines.filter(l => this.isItemPrepared(order.id, l.id)).length;
+    },
+
+    countMissing(order) {
+      if (!order.lines) return 0;
+      return order.lines.filter(l => !this.isItemPrepared(order.id, l.id)).length;
+    },
+
+    async markPrepared(order) {
+      const lines = order.lines || [];
+      const preparedPayload = [];
+      let prepCount = 0;
+      let missingNames = [];
+
+      for (const item of lines) {
+        const isPrep = this.isItemPrepared(order.id, item.id);
+        const qtyPrep = isPrep ? this.getItemPreparedQty(order.id, item.id, item.qty) : 0;
+        if (isPrep && qtyPrep > 0) {
+          prepCount++;
+          preparedPayload.push({
+            line_id: item.id,
+            product_id: item.product_id,
+            is_prepared: true,
+            qty_prepared: Number(qtyPrep)
+          });
+        } else {
+          missingNames.push(item.name);
+          preparedPayload.push({
+            line_id: item.id,
+            product_id: item.product_id,
+            is_prepared: false,
+            qty_prepared: 0
+          });
+        }
+      }
+
+      if (prepCount === 0) {
+        alert("❌ No has marcado ningún producto como preparado. Si no hay existencia en bodega para este pedido, debes rechazar la solicitud o avisar al supervisor.");
+        return;
+      }
+
+      let confirmMsg = `¿Confirmas que los ${prepCount} artículo(s) del pedido ${order.number} están listos y empacados para despacho?`;
+      if (missingNames.length > 0) {
+        confirmMsg = `⚠️ ATENCIÓN - PREPARACIÓN CON FALTANTES:\n\n` +
+          `• Productos listos para despachar: ${prepCount}\n` +
+          `• Productos FALTANTES no disponibles: ${missingNames.length}\n  (${missingNames.join(', ')})\n\n` +
+          `El sistema ajustará el pedido para cobrar y rebajar de bodega ÚNICAMENTE lo preparado (${prepCount} artículos), liberando lo que no había en existencia.\n\n` +
+          `¿Deseas confirmar la preparación?`;
+      }
+
+      if (!confirm(confirmMsg)) return;
+
+      this.isSubmitting = true;
+      try {
+        const token = localStorage.getItem('access_token') || this.getCookie('access_token');
+        const res = await fetch(`/api/v1/presale/${order.id}/mark-prepared`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify({ items: preparedPayload })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          order.warehouse_verified = true;
+          this.broadcastChange();
+          alert("✅ " + data.message);
+          await this.loadOrders(true);
+        } else {
+          alert("❌ Error: " + (data.detail || "No se pudo marcar como preparado"));
+        }
+      } catch(e) {
+        alert("Error de red: " + e.message);
+      } finally {
+        this.isSubmitting = false;
+      }
+    },
+
+    async unmarkPrepared(order) {
+      this.isSubmitting = true;
+      try {
+        const token = localStorage.getItem('access_token') || this.getCookie('access_token');
+        const res = await fetch(`/api/v1/presale/${order.id}/unmark-prepared`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          }
+        });
+        if (res.ok) {
+          order.warehouse_verified = false;
+          this.broadcastChange();
+          await this.loadOrders(true);
+        }
+      } catch(e) {
+        console.error(e);
+      } finally {
+        this.isSubmitting = false;
+      }
+    },
+
+    printPickingSlip(order) {
+      const printWin = window.open('', '_blank', 'width=450,height=600');
+      if (!printWin) {
+        alert("Por favor habilita las ventanas emergentes para imprimir la boleta de empaque.");
+        return;
+      }
+
+      let linesHtml = (order.lines || []).map((l, idx) => `
+        <tr style="border-bottom:1px dashed #ccc;">
+          <td style="padding:6px 0;">[  ]</td>
+          <td style="padding:6px 4px;"><strong>${l.name}</strong><br><small style="color:#666;">SKU: ${l.sku || 'N/A'}</small></td>
+          <td style="padding:6px 0; text-align:right; font-size:14px; font-weight:bold;">${l.qty} ${l.uom || 'und'}</td>
+        </tr>
+      `).join('');
+
+      printWin.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Picking Slip - ${order.number}</title>
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 13px; color: #111; margin: 20px; }
+            h2 { margin: 0 0 4px 0; font-size: 17px; }
+            .meta { font-size: 12px; color: #555; margin-bottom: 12px; line-height: 1.4; }
+            table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+            .footer { margin-top: 20px; font-size: 11px; text-align: center; color: #777; }
+          </style>
+        </head>
+        <body>
+          <h2>📦 BOLETA DE PREPARACIÓN (BODEGA)</h2>
+          <div class="meta">
+            <strong>Orden:</strong> ${order.number}<br>
+            <strong>Cliente:</strong> ${order.customer_name}<br>
+            <strong>Bodega:</strong> ${order.warehouse_name}<br>
+            <strong>Entrega / Dirección:</strong> ${order.delivery_address || 'En bodega'}<br>
+            <strong>Notas:</strong> ${order.delivery_notes || 'Ninguna'}
+          </div>
+          <hr style="border:none; border-top:1px solid #000;">
+          <table>
+            <thead>
+              <tr style="border-bottom:1px solid #000; text-align:left; font-size:11px;">
+                <th style="width:25px;">OK</th>
+                <th>PRODUCTO</th>
+                <th style="text-align:right;">CANTIDAD</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${linesHtml}
+            </tbody>
+          </table>
+          <div class="footer">
+            Preparado por: _______________________ Fecha: ${new Date().toLocaleDateString()}
+          </div>
+          <script>
+            window.onload = function() { window.print(); }
+          <\/script>
+        </body>
+        </html>
+      `);
+      printWin.document.close();
+    },
+
+    printPackageLabel(order) {
+      const qtyInput = prompt("¿Cuántos bultos componen este envío?", "1");
+      if (qtyInput === null) return;
+      let totalBultos = parseInt(qtyInput, 10);
+      if (isNaN(totalBultos) || totalBultos < 1) totalBultos = 1;
+
+      const printWin = window.open('', '_blank', 'width=380,height=580');
+      if (!printWin) {
+        alert("Por favor habilita las ventanas emergentes para imprimir la etiqueta de bulto.");
+        return;
+      }
+
+      let labelsHtml = '';
+      const nowFormatted = new Date().toLocaleString('es-GT', {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit', hour12: true
+      });
+
+      for (let i = 1; i <= totalBultos; i++) {
+        const qrData = encodeURIComponent(`ORDEN:${order.number}|CLIENTE:${order.customer_name || ''}|BULTO:${i}/${totalBultos}`);
+        labelsHtml += `
+          <div class="label-page">
+            <div class="store-name">📦 CONTROL DE BODEGA & DESPACHO</div>
+            <div class="bulto-badge">BULTO ${i} DE ${totalBultos}</div>
+            <div class="order-num">${order.number}</div>
+            <div class="info-section">
+              <strong>CLIENTE:</strong> ${order.customer_name || 'Consumidor Final'}<br>
+              <strong>DESTINO:</strong> ${order.delivery_address || 'Entrega en Bodega'}<br>
+              <strong>BODEGA:</strong> ${order.warehouse_name || 'Bodega Principal'}<br>
+              ${order.delivery_notes ? `<strong>NOTA:</strong> ${order.delivery_notes}<br>` : ''}
+              <strong>TOTAL:</strong> Q ${Number(order.total_amount || 0).toFixed(2)}
+            </div>
+            <div class="qr-box">
+              <img src="https://api.qrserver.com/v1/create-qr-code/?size=130x130&data=${qrData}" alt="QR Bulto">
+            </div>
+            <div class="meta-footer">
+              Fecha: ${nowFormatted}<br>
+              Escanear al entregar o cargar en ruta
+            </div>
+          </div>
+        `;
+      }
+
+      printWin.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <title>Etiqueta Bulto - ${order.number}</title>
+          <style>
+            @page {
+              margin: 0;
+              size: auto;
+            }
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+              margin: 0;
+              padding: 6px;
+              color: #000;
+              background: #fff;
+            }
+            .label-page {
+              width: 250px;
+              border: 2px dashed #000;
+              border-radius: 8px;
+              padding: 10px;
+              margin: 0 auto 18px auto;
+              page-break-after: always;
+              text-align: center;
+              box-sizing: border-box;
+            }
+            .store-name {
+              font-size: 10px;
+              font-weight: 800;
+              letter-spacing: 0.5px;
+              color: #333;
+              border-bottom: 1px solid #000;
+              padding-bottom: 4px;
+              margin-bottom: 6px;
+            }
+            .bulto-badge {
+              display: inline-block;
+              background: #000;
+              color: #fff;
+              font-size: 16px;
+              font-weight: 900;
+              padding: 3px 12px;
+              border-radius: 4px;
+              letter-spacing: 1px;
+              margin-bottom: 4px;
+            }
+            .order-num {
+              font-size: 18px;
+              font-weight: 900;
+              color: #000;
+              margin-bottom: 6px;
+            }
+            .info-section {
+              font-size: 11.5px;
+              text-align: left;
+              border-top: 1px dashed #444;
+              border-bottom: 1px dashed #444;
+              padding: 6px 0;
+              margin: 6px 0;
+              line-height: 1.35;
+              word-break: break-word;
+            }
+            .qr-box {
+              margin: 8px 0;
+            }
+            .qr-box img {
+              width: 120px;
+              height: 120px;
+              display: inline-block;
+            }
+            .meta-footer {
+              font-size: 9.5px;
+              color: #444;
+              line-height: 1.3;
+            }
+          </style>
+        </head>
+        <body>
+          ${labelsHtml}
+          <script>
+            window.onload = function() {
+              setTimeout(() => { window.print(); }, 200);
+            };
+          <\/script>
+        </body>
+        </html>
+      `);
+      printWin.document.close();
+    },
+
+    getWhatsAppLink(order) {
+      if (!order) return '#';
+      let phone = (order.customer_phone || order.phone || '').replace(/\D/g, '');
+      if (phone.length === 8) phone = '502' + phone;
+      const client = order.customer_name || 'Estimado(a) Cliente';
+      const num = order.number || '';
+      const address = order.delivery_address || 'Entrega en bodega / tienda';
+      const total = Number(order.total_amount || 0).toFixed(2);
+      const itemsCount = (order.lines || []).length;
+      const msg = `¡Hola ${client}! 👋 Le saludamos del equipo de Despacho y Bodega. ` +
+        `Le informamos que su pedido *${num}* (${itemsCount} artículos) está listo para entrega. ` +
+        `📍 Destino: ${address}. Total: Q ${total}. ¡Muchas gracias por su preferencia!`;
+      return phone 
+        ? `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`
+        : `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
+    },
+
+    formatTimeAgo(dtStr) {
+      if (!dtStr) return '';
+      let s = String(dtStr).trim();
+      if (!s.endsWith('Z') && !s.includes('+') && !s.match(/-\d{2}:\d{2}$/)) {
+        s += 'Z';
+      }
+      const d = new Date(s);
+      if (isNaN(d.getTime())) return '';
+      const diff = Math.floor((Date.now() - d.getTime()) / 60000);
+      if (diff < 1) return 'Hace un momento';
+      if (diff < 60) return `Hace ${diff} min`;
+      const hours = Math.floor(diff / 60);
+      if (hours < 24) return `Hace ${hours} h`;
+      return `Hace ${Math.floor(hours / 24)} d`;
+    },
+
+    getCookie(name) {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop().split(';').shift();
+      return null;
+    }
+  };
+}
+</script>
+{% endblock %}

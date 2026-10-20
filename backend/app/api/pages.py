@@ -81,6 +81,29 @@ async def pos_sessions_page(request: Request):
     return templates.TemplateResponse(request=request, name="pos/sessions.html")
 
 
+@router.get("/preventa", response_class=HTMLResponse)
+@router.get("/preventa/", response_class=HTMLResponse)
+async def presale_page(request: Request):
+    return templates.TemplateResponse(request=request, name="pos/presale.html")
+
+
+@router.get("/pos/solicitudes", response_class=HTMLResponse)
+@router.get("/pos/solicitudes/", response_class=HTMLResponse)
+@router.get("/pos-solicitudes", response_class=HTMLResponse)
+@router.get("/solicitudes-pos", response_class=HTMLResponse)
+async def pos_solicitudes_page(request: Request):
+    return templates.TemplateResponse(request=request, name="pos/solicitudes.html")
+
+
+@router.get("/pos/preparacion", response_class=HTMLResponse)
+@router.get("/pos/preparacion/", response_class=HTMLResponse)
+@router.get("/pos-preparacion", response_class=HTMLResponse)
+@router.get("/bodega/preparacion", response_class=HTMLResponse)
+@router.get("/preparacion", response_class=HTMLResponse)
+async def pos_preparacion_page(request: Request):
+    return templates.TemplateResponse(request=request, name="pos/preparacion.html")
+
+
 @router.get("/inventory", response_class=HTMLResponse)
 @router.get("/inventory/", response_class=HTMLResponse)
 async def inventory_page(request: Request):
@@ -320,11 +343,25 @@ async def sale_ticket_page(
     fel_res = await db.execute(select(FELDocument).where(FELDocument.sale_id == sale.id))
     fel = fel_res.scalar_one_or_none()
 
+    # Convert sale_date to Guatemala local time
+    sale_date_local = None
+    if getattr(sale, "sale_date", None):
+        try:
+            from zoneinfo import ZoneInfo
+            guat_tz = ZoneInfo("America/Guatemala")
+        except Exception:
+            guat_tz = timezone(timedelta(hours=-6))
+        s_dt = sale.sale_date
+        if s_dt.tzinfo is None:
+            s_dt = s_dt.replace(tzinfo=timezone.utc)
+        sale_date_local = s_dt.astimezone(guat_tz)
+
     return templates.TemplateResponse(
         request=request,
         name="pos/ticket_receipt.html",
         context={
             "sale": sale,
+            "sale_date_local": sale_date_local,
             "company": company,
             "branch": sale.branch,
             "fel": fel,
@@ -353,36 +390,16 @@ async def pos_latest_z_report(
     company = comp_res.scalar_one_or_none()
 
     if session:
-        from app.models.sale import SaleOrder, SalePayment, SaleState
-        from sqlalchemy import func
-
-        pay_stmt = (
-            select(SalePayment.payment_method, func.sum(SalePayment.amount))
-            .join(SaleOrder, SalePayment.sale_id == SaleOrder.id)
-            .where(SaleOrder.cashier_session_id == session.id, SaleOrder.state != SaleState.CANCELLED)
-            .group_by(SalePayment.payment_method)
-        )
-        pay_res = await db.execute(pay_stmt)
-        pay_map = {m: float(a or 0) for m, a in pay_res.all()}
-
-        cash_sales = pay_map.get("cash", float(session.total_sales or 0))
-        card_sales = pay_map.get("card", 0.0) + pay_map.get("transfer", 0.0)
-        credit_sales = pay_map.get("credit", 0.0)
-
-        due_stmt = select(func.sum(SaleOrder.amount_due)).where(
-            SaleOrder.cashier_session_id == session.id,
-            SaleOrder.state != SaleState.CANCELLED
-        )
-        due_res = await db.execute(due_stmt)
-        due_val = float(due_res.scalar() or 0.0)
-        if due_val > credit_sales:
-            credit_sales = due_val
-
-        total_sales = cash_sales + card_sales + credit_sales
-        opening = float(session.opening_balance or 0)
-        cash_in = float(session.total_cash_in or 0)
-        cash_out = float(session.total_cash_out or 0)
-        expected_cash = opening + cash_in + cash_sales - cash_out
+        from app.api.v1.cashier import compute_session_financials
+        fin = await compute_session_financials(session, db)
+        cash_sales = fin["cash_sales"]
+        card_sales = fin["card_sales"]
+        credit_sales = fin["credit_sales"]
+        total_sales = fin["sales_total"]
+        opening = fin["opening"]
+        cash_in = fin["cash_in"]
+        cash_out = fin["cash_out"]
+        expected_cash = fin["expected_cash"]
 
         return templates.TemplateResponse(
             request=request,
@@ -428,36 +445,16 @@ async def cashier_z_report(
     comp_res = await db.execute(select(Company).limit(1))
     company = comp_res.scalar_one_or_none()
 
-    from app.models.sale import SaleOrder, SalePayment, SaleState
-    from sqlalchemy import func
-
-    pay_stmt = (
-        select(SalePayment.payment_method, func.sum(SalePayment.amount))
-        .join(SaleOrder, SalePayment.sale_id == SaleOrder.id)
-        .where(SaleOrder.cashier_session_id == session.id, SaleOrder.state != SaleState.CANCELLED)
-        .group_by(SalePayment.payment_method)
-    )
-    pay_res = await db.execute(pay_stmt)
-    pay_map = {m: float(a or 0) for m, a in pay_res.all()}
-
-    cash_sales = pay_map.get("cash", float(session.total_sales or 0))
-    card_sales = pay_map.get("card", 0.0) + pay_map.get("transfer", 0.0)
-    credit_sales = pay_map.get("credit", 0.0)
-
-    due_stmt = select(func.sum(SaleOrder.amount_due)).where(
-        SaleOrder.cashier_session_id == session.id,
-        SaleOrder.state != SaleState.CANCELLED
-    )
-    due_res = await db.execute(due_stmt)
-    due_val = float(due_res.scalar() or 0.0)
-    if due_val > credit_sales:
-        credit_sales = due_val
-
-    total_sales = cash_sales + card_sales + credit_sales
-    opening = float(session.opening_balance or 0)
-    cash_in = float(session.total_cash_in or 0)
-    cash_out = float(session.total_cash_out or 0)
-    expected_cash = opening + cash_in + cash_sales - cash_out
+    from app.api.v1.cashier import compute_session_financials
+    fin = await compute_session_financials(session, db)
+    cash_sales = fin["cash_sales"]
+    card_sales = fin["card_sales"]
+    credit_sales = fin["credit_sales"]
+    total_sales = fin["sales_total"]
+    opening = fin["opening"]
+    cash_in = fin["cash_in"]
+    cash_out = fin["cash_out"]
+    expected_cash = fin["expected_cash"]
 
     return templates.TemplateResponse(
         request=request,

@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, Query
 from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, cast, Date, desc, or_
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import selectinload, joinedload
 from datetime import datetime, timedelta, timezone, date
 from decimal import Decimal
 from typing import Optional, List
@@ -19,28 +19,66 @@ from app.models.product import Product, ProductCategory
 from app.models.company import Warehouse, Branch
 from app.models.partner import Partner
 from app.models.inventory import StockQuant
+from app.models.user import User
+from app.models.ar import CustomerInvoiceCredit
+from app.models.cashier import CashierSession, SessionState
 
 router = APIRouter(prefix="/reports")
 
+try:
+    from zoneinfo import ZoneInfo
+    GUATEMALA_TZ = ZoneInfo("America/Guatemala")
+except Exception:
+    GUATEMALA_TZ = timezone(timedelta(hours=-6))
+
+
+def to_local_dt(dt: Optional[datetime], tz=GUATEMALA_TZ) -> Optional[datetime]:
+    """Convierte un datetime (almacenado en UTC en la BD) a la zona horaria local de Guatemala (UTC-6)."""
+    if not dt:
+        return None
+    if isinstance(dt, str):
+        try:
+            dt = datetime.fromisoformat(dt.replace("Z", "+00:00"))
+        except Exception:
+            return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(tz)
+
+
+def to_utc_naive(dt: datetime) -> datetime:
+    """Convierte un datetime a naive UTC para filtros compatibles con SQLite y PostgreSQL."""
+    if not dt:
+        return dt
+    if dt.tzinfo is None:
+        return dt
+    return dt.astimezone(timezone.utc).replace(tzinfo=None)
+
 
 def _parse_dates(start_date: Optional[str], end_date: Optional[str]):
-    now = datetime.now(timezone.utc)
+    now_loc = datetime.now(GUATEMALA_TZ)
+    today_loc = now_loc.date()
+
     if start_date:
         try:
-            s_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(hour=0, minute=0, second=0, tzinfo=timezone.utc)
+            s_d = datetime.strptime(start_date[:10], "%Y-%m-%d").date()
+            s_dt_loc = datetime.combine(s_d, datetime.min.time(), tzinfo=GUATEMALA_TZ)
         except Exception:
-            s_dt = now - timedelta(days=30)
+            s_dt_loc = datetime.combine(today_loc - timedelta(days=30), datetime.min.time(), tzinfo=GUATEMALA_TZ)
     else:
-        s_dt = now - timedelta(days=30)
+        s_dt_loc = datetime.combine(today_loc - timedelta(days=30), datetime.min.time(), tzinfo=GUATEMALA_TZ)
 
     if end_date:
         try:
-            e_dt = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59, tzinfo=timezone.utc)
+            e_d = datetime.strptime(end_date[:10], "%Y-%m-%d").date()
+            e_dt_loc = datetime.combine(e_d, datetime.max.time(), tzinfo=GUATEMALA_TZ)
         except Exception:
-            e_dt = now
+            e_dt_loc = datetime.combine(today_loc, datetime.max.time(), tzinfo=GUATEMALA_TZ)
     else:
-        e_dt = now
+        e_dt_loc = datetime.combine(today_loc, datetime.max.time(), tzinfo=GUATEMALA_TZ)
 
+    s_dt = to_utc_naive(s_dt_loc)
+    e_dt = to_utc_naive(e_dt_loc)
     return s_dt, e_dt
 
 
@@ -142,7 +180,8 @@ async def sales_by_period(
 
     daily_map = {}
     for o in orders:
-        d_str = o.sale_date.strftime("%Y-%m-%d") if o.sale_date else "N/A"
+        loc_dt = to_local_dt(o.sale_date or o.created_at) if o else None
+        d_str = loc_dt.strftime("%Y-%m-%d") if loc_dt else "N/A"
         if d_str not in daily_map:
             daily_map[d_str] = {
                 "date": d_str,
@@ -364,7 +403,7 @@ async def fel_ledger_report(
 
     return [
         {
-            "fecha": d.certified_at.strftime("%d/%m/%Y %H:%M") if d.certified_at else "",
+            "fecha": to_local_dt(d.certified_at or d.created_at).strftime("%d/%m/%Y %H:%M") if (d and (d.certified_at or d.created_at)) else "",
             "tipo_dte": d.dte_type or "FACT",
             "serie": d.series or "FE",
             "numero": d.number or "",
@@ -416,8 +455,9 @@ async def export_fel_ledger_csv(
         tot = Decimal(str(d.total or 0))
         sub = round(tot / Decimal("1.12"), 2)
         iva = tot - sub
+        loc_cert = to_local_dt(d.certified_at or d.created_at) if d else None
         writer.writerow([
-            d.certified_at.strftime("%d/%m/%Y %H:%M:%S") if d.certified_at else "",
+            loc_cert.strftime("%d/%m/%Y %H:%M:%S") if loc_cert else "",
             d.dte_type or "FACT",
             d.series or "FE",
             d.number or "",
@@ -461,9 +501,9 @@ async def _get_sales_detail_data(
         .outerjoin(Branch, SaleOrder.branch_id == Branch.id)
         .outerjoin(Partner, SaleOrder.customer_id == Partner.id)
         .options(
-            selectinload(SaleOrderLine.sale).selectinload(SaleOrder.payments),
             selectinload(SaleOrderLine.sale).selectinload(SaleOrder.branch),
             selectinload(SaleOrderLine.sale).selectinload(SaleOrder.customer),
+            selectinload(SaleOrderLine.sale).selectinload(SaleOrder.payments),
             selectinload(SaleOrderLine.product).selectinload(Product.category),
         )
         .where(
@@ -536,27 +576,34 @@ async def _get_sales_detail_data(
         excedente = round(tot_venta - tot_costo, 2)
 
         # Determinar desglose Contado vs Crédito
-        sale_tot = float(sale.total or 0)
+        sale_tot = float(sale.total or 0) if (sale and sale.total is not None) else 0.0
         if sale_tot <= 0:
-            sale_tot = sum(float(l.total or 0) for l in (sale.lines or []))
+            sale_tot = tot_venta
 
-        # Montos de pagos registrados
-        paid_credit = sum(float(p.amount or 0) for p in (sale.payments or []) if getattr(p, "payment_method", "") == "credit")
-        paid_contado = sum(float(p.amount or 0) for p in (sale.payments or []) if getattr(p, "payment_method", "") != "credit")
-        unpaid_due = max(0.0, float(sale.amount_due or 0))
+        # Montos de pagos registrados (safe access sin lazy load)
+        payments = []
+        if sale:
+            try:
+                payments = sale.payments or []
+            except Exception:
+                payments = []
+
+        paid_credit = sum(float(p.amount or 0) for p in payments if getattr(p, "payment_method", "") == "credit")
+        paid_contado = sum(float(p.amount or 0) for p in payments if getattr(p, "payment_method", "") != "credit")
+        unpaid_due = max(0.0, float(sale.amount_due or 0)) if (sale and sale.amount_due is not None) else 0.0
 
         # Saldo pendiente no cubierto o pago registrado como crédito
         total_credit_amt = paid_credit
         if unpaid_due > 0.001:
             total_credit_amt += unpaid_due
-        elif sale.sale_type == SaleType.CREDIT and total_credit_amt <= 0:
+        elif sale and sale.sale_type == SaleType.CREDIT and total_credit_amt <= 0:
             total_credit_amt = sale_tot
 
         total_contado_amt = paid_contado
 
         # Si no hay pagos registrados en la orden
-        if not (sale.payments or []):
-            if sale.sale_type == SaleType.CREDIT or unpaid_due > 0.001:
+        if not payments:
+            if (sale and sale.sale_type == SaleType.CREDIT) or unpaid_due > 0.001:
                 total_credit_amt = sale_tot
                 total_contado_amt = 0.0
             else:
@@ -566,7 +613,7 @@ async def _get_sales_detail_data(
         total_tracked = total_credit_amt + total_contado_amt
         if total_tracked > 0:
             cred_ratio = max(0.0, min(1.0, total_credit_amt / total_tracked))
-        elif sale.sale_type == SaleType.CREDIT or unpaid_due > 0.001:
+        elif (sale and sale.sale_type == SaleType.CREDIT) or unpaid_due > 0.001:
             cred_ratio = 1.0
         else:
             cred_ratio = 0.0
@@ -575,26 +622,54 @@ async def _get_sales_detail_data(
         f_contado = round(tot_venta - f_credito, 2)
         tipo_venta = "Crédito" if cred_ratio > 0.001 else "Contado"
 
-
-        # Cliente CF o nombre
-        raw_name = (sale.customer_name or (sale.customer.name if sale.customer else "") or "").strip()
+        # Cliente CF o nombre (safe access)
+        raw_name = (sale.customer_name or "") if sale else ""
+        if not raw_name and sale:
+            try:
+                raw_name = sale.customer.name if sale.customer else ""
+            except Exception:
+                pass
+        raw_name = (raw_name or "").strip()
         if not raw_name or raw_name.upper() in {"CF", "C/F", "CONSUMIDOR FINAL", "CLIENTE FINAL", "N/A"}:
             client_name = "CF"
         else:
             client_name = raw_name
 
-        raw_id = (sale.customer_nit or (sale.customer.tax_id if sale.customer else "") or (sale.customer.code if sale.customer and sale.customer.code else "") or "").strip()
+        raw_id = (sale.customer_nit or "") if sale else ""
+        if not raw_id and sale:
+            try:
+                raw_id = (sale.customer.tax_id or sale.customer.code or "") if sale.customer else ""
+            except Exception:
+                pass
+        raw_id = (raw_id or "").strip()
         if not raw_id or raw_id.upper() in {"CF", "C/F", "CONSUMIDOR FINAL"}:
             client_id = "CF"
         else:
             client_id = raw_id
 
-        fecha_str = sale.sale_date.strftime("%d/%m/%Y %H:%M") if sale.sale_date else ""
-        sucursal_str = sale.branch.name if (sale.branch and sale.branch.name) else "Sucursal Central"
-        categoria_str = prod.category.name if (prod and prod.category and prod.category.name) else "General"
+        loc_dt = to_local_dt(sale.sale_date or sale.created_at) if sale else None
+        fecha_str = loc_dt.strftime("%d/%m/%Y %H:%M") if loc_dt else ""
+
+        sucursal_str = "Sucursal Central"
+        if sale:
+            try:
+                if sale.branch and sale.branch.name:
+                    sucursal_str = sale.branch.name
+            except Exception:
+                pass
+
+        categoria_str = "General"
+        if prod:
+            try:
+                if prod.category and prod.category.name:
+                    categoria_str = prod.category.name
+            except Exception:
+                pass
+
         barcode_str = line.product_barcode or (prod.barcode if prod else "") or ""
         articulo_str = line.product_name or (prod.name if prod else "N/A")
-        ticket_str = sale.fel_number or sale.number or ""
+        ticket_str = (sale.fel_number or sale.number or "") if sale else ""
+
 
         total_qty += qty_val
         total_sales += tot_venta
@@ -649,22 +724,42 @@ async def get_sales_detail(
     current_user=Depends(get_current_user),
 ):
     """Consulta paginada del reporte de Detalle de Ventas para visualización en pantalla."""
-    items, summary = await _get_sales_detail_data(
-        db=db,
-        company_id=current_user.company_id,
-        start_date=start_date,
-        end_date=end_date,
-        branch_id=branch_id,
-        payment_type=payment_type,
-        search=search,
-        limit=limit,
-        offset=offset,
-    )
-    return {
-        "items": items,
-        "summary": summary,
-        "total": summary["total_records"]
-    }
+    try:
+        items, summary = await _get_sales_detail_data(
+            db=db,
+            company_id=current_user.company_id,
+            start_date=start_date,
+            end_date=end_date,
+            branch_id=branch_id,
+            payment_type=payment_type,
+            search=search,
+            limit=limit,
+            offset=offset,
+        )
+        return {
+            "items": items,
+            "summary": summary,
+            "total": summary.get("total_records", 0)
+        }
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Error en get_sales_detail: {e}", exc_info=True)
+        return {
+            "items": [],
+            "summary": {
+                "total_records": 0,
+                "total_qty": 0.0,
+                "total_sales": 0.0,
+                "total_cost": 0.0,
+                "total_surplus": 0.0,
+                "total_cash": 0.0,
+                "total_credit": 0.0,
+                "margin_pct": 0.0
+            },
+            "total": 0
+        }
+
+
 
 
 @router.get("/export-sales-detail-excel")
@@ -735,7 +830,8 @@ async def export_sales_detail_excel(
     # 2. Fila de Subtítulo / Metadatos
     ws.merge_cells("A2:P2")
     cell_s = ws["A2"]
-    now_str = datetime.now().strftime("%d/%m/%Y %H:%M")
+    loc_now = to_local_dt(datetime.now(timezone.utc))
+    now_str = loc_now.strftime("%d/%m/%Y %H:%M") if loc_now else datetime.now().strftime("%d/%m/%Y %H:%M")
     cell_s.value = f"Período: {start_date or 'Histórico'} al {end_date or 'Hoy'} | Generado: {now_str} | Registros: {len(items)}"
     cell_s.font = font_subtitle
     cell_s.fill = fill_subtitle
@@ -938,5 +1034,791 @@ async def export_sales_detail_csv(
         media_type="text/csv",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'}
     )
+
+
+# =====================================================================
+# 8 NUEVOS REPORTES EJECUTIVOS Y BUSINESS INTELLIGENCE
+# =====================================================================
+
+# 1. RENDIMIENTO POR VENDEDOR / CAJERO
+@router.get("/sales-by-seller")
+async def get_sales_by_seller(
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None),
+    branch_id: Optional[str] = Query(None),
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """Reporte de rendimiento y ventas por Vendedor / Cajero."""
+    s_dt, e_dt = _parse_dates(start_date, end_date)
+
+    stmt = (
+        select(SaleOrder)
+        .options(
+            selectinload(SaleOrder.user),
+            selectinload(SaleOrder.lines),
+            selectinload(SaleOrder.branch),
+        )
+        .where(
+            SaleOrder.company_id == current_user.company_id,
+            SaleOrder.state.in_([SaleState.CONFIRMED, SaleState.INVOICED, SaleState.PAID]),
+            SaleOrder.sale_date.between(s_dt, e_dt),
+        )
+    )
+    if branch_id:
+        try:
+            stmt = stmt.where(SaleOrder.branch_id == uuid.UUID(branch_id))
+        except Exception:
+            pass
+
+    res = await db.execute(stmt)
+    sales = res.scalars().all()
+
+    sellers_map = {}
+    grand_total_sales = Decimal("0")
+    grand_total_profit = Decimal("0")
+    grand_total_orders = 0
+
+    for s in sales:
+        u_id = str(s.user_id) if s.user_id else "unassigned"
+        u_name = s.user.full_name if s.user and s.user.full_name else (s.user.username if s.user else "Sin Asignar")
+        u_email = s.user.email if s.user and s.user.email else ""
+
+        if u_id not in sellers_map:
+            sellers_map[u_id] = {
+                "user_id": u_id,
+                "user_name": u_name,
+                "email": u_email,
+                "total_orders": 0,
+                "total_sales": Decimal("0"),
+                "total_subtotal": Decimal("0"),
+                "total_tax": Decimal("0"),
+                "total_cost": Decimal("0"),
+                "gross_profit": Decimal("0"),
+                "profit_margin_pct": 0.0,
+                "avg_ticket": Decimal("0"),
+                "pct_of_total": 0.0,
+            }
+
+        data = sellers_map[u_id]
+        data["total_orders"] += 1
+        tot = Decimal(str(s.total or 0))
+        sub = Decimal(str(s.subtotal or 0))
+        tax = Decimal(str(s.tax_amount or 0))
+        data["total_sales"] += tot
+        data["total_subtotal"] += sub
+        data["total_tax"] += tax
+
+        cost_order = Decimal("0")
+        for line in s.lines:
+            c = Decimal(str(line.cost_price or 0))
+            q = Decimal(str(line.qty or 0))
+            cost_order += (c * q)
+
+        data["total_cost"] += cost_order
+        grand_total_orders += 1
+        grand_total_sales += tot
+
+    sellers_list = list(sellers_map.values())
+    for s in sellers_list:
+        s["gross_profit"] = s["total_subtotal"] - s["total_cost"]
+        grand_total_profit += s["gross_profit"]
+        if s["total_subtotal"] > Decimal("0"):
+            s["profit_margin_pct"] = round(float((s["gross_profit"] / s["total_subtotal"]) * Decimal("100")), 2)
+        else:
+            s["profit_margin_pct"] = 0.0
+        if s["total_orders"] > 0:
+            s["avg_ticket"] = round(float(s["total_sales"] / Decimal(str(s["total_orders"]))), 2)
+        else:
+            s["avg_ticket"] = 0.0
+        if grand_total_sales > Decimal("0"):
+            s["pct_of_total"] = round(float((s["total_sales"] / grand_total_sales) * Decimal("100")), 2)
+        else:
+            s["pct_of_total"] = 0.0
+
+        s["total_sales"] = float(s["total_sales"])
+        s["total_subtotal"] = float(s["total_subtotal"])
+        s["total_tax"] = float(s["total_tax"])
+        s["total_cost"] = float(s["total_cost"])
+        s["gross_profit"] = float(s["gross_profit"])
+
+    sellers_list.sort(key=lambda x: x["total_sales"], reverse=True)
+
+    return {
+        "start_date": start_date,
+        "end_date": end_date,
+        "summary": {
+            "total_sellers": len(sellers_list),
+            "grand_total_orders": grand_total_orders,
+            "grand_total_sales": float(grand_total_sales),
+            "grand_total_profit": float(grand_total_profit),
+            "overall_margin_pct": round(float((grand_total_profit / grand_total_sales * Decimal("100"))), 2) if grand_total_sales > 0 else 0.0,
+            "avg_ticket": round(float(grand_total_sales / grand_total_orders), 2) if grand_total_orders > 0 else 0.0
+        },
+        "sellers": sellers_list
+    }
+
+
+# 2. TOP CLIENTES & ANÁLISIS DE CARTERA
+@router.get("/top-customers")
+async def get_top_customers(
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None),
+    limit: int = Query(50, ge=1, le=500),
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """Ranking Top Clientes, Frecuencia de Compra y Estado de Cartera."""
+    s_dt, e_dt = _parse_dates(start_date, end_date)
+    today_loc = datetime.now(GUATEMALA_TZ).date()
+
+    stmt = (
+        select(SaleOrder)
+        .options(
+            selectinload(SaleOrder.customer),
+            selectinload(SaleOrder.lines),
+        )
+        .where(
+            SaleOrder.company_id == current_user.company_id,
+            SaleOrder.state.in_([SaleState.CONFIRMED, SaleState.INVOICED, SaleState.PAID]),
+            SaleOrder.sale_date.between(s_dt, e_dt),
+        )
+    )
+    res = await db.execute(stmt)
+    sales = res.scalars().all()
+
+    cust_map = {}
+    grand_total_sales = Decimal("0")
+
+    for s in sales:
+        c_id = str(s.customer_id) if s.customer_id else (f"nit_{s.customer_nit}" if s.customer_nit else "cf")
+        c_name = (s.customer.name if s.customer else (s.customer_name or "Consumidor Final")).strip()
+        c_nit = (s.customer.nit if s.customer and s.customer.nit else (s.customer_nit or "C/F")).strip()
+        c_phone = (s.customer.phone or s.customer.mobile) if s.customer else ""
+        c_balance = float(s.customer.balance or 0) if s.customer else 0.0
+
+        if c_id not in cust_map:
+            cust_map[c_id] = {
+                "customer_id": c_id,
+                "name": c_name,
+                "nit": c_nit,
+                "phone": c_phone,
+                "credit_balance": c_balance,
+                "total_orders": 0,
+                "total_sales": Decimal("0"),
+                "total_cost": Decimal("0"),
+                "gross_profit": Decimal("0"),
+                "last_sale_date": s.sale_date,
+            }
+
+        data = cust_map[c_id]
+        data["total_orders"] += 1
+        tot = Decimal(str(s.total or 0))
+        data["total_sales"] += tot
+        grand_total_sales += tot
+
+        if s.sale_date and (data["last_sale_date"] is None or s.sale_date > data["last_sale_date"]):
+            data["last_sale_date"] = s.sale_date
+
+        for line in s.lines:
+            c = Decimal(str(line.cost_price or 0))
+            q = Decimal(str(line.qty or 0))
+            data["total_cost"] += (c * q)
+
+    cust_list = list(cust_map.values())
+    for c in cust_list:
+        c["gross_profit"] = c["total_sales"] - c["total_cost"]
+        c["profit_margin_pct"] = round(float((c["gross_profit"] / c["total_sales"]) * Decimal("100")), 2) if c["total_sales"] > Decimal("0") else 0.0
+        c["avg_ticket"] = round(float(c["total_sales"] / Decimal(str(c["total_orders"]))), 2) if c["total_orders"] > 0 else 0.0
+
+        if c["last_sale_date"]:
+            dt_loc = to_local_dt(c["last_sale_date"])
+            days_inactive = (today_loc - dt_loc.date()).days
+            c["last_sale_formatted"] = dt_loc.strftime("%d/%m/%Y")
+            c["days_inactive"] = max(0, days_inactive)
+            if days_inactive <= 15:
+                c["activity_status"] = "Frecuente (Activo)"
+                c["activity_color"] = "green"
+            elif days_inactive <= 45:
+                c["activity_status"] = "Regular"
+                c["activity_color"] = "blue"
+            else:
+                c["activity_status"] = "En Riesgo / Inactivo"
+                c["activity_color"] = "amber"
+        else:
+            c["last_sale_formatted"] = "-"
+            c["days_inactive"] = 999
+            c["activity_status"] = "Sin Registro"
+            c["activity_color"] = "gray"
+
+        c["pct_of_total"] = round(float((c["total_sales"] / grand_total_sales) * Decimal("100")), 2) if grand_total_sales > 0 else 0.0
+        c["total_sales"] = float(c["total_sales"])
+        c["total_cost"] = float(c["total_cost"])
+        c["gross_profit"] = float(c["gross_profit"])
+
+    cust_list.sort(key=lambda x: x["total_sales"], reverse=True)
+    limited_list = cust_list[:limit]
+
+    return {
+        "start_date": start_date,
+        "end_date": end_date,
+        "summary": {
+            "total_unique_customers": len(cust_list),
+            "grand_total_sales": float(grand_total_sales),
+            "active_customers": sum(1 for c in cust_list if c["activity_color"] == "green"),
+            "at_risk_customers": sum(1 for c in cust_list if c["activity_color"] == "amber"),
+        },
+        "customers": limited_list
+    }
+
+
+# 3. HORAS PICO Y DÍAS DE MAYOR DEMANDA (HEATMAP)
+@router.get("/sales-peak-hours")
+async def get_sales_peak_hours(
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None),
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """Distribución de ventas por hora del día (UTC-6 Guatemala) y día de la semana."""
+    s_dt, e_dt = _parse_dates(start_date, end_date)
+
+    stmt = (
+        select(SaleOrder.sale_date, SaleOrder.total)
+        .where(
+            SaleOrder.company_id == current_user.company_id,
+            SaleOrder.state.in_([SaleState.CONFIRMED, SaleState.INVOICED, SaleState.PAID]),
+            SaleOrder.sale_date.between(s_dt, e_dt),
+        )
+    )
+    res = await db.execute(stmt)
+    rows = res.all()
+
+    hourly = [{"hour": h, "label": f"{h:02d}:00 - {h:02d}:59", "orders": 0, "sales": 0.0} for h in range(24)]
+    day_names = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
+    daily = [{"day_idx": d, "day_name": day_names[d], "orders": 0, "sales": 0.0} for d in range(7)]
+
+    grand_total_sales = 0.0
+    grand_total_orders = len(rows)
+
+    for sale_date, total in rows:
+        tot = float(total or 0)
+        grand_total_sales += tot
+        loc_dt = to_local_dt(sale_date)
+        if loc_dt:
+            h = loc_dt.hour
+            d = loc_dt.weekday()
+            hourly[h]["orders"] += 1
+            hourly[h]["sales"] += tot
+            daily[d]["orders"] += 1
+            daily[d]["sales"] += tot
+
+    for it in hourly:
+        it["sales"] = round(it["sales"], 2)
+        it["avg_ticket"] = round(it["sales"] / it["orders"], 2) if it["orders"] > 0 else 0.0
+
+    for it in daily:
+        it["sales"] = round(it["sales"], 2)
+        it["avg_ticket"] = round(it["sales"] / it["orders"], 2) if it["orders"] > 0 else 0.0
+
+    max_hourly = max(hourly, key=lambda x: x["sales"], default=None)
+    max_daily = max(daily, key=lambda x: x["sales"], default=None)
+
+    return {
+        "start_date": start_date,
+        "end_date": end_date,
+        "summary": {
+            "total_orders": grand_total_orders,
+            "total_sales": round(grand_total_sales, 2),
+            "peak_hour": max_hourly["label"] if max_hourly and max_hourly["sales"] > 0 else "N/A",
+            "peak_hour_sales": max_hourly["sales"] if max_hourly else 0.0,
+            "busiest_day": max_daily["day_name"] if max_daily and max_daily["sales"] > 0 else "N/A",
+            "busiest_day_sales": max_daily["sales"] if max_daily else 0.0,
+        },
+        "hourly": hourly,
+        "daily": daily,
+    }
+
+
+# 4. AUDITORÍA DE DESCUENTOS OTORGADOS
+@router.get("/discounts-audit")
+async def get_discounts_audit(
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None),
+    limit: int = Query(200, ge=1, le=1000),
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """Auditoría detallada de descuentos y rebajas otorgadas."""
+    s_dt, e_dt = _parse_dates(start_date, end_date)
+
+    stmt = (
+        select(SaleOrderLine)
+        .join(SaleOrder, SaleOrderLine.sale_id == SaleOrder.id)
+        .options(
+            selectinload(SaleOrderLine.sale).selectinload(SaleOrder.user),
+            selectinload(SaleOrderLine.sale).selectinload(SaleOrder.customer),
+        )
+        .where(
+            SaleOrder.company_id == current_user.company_id,
+            SaleOrder.state.in_([SaleState.CONFIRMED, SaleState.INVOICED, SaleState.PAID]),
+            SaleOrder.sale_date.between(s_dt, e_dt),
+            or_(
+                SaleOrderLine.discount_amount > 0,
+                SaleOrderLine.discount_pct > 0,
+                SaleOrder.discount_amount > 0
+            )
+        )
+        .order_by(desc(SaleOrder.sale_date))
+        .limit(limit)
+    )
+    res = await db.execute(stmt)
+    lines = res.scalars().all()
+
+    total_discount_amount = Decimal("0")
+    total_sales_with_discount = Decimal("0")
+    items = []
+
+    for l in lines:
+        s = l.sale
+        disc_amt = Decimal(str(l.discount_amount or 0))
+        if disc_amt == Decimal("0") and l.discount_pct and l.discount_pct > 0:
+            disc_amt = (Decimal(str(l.unit_price or 0)) * Decimal(str(l.qty or 0))) * (Decimal(str(l.discount_pct)) / Decimal("100"))
+
+        tot_line = Decimal(str(l.total or 0))
+        cost_line = Decimal(str(l.cost_price or 0)) * Decimal(str(l.qty or 0))
+        margin_line = tot_line - cost_line
+
+        total_discount_amount += disc_amt
+        total_sales_with_discount += tot_line
+
+        dt_loc = to_local_dt(s.sale_date) if s.sale_date else None
+        dt_str = dt_loc.strftime("%d/%m/%Y %I:%M %p") if dt_loc else "-"
+
+        items.append({
+            "sale_number": s.number,
+            "sale_date": dt_str,
+            "seller_name": s.user.full_name if s.user else (s.user.username if s.user else "N/A"),
+            "customer_name": s.customer.name if s.customer else (s.customer_name or "Consumidor Final"),
+            "product_name": l.product_name,
+            "product_barcode": l.product_barcode or "-",
+            "qty": float(l.qty or 0),
+            "unit_price": float(l.unit_price or 0),
+            "cost_price": float(l.cost_price or 0),
+            "discount_pct": float(l.discount_pct or 0),
+            "discount_amount": float(disc_amt),
+            "total": float(tot_line),
+            "margin_amount": float(margin_line),
+        })
+
+    return {
+        "start_date": start_date,
+        "end_date": end_date,
+        "summary": {
+            "total_records": len(items),
+            "total_discount_amount": float(total_discount_amount),
+            "total_sales_impacted": float(total_sales_with_discount),
+            "avg_discount_per_record": round(float(total_discount_amount / Decimal(str(len(items)))), 2) if items else 0.0
+        },
+        "items": items
+    }
+
+
+# 5. PRODUCTOS DE LENTO MOVIMIENTO / STOCK ESTANCADO ("HUESOS")
+@router.get("/slow-moving-stock")
+async def get_slow_moving_stock(
+    warehouse_id: Optional[str] = Query(None),
+    days_threshold: int = Query(30, ge=7, le=365),
+    limit: int = Query(100, ge=1, le=500),
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """Productos con stock físico disponible pero con nula o muy baja venta (capital congelado)."""
+    now_loc = datetime.now(GUATEMALA_TZ)
+    cutoff_dt_loc = now_loc - timedelta(days=days_threshold)
+    cutoff_dt_utc = to_utc_naive(cutoff_dt_loc)
+
+    quant_stmt = (
+        select(StockQuant)
+        .join(Product, StockQuant.product_id == Product.id)
+        .options(
+            selectinload(StockQuant.product).selectinload(Product.category),
+            selectinload(StockQuant.warehouse),
+        )
+        .where(
+            Product.company_id == current_user.company_id,
+            Product.is_active == True,
+            StockQuant.qty_on_hand > 0,
+        )
+    )
+    if warehouse_id:
+        try:
+            quant_stmt = quant_stmt.where(StockQuant.warehouse_id == uuid.UUID(warehouse_id))
+        except Exception:
+            pass
+
+    res_quants = await db.execute(quant_stmt)
+    quants = res_quants.scalars().all()
+
+    sales_stmt = (
+        select(
+            SaleOrderLine.product_id,
+            func.sum(SaleOrderLine.qty).label("qty_sold"),
+            func.max(SaleOrder.sale_date).label("last_sold_date")
+        )
+        .join(SaleOrder, SaleOrderLine.sale_id == SaleOrder.id)
+        .where(
+            SaleOrder.company_id == current_user.company_id,
+            SaleOrder.state.in_([SaleState.CONFIRMED, SaleState.INVOICED, SaleState.PAID]),
+            SaleOrder.sale_date >= cutoff_dt_utc,
+        )
+        .group_by(SaleOrderLine.product_id)
+    )
+    res_sales = await db.execute(sales_stmt)
+    sales_by_prod = {row.product_id: (float(row.qty_sold or 0), row.last_sold_date) for row in res_sales.all()}
+
+    slow_items = []
+    total_locked_capital = Decimal("0")
+    total_frozen_units = Decimal("0")
+
+    for q in quants:
+        p = q.product
+        qty_on_hand = Decimal(str(q.qty_on_hand or 0))
+        unit_cost = Decimal(str(p.cost_price or q.avg_cost or 0))
+        capital_locked = qty_on_hand * unit_cost
+
+        sold_info = sales_by_prod.get(p.id, (0.0, None))
+        qty_sold = sold_info[0]
+        last_sold = sold_info[1]
+
+        if qty_sold == 0 or (float(qty_on_hand) > 0 and (qty_sold / float(qty_on_hand)) < 0.05):
+            total_locked_capital += capital_locked
+            total_frozen_units += qty_on_hand
+
+            dt_loc = to_local_dt(last_sold) if last_sold else None
+            last_sold_str = dt_loc.strftime("%d/%m/%Y") if dt_loc else "Sin ventas recientes"
+
+            slow_items.append({
+                "product_id": str(p.id),
+                "sku": p.internal_ref or p.barcode or "-",
+                "product_name": p.name,
+                "category": p.category.name if p.category else "General",
+                "warehouse_name": q.warehouse.name if q.warehouse else "Principal",
+                "qty_on_hand": float(qty_on_hand),
+                "qty_sold_in_period": qty_sold,
+                "unit_cost": float(unit_cost),
+                "sale_price": float(p.sale_price or 0),
+                "capital_locked": float(capital_locked),
+                "last_sold_date": last_sold_str,
+                "days_threshold": days_threshold
+            })
+
+    slow_items.sort(key=lambda x: x["capital_locked"], reverse=True)
+    limited_items = slow_items[:limit]
+
+    return {
+        "days_threshold": days_threshold,
+        "summary": {
+            "total_slow_products": len(slow_items),
+            "total_frozen_units": float(total_frozen_units),
+            "total_locked_capital": float(total_locked_capital),
+        },
+        "items": limited_items
+    }
+
+
+# 6. SUGERIDO DE COMPRAS Y ALERTAS DE STOCK MÍNIMO
+@router.get("/purchasing-suggestions")
+async def get_purchasing_suggestions(
+    warehouse_id: Optional[str] = Query(None),
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """Alertas de quiebre de stock y cálculo automatizado de sugerido de reposición."""
+    stmt = (
+        select(StockQuant)
+        .join(Product, StockQuant.product_id == Product.id)
+        .options(
+            selectinload(StockQuant.product).selectinload(Product.category),
+            selectinload(StockQuant.product).selectinload(Product.supplier),
+            selectinload(StockQuant.warehouse),
+        )
+        .where(
+            Product.company_id == current_user.company_id,
+            Product.is_active == True,
+            Product.can_be_purchased == True,
+            Product.min_stock > 0,
+            StockQuant.qty_on_hand <= Product.min_stock,
+        )
+    )
+    if warehouse_id:
+        try:
+            stmt = stmt.where(StockQuant.warehouse_id == uuid.UUID(warehouse_id))
+        except Exception:
+            pass
+
+    res = await db.execute(stmt)
+    quants = res.scalars().all()
+
+    items = []
+    critical_count = 0
+    total_investment_needed = Decimal("0")
+
+    for q in quants:
+        p = q.product
+        qty_on_hand = Decimal(str(q.qty_on_hand or 0))
+        min_stock = Decimal(str(p.min_stock or 0))
+        max_stock = Decimal(str(p.max_stock or 0))
+        unit_cost = Decimal(str(p.cost_price or q.avg_cost or 0))
+
+        if max_stock > min_stock:
+            suggested_qty = max(Decimal("1"), max_stock - qty_on_hand)
+        else:
+            suggested_qty = max(Decimal("1"), (min_stock * Decimal("2")) - qty_on_hand)
+
+        investment = suggested_qty * unit_cost
+        total_investment_needed += investment
+
+        is_critical = qty_on_hand <= Decimal("0")
+        if is_critical:
+            critical_count += 1
+
+        items.append({
+            "product_id": str(p.id),
+            "sku": p.internal_ref or p.barcode or "-",
+            "product_name": p.name,
+            "category": p.category.name if p.category else "General",
+            "warehouse_name": q.warehouse.name if q.warehouse else "Principal",
+            "supplier_name": p.supplier.name if p.supplier else "No asignado",
+            "qty_on_hand": float(qty_on_hand),
+            "min_stock": float(min_stock),
+            "max_stock": float(max_stock),
+            "suggested_qty": float(suggested_qty),
+            "unit_cost": float(unit_cost),
+            "investment_needed": float(investment),
+            "status": "CRÍTICO (Agotado)" if is_critical else "ALERTA (Bajo Mínimo)",
+            "status_color": "red" if is_critical else "amber",
+        })
+
+    items.sort(key=lambda x: (0 if x["status_color"] == "red" else 1, -x["investment_needed"]))
+
+    return {
+        "summary": {
+            "total_alerts": len(items),
+            "critical_stockout": critical_count,
+            "warning_low_stock": len(items) - critical_count,
+            "total_investment_needed": float(total_investment_needed),
+        },
+        "items": items
+    }
+
+
+# 7. ANTIGÜEDAD DE SALDOS (AGING CUENTAS POR COBRAR AR)
+@router.get("/ar-aging")
+async def get_ar_aging(
+    customer_id: Optional[str] = Query(None),
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """Antigüedad de saldos (Aging Report) de Cuentas por Cobrar."""
+    today_loc = datetime.now(GUATEMALA_TZ).date()
+
+    stmt = (
+        select(CustomerInvoiceCredit)
+        .options(
+            selectinload(CustomerInvoiceCredit.customer),
+            selectinload(CustomerInvoiceCredit.sale),
+        )
+        .where(
+            CustomerInvoiceCredit.company_id == current_user.company_id,
+            CustomerInvoiceCredit.balance > 0,
+            CustomerInvoiceCredit.state.in_(["open", "overdue"]),
+        )
+    )
+    if customer_id:
+        try:
+            stmt = stmt.where(CustomerInvoiceCredit.customer_id == uuid.UUID(customer_id))
+        except Exception:
+            pass
+
+    res = await db.execute(stmt)
+    invoices = res.scalars().all()
+
+    cust_map = {}
+    grand_total_portfolio = Decimal("0")
+    grand_total_current = Decimal("0")
+    grand_total_1_30 = Decimal("0")
+    grand_total_31_60 = Decimal("0")
+    grand_total_61_90 = Decimal("0")
+    grand_total_over_90 = Decimal("0")
+
+    for inv in invoices:
+        cust = inv.customer
+        c_id = str(inv.customer_id) if inv.customer_id else "unknown"
+        c_name = cust.name if cust else "Cliente General"
+        c_nit = cust.nit if cust else "-"
+        c_phone = (cust.phone or cust.mobile) if cust else "-"
+        c_limit = float(cust.credit_limit or 0) if cust else 0.0
+
+        if c_id not in cust_map:
+            cust_map[c_id] = {
+                "customer_id": c_id,
+                "customer_name": c_name,
+                "nit": c_nit,
+                "phone": c_phone,
+                "credit_limit": c_limit,
+                "total_balance": Decimal("0"),
+                "current": Decimal("0"),
+                "days_1_30": Decimal("0"),
+                "days_31_60": Decimal("0"),
+                "days_61_90": Decimal("0"),
+                "days_over_90": Decimal("0"),
+                "invoices_count": 0,
+            }
+
+        data = cust_map[c_id]
+        bal = Decimal(str(inv.balance or 0))
+        data["total_balance"] += bal
+        data["invoices_count"] += 1
+        grand_total_portfolio += bal
+
+        due_d = inv.due_date.date() if inv.due_date else None
+        if due_d is None or due_d >= today_loc:
+            data["current"] += bal
+            grand_total_current += bal
+        else:
+            days_over = (today_loc - due_d).days
+            if days_over <= 30:
+                data["days_1_30"] += bal
+                grand_total_1_30 += bal
+            elif days_over <= 60:
+                data["days_31_60"] += bal
+                grand_total_31_60 += bal
+            elif days_over <= 90:
+                data["days_61_90"] += bal
+                grand_total_61_90 += bal
+            else:
+                data["days_over_90"] += bal
+                grand_total_over_90 += bal
+
+    cust_list = list(cust_map.values())
+    for c in cust_list:
+        c["total_balance"] = float(c["total_balance"])
+        c["current"] = float(c["current"])
+        c["days_1_30"] = float(c["days_1_30"])
+        c["days_31_60"] = float(c["days_31_60"])
+        c["days_61_90"] = float(c["days_61_90"])
+        c["days_over_90"] = float(c["days_over_90"])
+        c["total_overdue"] = c["days_1_30"] + c["days_31_60"] + c["days_61_90"] + c["days_over_90"]
+        c["risk_level"] = "CRÍTICO" if c["days_over_90"] > 0 else ("ALTO" if c["days_61_90"] > 0 else ("MODERADO" if c["days_31_60"] > 0 else ("BAJO" if c["days_1_30"] > 0 else "AL DÍA")))
+        c["risk_color"] = "red" if c["risk_level"] in ["CRÍTICO", "ALTO"] else ("amber" if c["risk_level"] in ["MODERADO", "BAJO"] else "green")
+
+    cust_list.sort(key=lambda x: x["total_balance"], reverse=True)
+    total_overdue_portfolio = grand_total_1_30 + grand_total_31_60 + grand_total_61_90 + grand_total_over_90
+
+    return {
+        "summary": {
+            "total_customers_with_debt": len(cust_list),
+            "grand_total_portfolio": float(grand_total_portfolio),
+            "grand_total_current": float(grand_total_current),
+            "grand_total_overdue": float(total_overdue_portfolio),
+            "overdue_percentage": round(float((total_overdue_portfolio / grand_total_portfolio) * Decimal("100")), 2) if grand_total_portfolio > 0 else 0.0,
+            "aging_brackets": {
+                "current": float(grand_total_current),
+                "days_1_30": float(grand_total_1_30),
+                "days_31_60": float(grand_total_31_60),
+                "days_61_90": float(grand_total_61_90),
+                "days_over_90": float(grand_total_over_90),
+            }
+        },
+        "customers": cust_list
+    }
+
+
+# 8. AUDITORÍA DE SESIONES Y CIERRES DE CAJA
+@router.get("/cashier-audits")
+async def get_cashier_audits(
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None),
+    limit: int = Query(100, ge=1, le=500),
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """Auditoría de arqueos y sesiones de caja con diferencias (sobrantes y faltantes)."""
+    s_dt, e_dt = _parse_dates(start_date, end_date)
+
+    stmt = (
+        select(CashierSession)
+        .join(User, CashierSession.user_id == User.id)
+        .options(
+            selectinload(CashierSession.user),
+            selectinload(CashierSession.branch),
+        )
+        .where(
+            User.company_id == current_user.company_id,
+            CashierSession.created_at.between(s_dt, e_dt),
+        )
+        .order_by(desc(CashierSession.created_at))
+        .limit(limit)
+    )
+    res = await db.execute(stmt)
+    sessions = res.scalars().all()
+
+    items = []
+    total_diff = Decimal("0")
+    faltantes_count = 0
+    sobrantes_count = 0
+    cuadrados_count = 0
+
+    for s in sessions:
+        diff = Decimal(str(s.closing_difference or 0))
+        total_diff += diff
+
+        if diff < Decimal("-0.01"):
+            status_diff = "Faltante"
+            status_color = "red"
+            faltantes_count += 1
+        elif diff > Decimal("0.01"):
+            status_diff = "Sobrante"
+            status_color = "amber"
+            sobrantes_count += 1
+        else:
+            status_diff = "Exacto / Cuadrado"
+            status_color = "green"
+            cuadrados_count += 1
+
+        open_loc = to_local_dt(s.opened_at) if s.opened_at else None
+        close_loc = to_local_dt(s.closed_at) if s.closed_at else None
+
+        items.append({
+            "session_id": str(s.id),
+            "session_number": s.session_number,
+            "cajero_name": s.user.full_name if s.user else "N/A",
+            "branch_name": s.branch.name if s.branch else "Principal",
+            "state": s.state.value if hasattr(s.state, "value") else str(s.state),
+            "opened_at": open_loc.strftime("%d/%m/%Y %I:%M %p") if open_loc else "-",
+            "closed_at": close_loc.strftime("%d/%m/%Y %I:%M %p") if close_loc else ("En curso" if s.state == SessionState.OPEN else "-"),
+            "opening_balance": float(s.opening_balance or 0),
+            "total_sales": float(s.total_sales or 0),
+            "closing_balance_expected": float(s.closing_balance_expected or 0),
+            "closing_balance_real": float(s.closing_balance_real or 0),
+            "closing_difference": float(diff),
+            "status_diff": status_diff,
+            "status_color": status_color,
+        })
+
+    return {
+        "start_date": start_date,
+        "end_date": end_date,
+        "summary": {
+            "total_sessions": len(items),
+            "exact_sessions": cuadrados_count,
+            "faltantes_sessions": faltantes_count,
+            "sobrantes_sessions": sobrantes_count,
+            "net_difference": float(total_diff),
+        },
+        "sessions": items
+    }
+
 
 

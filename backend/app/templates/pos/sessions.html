@@ -86,8 +86,8 @@
 
   </div>
 
-  <!-- ===== 1. TERMINAL KPIS BAR ===== -->
-  <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:16px; margin-bottom:24px;">
+  <!-- ===== 1. TERMINAL KPIS BAR (OCULTO EN MODO MÓVIL) ===== -->
+  <div class="hide-on-mobile" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:16px; margin-bottom:24px;">
     <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; padding:16px 20px; box-shadow:0 1px 3px rgba(0,0,0,0.03); display:flex; justify-content:space-between; align-items:center;">
       <div>
         <div style="font-size:11px; font-weight:800; color:#047857; text-transform:uppercase;">Cajas Abiertas / En Turno</div>
@@ -120,7 +120,7 @@
   </div>
 
   <!-- ===== 2. ODOO 17 KANBAN GRID OF TERMINALS ===== -->
-  <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(320px, 1fr)); gap:20px;">
+  <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:16px;">
     <template x-for="t in terminals" :key="t.terminal_name">
       <div class="terminal-card" :style="t.is_open ? 'border-top:4px solid #059669;' : 'border-top:4px solid #94a3b8;'">
         
@@ -178,6 +178,7 @@
           <template x-if="t.is_open">
             <a 
               href="/pos" 
+              @click="localStorage.setItem('branch_id', t.branch_id); localStorage.setItem('branch_name', t.branch_name);"
               class="btn" 
               style="flex:1; background:var(--odoo-purple); color:#ffffff; font-weight:800; font-size:12.5px; border-radius:8px; padding:8px 12px; text-decoration:none; text-align:center; display:flex; align-items:center; justify-content:center; gap:6px;"
             >
@@ -212,6 +213,7 @@
           <template x-if="!t.is_open">
             <a 
               href="/pos" 
+              @click="localStorage.setItem('branch_id', t.branch_id); localStorage.setItem('branch_name', t.branch_name);"
               class="btn btn-primary" 
               style="width:100%; background:#059669; color:#ffffff; font-weight:800; font-size:13px; border-radius:8px; padding:8px 12px; text-decoration:none; text-align:center; display:flex; align-items:center; justify-content:center; gap:6px;"
             >

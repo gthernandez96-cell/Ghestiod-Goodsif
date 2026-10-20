@@ -674,7 +674,13 @@ a.nav-tab-inactive:hover {
    RESPONSIVE & TOUCH SCREEN MEDIA QUERIES (MOBILE / TABLET / PC)
    ============================================================ */
 
-/* TABLETS & TOUCH LAPTOPS (<= 1024px) */
+/* GLOBAL TOUCH ERGONOMICS (ALL TOUCHSCREENS & SIZES) */
+button, .btn, a, input, select, textarea, .filter-pill, .nav-tab-pill, .app-launcher-card {
+  touch-action: manipulation !important;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* TABLETS & TOUCH LAPTOPS (768px <= screen <= 1024px) */
 @media screen and (max-width: 1024px) {
   .sidebar {
     width: 64px !important;
@@ -683,9 +689,33 @@ a.nav-tab-inactive:hover {
   .dashboard-grid {
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) !important;
   }
+
+  /* 2-Column Responsive Card Grids for Tablets */
+  .odoo-product-cards-grid,
+  .odoo-contact-cards-grid,
+  .companies-grid,
+  .warehouses-grid,
+  div[style*="grid-template-columns:repeat(auto-fill, minmax(290px, 1fr))"],
+  div[style*="grid-template-columns: repeat(auto-fill, minmax(290px, 1fr))"],
+  div[style*="grid-template-columns:repeat(auto-fill, minmax(320px, 1fr))"],
+  div[style*="grid-template-columns: repeat(auto-fill, minmax(320px, 1fr))"] {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)) !important;
+    gap: 12px !important;
+  }
+
+  /* Table horizontal touch scroll */
+  .table-responsive {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  /* Floating KPI popovers fit within tablet screen */
+  div[x-show="showKpis"] {
+    max-width: 92vw !important;
+  }
 }
 
-/* SMARTPHONES & SMALL TOUCH SCREENS (<= 768px) */
+/* SMARTPHONES & COMPACT TOUCH SCREENS (<= 768px) */
 @media screen and (max-width: 768px) {
   /* Layout adjustments */
   .app-layout {
@@ -696,22 +726,58 @@ a.nav-tab-inactive:hover {
   .main-content {
     margin-left: 0 !important;
     width: 100% !important;
-    padding-bottom: 70px !important;
+    padding-bottom: 76px !important;
   }
 
   .page-content {
-    padding: 12px 10px !important;
+    padding: 12px 10px 76px 10px !important;
   }
 
-  /* Grids & Cards */
+  /* Universal Module Header Bar Fix (removes negative margin overflow) */
+  div[style*="margin:-20px -24px"],
+  div[style*="margin: -20px -24px"],
+  .module-header-bar {
+    margin: -12px -10px 14px -10px !important;
+    padding: 12px 10px !important;
+    width: calc(100% + 20px) !important;
+    max-width: calc(100% + 20px) !important;
+    box-sizing: border-box !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+  }
+
+  /* Full-width Search Bars */
+  .odoo-search-container,
+  .po-search-container,
+  .tr-search-container,
+  .topbar-search,
+  div[style*="width:380px"],
+  div[style*="width: 380px"],
+  div[style*="width:320px"],
+  div[style*="width: 320px"] {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  /* Grids & Cards to 1 column on smartphones */
   .grid, 
   .dashboard-grid,
   .app-launcher-grid,
   .kpi-row,
   .crm-grid,
-  .form-grid {
+  .form-grid,
+  .odoo-product-cards-grid,
+  .odoo-contact-cards-grid,
+  .companies-grid,
+  .warehouses-grid,
+  div[style*="grid-template-columns:repeat(auto-fill, minmax(290px, 1fr))"],
+  div[style*="grid-template-columns: repeat(auto-fill, minmax(290px, 1fr))"],
+  div[style*="grid-template-columns:repeat(auto-fill, minmax(320px, 1fr))"],
+  div[style*="grid-template-columns: repeat(auto-fill, minmax(320px, 1fr))"] {
     grid-template-columns: 1fr !important;
-    gap: 12px !important;
+    gap: 10px !important;
   }
 
   /* Subheaders & Control Panels */
@@ -723,9 +789,10 @@ a.nav-tab-inactive:hover {
     gap: 10px !important;
   }
 
-  /* Touch buttons */
-  .btn, button, .form-control {
+  /* Touch buttons and input sizes (prevent iOS Safari zoom) */
+  .btn, button, .form-control, input, select, textarea {
     min-height: 42px !important;
+    font-size: 16px !important;
     touch-action: manipulation;
   }
 
@@ -737,18 +804,64 @@ a.nav-tab-inactive:hover {
     display: block !important;
   }
 
-  .table th, .table td {
+  .table th, .table td,
+  .quote-table th, .quote-table td,
+  .acc-table th, .acc-table td,
+  .ap-table th, .ap-table td,
+  .report-table th, .report-table td {
     padding: 8px 10px !important;
+    font-size: 12px !important;
     white-space: nowrap !important;
   }
 
   /* Modals full-width on mobile */
-  .modal {
+  .modal,
+  .modal-dialog,
+  div[style*="max-width: 700px"][style*="background: #ffffff"],
+  div[style*="max-width:700px"][style*="background:#ffffff"],
+  div[style*="max-width: 800px"][style*="background: #ffffff"],
+  div[style*="max-width:800px"][style*="background:#ffffff"],
+  div[style*="max-width: 600px"][style*="background: #ffffff"],
+  div[style*="max-width:600px"][style*="background:#ffffff"] {
     width: 100% !important;
     max-width: 96vw !important;
-    margin: 10px !important;
+    margin: 8px auto !important;
     padding: 16px !important;
     border-radius: 12px !important;
+    max-height: 90vh !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  /* Settings Sheet on Mobile */
+  .settings-sheet {
+    padding: 16px 12px !important;
+    margin: 0 0 20px 0 !important;
+    border-radius: 10px !important;
+  }
+
+  /* Ocultar completamente los resúmenes y KPIs en modo móvil (<= 768px) */
+  div[x-show*="showKpis"],
+  div[x-show="showKpis"],
+  div[x-show="showKpis == true"],
+  button[style*="linear-gradient(135deg, #714B67 0%, #9b6b8f 100%)"],
+  button[style*="linear-gradient(135deg, rgb(113, 75, 103) 0%, rgb(155, 107, 143) 100%)"],
+  button[\@click*="showKpis"],
+  button[\\@click*="showKpis"],
+  button:has(span[x-text*="Resumen"]),
+  button:has(span[x-text*="showKpis"]),
+  .kpi-toggle-btn,
+  .hide-kpis-on-mobile,
+  .inv-kpi-card,
+  .crm-kpi-card,
+  .quote-kpi-card,
+  .po-kpi-card,
+  .bi-kpi-card,
+  .tr-kpi-card,
+  .acc-kpi-card,
+  .user-kpi-card {
+    display: none !important;
   }
 }
+
 

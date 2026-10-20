@@ -165,9 +165,10 @@
     </div>
 
     <!-- Right Controls: Resumen Button (al par derecho) -->
-    <div style="margin-left:auto; display:flex; align-items:center; gap:10px; position:relative;">
+    <div class="hide-on-mobile" style="margin-left:auto; display:flex; align-items:center; gap:10px; position:relative;">
       <button
         type="button"
+        class="hide-on-mobile"
         @click="showKpis = !showKpis"
         style="
           display:inline-flex; align-items:center; gap:7px;
@@ -193,6 +194,7 @@
 
       <!-- Floating Popover Dropdown Panel (alineado a la derecha) -->
       <div
+        class="hide-on-mobile"
         x-show="showKpis"
         @click.outside="showKpis = false"
         x-transition:enter="transition ease-out duration-200"

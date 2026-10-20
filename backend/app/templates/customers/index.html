@@ -24,6 +24,73 @@
     box-shadow: 0 6px 16px rgba(0,0,0,0.06);
   }
 
+  /* Sales Filter Tabs (Segmented Control) */
+  .sales-filter-tabs {
+    display: inline-flex;
+    align-items: center;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    padding: 3px;
+    border-radius: 10px;
+    gap: 3px;
+  }
+  .sales-filter-tab {
+    border: none !important;
+    outline: none !important;
+    background: transparent;
+    color: #64748b;
+    font-size: 11.5px;
+    font-weight: 700;
+    padding: 5px 12px;
+    border-radius: 7px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    white-space: nowrap;
+    box-shadow: none;
+  }
+  .sales-filter-tab:hover:not(.active) {
+    color: #1e293b;
+    background: rgba(255, 255, 255, 0.6);
+  }
+  .sales-filter-tab.active {
+    background: #ffffff;
+    color: #1e293b;
+    font-weight: 800;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  }
+  .sales-tab-badge {
+    font-size: 10.5px;
+    font-weight: 800;
+    padding: 1px 6px;
+    border-radius: 10px;
+    background: #e2e8f0;
+    color: #334155;
+    transition: all 0.2s;
+  }
+  .sales-filter-tab.active .sales-tab-badge {
+    background: #714B67;
+    color: #ffffff;
+  }
+  .sales-tab-badge.badge-cash {
+    background: #dcfce7;
+    color: #15803d;
+  }
+  .sales-filter-tab.active .sales-tab-badge.badge-cash {
+    background: #16a34a;
+    color: #ffffff;
+  }
+  .sales-tab-badge.badge-credit {
+    background: #dbeafe;
+    color: #1d4ed8;
+  }
+  .sales-filter-tab.active .sales-tab-badge.badge-credit {
+    background: #2563eb;
+    color: #ffffff;
+  }
+
   .odoo-contact-card {
     background: #ffffff;
     border: 1px solid #e2e8f0;
@@ -171,6 +238,172 @@
   .quick-action-btn.pay:hover {
     background: #fed7aa;
   }
+
+  /* Responsive CRM Header & Filters */
+  .crm-header-bar {
+    margin: -20px -24px 20px -24px;
+    padding: 14px 24px;
+    background: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 14px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+  }
+
+  .crm-header-main-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .crm-header-title-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .crm-header-title {
+    font-size: 15px;
+    font-weight: 800;
+    color: #1e293b;
+    margin: 0;
+    padding: 0;
+  }
+
+  .crm-header-actions-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .crm-btn-new {
+    background: #714B67;
+    color: #ffffff;
+    font-weight: 800;
+    border-radius: 8px;
+    padding: 8px 16px;
+    border: none;
+    box-shadow: 0 2px 8px rgba(113, 75, 103, 0.25);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    text-decoration: none;
+    font-size: 13px;
+    white-space: nowrap;
+    transition: all 0.15s ease;
+  }
+
+  .crm-btn-new:hover {
+    background: #5d3d54;
+    color: #ffffff;
+  }
+
+  .crm-secondary-actions-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .crm-sec-btn {
+    background: #ffffff !important;
+    color: #0f766e !important;
+    border: 1.5px solid #0d9488 !important;
+    font-weight: 700 !important;
+    border-radius: 8px !important;
+    padding: 6px 12px !important;
+    font-size: 12px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    cursor: pointer !important;
+    text-decoration: none !important;
+    white-space: nowrap !important;
+    min-height: 34px !important;
+  }
+
+  .crm-sec-btn.export {
+    color: #334155 !important;
+    border-color: #cbd5e1 !important;
+  }
+
+  .crm-pills-scroll {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding-bottom: 2px;
+    width: 100%;
+  }
+
+  .crm-pills-scroll::-webkit-scrollbar {
+    display: none;
+  }
+
+  .crm-pills-scroll .filter-pill {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  @media screen and (max-width: 768px) {
+    .crm-header-bar {
+      margin: -14px -12px 14px -12px !important;
+      padding: 12px 14px !important;
+      flex-direction: column !important;
+      align-items: stretch !important;
+      gap: 10px !important;
+      border-radius: 0 0 10px 10px !important;
+    }
+
+    .crm-header-main-row {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      width: 100% !important;
+    }
+
+    .crm-header-title {
+      font-size: 16px !important;
+    }
+
+    .crm-btn-new {
+      padding: 6px 12px !important;
+      font-size: 12px !important;
+      min-height: 34px !important;
+    }
+
+    .crm-secondary-actions-row {
+      display: grid !important;
+      grid-template-columns: 1fr 1fr !important;
+      gap: 8px !important;
+      width: 100% !important;
+    }
+
+    .crm-sec-btn {
+      width: 100% !important;
+      justify-content: center !important;
+      padding: 6px 8px !important;
+      font-size: 11.5px !important;
+      min-height: 34px !important;
+    }
+
+    .odoo-search-container {
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+
+    .odoo-contact-card {
+      min-height: auto !important;
+      padding: 12px !important;
+    }
+  }
 </style>
 {% endblock %}
 
@@ -178,25 +411,43 @@
 <div x-data="partnersPage()" x-init="init()">
   
   <!-- ===== TOP HEADER BAR ===== -->
-  <div style="margin:-20px -24px 20px -24px; padding:14px 24px; background:#ffffff; border-bottom:1px solid #e2e8f0; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+  <div class="crm-header-bar">
     
-    <!-- Left: Actions & Title -->
-    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-      <template x-if="canManagePartners">
-        <a href="/customers/new" class="btn btn-primary" style="background:#714B67; color:#ffffff; font-weight:800; border-radius:8px; padding:8px 18px; border:none; box-shadow:0 2px 8px rgba(113,75,103,0.25); display:flex; align-items:center; gap:6px; cursor:pointer; text-decoration:none;">
-          <i class="ph ph-plus" style="font-weight:800;"></i> Nuevo Contacto
-        </a>
-      </template>
-      <template x-if="canManagePartners">
-        <button class="btn btn-secondary" style="background:#ffffff; color:#0f766e; border:1.5px solid #0d9488; font-weight:700; border-radius:8px; padding:7px 14px; font-size:12.5px; display:flex; align-items:center; gap:6px; cursor:pointer;" @click="showImportModal = true">
-          <i class="ph ph-file-arrow-up" style="font-size:16px; color:#0d9488;"></i> Importar CSV
-        </button>
-      </template>
-      <a href="/api/v1/partners/export-csv" class="btn btn-secondary" style="background:#ffffff; color:#334155; border:1px solid #cbd5e1; font-weight:700; border-radius:8px; padding:7px 14px; font-size:12.5px; display:flex; align-items:center; gap:6px; cursor:pointer; text-decoration:none;" download>
-        <i class="ph ph-file-arrow-down" style="font-size:16px; color:#0d9488;"></i> Exportar Excel / CSV
-      </a>
-      <div style="font-size:15px; font-weight:800; color:#1e293b; display:flex; align-items:center; gap:8px; margin-left:4px;">
-        <span>Directorio Empresarial 360°</span>
+    <!-- Top / Main Row: Title on Left, View Switcher + New Contact on Right -->
+    <div class="crm-header-main-row">
+      <div class="crm-header-title-box">
+        <h1 class="crm-header-title">Directorio Empresarial 360°</h1>
+      </div>
+
+      <div class="crm-header-actions-box">
+        <!-- View Switcher -->
+        <div class="view-switcher-group" style="display:flex; border:1px solid #cbd5e1; border-radius:8px; overflow:hidden; background:#ffffff; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+          <button
+            class="view-switcher-btn"
+            :class="viewMode === 'kanban' ? 'active' : ''"
+            @click="viewMode = 'kanban'"
+            title="Vista Tarjetas 360°"
+          >
+            <i class="ph ph-squares-four"></i>
+          </button>
+          <button
+            class="view-switcher-btn"
+            :class="viewMode === 'list' ? 'active' : ''"
+            @click="viewMode = 'list'"
+            title="Vista Lista / Tabla"
+            style="border-left:1px solid #cbd5e1;"
+          >
+            <i class="ph ph-list-bullets"></i>
+          </button>
+        </div>
+
+        <!-- New Contact Button -->
+        <template x-if="canManagePartners">
+          <a href="/customers/new" class="btn btn-primary crm-btn-new">
+            <i class="ph ph-plus" style="font-weight:800;"></i>
+            <span>Nuevo Contacto</span>
+          </a>
+        </template>
       </div>
     </div>
 
@@ -213,59 +464,51 @@
       <i class="ph ph-x-circle" style="position:absolute; right:12px; color:#94a3b8; font-size:17px; cursor:pointer;" x-show="search.length > 0" @click="search = ''; loadPartners()"></i>
     </div>
 
-    <!-- Right: View Switcher -->
-    <div style="display:flex; align-items:center; gap:10px;">
-      <div style="display:flex; border:1px solid #cbd5e1; border-radius:8px; overflow:hidden; background:#ffffff; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
-        <button
-          class="view-switcher-btn"
-          :class="viewMode === 'kanban' ? 'active' : ''"
-          @click="viewMode = 'kanban'"
-          title="Vista Tarjetas 360°"
-        >
-          <i class="ph ph-squares-four"></i>
+    <!-- Secondary Actions (Import / Export CSV) -->
+    <div class="crm-secondary-actions-row">
+      <template x-if="canManagePartners">
+        <button class="btn btn-secondary crm-sec-btn" @click="showImportModal = true">
+          <i class="ph ph-file-arrow-up" style="font-size:15px; color:#0d9488;"></i> <span>Importar CSV</span>
         </button>
-        <button
-          class="view-switcher-btn"
-          :class="viewMode === 'list' ? 'active' : ''"
-          @click="viewMode = 'list'"
-          title="Vista Lista / Tabla"
-          style="border-left:1px solid #cbd5e1;"
-        >
-          <i class="ph ph-list-bullets"></i>
-        </button>
-      </div>
+      </template>
+      <a href="/api/v1/partners/export-csv" class="btn btn-secondary crm-sec-btn export" download>
+        <i class="ph ph-file-arrow-down" style="font-size:15px; color:#0d9488;"></i> <span>Exportar Excel / CSV</span>
+      </a>
     </div>
 
   </div>
 
   <!-- ===== 2. SEGMENTATION & FILTER PILLS & FLOATING KPI POPOVER ===== -->
-  <div style="position:relative; display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:20px;">
+  <div style="position:relative; display:flex; align-items:center; gap:8px; margin-bottom:20px;">
     
-    <span style="font-size:12px; font-weight:800; color:#64748b; margin-right:4px;">FILTRAR:</span>
-    <button class="filter-pill" :class="filterType === 'all' ? 'active' : ''" @click="filterType = 'all'; applyFilters()">
-      <span>Todos</span>
-      <span style="background:rgba(0,0,0,0.08); padding:1px 6px; border-radius:10px; font-size:11px;" x-text="partners.length"></span>
-    </button>
-    <button class="filter-pill" :class="filterType === 'customers' ? 'active' : ''" @click="filterType = 'customers'; applyFilters()">
-      <span>👤 Clientes</span>
-    </button>
-    <button class="filter-pill" :class="filterType === 'suppliers' ? 'active' : ''" @click="filterType = 'suppliers'; applyFilters()">
-      <span>🏭 Proveedores</span>
-    </button>
-    <button class="filter-pill" :class="filterType === 'with_debt' ? 'active' : ''" @click="filterType = 'with_debt'; applyFilters()" style="color:#c2410c;">
-      <span>⚠️ Con Saldo Pendiente</span>
-    </button>
-    <button class="filter-pill" :class="filterType === 'credit_active' ? 'active' : ''" @click="filterType = 'credit_active'; applyFilters()">
-      <span>💳 Con Línea de Crédito</span>
-    </button>
-    <button class="filter-pill" :class="filterType === 'companies' ? 'active' : ''" @click="filterType = 'companies'; applyFilters()">
-      <span>🏢 Empresas (S.A.)</span>
-    </button>
+    <div class="crm-pills-scroll">
+      <span class="hide-on-mobile" style="font-size:12px; font-weight:800; color:#64748b; margin-right:4px; flex-shrink:0;">FILTRAR:</span>
+      <button class="filter-pill" :class="filterType === 'all' ? 'active' : ''" @click="filterType = 'all'; applyFilters()">
+        <span>Todos</span>
+        <span style="background:rgba(0,0,0,0.08); padding:1px 6px; border-radius:10px; font-size:11px;" x-text="partners.length"></span>
+      </button>
+      <button class="filter-pill" :class="filterType === 'customers' ? 'active' : ''" @click="filterType = 'customers'; applyFilters()">
+        <span>👤 Clientes</span>
+      </button>
+      <button class="filter-pill" :class="filterType === 'suppliers' ? 'active' : ''" @click="filterType = 'suppliers'; applyFilters()">
+        <span>🏭 Proveedores</span>
+      </button>
+      <button class="filter-pill" :class="filterType === 'with_debt' ? 'active' : ''" @click="filterType = 'with_debt'; applyFilters()" style="color:#c2410c;">
+        <span>⚠️ Con Saldo Pendiente</span>
+      </button>
+      <button class="filter-pill" :class="filterType === 'credit_active' ? 'active' : ''" @click="filterType = 'credit_active'; applyFilters()">
+        <span>💳 Con Línea de Crédito</span>
+      </button>
+      <button class="filter-pill" :class="filterType === 'companies' ? 'active' : ''" @click="filterType = 'companies'; applyFilters()">
+        <span>🏢 Empresas (S.A.)</span>
+      </button>
+    </div>
 
     <!-- Right Controls: Resumen Button (al par derecho) -->
-    <div style="margin-left:auto; display:flex; align-items:center; gap:10px; position:relative;">
+    <div class="hide-on-mobile" style="margin-left:auto; display:flex; align-items:center; gap:10px; position:relative;">
       <button
         type="button"
+        class="hide-on-mobile"
         @click="showKpis = !showKpis"
         style="
           display:inline-flex; align-items:center; gap:7px;
@@ -291,6 +534,7 @@
 
       <!-- Floating Popover Dropdown Panel (alineado a la derecha) -->
       <div
+        class="hide-on-mobile"
         x-show="showKpis"
         @click.outside="showKpis = false"
         x-transition:enter="transition ease-out duration-200"
@@ -463,7 +707,7 @@
                   @click.stop="openPayModal(p)"
                   title="Registrar Abono"
                   style="padding:2px 7px; font-size:11px; border-radius:4px;"
-                  x-show="(p.balance || 0) > 0"
+                  x-show="canRegisterCreditPayment && (p.balance || 0) > 0"
                 >
                   <i class="ph ph-hand-coins"></i> Abonar
                 </button>
@@ -534,7 +778,7 @@
                 <td style="padding:14px 18px; text-align:right;">
                   <div style="display:flex; justify-content:flex-end; gap:6px;" @click.stop>
                     <button class="quick-action-btn whatsapp" x-show="p.phone || p.mobile" @click="openWhatsApp(p)" title="WhatsApp"><i class="ph ph-whatsapp-logo"></i></button>
-                    <button class="quick-action-btn pay" x-show="(p.balance || 0) > 0" @click="openPayModal(p)" title="Abonar"><i class="ph ph-hand-coins"></i></button>
+                    <button class="quick-action-btn pay" x-show="canRegisterCreditPayment && (p.balance || 0) > 0" @click="openPayModal(p)" title="Abonar"><i class="ph ph-hand-coins"></i></button>
                     <button class="quick-action-btn" @click="openDetailModal(p)" title="Ver Expediente 360°"><i class="ph ph-eye"></i></button>
                   </div>
                 </td>
@@ -765,11 +1009,83 @@
           </template>
         </div>
 
-        <!-- TAB 3: HISTORIAL DE VENTAS -->
+        <!-- TAB 3: HISTORIAL DE VENTAS (SEPARACIÓN EFECTIVO Y CRÉDITO) -->
         <div x-show="activeTab === 'sales'">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-            <div style="font-size:13px; font-weight:800; color:#1e293b;">Facturas y Órdenes Registradas</div>
-            <div style="font-size:11.5px; color:#64748b;" x-text="partnerSales.length + ' ventas encontradas'"></div>
+          
+          <!-- RESUMEN DE VENTAS: EFECTIVO VS CRÉDITO -->
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:12px; margin-bottom:16px;">
+            <!-- Tarjeta Ventas en Efectivo -->
+            <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:12px; display:flex; align-items:center; gap:10px;">
+              <div style="width:36px; height:36px; border-radius:8px; background:#dcfce7; display:flex; align-items:center; justify-content:center; color:#16a34a; font-size:18px; flex-shrink:0;">
+                <i class="ph ph-money"></i>
+              </div>
+              <div>
+                <div style="font-size:10.5px; font-weight:700; color:#15803d; text-transform:uppercase;">Efectivo / Contado</div>
+                <div style="font-size:15px; font-weight:900; color:#166534; margin-top:1px;" x-text="'Q ' + Number(partnerSalesSummary.cashTotal || 0).toLocaleString('es-GT', {minimumFractionDigits:2, maximumFractionDigits:2})">Q 0.00</div>
+                <div style="font-size:10px; color:#15803d;" x-text="partnerSalesSummary.cashCount + ' transacciones'"></div>
+              </div>
+            </div>
+
+            <!-- Tarjeta Ventas al Crédito -->
+            <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:12px; display:flex; align-items:center; gap:10px;">
+              <div style="width:36px; height:36px; border-radius:8px; background:#dbeafe; display:flex; align-items:center; justify-content:center; color:#2563eb; font-size:18px; flex-shrink:0;">
+                <i class="ph ph-receipt"></i>
+              </div>
+              <div>
+                <div style="font-size:10.5px; font-weight:700; color:#1d4ed8; text-transform:uppercase;">Ventas al Crédito</div>
+                <div style="font-size:15px; font-weight:900; color:#1e40af; margin-top:1px;" x-text="'Q ' + Number(partnerSalesSummary.creditTotal || 0).toLocaleString('es-GT', {minimumFractionDigits:2, maximumFractionDigits:2})">Q 0.00</div>
+                <div style="font-size:10px; color:#1d4ed8;" x-text="partnerSalesSummary.creditCount + ' transacciones'"></div>
+              </div>
+            </div>
+
+            <!-- Tarjeta Saldo Pendiente de Cobro -->
+            <div style="background:#fff7ed; border:1px solid #fed7aa; border-radius:10px; padding:12px; display:flex; align-items:center; gap:10px;">
+              <div style="width:36px; height:36px; border-radius:8px; background:#ffedd5; display:flex; align-items:center; justify-content:center; color:#ea580c; font-size:18px; flex-shrink:0;">
+                <i class="ph ph-warning-circle"></i>
+              </div>
+              <div>
+                <div style="font-size:10.5px; font-weight:700; color:#c2410c; text-transform:uppercase;">Saldo Pendiente</div>
+                <div style="font-size:15px; font-weight:900; color:#ea580c; margin-top:1px;" x-text="'Q ' + Number(partnerSalesSummary.creditDue || detailForm.balance || 0).toLocaleString('es-GT', {minimumFractionDigits:2, maximumFractionDigits:2})">Q 0.00</div>
+                <div style="font-size:10px; color:#9a3412;">Por cobrar</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- FILTROS Y CONTADOR -->
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+            <div class="sales-filter-tabs">
+              <button 
+                type="button" 
+                class="sales-filter-tab"
+                :class="salesFilter === 'all' ? 'active' : ''"
+                @click="salesFilter = 'all'" 
+              >
+                <span>Todas</span>
+                <span class="sales-tab-badge" x-text="partnerSales.length"></span>
+              </button>
+              <button 
+                type="button" 
+                class="sales-filter-tab"
+                :class="salesFilter === 'cash' ? 'active' : ''"
+                @click="salesFilter = 'cash'" 
+              >
+                <i class="ph ph-money" style="font-size:14px; color:#16a34a;"></i>
+                <span>Efectivo</span>
+                <span class="sales-tab-badge badge-cash" x-text="partnerSalesSummary.cashCount"></span>
+              </button>
+              <button 
+                type="button" 
+                class="sales-filter-tab"
+                :class="salesFilter === 'credit' ? 'active' : ''"
+                @click="salesFilter = 'credit'" 
+              >
+                <i class="ph ph-credit-card" style="font-size:14px; color:#2563eb;"></i>
+                <span>Crédito</span>
+                <span class="sales-tab-badge badge-credit" x-text="partnerSalesSummary.creditCount"></span>
+              </button>
+            </div>
+
+            <div style="font-size:11.5px; color:#64748b; font-weight:600;" x-text="filteredPartnerSales.length + ' mostradas'"></div>
           </div>
 
           <template x-if="partnerSales.length === 0">
@@ -778,24 +1094,47 @@
             </div>
           </template>
 
-          <template x-if="partnerSales.length > 0">
+          <template x-if="partnerSales.length > 0 && filteredPartnerSales.length === 0">
+            <div style="text-align:center; padding:30px 16px; color:#94a3b8; font-size:12px; background:#f8fafc; border-radius:10px;">
+              No se encontraron ventas con el filtro seleccionado.
+            </div>
+          </template>
+
+          <template x-if="filteredPartnerSales.length > 0">
             <div style="border:1px solid #e2e8f0; border-radius:10px; overflow:hidden;">
               <table style="width:100%; border-collapse:collapse; font-size:12.5px;">
                 <thead style="background:#f8fafc; color:#475569; font-weight:700; border-bottom:1px solid #e2e8f0;">
                   <tr>
                     <th style="padding:10px 14px; text-align:left;">No. Factura</th>
                     <th style="padding:10px 14px; text-align:left;">Fecha</th>
-                    <th style="padding:10px 14px; text-align:right;">Monto</th>
+                    <th style="padding:10px 14px; text-align:center;">Tipo de Venta</th>
+                    <th style="padding:10px 14px; text-align:right;">Total</th>
+                    <th style="padding:10px 14px; text-align:right;">Pagado</th>
+                    <th style="padding:10px 14px; text-align:right;">Saldo</th>
                     <th style="padding:10px 14px; text-align:center;">Estado</th>
                     <th style="padding:10px 14px; text-align:center;">Ticket</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <template x-for="s in partnerSales" :key="s.id">
+                  <template x-for="s in filteredPartnerSales" :key="s.id">
                     <tr style="border-bottom:1px solid #f1f5f9;">
                       <td style="padding:10px 14px; font-weight:800; color:#334155;" x-text="s.number"></td>
                       <td style="padding:10px 14px; color:#64748b;" x-text="s.sale_date"></td>
+                      <td style="padding:10px 14px; text-align:center;">
+                        <template x-if="s.is_credit">
+                          <span style="display:inline-flex; align-items:center; gap:3px; padding:2px 8px; border-radius:6px; font-size:10.5px; font-weight:800; background:#fef3c7; color:#92400e; border:1px solid #fde68a;">
+                            Al Crédito
+                          </span>
+                        </template>
+                        <template x-if="!s.is_credit">
+                          <span style="display:inline-flex; align-items:center; gap:3px; padding:2px 8px; border-radius:6px; font-size:10.5px; font-weight:800; background:#f0fdf4; color:#166534; border:1px solid #bbf7d0;">
+                            Efectivo
+                          </span>
+                        </template>
+                      </td>
                       <td style="padding:10px 14px; text-align:right; font-weight:800; color:#0f172a;" x-text="'Q ' + Number(s.total || 0).toFixed(2)"></td>
+                      <td style="padding:10px 14px; text-align:right; color:#15803d; font-weight:700;" x-text="'Q ' + Number(s.amount_paid || 0).toFixed(2)"></td>
+                      <td style="padding:10px 14px; text-align:right; font-weight:800;" :style="Number(s.amount_due || 0) > 0 ? 'color:#ea580c;' : 'color:#94a3b8;'" x-text="'Q ' + Number(s.amount_due || 0).toFixed(2)"></td>
                       <td style="padding:10px 14px; text-align:center;">
                         <span style="padding:2px 8px; border-radius:10px; font-size:10px; font-weight:800; background:#dcfce7; color:#15803d;" x-text="s.state"></span>
                       </td>
@@ -867,7 +1206,7 @@
   </div>
 
   <!-- ===== 6. MODAL REGISTRO DE ABONO / PAGO DE CRÉDITO ===== -->
-  <div class="modal-backdrop" x-show="showPayModal" style="display:none; z-index:2100;" x-cloak>
+  <div class="modal-backdrop" x-show="canRegisterCreditPayment && showPayModal" style="display:none; z-index:2100;" x-cloak>
     <div style="background:#ffffff; width:440px; max-width:92vw; border-radius:16px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25); overflow:hidden; border:1px solid #e2e8f0;">
       <div style="background:#ea580c; color:#ffffff; padding:16px 20px; display:flex; justify-content:space-between; align-items:center;">
         <div style="font-weight:800; font-size:16px;">💵 Registrar Abono de Crédito</div>
@@ -991,6 +1330,8 @@
       importResult: null,
       selectedPartner: null,
       partnerSales: [],
+      salesFilter: 'all',
+      backendSalesSummary: null,
       statementData: {},
       kpis: {
         total_contacts: 0,
@@ -1037,6 +1378,16 @@
         } catch(e) { return false; }
       })(),
 
+      canRegisterCreditPayment: (() => {
+        try {
+          const u = JSON.parse(localStorage.getItem('user') || '{}');
+          if (u.is_superuser || u.is_admin || u.username === 'admin' || (u.email && u.email.includes('admin'))) return true;
+          const codes = (u.role_codes || (u.roles || []).map(r => r.code || r));
+          if (codes.includes('cashier') && !codes.includes('admin') && !codes.includes('store_manager') && !codes.includes('accountant')) return false;
+          return codes.includes('admin') || codes.includes('store_manager') || codes.includes('accountant');
+        } catch(e) { return false; }
+      })(),
+
       get creditUtilizationPct() {
         const total = Number(this.kpis.total_credit_limit || 0);
         const debt = Number(this.kpis.total_debt || 0);
@@ -1045,9 +1396,11 @@
       },
 
       async init() {
-        await this.checkUserPermissions();
-        await this.loadKPIs();
-        await this.loadPartners();
+        await Promise.allSettled([
+          this.checkUserPermissions(),
+          this.loadKPIs(),
+          this.loadPartners()
+        ]);
       },
 
       async checkUserPermissions() {
@@ -1055,14 +1408,17 @@
           const u = JSON.parse(localStorage.getItem('user') || '{}');
           if (u.is_superuser || u.is_admin || u.username === 'admin' || (u.email && u.email.includes('admin'))) {
             this.canManagePartners = true;
+            this.canRegisterCreditPayment = true;
           }
           const me = await API.get('/auth/me');
           if (me) {
             if (me.is_superuser || me.is_admin || me.username === 'admin' || (me.email && me.email.includes('admin'))) {
               this.canManagePartners = true;
+              this.canRegisterCreditPayment = true;
             } else {
               const codes = (me.role_codes || (me.roles || []).map(r => r.code || r));
               this.canManagePartners = codes.includes('admin') || codes.includes('store_manager') || codes.includes('accountant') || codes.includes('inventory_manager');
+              this.canRegisterCreditPayment = !codes.includes('cashier') && (codes.includes('admin') || codes.includes('store_manager') || codes.includes('accountant'));
             }
           }
         } catch(e) {}
@@ -1107,13 +1463,46 @@
         window.location.href = `/customers/${p.id}`;
       },
 
+      get filteredPartnerSales() {
+        if (this.salesFilter === 'cash') {
+          return this.partnerSales.filter(s => !s.is_credit);
+        }
+        if (this.salesFilter === 'credit') {
+          return this.partnerSales.filter(s => s.is_credit);
+        }
+        return this.partnerSales;
+      },
+
+      get partnerSalesSummary() {
+        if (this.backendSalesSummary && this.partnerSales.length > 0) {
+          return {
+            cashTotal: this.backendSalesSummary.total_cash,
+            cashCount: this.backendSalesSummary.count_cash,
+            creditTotal: this.backendSalesSummary.total_credit,
+            creditCount: this.backendSalesSummary.count_credit,
+            creditDue: this.backendSalesSummary.total_credit_due,
+          };
+        }
+        const cash = this.partnerSales.filter(s => !s.is_credit);
+        const credit = this.partnerSales.filter(s => s.is_credit);
+        return {
+          cashTotal: cash.reduce((acc, s) => acc + Number(s.total || 0), 0),
+          cashCount: cash.length,
+          creditTotal: credit.reduce((acc, s) => acc + Number(s.total || 0), 0),
+          creditCount: credit.length,
+          creditDue: credit.reduce((acc, s) => acc + Number(s.amount_due || 0), 0)
+        };
+      },
+
       async loadPartnerSales() {
         if (!this.detailForm.id) return;
         try {
           const res = await API.get(`/partners/${this.detailForm.id}/sales`);
           this.partnerSales = res.items || [];
+          this.backendSalesSummary = res.summary || null;
         } catch(e) {
           this.partnerSales = [];
+          this.backendSalesSummary = null;
         }
       },
 
@@ -1160,6 +1549,10 @@
       },
 
       openPayModal(p) {
+        if (!this.canRegisterCreditPayment) {
+          alert('Acceso denegado: El usuario con rol Cajero no tiene autorización para registrar abonos de crédito.');
+          return;
+        }
         this.selectedPartner = p;
         this.payForm = {
           amount: p.balance || 0,
@@ -1170,6 +1563,10 @@
       },
 
       async submitCreditPayment() {
+        if (!this.canRegisterCreditPayment) {
+          alert('Acceso denegado: El usuario con rol Cajero no tiene autorización para registrar abonos de crédito.');
+          return;
+        }
         if (this.payForm.amount <= 0) return alert('Ingresa un monto válido');
         try {
           await API.post(`/partners/${this.selectedPartner.id}/credit-payments`, this.payForm);

@@ -6,7 +6,7 @@ from sqlalchemy.orm import selectinload
 from pydantic import BaseModel
 from typing import Optional, List, Dict
 from decimal import Decimal
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import uuid
 
 from app.core.database import get_db
@@ -15,6 +15,25 @@ from app.models.cashier import CashierSession, SessionState, CashMovement, CashM
 from app.models.sale import SaleOrder, SalePayment, SaleState
 
 router = APIRouter(prefix="/cashier")
+
+try:
+    from zoneinfo import ZoneInfo
+    GUATEMALA_TZ = ZoneInfo("America/Guatemala")
+except Exception:
+    GUATEMALA_TZ = timezone(timedelta(hours=-6))
+
+
+def to_local_dt(dt: Optional[datetime], tz=GUATEMALA_TZ) -> Optional[datetime]:
+    if not dt:
+        return None
+    if isinstance(dt, str):
+        try:
+            dt = datetime.fromisoformat(dt.replace("Z", "+00:00"))
+        except Exception:
+            return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(tz)
 
 
 # ===== SCHEMAS =====
@@ -47,6 +66,123 @@ def _generate_session_number() -> str:
 
 
 # ===== ENDPOINTS =====
+async def compute_session_financials(session: CashierSession, db: AsyncSession) -> dict:
+    """
+    Calcula con precisión contable el cuadre de caja de una sesión:
+    - Desglosa ventas por método de pago asegurando que el efectivo de una venta
+      nunca exceda el total de la orden (el cambio/vuelto no queda en la gaveta).
+    - Saldo Esperado = Fondo Apertura + Entradas Efectivo + Ventas al Contado (Efectivo) - Salidas - Devoluciones.
+    """
+    from app.models.sale import SaleOrder, SalePayment, SaleState
+    from sqlalchemy.orm import selectinload
+
+    opening = float(session.opening_balance or 0.0)
+    cash_in = float(session.total_cash_in or 0.0)
+    cash_out = float(session.total_cash_out or 0.0)
+    returns = float(session.total_returns or 0.0)
+
+    # Validar movimientos de caja por si no actualizaron los acumuladores del modelo
+    m_in_stmt = select(func.sum(CashMovement.amount)).where(
+        CashMovement.session_id == session.id,
+        CashMovement.move_type == CashMovementType.CASH_IN
+    )
+    m_in_val = float((await db.execute(m_in_stmt)).scalar() or 0.0)
+    if m_in_val > cash_in:
+        cash_in = m_in_val
+
+    m_out_stmt = select(func.sum(CashMovement.amount)).where(
+        CashMovement.session_id == session.id,
+        CashMovement.move_type == CashMovementType.CASH_OUT
+    )
+    m_out_val = float((await db.execute(m_out_stmt)).scalar() or 0.0)
+    if m_out_val > cash_out:
+        cash_out = m_out_val
+
+    # Cargar órdenes vinculadas a la sesión con sus pagos
+    sales_stmt = (
+        select(SaleOrder)
+        .options(selectinload(SaleOrder.payments))
+        .where(
+            SaleOrder.cashier_session_id == session.id,
+            SaleOrder.state != SaleState.CANCELLED
+        )
+    )
+    sales_res = await db.execute(sales_stmt)
+    orders = sales_res.scalars().all()
+
+    sales_count = len(orders)
+    sales_total = 0.0
+    cash_sales = 0.0
+    card_sales = 0.0
+    transfer_sales = 0.0
+    credit_sales = 0.0
+
+    for ord in orders:
+        ord_total = float(ord.total or 0.0)
+        sales_total += ord_total
+
+        o_cash = 0.0
+        o_card = 0.0
+        o_transfer = 0.0
+        o_credit = 0.0
+
+        for p in (ord.payments or []):
+            pm = str(getattr(p.payment_method, "value", p.payment_method) or "").lower()
+            amt = float(p.amount or 0.0)
+            if pm == "cash":
+                o_cash += amt
+            elif pm in ("card", "tarjeta"):
+                o_card += amt
+            elif pm in ("transfer", "transferencia", "qr"):
+                o_transfer += amt
+            elif pm in ("credit", "credito", "crédito"):
+                o_credit += amt
+
+        # Lo que no es efectivo cubre parte de la orden
+        non_cash = o_card + o_transfer + o_credit
+        cash_needed = max(0.0, ord_total - non_cash)
+        # El efectivo real que entra a la gaveta por esta orden se topa estrictamente a lo facturado en efectivo
+        net_cash = min(o_cash, cash_needed) if o_cash > 0 else 0.0
+
+        cash_sales += net_cash
+        card_sales += o_card
+        transfer_sales += o_transfer
+
+        if o_credit > 0:
+            credit_sales += o_credit
+        elif ord.amount_due and float(ord.amount_due) > 0 and o_cash == 0 and non_cash == 0:
+            credit_sales += float(ord.amount_due)
+
+    # Si no hay órdenes vinculadas pero hay movimientos de venta registrados directamente
+    if sales_count == 0:
+        move_stmt = select(func.sum(CashMovement.amount)).where(
+            CashMovement.session_id == session.id,
+            CashMovement.move_type == CashMovementType.SALE
+        )
+        move_res = await db.execute(move_stmt)
+        move_val = float(move_res.scalar() or 0.0)
+        if move_val > 0:
+            cash_sales = move_val
+            sales_total = move_val
+            sales_count = 1
+
+    expected_cash = opening + cash_in + cash_sales - cash_out - returns
+
+    return {
+        "opening": opening,
+        "cash_in": cash_in,
+        "cash_out": cash_out,
+        "returns": returns,
+        "sales_count": sales_count,
+        "sales_total": round(sales_total, 2),
+        "cash_sales": round(cash_sales, 2),
+        "card_sales": round(card_sales, 2),
+        "transfer_sales": round(transfer_sales, 2),
+        "credit_sales": round(credit_sales, 2),
+        "expected_cash": round(expected_cash, 2),
+    }
+
+
 @router.get("/sessions/active")
 async def get_active_session(
     branch_id: Optional[str] = Query(None),
@@ -54,8 +190,6 @@ async def get_active_session(
     current_user=Depends(get_current_user),
 ):
     """Obtener la sesión de caja activa del usuario actual con desglose de ventas por forma de pago."""
-    from app.models.sale import SaleOrder, SalePayment, SaleState
-
     stmt = select(CashierSession).where(
         CashierSession.user_id == current_user.id,
         CashierSession.state == SessionState.OPEN
@@ -74,70 +208,7 @@ async def get_active_session(
     if not session:
         return {"has_active_session": False, "session": None}
 
-    opening = float(session.opening_balance or 0)
-    cash_in = float(session.total_cash_in or 0)
-    cash_out = float(session.total_cash_out or 0)
-    returns = float(session.total_returns or 0)
-
-    # Consultar ventas vinculadas a esta sesión
-    pay_stmt = (
-        select(
-            SalePayment.payment_method,
-            func.sum(SalePayment.amount)
-        )
-        .join(SaleOrder, SalePayment.sale_id == SaleOrder.id)
-        .where(
-            SaleOrder.cashier_session_id == session.id,
-            SaleOrder.state != SaleState.CANCELLED
-        )
-        .group_by(SalePayment.payment_method)
-    )
-    pay_res = await db.execute(pay_stmt)
-    pay_map = {m: float(a or 0) for m, a in pay_res.all()}
-
-    # Conteo de órdenes y total general
-    count_stmt = select(
-        func.count(SaleOrder.id),
-        func.sum(SaleOrder.total)
-    ).where(
-        SaleOrder.cashier_session_id == session.id,
-        SaleOrder.state != SaleState.CANCELLED
-    )
-    c_res = await db.execute(count_stmt)
-    c_row = c_res.one_or_none()
-    sales_count = int(c_row[0]) if c_row and c_row[0] else 0
-    sales_total = float(c_row[1] or 0) if c_row and c_row[1] else 0.0
-
-    # Total efectivo proveniente de ventas ÚNICAMENTE por pago cash o CashMovement
-    cash_sales = pay_map.get("cash", 0.0)
-
-    move_stmt = select(func.sum(CashMovement.amount)).where(
-        CashMovement.session_id == session.id,
-        CashMovement.move_type == CashMovementType.SALE
-    )
-    move_res = await db.execute(move_stmt)
-    move_cash_val = float(move_res.scalar() or 0.0)
-    if move_cash_val > cash_sales:
-        cash_sales = move_cash_val
-
-    card_sales = pay_map.get("card", 0.0) + pay_map.get("transfer", 0.0)
-    credit_sales = pay_map.get("credit", 0.0)
-
-    # Verificar si existen saldos pendientes por ventas al crédito
-    due_stmt = select(func.sum(SaleOrder.amount_due)).where(
-        SaleOrder.cashier_session_id == session.id,
-        SaleOrder.state != SaleState.CANCELLED
-    )
-    due_res = await db.execute(due_stmt)
-    due_val = float(due_res.scalar() or 0.0)
-    if due_val > credit_sales:
-        credit_sales = due_val
-
-    if sales_total == 0.0:
-        sales_total = cash_sales + card_sales + credit_sales
-
-    # Saldo esperado en efectivo en gaveta (ESTRICTAMENTE EFECTIVO)
-    expected = opening + cash_in + cash_sales - cash_out - returns
+    fin = await compute_session_financials(session, db)
 
     return {
         "has_active_session": True,
@@ -146,17 +217,17 @@ async def get_active_session(
             "session_number": session.session_number,
             "branch_id": str(session.branch_id),
             "opened_at": session.opened_at.isoformat() if session.opened_at else None,
-            "opening_balance": opening,
-            "opening_amount": opening,
-            "total_sales": sales_total,
-            "total_cash_sales": cash_sales,
-            "total_credit_sales": credit_sales,
-            "total_card_sales": card_sales,
-            "total_transfer_sales": pay_map.get("transfer", 0.0),
-            "sales_count": sales_count,
-            "total_cash_in": cash_in,
-            "total_cash_out": cash_out,
-            "expected_cash": expected,
+            "opening_balance": fin["opening"],
+            "opening_amount": fin["opening"],
+            "total_sales": fin["sales_total"],
+            "total_cash_sales": fin["cash_sales"],
+            "total_credit_sales": fin["credit_sales"],
+            "total_card_sales": fin["card_sales"],
+            "total_transfer_sales": fin["transfer_sales"],
+            "sales_count": fin["sales_count"],
+            "total_cash_in": fin["cash_in"],
+            "total_cash_out": fin["cash_out"],
+            "expected_cash": fin["expected_cash"],
             "state": session.state.value if hasattr(session.state, 'value') else str(session.state),
         }
     }
@@ -221,6 +292,26 @@ async def open_session(
         b_uuid = b_res.scalar_one_or_none()
         if not b_uuid:
             raise HTTPException(status_code=400, detail="Sucursal no encontrada")
+
+    # Si el usuario es cajero, forzar a su caja / sucursal asignada
+    role_codes = [r.code for r in current_user.roles] if hasattr(current_user, "roles") and current_user.roles else []
+    is_admin_or_manager = bool(
+        getattr(current_user, "is_superuser", False)
+        or getattr(current_user, "is_admin", False)
+        or "admin" in role_codes
+        or "store_manager" in role_codes
+        or getattr(current_user, "username", "") == "admin"
+        or (getattr(current_user, "email", "") and "admin" in getattr(current_user, "email", ""))
+    )
+    if not is_admin_or_manager:
+        allowed_branch_ids = set()
+        if current_user.current_branch_id:
+            allowed_branch_ids.add(current_user.current_branch_id)
+        if hasattr(current_user, "branches") and current_user.branches:
+            for ub in current_user.branches:
+                allowed_branch_ids.add(ub.id)
+        if allowed_branch_ids and b_uuid not in allowed_branch_ids:
+            b_uuid = next(iter(allowed_branch_ids))
 
     # Verificar si ya tiene sesión abierta
     active_stmt = select(CashierSession).where(
@@ -298,41 +389,9 @@ async def close_session(
     if session.state == SessionState.CLOSED:
         raise HTTPException(status_code=400, detail="La sesión ya fue cerrada")
 
-    # Consultar ventas vinculadas a esta sesión por método de pago
-    pay_stmt = (
-        select(
-            SalePayment.payment_method,
-            func.sum(SalePayment.amount)
-        )
-        .join(SaleOrder, SalePayment.sale_id == SaleOrder.id)
-        .where(
-            SaleOrder.cashier_session_id == session.id,
-            SaleOrder.state != SaleState.CANCELLED
-        )
-        .group_by(SalePayment.payment_method)
-    )
-    pay_res = await db.execute(pay_stmt)
-    pay_map = {m: float(a or 0) for m, a in pay_res.all()}
-
-    cash_sales = Decimal(str(pay_map.get("cash", 0.0)))
-    move_stmt = select(func.sum(CashMovement.amount)).where(
-        CashMovement.session_id == session.id,
-        CashMovement.move_type == CashMovementType.SALE
-    )
-    move_res = await db.execute(move_stmt)
-    move_cash_val = Decimal(str(move_res.scalar() or "0.0"))
-    if move_cash_val > cash_sales:
-        cash_sales = move_cash_val
-
-    # Calcular saldo esperado = saldo inicial + entradas + ventas efectivo - salidas - devoluciones
-    expected = (
-        (session.opening_balance or Decimal("0"))
-        + (session.total_cash_in or Decimal("0"))
-        + cash_sales
-        - (session.total_cash_out or Decimal("0"))
-        - (session.total_returns or Decimal("0"))
-    )
-
+    # Calcular cuadre financiero exacto
+    fin = await compute_session_financials(session, db)
+    expected = Decimal(str(fin["expected_cash"]))
     difference = data.closing_amount_real - expected
 
     session.state = SessionState.CLOSED
@@ -342,6 +401,7 @@ async def close_session(
     session.closing_difference = difference
     session.closing_denominations = data.denominations or {}
     session.closing_notes = data.notes
+    session.total_sales = Decimal(str(fin["sales_total"]))
 
     # Registrar movimiento final
     close_move = CashMovement(
@@ -413,12 +473,26 @@ async def list_terminals_status(
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    """Listar el estado en vivo de los Puntos de Venta (Terminales / Cajas) para el Dashboard Odoo 17."""
+    """Listar el estado en vivo de los Puntos de Venta (Terminales / Cajas) para el Dashboard Odoo 17.
+    Los usuarios con rol Cajero únicamente pueden ver la caja/sucursal que tienen asignada.
+    """
     from app.models.company import Branch, Warehouse
     from app.models.sale import SaleOrder
 
-    # Obtener sucursales
-    b_stmt = select(Branch).where(Branch.company_id == current_user.company_id, Branch.is_deleted == False)
+    # Determinar si el usuario tiene privilegios administrativos o de supervisión
+    role_codes = [r.code for r in current_user.roles] if hasattr(current_user, "roles") and current_user.roles else []
+    is_admin_or_manager = bool(
+        getattr(current_user, "is_superuser", False)
+        or getattr(current_user, "is_admin", False)
+        or "admin" in role_codes
+        or "store_manager" in role_codes
+        or "accountant" in role_codes
+        or getattr(current_user, "username", "") == "admin"
+        or (getattr(current_user, "email", "") and "admin" in getattr(current_user, "email", ""))
+    )
+
+    # Obtener todas las sucursales de la empresa ordenadas cronológicamente
+    b_stmt = select(Branch).where(Branch.company_id == current_user.company_id, Branch.is_deleted == False).order_by(Branch.created_at.asc())
     b_res = await db.execute(b_stmt)
     branches = b_res.scalars().all()
 
@@ -432,17 +506,46 @@ async def list_terminals_status(
     )
     sess_res = await db.execute(open_sess_stmt)
     open_sessions = sess_res.scalars().all()
-    open_sess_by_branch = {s.branch_id: s for s in open_sessions}
+
+    # Si es cajero, determinar su sucursal / caja asignada
+    allowed_branch_ids = set()
+    if not is_admin_or_manager:
+        if current_user.current_branch_id:
+            allowed_branch_ids.add(current_user.current_branch_id)
+        if hasattr(current_user, "branches") and current_user.branches:
+            for ub in current_user.branches:
+                allowed_branch_ids.add(ub.id)
+
+        # Si el cajero ya tiene una sesión abierta activa
+        for s in open_sessions:
+            if s.user_id == current_user.id:
+                allowed_branch_ids.add(s.branch_id)
+
+        # Si aún no tiene sucursal asignada en perfil, asignar por defecto la sucursal principal o la primera
+        if not allowed_branch_ids and branches:
+            main_b = next((b for b in branches if getattr(b, "is_main", False)), branches[0])
+            allowed_branch_ids.add(main_b.id)
+
+    # Mapeo de sesiones abiertas por sucursal (para cajero, priorizar su propia sesión)
+    open_sess_by_branch = {}
+    for s in open_sessions:
+        if not is_admin_or_manager:
+            if s.user_id == current_user.id:
+                open_sess_by_branch[s.branch_id] = s
+            elif s.branch_id not in open_sess_by_branch:
+                open_sess_by_branch[s.branch_id] = s
+        else:
+            open_sess_by_branch[s.branch_id] = s
 
     terminals = []
     for idx, b in enumerate(branches, start=1):
+        # Filtrar si es cajero y la sucursal no es la asignada
+        if not is_admin_or_manager and b.id not in allowed_branch_ids:
+            continue
+
         active_s = open_sess_by_branch.get(b.id)
         if active_s:
-            opening = float(active_s.opening_balance or 0)
-            sales = float(active_s.total_sales or 0)
-            cash_in = float(active_s.total_cash_in or 0)
-            cash_out = float(active_s.total_cash_out or 0)
-            expected = opening + cash_in + sales - cash_out
+            fin = await compute_session_financials(active_s, db)
 
             terminals.append({
                 "id": str(active_s.id),
@@ -452,11 +555,11 @@ async def list_terminals_status(
                 "is_open": True,
                 "status_label": "En Sesión (Abierta)",
                 "cashier_name": active_s.user.full_name if active_s.user else "Cajero Activo",
-                "opened_at": active_s.opened_at.strftime("%d/%m/%Y %H:%M") if active_s.opened_at else "Hoy",
+                "opened_at": to_local_dt(active_s.opened_at).strftime("%d/%m/%Y %H:%M") if active_s.opened_at else "Hoy",
                 "session_number": active_s.session_number,
-                "opening_balance": opening,
-                "total_sales": sales,
-                "expected_cash": expected,
+                "opening_balance": fin["opening"],
+                "total_sales": fin["sales_total"],
+                "expected_cash": fin["expected_cash"],
             })
         else:
             terminals.append({
@@ -499,7 +602,7 @@ async def list_session_movements(
             "move_type": m.move_type.value if hasattr(m.move_type, "value") else str(m.move_type),
             "amount": float(m.amount or 0),
             "reason": m.reference or "Movimiento de caja",
-            "created_at": m.created_at.strftime("%H:%M:%S") if m.created_at else ""
+            "created_at": to_local_dt(m.created_at).strftime("%H:%M:%S") if m.created_at else ""
         }
         for m in moves
     ]
@@ -529,7 +632,7 @@ async def list_session_orders(
             "customer_name": o.customer_name or "Consumidor Final",
             "customer_nit": o.customer_nit or "CF",
             "total": float(o.total or 0),
-            "time": o.sale_date.strftime("%H:%M:%S") if o.sale_date else o.created_at.strftime("%H:%M:%S"),
+            "time": to_local_dt(o.sale_date or o.created_at).strftime("%H:%M:%S") if (o.sale_date or o.created_at) else "",
             "fel_uuid": o.fel_uuid,
             "fel_number": o.fel_number
         }

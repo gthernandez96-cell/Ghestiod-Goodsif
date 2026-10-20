@@ -64,6 +64,16 @@ class BranchCreateIn(BaseModel):
     is_main: bool = False
 
 
+class BranchUpdateIn(BaseModel):
+    name: Optional[str] = None
+    code: Optional[str] = None
+    address: Optional[str] = None
+    city: Optional[str] = None
+    phone: Optional[str] = None
+    is_active: Optional[bool] = None
+    is_main: Optional[bool] = None
+
+
 class WarehouseCreateIn(BaseModel):
     name: str
     code: str
@@ -476,14 +486,27 @@ async def list_branches(
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    """Listar sucursales de la empresa activa."""
+    """Listar sucursales de la empresa activa con conteo de bodegas."""
     stmt = (
         select(Branch)
-        .where(Branch.company_id == current_user.company_id, Branch.is_deleted == False, Branch.is_active == True)
+        .where(Branch.company_id == current_user.company_id, Branch.is_deleted == False)
         .order_by(Branch.is_main.desc(), Branch.name)
     )
     result = await db.execute(stmt)
     branches = result.scalars().all()
+
+    # Contar bodegas por sucursal
+    wh_counts = {}
+    if branches:
+        b_ids = [b.id for b in branches]
+        cnt_stmt = select(Warehouse.branch_id, func.count(Warehouse.id)).where(
+            Warehouse.branch_id.in_(b_ids),
+            Warehouse.is_deleted == False
+        ).group_by(Warehouse.branch_id)
+        cnt_res = await db.execute(cnt_stmt)
+        for b_id, cnt in cnt_res.all():
+            wh_counts[b_id] = cnt
+
     return [
         {
             "id": str(b.id),
@@ -491,10 +514,16 @@ async def list_branches(
             "code": b.code,
             "city": b.city or "Guatemala",
             "is_main": b.is_main,
-            "address": b.address or ""
+            "is_active": b.is_active,
+            "address": b.address or "",
+            "phone": b.phone or "",
+            "warehouses_count": wh_counts.get(b.id, 0),
         }
         for b in branches
     ]
+
+
+
 
 
 @router.post("/branches/")
@@ -503,14 +532,14 @@ async def create_branch(
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    """Crear una nueva sucursal."""
+    """Crear una nueva sucursal y su bodega principal por defecto."""
     branch = Branch(
         company_id=current_user.company_id,
-        name=data.name,
-        code=data.code,
-        address=data.address,
-        city=data.city,
-        phone=data.phone,
+        name=data.name.strip(),
+        code=data.code.strip(),
+        address=data.address.strip() if data.address else None,
+        city=data.city.strip() if data.city else "Guatemala",
+        phone=data.phone.strip() if data.phone else None,
         is_main=data.is_main,
     )
     db.add(branch)
@@ -519,8 +548,8 @@ async def create_branch(
     # Bodega por defecto de la sucursal
     wh = Warehouse(
         branch_id=branch.id,
-        name=f"Bodega {data.name}",
-        code=f"BOD-{data.code}",
+        name=f"Bodega {branch.name}",
+        code=f"BOD-{branch.code}",
         is_default=True,
     )
     db.add(wh)
@@ -698,3 +727,124 @@ async def update_warehouse(
 
     await db.commit()
     return {"id": str(wh.id), "status": "updated"}
+
+
+# ===== 4. GESTIÓN INDIVIDUAL DE SUCURSALES (GET, PUT, DELETE) =====
+@router.get("/branches/{branch_id}")
+async def get_branch(
+    branch_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """Obtener detalle de una sucursal específica."""
+    try:
+        b_uuid = uuid.UUID(branch_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="ID de sucursal inválido")
+
+    stmt = select(Branch).where(
+        Branch.id == b_uuid,
+        Branch.company_id == current_user.company_id,
+        Branch.is_deleted == False
+    )
+    res = await db.execute(stmt)
+    b = res.scalar_one_or_none()
+    if not b:
+        raise HTTPException(status_code=404, detail="Sucursal no encontrada")
+
+    return {
+        "id": str(b.id),
+        "name": b.name,
+        "code": b.code,
+        "city": b.city or "Guatemala",
+        "address": b.address or "",
+        "phone": b.phone or "",
+        "is_main": b.is_main,
+        "is_active": b.is_active,
+    }
+
+
+@router.put("/branches/{branch_id}")
+async def update_branch(
+    branch_id: str,
+    data: BranchUpdateIn,
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """Actualizar datos de una sucursal existente."""
+    try:
+        b_uuid = uuid.UUID(branch_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="ID de sucursal inválido")
+
+    stmt = select(Branch).where(
+        Branch.id == b_uuid,
+        Branch.company_id == current_user.company_id,
+        Branch.is_deleted == False
+    )
+    res = await db.execute(stmt)
+    b = res.scalar_one_or_none()
+    if not b:
+        raise HTTPException(status_code=404, detail="Sucursal no encontrada")
+
+    if data.name is not None: b.name = data.name.strip()
+    if data.code is not None: b.code = data.code.strip()
+    if data.address is not None: b.address = data.address.strip()
+    if data.city is not None: b.city = data.city.strip()
+    if data.phone is not None: b.phone = data.phone.strip()
+    if data.is_active is not None: b.is_active = data.is_active
+    if data.is_main is not None: b.is_main = data.is_main
+
+    await db.commit()
+    return {"id": str(b.id), "name": b.name, "code": b.code, "status": "updated"}
+
+
+@router.delete("/branches/{branch_id}")
+async def delete_branch(
+    branch_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """Eliminar o desactivar una sucursal (valida si es principal o tiene inventario)."""
+    try:
+        b_uuid = uuid.UUID(branch_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="ID de sucursal inválido")
+
+    stmt = select(Branch).where(
+        Branch.id == b_uuid,
+        Branch.company_id == current_user.company_id,
+        Branch.is_deleted == False
+    )
+    res = await db.execute(stmt)
+    b = res.scalar_one_or_none()
+    if not b:
+        raise HTTPException(status_code=404, detail="Sucursal no encontrada")
+
+    if b.is_main:
+        raise HTTPException(status_code=400, detail="No puedes eliminar la Sucursal Principal del sistema.")
+
+    # Validar si tiene bodegas con existencias físicas
+    wh_stmt = select(Warehouse).where(Warehouse.branch_id == b_uuid, Warehouse.is_deleted == False)
+    res_wh = await db.execute(wh_stmt)
+    warehouses = res_wh.scalars().all()
+    wh_ids = [w.id for w in warehouses]
+    if wh_ids:
+        st_stmt = select(func.sum(StockQuant.qty_on_hand)).where(StockQuant.warehouse_id.in_(wh_ids))
+        res_st = await db.execute(st_stmt)
+        total_st = res_st.scalar() or 0
+        if total_st > 0:
+            raise HTTPException(
+                status_code=400,
+                detail=f"No se puede eliminar la sucursal porque sus bodegas asociadas tienen {float(total_st)} unidades en stock. Debes trasladar o vaciar el inventario antes de eliminarla."
+            )
+
+    # Desactivar/eliminar sucursal y sus bodegas
+    b.is_deleted = True
+    b.is_active = False
+    for wh in warehouses:
+        wh.is_deleted = True
+        wh.is_active = False
+
+    await db.commit()
+    return {"status": "deleted", "id": str(b_uuid)}

@@ -1,8 +1,8 @@
 """API v1 — Cuentas por Pagar (AP) & Control de Proveedores 360°."""
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, func, desc
-from sqlalchemy.orm import selectinload
+from sqlalchemy import select, and_, func, desc, or_, case
+from sqlalchemy.orm import selectinload, joinedload
 from pydantic import BaseModel, ConfigDict
 from typing import Optional, List
 from decimal import Decimal
@@ -10,6 +10,7 @@ from datetime import datetime, timezone, timedelta
 import uuid
 import io
 import csv
+import time
 
 from app.core.database import get_db
 from app.core.security import get_current_user
@@ -20,68 +21,94 @@ from app.models.purchase import PurchaseOrder
 
 router = APIRouter(prefix="/ap")
 
+# Cache para limitar sincronización en segundo plano (máximo 1 vez cada 10 minutos por empresa)
+_LAST_AP_SYNC: dict[str, float] = {}
+_AP_SYNC_INTERVAL_SECONDS = 600
+
 
 async def _sync_purchases_to_bills(db: AsyncSession, company_id: uuid.UUID):
-    """Sincronizar automáticamente cualquier orden de compra que no tenga su factura en Cuentas por Pagar."""
+    """Sincronizar automáticamente cualquier orden de compra reciente que no tenga su factura en Cuentas por Pagar."""
+    comp_key = str(company_id)
+    now_ts = time.time()
+    if now_ts - _LAST_AP_SYNC.get(comp_key, 0) < _AP_SYNC_INTERVAL_SECONDS:
+        return
+    _LAST_AP_SYNC[comp_key] = now_ts
+
     try:
-        po_stmt = select(PurchaseOrder).where(
+        cutoff = datetime.now(timezone.utc) - timedelta(days=90)
+        po_stmt = select(
+            PurchaseOrder.id,
+            PurchaseOrder.number,
+            PurchaseOrder.supplier_ref,
+            PurchaseOrder.supplier_id,
+            PurchaseOrder.order_date,
+            PurchaseOrder.payment_terms,
+            PurchaseOrder.total
+        ).where(
             PurchaseOrder.company_id == company_id,
-            PurchaseOrder.is_deleted == False
+            PurchaseOrder.is_deleted == False,
+            PurchaseOrder.created_at >= cutoff
         )
         po_res = await db.execute(po_stmt)
-        purchases = po_res.scalars().all()
+        purchases = po_res.all()
 
-        bills_stmt = select(SupplierBill).where(
+        if not purchases:
+            return
+
+        bills_stmt = select(SupplierBill.number, SupplierBill.notes).where(
             SupplierBill.company_id == company_id,
-            SupplierBill.is_deleted == False
+            SupplierBill.is_deleted == False,
+            SupplierBill.created_at >= cutoff
         )
         bills_res = await db.execute(bills_stmt)
-        bills = bills_res.scalars().all()
+        bills_data = bills_res.all()
         
-        existing_numbers = {b.number for b in bills if b.number}
-        existing_notes = {b.notes for b in bills if b.notes}
+        existing_numbers = {b[0] for b in bills_data if b[0]}
+        existing_notes = [b[1] for b in bills_data if b[1]]
 
         synced_any = False
         for po in purchases:
-            bill_num = po.supplier_ref or f"FAC-{po.number}"
+            po_id, po_number, po_supplier_ref, po_supplier_id, po_order_date, po_payment_terms, po_total = po
+            bill_num = po_supplier_ref or f"FAC-{po_number}"
             
             already_exists = False
             if bill_num in existing_numbers:
                 already_exists = True
             else:
                 for n in existing_notes:
-                    if po.number in n:
+                    if po_number in n:
                         already_exists = True
                         break
 
-            if not already_exists and po.supplier_id:
-                order_dt = po.order_date or datetime.now(timezone.utc)
+            if not already_exists and po_supplier_id:
+                order_dt = po_order_date or datetime.now(timezone.utc)
                 credit_days = 30
-                if po.payment_terms:
-                    if "15" in po.payment_terms:
+                if po_payment_terms:
+                    terms_str = str(po_payment_terms).lower()
+                    if "15" in terms_str:
                         credit_days = 15
-                    elif "30" in po.payment_terms:
+                    elif "30" in terms_str:
                         credit_days = 30
-                    elif "60" in po.payment_terms:
+                    elif "60" in terms_str:
                         credit_days = 60
-                    elif "contado" in po.payment_terms.lower() or "cash" in po.payment_terms.lower():
+                    elif "contado" in terms_str or "cash" in terms_str:
                         credit_days = 0
 
                 due_date = order_dt + timedelta(days=credit_days)
                 new_bill = SupplierBill(
                     company_id=company_id,
-                    supplier_id=po.supplier_id,
+                    supplier_id=po_supplier_id,
                     number=bill_num,
                     bill_date=order_dt,
                     due_date=due_date,
-                    total=po.total or 0,
-                    balance=po.total or 0,
+                    total=po_total or 0,
+                    balance=po_total or 0,
                     state="open",
-                    notes=f"Compra {po.number}" + (f" - Ref: {po.supplier_ref}" if po.supplier_ref else "")
+                    notes=f"Compra {po_number}" + (f" - Ref: {po_supplier_ref}" if po_supplier_ref else "")
                 )
                 db.add(new_bill)
                 existing_numbers.add(bill_num)
-                existing_notes.add(new_bill.notes)
+                existing_notes.append(new_bill.notes)
                 synced_any = True
 
         if synced_any:
@@ -115,54 +142,33 @@ async def get_ap_kpis(
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    """Métricas ejecutivas de Cuentas por Pagar y Deuda."""
+    """Métricas ejecutivas de Cuentas por Pagar y Deuda optimizadas en una sola agregación."""
     c_uuid = uuid.UUID(str(current_user.company_id))
     await _sync_purchases_to_bills(db, c_uuid)
 
     now = datetime.now(timezone.utc)
     in_7_days = now + timedelta(days=7)
-    month_start = now.replace(day=1, hour=0, minute=0, second=0)
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
-    # 1. Deuda total pendiente
-    debt_stmt = select(
-        func.sum(SupplierBill.balance).label("total_debt"),
-        func.count(SupplierBill.id).label("total_open_bills")
+    # 1. Agregación unificada en una sola consulta SQL
+    kpi_stmt = select(
+        func.coalesce(func.sum(SupplierBill.balance), 0).label("total_debt"),
+        func.count(SupplierBill.id).label("total_open_bills"),
+        func.coalesce(func.sum(case((and_(SupplierBill.due_date >= now, SupplierBill.due_date <= in_7_days), 1), else_=0)), 0).label("due_soon_count"),
+        func.coalesce(func.sum(case((SupplierBill.due_date < now, 1), else_=0)), 0).label("overdue_count"),
+        func.coalesce(func.sum(case((SupplierBill.due_date < now, SupplierBill.balance), else_=0)), 0).label("overdue_amount"),
     ).where(
         SupplierBill.company_id == c_uuid,
         SupplierBill.balance > 0,
         SupplierBill.is_deleted == False
     )
-    debt_res = await db.execute(debt_stmt)
-    debt_row = debt_res.one()
+    kpi_res = await db.execute(kpi_stmt)
+    kpi_row = kpi_res.one()
 
-    # 2. Facturas por vencer (próximos 7 días)
-    soon_stmt = select(func.count(SupplierBill.id)).where(
-        SupplierBill.company_id == c_uuid,
-        SupplierBill.balance > 0,
-        SupplierBill.due_date >= now,
-        SupplierBill.due_date <= in_7_days,
-        SupplierBill.is_deleted == False
-    )
-    soon_res = await db.execute(soon_stmt)
-    due_soon_count = int(soon_res.scalar() or 0)
-
-    # 3. Facturas vencidas en mora
-    overdue_stmt = select(
-        func.count(SupplierBill.id).label("count"),
-        func.sum(SupplierBill.balance).label("amount")
-    ).where(
-        SupplierBill.company_id == c_uuid,
-        SupplierBill.balance > 0,
-        SupplierBill.due_date < now,
-        SupplierBill.is_deleted == False
-    )
-    overdue_res = await db.execute(overdue_stmt)
-    overdue_row = overdue_res.one()
-
-    # 4. Pagos realizados este mes
+    # 2. Pagos realizados este mes
     paid_stmt = (
-        select(func.sum(SupplierBillPayment.amount))
-        .join(SupplierBill)
+        select(func.coalesce(func.sum(SupplierBillPayment.amount), 0))
+        .join(SupplierBill, SupplierBillPayment.bill_id == SupplierBill.id)
         .where(
             SupplierBill.company_id == c_uuid,
             SupplierBillPayment.payment_date >= month_start
@@ -172,11 +178,11 @@ async def get_ap_kpis(
     paid_this_month = float(paid_res.scalar() or 0.0)
 
     return {
-        "total_debt": float(debt_row.total_debt or 0.0),
-        "total_open_bills": int(debt_row.total_open_bills or 0),
-        "due_soon_count": due_soon_count,
-        "overdue_count": int(overdue_row.count or 0),
-        "overdue_amount": float(overdue_row.amount or 0.0),
+        "total_debt": float(kpi_row.total_debt or 0.0),
+        "total_open_bills": int(kpi_row.total_open_bills or 0),
+        "due_soon_count": int(kpi_row.due_soon_count or 0),
+        "overdue_count": int(kpi_row.overdue_count or 0),
+        "overdue_amount": float(kpi_row.overdue_amount or 0.0),
         "paid_this_month": paid_this_month,
     }
 
@@ -189,32 +195,52 @@ async def list_supplier_bills(
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    """Listar facturas de proveedores con semáforo de vencimiento."""
+    """Listar facturas de proveedores con semáforo de vencimiento filtradas en SQL."""
     c_uuid = uuid.UUID(str(current_user.company_id))
-    await _sync_purchases_to_bills(db, c_uuid)
 
     now = datetime.now(timezone.utc)
     in_7_days = now + timedelta(days=7)
 
     stmt = (
         select(SupplierBill)
-        .options(
-            selectinload(SupplierBill.supplier),
-            selectinload(SupplierBill.payments)
-        )
+        .options(joinedload(SupplierBill.supplier))
         .where(
             SupplierBill.company_id == c_uuid,
             SupplierBill.is_deleted == False
         )
-        .order_by(SupplierBill.due_date.asc())
     )
 
+    if status and status != "all":
+        if status == "open":
+            stmt = stmt.where(SupplierBill.balance > 0)
+        elif status == "paid":
+            stmt = stmt.where(SupplierBill.balance <= 0)
+        elif status == "overdue":
+            stmt = stmt.where(SupplierBill.balance > 0, SupplierBill.due_date < now)
+        elif status == "due_soon":
+            stmt = stmt.where(
+                SupplierBill.balance > 0,
+                SupplierBill.due_date >= now,
+                SupplierBill.due_date <= in_7_days
+            )
+
+    if search:
+        search_term = f"%{search.strip()}%"
+        stmt = stmt.outerjoin(SupplierBill.supplier).where(
+            or_(
+                SupplierBill.number.ilike(search_term),
+                Partner.name.ilike(search_term),
+                Partner.nit.ilike(search_term)
+            )
+        )
+
+    stmt = stmt.order_by(SupplierBill.due_date.asc())
+
     res = await db.execute(stmt)
-    bills = res.scalars().all()
+    bills = res.scalars().unique().all()
 
     items = []
     for b in bills:
-        # Calcular estado y días
         bal = float(b.balance or 0.0)
         tot = float(b.total or 0.0)
 
@@ -223,7 +249,6 @@ async def list_supplier_bills(
 
         if bal > 0:
             if b.due_date:
-                # normalizar fechas
                 due_dt = b.due_date
                 if due_dt.tzinfo is None:
                     due_dt = due_dt.replace(tzinfo=timezone.utc)
@@ -238,30 +263,13 @@ async def list_supplier_bills(
             else:
                 d_status = "on_time"
 
-        # Filtrar por status si requerido
-        if status and status != "all":
-            if status == "open" and bal <= 0:
-                continue
-            elif status == "due_soon" and d_status != "due_soon":
-                continue
-            elif status == "overdue" and d_status != "overdue":
-                continue
-            elif status == "paid" and d_status != "paid":
-                continue
-
-        # Filtrar por search
         s_name = b.supplier.name if b.supplier else "Proveedor Genérico"
         s_nit = b.supplier.nit if b.supplier else "CF"
-        b_num = b.number or ""
-        if search:
-            q_low = search.lower()
-            if q_low not in s_name.lower() and q_low not in s_nit.lower() and q_low not in b_num.lower():
-                continue
 
         items.append({
             "id": str(b.id),
             "number": b.number,
-            "supplier_id": str(b.supplier_id),
+            "supplier_id": str(b.supplier_id) if b.supplier_id else "",
             "supplier_name": s_name,
             "supplier_nit": s_nit,
             "bill_date": b.bill_date.strftime("%d/%m/%Y") if b.bill_date else "",
@@ -271,7 +279,7 @@ async def list_supplier_bills(
             "balance": bal,
             "status": d_status,
             "notes": b.notes or "",
-            "payments_count": len(b.payments)
+            "payments_count": 0
         })
 
     return items
@@ -550,12 +558,11 @@ async def get_ap_aging_report(
 ):
     """Reporte ejecutivo de Antigüedad de Saldos por Proveedor (0-30, 31-60, 61-90, 90+)."""
     c_uuid = uuid.UUID(str(current_user.company_id))
-    await _sync_purchases_to_bills(db, c_uuid)
     now = datetime.now(timezone.utc)
 
     stmt = (
         select(SupplierBill)
-        .options(selectinload(SupplierBill.supplier))
+        .options(joinedload(SupplierBill.supplier))
         .where(
             SupplierBill.company_id == c_uuid,
             SupplierBill.balance > 0,
@@ -563,7 +570,7 @@ async def get_ap_aging_report(
         )
     )
     res = await db.execute(stmt)
-    bills = res.scalars().all()
+    bills = res.scalars().unique().all()
 
     # Buckets globales
     summary = {
@@ -644,12 +651,11 @@ async def export_ap_csv(
 ):
     """Descargar estado general de Cuentas por Pagar en formato CSV/Excel."""
     c_uuid = uuid.UUID(str(current_user.company_id))
-    await _sync_purchases_to_bills(db, c_uuid)
     now = datetime.now(timezone.utc)
 
     stmt = (
         select(SupplierBill)
-        .options(selectinload(SupplierBill.supplier))
+        .options(joinedload(SupplierBill.supplier))
         .where(
             SupplierBill.company_id == c_uuid,
             SupplierBill.is_deleted == False
@@ -657,7 +663,7 @@ async def export_ap_csv(
         .order_by(SupplierBill.due_date.asc())
     )
     res = await db.execute(stmt)
-    bills = res.scalars().all()
+    bills = res.scalars().unique().all()
 
     output = io.StringIO()
     output.write('\ufeff')  # BOM UTF-8 para compatibilidad perfecta con Excel
