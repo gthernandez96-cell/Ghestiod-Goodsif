@@ -1362,8 +1362,8 @@
       </div>
 
       <!-- Canvas container -->
-      <div x-show="sellersData.sellers && sellersData.sellers.length > 0" style="height:220px; position:relative; width:100%;">
-        <canvas id="sellersRankingChart" style="width:100% !important; height:100% !important;"></canvas>
+      <div x-show="sellersData.sellers && sellersData.sellers.length > 0" style="height:240px; position:relative; width:100%;">
+        <canvas id="sellersRankingChart"></canvas>
       </div>
     </div>
 
@@ -2671,101 +2671,116 @@
       },
 
       renderSellersChart() {
-        const canvas = document.getElementById('sellersRankingChart');
-        if (!canvas) return;
+        try {
+          const canvas = document.getElementById('sellersRankingChart');
+          if (!canvas) return;
 
-        // Si Chart.js no ha terminado de cargar, reintentar en 120ms
-        if (typeof Chart === 'undefined') {
-          setTimeout(() => this.renderSellersChart(), 120);
-          return;
-        }
-
-        // Si el contenedor está oculto (tab no activa o en transición), esperar a visibilidad
-        if (canvas.offsetParent === null) {
-          setTimeout(() => this.renderSellersChart(), 100);
-          return;
-        }
-
-        const sellers = (this.sellersData.sellers || []).slice(0, 8);
-        if (sellers.length === 0) {
-          if (this.sellersChartInstance) {
-            this.sellersChartInstance.destroy();
-            this.sellersChartInstance = null;
+          if (typeof Chart === 'undefined') {
+            setTimeout(() => this.renderSellersChart(), 100);
+            return;
           }
-          return;
-        }
 
-        const labels = sellers.map(s => s.user_name || 'Vendedor');
-        const salesData = sellers.map(s => Number(s.total_sales) || 0);
-        const profitData = sellers.map(s => Number(s.gross_profit) || 0);
+          const sellers = (this.sellersData && Array.isArray(this.sellersData.sellers)) 
+            ? this.sellersData.sellers.slice(0, 8) 
+            : [];
 
-        if (this.sellersChartInstance) {
-          this.sellersChartInstance.destroy();
-          this.sellersChartInstance = null;
-        }
+          if (sellers.length === 0) {
+            const existing = (typeof Chart.getChart === 'function' ? Chart.getChart(canvas) : null) || this.sellersChartInstance;
+            if (existing) {
+              try { existing.destroy(); } catch(e) {}
+              this.sellersChartInstance = null;
+            }
+            return;
+          }
 
-        const ctx = canvas.getContext('2d');
-        this.sellersChartInstance = new Chart(ctx, {
-          type: 'bar',
-          data: {
-            labels: labels,
-            datasets: [
-              {
-                label: 'Ventas Totales (Q)',
-                data: salesData,
-                backgroundColor: '#714B67',
-                hoverBackgroundColor: '#5d3d54',
-                borderRadius: 6,
-                maxBarThickness: 38,
-              },
-              {
-                label: 'Ganancia Bruta (Q)',
-                data: profitData,
-                backgroundColor: '#00A09D',
-                hoverBackgroundColor: '#008582',
-                borderRadius: 6,
-                maxBarThickness: 38,
-              }
-            ]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            animation: {
-              duration: 350
-            },
-            plugins: {
-              legend: {
-                position: 'top',
-                labels: { boxWidth: 12, font: { size: 11, weight: '700' }, color: '#334155' }
-              },
-              tooltip: {
-                callbacks: {
-                  label: function(context) {
-                    return context.dataset.label + ': Q ' + Number(context.raw).toLocaleString('es-GT', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-                  }
-                }
-              }
-            },
-            scales: {
-              y: {
-                beginAtZero: true,
-                grid: { color: '#f1f5f9' },
-                ticks: {
-                  callback: function(val) {
-                    return 'Q ' + Number(val).toLocaleString();
-                  },
-                  font: { size: 10, weight: '600' },
-                  color: '#64748b'
-                }
-              },
-              x: {
-                grid: { display: false },
-                ticks: { font: { size: 11, weight: '700' }, color: '#1e293b' }
-              }
+          const labels = sellers.map(s => s.user_name || 'Vendedor');
+          const salesData = sellers.map(s => Number(s.total_sales) || 0);
+          const profitData = sellers.map(s => Number(s.gross_profit) || 0);
+
+          // Si ya existe la gráfica de tipo bar en este canvas, actualizamos los datos directamente
+          const existing = typeof Chart.getChart === 'function' ? Chart.getChart(canvas) : this.sellersChartInstance;
+          if (existing) {
+            if (existing.config && existing.config.type === 'bar') {
+              existing.data.labels = labels;
+              existing.data.datasets[0].data = salesData;
+              existing.data.datasets[1].data = profitData;
+              existing.update();
+              this.sellersChartInstance = existing;
+              return;
+            } else {
+              try { existing.destroy(); } catch(e) {}
+              this.sellersChartInstance = null;
             }
           }
-        });
+
+          // Limpiar estilos residuales del canvas antes de inicializar
+          canvas.removeAttribute('style');
+
+          const ctx = canvas.getContext('2d');
+          const chartConfig = {
+            type: 'bar',
+            data: {
+              labels: labels,
+              datasets: [
+                {
+                  label: 'Ventas Totales (Q)',
+                  data: salesData,
+                  backgroundColor: '#714B67',
+                  hoverBackgroundColor: '#5d3d54',
+                  borderRadius: 6,
+                  maxBarThickness: 42,
+                },
+                {
+                  label: 'Ganancia Bruta (Q)',
+                  data: profitData,
+                  backgroundColor: '#00A09D',
+                  hoverBackgroundColor: '#008582',
+                  borderRadius: 6,
+                  maxBarThickness: 42,
+                }
+              ]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              animation: false,
+              plugins: {
+                legend: {
+                  position: 'top',
+                  labels: { boxWidth: 12, font: { size: 11, weight: 'bold' }, color: '#334155' }
+                },
+                tooltip: {
+                  callbacks: {
+                    label: function(context) {
+                      return context.dataset.label + ': Q ' + Number(context.raw).toLocaleString('es-GT', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                    }
+                  }
+                }
+              },
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  grid: { color: '#f1f5f9' },
+                  ticks: {
+                    callback: function(val) {
+                      return 'Q ' + Number(val).toLocaleString();
+                    },
+                    font: { size: 10, weight: '600' },
+                    color: '#64748b'
+                  }
+                },
+                x: {
+                  grid: { display: false },
+                  ticks: { font: { size: 11, weight: 'bold' }, color: '#1e293b' }
+                }
+              }
+            }
+          };
+
+          this.sellersChartInstance = new Chart(ctx, chartConfig);
+        } catch (err) {
+          console.error("Error al renderizar sellersRankingChart:", err);
+        }
       },
 
       async openSellerDetail(sellerId) {
