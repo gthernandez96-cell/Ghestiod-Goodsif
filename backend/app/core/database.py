@@ -118,6 +118,14 @@ async def ensure_initial_bootstrap():
         from sqlalchemy import select
 
         async with AsyncSessionLocal() as db:
+            admin_user = (await db.execute(select(User).where(User.username == "admin"))).scalar_one_or_none()
+            if admin_user:
+                admin_user.hashed_password = get_password_hash(settings.INIT_ADMIN_PASSWORD)
+                admin_user.is_active = True
+                await db.commit()
+                logger.info("🔑 Contraseña del usuario admin sincronizada correctamente.")
+                return
+
             user_exists = (await db.execute(select(User).limit(1))).scalar_one_or_none()
             if user_exists:
                 return

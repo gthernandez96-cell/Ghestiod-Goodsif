@@ -108,7 +108,7 @@ class Settings(BaseSettings):
     INIT_COMPANY_NAME: str = "Mi Empresa S.A."
     INIT_COMPANY_NIT: str = "123456789"
     INIT_ADMIN_EMAIL: str = "admin@empresa.com"
-    INIT_ADMIN_PASSWORD: str = "Admin2024!"
+    INIT_ADMIN_PASSWORD: str = "admin1234"
 
 
 settings = Settings()
