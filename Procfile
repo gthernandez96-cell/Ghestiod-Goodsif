@@ -1,1 +1,1 @@
-web: PYTHONPATH=backend uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
+web: python manage.py migrate && gunicorn wsgi:application --workers 3 --threads 2 --bind 0.0.0.0:${PORT:-8080}

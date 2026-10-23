@@ -233,28 +233,24 @@ async def ensure_initial_bootstrap():
 
 
 async def ensure_preventista_role():
-    """Asegurar que el rol 'preventista' exista en la base de datos para todas las empresas."""
+    """Asegurar que el rol 'preventista' exista en la base de datos."""
     try:
         from app.models.user import Role
-        from app.models.company import Company
         from sqlalchemy import select
 
         async with AsyncSessionLocal() as db:
-            companies = (await db.execute(select(Company))).scalars().all()
-            for comp in companies:
-                role = (await db.execute(
-                    select(Role).where(Role.company_id == comp.id, Role.code == "preventista")
-                )).scalar_one_or_none()
-                if not role:
-                    new_role = Role(
-                        company_id=comp.id,
-                        name="Preventista",
-                        code="preventista",
-                        description="Operaciones del módulo de Pre-venta y generación de solicitudes POS",
-                        is_system=True,
-                    )
-                    db.add(new_role)
-            await db.commit()
+            role = (await db.execute(
+                select(Role).where(Role.code == "preventista")
+            )).scalar_one_or_none()
+            if not role:
+                new_role = Role(
+                    name="Preventista",
+                    code="preventista",
+                    description="Operaciones del módulo de Pre-venta y generación de solicitudes POS",
+                    is_system=True,
+                )
+                db.add(new_role)
+                await db.commit()
     except Exception as e:
         logger.warning(f"⚠️ Aviso verificando rol preventista: {e}")
 

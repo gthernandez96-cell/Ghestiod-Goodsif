@@ -17,16 +17,21 @@ def main():
 
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "settings")
 
-    # Si se ejecuta migrate, inicializar también tablas del POS Empresarial
+    # Si se ejecuta migrate, sincronizar tablas y esquemas de POS Empresarial
     if len(sys.argv) > 1 and sys.argv[1] == "migrate":
         try:
             import asyncio
             from app.core.database import check_db_connection
-            print("🚀 Sincronizando catálogo y tablas de base de datos POS...")
-            asyncio.run(check_db_connection())
-            print("✅ Tablas del POS sincronizadas correctamente.")
+            print("🚀 Sincronizando tablas y bootstrap de base de datos POS...")
+            ok = asyncio.run(check_db_connection())
+            if ok is not False:
+                print("✅ Base de datos y tablas del POS sincronizadas correctamente.")
+                sys.exit(0)
+            else:
+                sys.exit(1)
         except Exception as e:
-            sys.stderr.write(f"⚠️ Aviso sincronizando tablas del POS: {e}\n")
+            sys.stderr.write(f"⚠️ Error sincronizando base de datos: {e}\n")
+            sys.exit(1)
 
     try:
         from django.core.management import execute_from_command_line
