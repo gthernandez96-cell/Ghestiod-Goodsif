@@ -118,16 +118,20 @@ async def ensure_initial_bootstrap():
         from sqlalchemy import select
 
         async with AsyncSessionLocal() as db:
-            admin_user = (await db.execute(select(User).where(User.username == "admin"))).scalar_one_or_none()
+            from sqlalchemy import func
+            admin_user = (await db.execute(
+                select(User).where(
+                    (func.lower(User.username) == "admin") |
+                    (func.lower(User.email) == "admin@empresa.com")
+                )
+            )).scalar_one_or_none()
             if admin_user:
+                admin_user.username = "admin"
                 admin_user.hashed_password = get_password_hash(settings.INIT_ADMIN_PASSWORD)
                 admin_user.is_active = True
+                admin_user.is_superuser = True
                 await db.commit()
                 logger.info("🔑 Contraseña del usuario admin sincronizada correctamente.")
-                return
-
-            user_exists = (await db.execute(select(User).limit(1))).scalar_one_or_none()
-            if user_exists:
                 return
 
             logger.info("⚡ Base de datos nueva detectada. Ejecutando bootstrap inicial...")
@@ -185,7 +189,7 @@ async def ensure_initial_bootstrap():
             for r_name, r_code, r_desc in roles_def:
                 r_match = (await db.execute(select(Role).where(Role.code == r_code))).scalar_one_or_none()
                 if not r_match:
-                    r_match = Role(company_id=comp.id, name=r_name, code=r_code, description=r_desc)
+                    r_match = Role(name=r_name, code=r_code, description=r_desc, is_system=True)
                     db.add(r_match)
                     await db.flush()
                 if r_code == "admin":

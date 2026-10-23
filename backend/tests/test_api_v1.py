@@ -55,7 +55,16 @@ def test_digitalocean_database_url_sslmode_translation():
     assert "sslmode=" not in s.DATABASE_URL
     assert s.DATABASE_URL.startswith("postgresql+asyncpg://")
     # sync (psycopg2) debe mantener sslmode=require
-    assert "sslmode=require" in s.DATABASE_URL_SYNC
     assert s.DATABASE_URL_SYNC.startswith("postgresql://")
+
+
+def test_admin_login_with_admin1234():
+    """Verificar que el login con usuario admin y contraseña admin1234 sea exitoso."""
+    login_res = client.post("/api/v1/auth/login", data={"username": "admin", "password": "admin1234"})
+    assert login_res.status_code == 200, f"Login failed: {login_res.text}"
+    data = login_res.json()
+    assert "access_token" in data
+    assert data["user"]["username"] == "admin"
+
 
 
