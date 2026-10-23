@@ -71,6 +71,23 @@ async def upload_product_image(
     if len(content) > 5 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="La imagen no debe exceder los 5MB.")
 
+    # Subir a DigitalOcean Spaces si las credenciales están configuradas
+    from app.services.spaces_storage import upload_to_spaces
+    spaces_upload = upload_to_spaces(
+        content,
+        filename=unique_name,
+        content_type=file.content_type or "image/png",
+        folder="media/products"
+    )
+    if spaces_upload:
+        return {
+            "url": spaces_upload["url"],
+            "filename": unique_name,
+            "status": "uploaded",
+            "storage": "spaces"
+        }
+
+    # Respaldo: almacenamiento local en disco
     with open(file_path, "wb") as f:
         f.write(content)
 
@@ -78,7 +95,8 @@ async def upload_product_image(
     return {
         "url": url_path,
         "filename": unique_name,
-        "status": "uploaded"
+        "status": "uploaded",
+        "storage": "local"
     }
 
 
@@ -104,6 +122,23 @@ async def upload_product_datasheet(
     if len(content) > 15 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="La ficha técnica en PDF no debe exceder los 15MB.")
 
+    # Subir a DigitalOcean Spaces si las credenciales están configuradas
+    from app.services.spaces_storage import upload_to_spaces
+    spaces_upload = upload_to_spaces(
+        content,
+        filename=unique_name,
+        content_type="application/pdf",
+        folder="media/datasheets"
+    )
+    if spaces_upload:
+        return {
+            "url": spaces_upload["url"],
+            "filename": filename,
+            "status": "uploaded",
+            "storage": "spaces"
+        }
+
+    # Respaldo: almacenamiento local en disco
     with open(file_path, "wb") as f:
         f.write(content)
 
@@ -111,7 +146,8 @@ async def upload_product_datasheet(
     return {
         "url": url_path,
         "filename": filename,
-        "status": "uploaded"
+        "status": "uploaded",
+        "storage": "local"
     }
 
 

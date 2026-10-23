@@ -119,13 +119,30 @@ async def upload_website_image(
     if len(content) > 8 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="La imagen no debe exceder los 8MB.")
 
+    # Subir a DigitalOcean Spaces si está configurado
+    from app.services.spaces_storage import upload_to_spaces
+    spaces_upload = upload_to_spaces(
+        content,
+        filename=unique_name,
+        content_type=file.content_type or "image/png",
+        folder="media/website"
+    )
+    if spaces_upload:
+        return {
+            "success": True,
+            "url": spaces_upload["url"],
+            "filename": unique_name,
+            "storage": "spaces"
+        }
+
     with open(file_path, "wb") as f:
         f.write(content)
 
     return {
         "success": True,
         "url": f"/static/uploads/website/{unique_name}",
-        "filename": unique_name
+        "filename": unique_name,
+        "storage": "local"
     }
 
 

@@ -37,11 +37,12 @@ redis_data/
 *.swo
 .DS_Store
 
-# Reportes / PDFs generados
+# Reportes / PDFs generados / Estáticos compilados
 *.pdf
 *.xlsx
 media/
 uploads/
+staticfiles/
 
 # Alembic auto-generados (solo versiones manuales)
 alembic/versions/*.py
