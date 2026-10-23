@@ -72,36 +72,34 @@ async def check_db_connection():
     try:
         # Importar modelos para que Base.metadata los reconozca
         import app.models  # noqa
+        # 1. Crear tablas si no existen
         async with engine.begin() as conn:
             await conn.execute(text("SELECT 1"))
             await conn.run_sync(Base.metadata.create_all)
+
+        # 2. Sincronizar columnas adicionales de forma segura (sin abortar transacciones en PostgreSQL)
+        is_pg = "postgresql" in settings.DATABASE_URL
+        columns_to_add = [
+            ("products", "supplier_id", "VARCHAR(36)"),
+            ("partners", "image_url", "VARCHAR(500)"),
+            ("products", "pdf_datasheet_url", "VARCHAR(500)"),
+            ("products", "internal_notes", "TEXT"),
+            ("sale_orders", "approved_by_id", "VARCHAR(36)"),
+            ("sale_orders", "approved_at", "TIMESTAMP"),
+            ("sale_orders", "rejection_reason", "TEXT"),
+            ("sale_orders", "warehouse_verified", "BOOLEAN DEFAULT FALSE"),
+        ]
+
+        for table, col, col_type in columns_to_add:
             try:
-                await conn.execute(text("ALTER TABLE products ADD COLUMN supplier_id VARCHAR(36)"))
+                async with engine.begin() as conn:
+                    if is_pg:
+                        await conn.execute(text(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {col} {col_type}"))
+                    else:
+                        await conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} {col_type}"))
             except Exception:
                 pass
-            try:
-                await conn.execute(text("ALTER TABLE partners ADD COLUMN image_url VARCHAR(500)"))
-            except Exception:
-                pass
-            try:
-                await conn.execute(text("ALTER TABLE products ADD COLUMN pdf_datasheet_url VARCHAR(500)"))
-            except Exception:
-                pass
-            try:
-                await conn.execute(text("ALTER TABLE products ADD COLUMN internal_notes TEXT"))
-            except Exception:
-                pass
-            # Columnas para Pre-venta / Solicitudes POS
-            for col_sql in [
-                "ALTER TABLE sale_orders ADD COLUMN approved_by_id VARCHAR(36)",
-                "ALTER TABLE sale_orders ADD COLUMN approved_at TIMESTAMP",
-                "ALTER TABLE sale_orders ADD COLUMN rejection_reason TEXT",
-                "ALTER TABLE sale_orders ADD COLUMN warehouse_verified BOOLEAN DEFAULT FALSE",
-            ]:
-                try:
-                    await conn.execute(text(col_sql))
-                except Exception:
-                    pass
+
         logger.info("✅ Conexión a base de datos establecida y tablas sincronizadas")
         await ensure_initial_bootstrap()
         await ensure_preventista_role()

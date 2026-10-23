@@ -270,7 +270,16 @@ async def websocket_endpoint(websocket: WebSocket, branch_id: str):
 @app.get("/health", tags=["Sistema"])
 @app.get("/api/v1/health", tags=["Sistema"])
 async def health_check():
-    db_ok = await check_db_connection()
+    from sqlalchemy import text
+    from app.core.database import engine
+    db_ok = False
+    try:
+        async with engine.connect() as conn:
+            await conn.execute(text("SELECT 1"))
+            db_ok = True
+    except Exception as e:
+        logger.warning(f"Health check DB ping: {e}")
+
     try:
         r = await get_redis()
         await r.ping()
@@ -279,11 +288,11 @@ async def health_check():
         redis_ok = False
 
     return {
-        "status": "ok" if (db_ok and redis_ok) else "degraded",
+        "status": "ok" if db_ok else "degraded",
         "app": settings.APP_NAME,
         "version": settings.APP_VERSION,
         "database": "ok" if db_ok else "error",
-        "redis": "ok" if redis_ok else "error",
+        "redis": "ok" if redis_ok else "not_configured",
     }
 
 

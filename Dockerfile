@@ -29,4 +29,4 @@ ENV PYTHONPATH=/app:/app/backend
 # DigitalOcean App Platform usa el puerto $PORT (usualmente 8080)
 EXPOSE 8080 8000
 
-CMD ["sh", "-c", "python manage.py migrate && gunicorn wsgi:application --workers 3 --threads 2 --bind 0.0.0.0:${PORT:-8080}"]
+CMD ["sh", "-c", "python manage.py migrate && gunicorn wsgi:application"]
