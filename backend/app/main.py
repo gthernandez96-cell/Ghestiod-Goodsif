@@ -87,11 +87,23 @@ app = FastAPI(
 from app.core.audit_middleware import AuditLogMiddleware
 
 @app.middleware("http")
+async def security_headers_middleware(request: Request, call_next):
+    """Cabeceras de seguridad HTTP estándar para mitigar ataques web comunes (OWASP)."""
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "SAMEORIGIN"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    if settings.ENVIRONMENT == "production":
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    return response
+
+@app.middleware("http")
 async def web_page_auth_guard(request: Request, call_next):
     """Control de acceso para páginas web: redirige a /login si no hay sesión activa."""
     path = request.url.path
 
-    # Prefijos públicos (API, estáticos, docs, PWA, health checks, tickets imprimibles)
+    # Prefijos públicos (API, estáticos, docs, PWA, health checks, tickets y cortes Z imprimibles)
     public_prefixes = (
         "/static",
         "/api",

@@ -21,6 +21,34 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = "sqlite+aiosqlite:///./pos.db"
     DATABASE_URL_SYNC: str = "sqlite:///./pos.db"
+    DB_POOL_SIZE: int = 15
+    DB_MAX_OVERFLOW: int = 20
+    DB_POOL_TIMEOUT: int = 30
+    DB_POOL_RECYCLE: int = 1800
+    DB_PGBOUNCER: bool = False
+
+    @field_validator("DATABASE_URL", mode="before")
+    @classmethod
+    def assemble_async_db_url(cls, v: Optional[str]) -> str:
+        if not v:
+            return "sqlite+aiosqlite:///./pos.db"
+        # DigitalOcean y servicios cloud frecuentemente proveen postgres:// o postgresql://
+        if v.startswith("postgres://"):
+            return v.replace("postgres://", "postgresql+asyncpg://", 1)
+        if v.startswith("postgresql://") and not v.startswith("postgresql+"):
+            return v.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return v
+
+    @field_validator("DATABASE_URL_SYNC", mode="before")
+    @classmethod
+    def assemble_sync_db_url(cls, v: Optional[str]) -> str:
+        if not v:
+            return "sqlite:///./pos.db"
+        if v.startswith("postgres://"):
+            return v.replace("postgres://", "postgresql://", 1)
+        if v.startswith("postgresql+asyncpg://"):
+            return v.replace("postgresql+asyncpg://", "postgresql://", 1)
+        return v
 
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"

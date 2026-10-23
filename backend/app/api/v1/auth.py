@@ -53,11 +53,8 @@ async def login(
     user = result.scalar_one_or_none()
 
     valid = False
-    if user:
-        if verify_password(form_data.password, user.hashed_password):
-            valid = True
-        elif user.username == "admin" and form_data.password in ("Admin2024!", "admin123", "admin"):
-            valid = True
+    if user and verify_password(form_data.password, user.hashed_password):
+        valid = True
 
     if not user or not valid:
         raise HTTPException(
@@ -71,11 +68,27 @@ async def login(
     access_token = create_access_token({"sub": str(user.id)})
     refresh_token = create_refresh_token({"sub": str(user.id)})
 
+    # Determinar si la cookie debe ser 'secure' (HTTPS en producción)
+    is_secure = (settings.ENVIRONMENT == "production") or (not settings.DEBUG)
+
+    # Cookie HTTP-Only para prevenir robo de sesión por XSS
     response.set_cookie(
         key="access_token",
         value=access_token,
         max_age=86400,
         path="/",
+        httponly=True,
+        secure=is_secure,
+        samesite="lax",
+    )
+    # Cookie no sensible para validaciones rápidas de presencia de sesión en el frontend
+    response.set_cookie(
+        key="pos_logged_in",
+        value="1",
+        max_age=86400,
+        path="/",
+        httponly=False,
+        secure=is_secure,
         samesite="lax",
     )
 

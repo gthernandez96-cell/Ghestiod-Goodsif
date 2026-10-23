@@ -1,0 +1,99 @@
+version: "3.9"
+
+services:
+  # Base de datos PostgreSQL local en contenedor (omitir si usas DigitalOcean Managed PostgreSQL)
+  db:
+    image: postgres:16-alpine
+    container_name: pos_db_prod
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-pos_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pos_pass_secure}
+      POSTGRES_DB: ${POSTGRES_DB:-pos_db}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-pos_user} -d ${POSTGRES_DB:-pos_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+
+  # Redis para colas Celery, caché y WebSockets
+  redis:
+    image: redis:7-alpine
+    container_name: pos_redis_prod
+    restart: always
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis_pass_secure}
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis_prod_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis_pass_secure}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # Servidor Backend FastAPI (Optimizado para Alta Concurrencia con 4 Workers)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: pos_backend_prod
+    restart: always
+    env_file: .env.production
+    volumes:
+      - ./frontend/static:/app/static:ro
+      - ./frontend/static/uploads:/app/static/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4 --proxy-headers --forwarded-allow-ips='*'
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+
+  # Worker de Celery para tareas pesadas asíncronas (FEL, emails, reportes)
+  celery_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: pos_celery_prod
+    restart: always
+    env_file: .env.production
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: celery -A app.workers.celery_app worker --loglevel=warning -c 4 -Q default,emails,sync
+
+  # Servidor Web Inverso Nginx con Rate Limiting y SSL
+  nginx:
+    image: nginx:alpine
+    container_name: pos_nginx_prod
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./frontend/static:/usr/share/nginx/html/static:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    depends_on:
+      - backend
+
+volumes:
+  postgres_prod_data:
+  redis_prod_data:

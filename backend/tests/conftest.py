@@ -37,7 +37,7 @@ def setup_test_db():
                 "ALTER TABLE sale_orders ADD COLUMN approved_by_id VARCHAR(36)",
                 "ALTER TABLE sale_orders ADD COLUMN approved_at TIMESTAMP",
                 "ALTER TABLE sale_orders ADD COLUMN rejection_reason TEXT",
-                "ALTER TABLE sale_orders ADD COLUMN warehouse_verified BOOLEAN DEFAULT 0",
+                "ALTER TABLE sale_orders ADD COLUMN warehouse_verified BOOLEAN DEFAULT FALSE",
                 "ALTER TABLE products ADD COLUMN wholesale_price NUMERIC(18, 4) DEFAULT 0",
                 "ALTER TABLE products ADD COLUMN wholesale_uom_id VARCHAR(36)",
                 "ALTER TABLE products ADD COLUMN wholesale_ratio NUMERIC(18, 4) DEFAULT 1.0",
