@@ -44,3 +44,18 @@ def test_auth_features():
     assert forgot_res.status_code == 200
     assert forgot_res.json()["status"] == "success"
 
+
+def test_digitalocean_database_url_sslmode_translation():
+    """Verificar que las URLs con sslmode=require de DigitalOcean se adapten a asyncpg sin fallos."""
+    from app.core.config import Settings
+    raw_do_url = "postgresql://doadmin:pass123@db-pos-do-user-123.b.db.ondigitalocean.com:25060/defaultdb?sslmode=require"
+    s = Settings(DATABASE_URL=raw_do_url, DATABASE_URL_SYNC=raw_do_url)
+    # asyncpg debe recibir ssl=require
+    assert "ssl=require" in s.DATABASE_URL
+    assert "sslmode=" not in s.DATABASE_URL
+    assert s.DATABASE_URL.startswith("postgresql+asyncpg://")
+    # sync (psycopg2) debe mantener sslmode=require
+    assert "sslmode=require" in s.DATABASE_URL_SYNC
+    assert s.DATABASE_URL_SYNC.startswith("postgresql://")
+
+

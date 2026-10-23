@@ -32,11 +32,18 @@ class Settings(BaseSettings):
     def assemble_async_db_url(cls, v: Optional[str]) -> str:
         if not v:
             return "sqlite+aiosqlite:///./pos.db"
+        import urllib.parse
         # DigitalOcean y servicios cloud frecuentemente proveen postgres:// o postgresql://
         if v.startswith("postgres://"):
-            return v.replace("postgres://", "postgresql+asyncpg://", 1)
+            v = v.replace("postgres://", "postgresql+asyncpg://", 1)
         if v.startswith("postgresql://") and not v.startswith("postgresql+"):
-            return v.replace("postgresql://", "postgresql+asyncpg://", 1)
+            v = v.replace("postgresql://", "postgresql+asyncpg://", 1)
+        # asyncpg no acepta 'sslmode', requiere 'ssl'
+        if "?" in v:
+            parsed = urllib.parse.urlsplit(v)
+            query_params = urllib.parse.parse_qsl(parsed.query, keep_blank_values=True)
+            new_query = [(('ssl', val) if k == 'sslmode' else (k, val)) for k, val in query_params]
+            v = urllib.parse.urlunsplit((parsed.scheme, parsed.netloc, parsed.path, urllib.parse.urlencode(new_query), parsed.fragment))
         return v
 
     @field_validator("DATABASE_URL_SYNC", mode="before")
@@ -44,10 +51,17 @@ class Settings(BaseSettings):
     def assemble_sync_db_url(cls, v: Optional[str]) -> str:
         if not v:
             return "sqlite:///./pos.db"
+        import urllib.parse
         if v.startswith("postgres://"):
-            return v.replace("postgres://", "postgresql://", 1)
+            v = v.replace("postgres://", "postgresql://", 1)
         if v.startswith("postgresql+asyncpg://"):
-            return v.replace("postgresql+asyncpg://", "postgresql://", 1)
+            v = v.replace("postgresql+asyncpg://", "postgresql://", 1)
+        # psycopg2 requiere 'sslmode' en lugar de 'ssl'
+        if "?" in v:
+            parsed = urllib.parse.urlsplit(v)
+            query_params = urllib.parse.parse_qsl(parsed.query, keep_blank_values=True)
+            new_query = [(('sslmode', val) if k == 'ssl' else (k, val)) for k, val in query_params]
+            v = urllib.parse.urlunsplit((parsed.scheme, parsed.netloc, parsed.path, urllib.parse.urlencode(new_query), parsed.fragment))
         return v
 
     # Redis
