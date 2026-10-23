@@ -251,10 +251,9 @@ def test_cashier_cannot_create_or_modify_customers():
 
 def test_page_auth_guard_security():
     """Verificar que las páginas privadas redirigen a /login si no hay sesión activa."""
-    # 1. Sin autenticación: la raíz '/' redirige a '/login'
+    # 1. Sin autenticación: la raíz '/' responde 200 OK mostrando el login (compatible con Health Check de DigitalOcean)
     res_root = client.get("/", follow_redirects=False)
-    assert res_root.status_code == 302
-    assert res_root.headers["location"] == "/login"
+    assert res_root.status_code == 200
 
     # 2. Sin autenticación: '/dashboard' redirige a '/login'
     res_dash = client.get("/dashboard", follow_redirects=False)

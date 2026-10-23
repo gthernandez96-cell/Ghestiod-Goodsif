@@ -152,7 +152,7 @@ async def web_page_auth_guard(request: Request, call_next):
     if path == "/":
         if is_authenticated:
             return RedirectResponse(url="/dashboard", status_code=302)
-        return RedirectResponse(url="/login", status_code=302)
+        return await call_next(request)
 
     # Cualquier otra página protegida (/dashboard, /pos, /inventory, etc.)
     if not is_authenticated:
