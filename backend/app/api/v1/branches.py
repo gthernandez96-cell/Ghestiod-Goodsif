@@ -128,6 +128,7 @@ async def get_current_company_settings(
         "ticket_footer": st.get("ticket_footer", "¡Gracias por su preferencia!"),
         "allow_negative_stock": st.get("allow_negative_stock", False),
         "require_supervisor_pin": st.get("require_supervisor_pin", True),
+        "pos_enable_wholesale": st.get("pos_enable_wholesale", True),
         # Políticas de Inventario
         "inventory_valuation_method": st.get("inventory_valuation_method", "average"),
         "low_stock_threshold": st.get("low_stock_threshold", 5),
@@ -185,7 +186,7 @@ async def update_current_company_settings(
     extra_fields = [
         "fel_provider", "fel_user", "fel_key", "fel_environment",
         "sat_establishment_code", "pos_ticket_format", "ticket_header",
-        "ticket_footer", "allow_negative_stock", "require_supervisor_pin",
+        "ticket_footer", "allow_negative_stock", "require_supervisor_pin", "pos_enable_wholesale",
         "inventory_valuation_method", "low_stock_threshold", "require_lots_expiration",
         "payment_cash", "payment_card", "payment_transfer", "payment_check", "payment_credit",
         "enable_usd_currency", "usd_exchange_rate", "auto_send_whatsapp_ticket",
