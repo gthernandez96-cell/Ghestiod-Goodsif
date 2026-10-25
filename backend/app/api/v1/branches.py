@@ -1,5 +1,5 @@
 """API v1 — Empresas, Sucursales y Bodegas."""
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, or_, text
@@ -8,7 +8,9 @@ from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 import uuid
 import os
-from datetime import datetime, timezone
+import json
+from decimal import Decimal
+from datetime import datetime, date, timezone
 
 from app.core.database import get_db
 from app.core.security import get_current_user, get_password_hash
@@ -207,20 +209,82 @@ async def update_current_company_settings(
 
 @router.get("/companies/backup/download")
 async def download_database_backup(
+    db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    """Descargar copia de seguridad íntegra de la base de datos (pos.db)."""
-    db_path = os.path.abspath("pos.db")
-    if not os.path.exists(db_path):
-        raise HTTPException(status_code=404, detail="Archivo de base de datos no encontrado")
-
+    """Descargar copia de seguridad íntegra de la base de datos (JSON estructurado o archivo SQLite)."""
     now_str = datetime.now().strftime("%Y-%m-%d_%H%M%S")
-    filename = f"backup_pos_empresarial_{now_str}.db"
+    db_path = os.path.abspath("pos.db")
+    from app.core.config import settings
 
-    return FileResponse(
-        path=db_path,
-        filename=filename,
-        media_type="application/x-sqlite3"
+    # Si es SQLite local y el archivo pos.db existe físicamente, se entrega directamente
+    if "postgresql" not in settings.DATABASE_URL and os.path.exists(db_path):
+        return FileResponse(
+            path=db_path,
+            filename=f"backup_pos_empresarial_{now_str}.db",
+            media_type="application/x-sqlite3"
+        )
+
+    # En PostgreSQL (producción / Dev DB / Managed DB), exportamos un volcado estructurado JSON completo
+    from app.models.base import BaseModel
+
+    def serialize_val(val):
+        if isinstance(val, (datetime, date)):
+            return val.isoformat()
+        if isinstance(val, Decimal):
+            return float(val)
+        if isinstance(val, uuid.UUID):
+            return str(val)
+        if isinstance(val, bytes):
+            return val.hex()
+        return val
+
+    user_company_id = getattr(current_user, "company_id", None)
+    backup_data = {
+        "metadata": {
+            "version": "1.0",
+            "system": "Ghestiod POS Empresarial",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "company_id": str(user_company_id) if user_company_id else None,
+            "user_email": getattr(current_user, "email", "admin")
+        },
+        "tables": {}
+    }
+
+    for table in BaseModel.metadata.sorted_tables:
+        try:
+            has_company_col = "company_id" in table.c
+            if has_company_col and user_company_id:
+                stmt = text(f'SELECT * FROM "{table.name}" WHERE company_id = :comp_id')
+                res = await db.execute(stmt, {"comp_id": user_company_id})
+            elif table.name == "companies" and user_company_id:
+                stmt = text(f'SELECT * FROM "{table.name}" WHERE id = :comp_id')
+                res = await db.execute(stmt, {"comp_id": user_company_id})
+            else:
+                stmt = text(f'SELECT * FROM "{table.name}"')
+                res = await db.execute(stmt)
+
+            rows = res.mappings().all()
+            if rows:
+                backup_data["tables"][table.name] = [
+                    {k: serialize_val(v) for k, v in row.items()}
+                    for row in rows
+                ]
+            else:
+                backup_data["tables"][table.name] = []
+        except Exception as e:
+            await db.rollback()
+            logger.warning(f"No se pudo respaldar tabla {table.name}: {e}")
+
+    content_str = json.dumps(backup_data, ensure_ascii=False, indent=2)
+    filename = f"respaldo_empresarial_{now_str}.json"
+
+    return Response(
+        content=content_str,
+        media_type="application/json; charset=utf-8",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"'
+        }
     )
 
 
