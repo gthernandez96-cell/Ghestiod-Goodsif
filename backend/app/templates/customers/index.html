@@ -464,16 +464,16 @@
       <i class="ph ph-x-circle" style="position:absolute; right:12px; color:#94a3b8; font-size:17px; cursor:pointer;" x-show="search.length > 0" @click="search = ''; loadPartners()"></i>
     </div>
 
-    <!-- Secondary Actions (Import / Export CSV) -->
+    <!-- Secondary Actions (Import / Export) -->
     <div class="crm-secondary-actions-row">
       <template x-if="canManagePartners">
-        <button class="btn btn-secondary crm-sec-btn" @click="showImportModal = true">
-          <i class="ph ph-file-arrow-up" style="font-size:15px; color:#0d9488;"></i> <span>Importar CSV</span>
+        <button type="button" class="btn btn-secondary crm-sec-btn" @click="showImportModal = true">
+          <i class="ph ph-file-arrow-up" style="font-size:15px; color:#0d9488;"></i> <span>Importar Contactos</span>
         </button>
       </template>
-      <a href="/api/v1/partners/export-csv" class="btn btn-secondary crm-sec-btn export" download>
-        <i class="ph ph-file-arrow-down" style="font-size:15px; color:#0d9488;"></i> <span>Exportar Excel / CSV</span>
-      </a>
+      <button type="button" class="btn btn-secondary crm-sec-btn export" @click="showExportModal = true">
+        <i class="ph ph-file-arrow-down" style="font-size:15px; color:#0d9488;"></i> <span>Exportar Excel</span>
+      </button>
     </div>
 
   </div>
@@ -1247,65 +1247,523 @@
     </div>
   </div>
 
-  <!-- ===== MODAL DE IMPORTACIÓN MASIVA CSV DE CLIENTES/PROVEEDORES ===== -->
-  <div class="modal-backdrop" x-show="showImportModal" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.6); backdrop-filter:blur(4px); z-index:1500; display:flex; align-items:center; justify-content:center; padding:16px;" x-cloak>
-    <div class="card" style="background:#ffffff; border-radius:16px; max-width:540px; width:100%; padding:24px; box-shadow:0 20px 40px rgba(0,0,0,0.2); animation:slideUp 0.2s ease-out;">
+  <!-- ===== MODAL DE PLANTILLAS E IMPORTACIÓN MASIVA DE CONTACTOS ===== -->
+  <div class="modal-backdrop" x-show="showImportModal"
+    style="position:fixed; inset:0; background:rgba(15,23,42,0.6); backdrop-filter:blur(4px); z-index:1500; align-items:center; justify-content:center; padding:16px;"
+    :style="{ display: showImportModal ? 'flex' : 'none' }" x-cloak>
+    <div class="card"
+      style="background:#ffffff; border-radius:16px; max-width:680px; width:100%; max-height:90vh; display:flex; flex-direction:column; padding:24px; box-shadow:0 20px 40px rgba(0,0,0,0.2); animation:slideUp 0.2s ease-out; overflow:hidden;">
+      
+      <!-- Header -->
       <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
         <div style="display:flex; align-items:center; gap:10px;">
           <div style="width:38px; height:38px; border-radius:10px; background:#ccfbf1; color:#0f766e; display:flex; align-items:center; justify-content:center; font-size:20px;">
             <i class="ph ph-file-arrow-up"></i>
           </div>
           <div>
-            <h3 style="font-size:17px; font-weight:800; color:#0f172a; margin:0;">Importar Clientes y Proveedores</h3>
-            <p style="font-size:12px; color:#64748b; margin:2px 0 0 0;">Carga masiva rápida de socios comerciales</p>
+            <h3 style="font-size:17px; font-weight:800; color:#0f172a; margin:0;">Plantillas e Importación de Contactos</h3>
+            <p style="font-size:12px; color:#64748b; margin:2px 0 0 0;">Carga masiva rápida de socios comerciales o diseño de plantillas personalizadas</p>
           </div>
         </div>
-        <button type="button" @click="showImportModal = false; importResult = null" style="background:none; border:none; font-size:22px; color:#94a3b8; cursor:pointer;">&times;</button>
+        <button type="button" @click="showImportModal = false; importResult = null"
+          style="background:none; border:none; font-size:24px; color:#94a3b8; cursor:pointer;">&times;</button>
       </div>
 
-      <!-- Paso 1: Descargar Plantilla -->
-      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:14px; margin-bottom:18px; display:flex; align-items:center; justify-content:space-between;">
-        <div>
-          <div style="font-size:12.5px; font-weight:800; color:#334155;">1. Descarga la plantilla oficial</div>
-          <div style="font-size:11.5px; color:#64748b;">Archivo CSV con columnas de NIT, Nombre, Crédito, etc.</div>
-        </div>
-        <a href="/api/v1/partners/template-csv" download class="btn btn-sm" style="background:#714B67; color:#ffffff; font-weight:700; border-radius:6px; padding:6px 12px; font-size:12px; text-decoration:none; display:flex; align-items:center; gap:5px;">
-          <i class="ph ph-download-simple"></i> Plantilla .csv
-        </a>
-      </div>
-
-      <!-- Paso 2: Seleccionar archivo -->
-      <div style="margin-bottom:18px;">
-        <label style="font-size:12px; font-weight:800; color:#475569; display:block; margin-bottom:6px;">2. SELECCIONA TU ARCHIVO CSV</label>
-        <input type="file" id="partnerCsvFileInput" accept=".csv, text/csv" style="width:100%; padding:10px; border:1.5px dashed #cbd5e1; border-radius:10px; background:#f8fafc; font-size:13px; cursor:pointer;" @change="selectedCsvFile = $event.target.files[0]">
-      </div>
-
-      <!-- Mensaje de resultado -->
-      <template x-if="importResult">
-        <div style="padding:12px 16px; border-radius:10px; margin-bottom:16px; font-size:13px;" :style="importResult.status === 'success' ? 'background:#ecfdf5; border:1px solid #a7f3d0; color:#065f46;' : 'background:#fef2f2; border:1px solid #fecaca; color:#991b1b;'">
-          <div style="font-weight:800; margin-bottom:4px;" x-text="importResult.status === 'success' ? '✅ Importación Exitosa' : '❌ Error al importar'"></div>
-          <div x-text="'Se procesaron ' + (importResult.total_processed || 0) + ' contactos (' + (importResult.created || 0) + ' nuevos, ' + (importResult.updated || 0) + ' actualizados)'"></div>
-          <template x-if="importResult.errors && importResult.errors.length > 0">
-            <div style="margin-top:6px; font-size:11.5px;">
-              <div style="font-weight:700;">Observaciones:</div>
-              <ul style="margin:2px 0 0 16px; padding:0;">
-                <template x-for="err in importResult.errors">
-                  <li x-text="err"></li>
-                </template>
-              </ul>
-            </div>
-          </template>
-        </div>
-      </template>
-
-      <!-- Botones footer -->
-      <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
-        <button type="button" class="btn btn-secondary" style="border:1px solid #cbd5e1; background:#ffffff; font-weight:700; border-radius:8px; padding:8px 16px; cursor:pointer;" @click="showImportModal = false; importResult = null">Cancelar</button>
-        <button type="button" class="btn btn-primary" style="background:#0f766e; color:#ffffff; font-weight:800; border-radius:8px; padding:8px 20px; border:none; cursor:pointer; display:flex; align-items:center; gap:6px;" :disabled="!selectedCsvFile || isUploadingCsv" @click="uploadPartnersCsv()">
-          <span x-show="!isUploadingCsv">Subir e Importar</span>
-          <span x-show="isUploadingCsv">Procesando...</span>
+      <!-- Selector de Pestañas (Formato View-Switcher Oficial de la App) -->
+      <div class="view-switcher-group" style="margin-bottom:18px; width:100%;">
+        <button type="button" class="view-switcher-btn" :class="importModalTab === 'builder' ? 'active' : ''" @click="importModalTab = 'builder'"
+          style="flex:1; padding:11px 18px; font-weight:800; font-size:13px; gap:8px;">
+          <i class="ph-bold ph-sliders-horizontal" style="font-size:16px;"></i>
+          <span>Diseñar Mi Propia Plantilla</span>
+        </button>
+        <button type="button" class="view-switcher-btn" :class="importModalTab === 'import' ? 'active' : ''" @click="importModalTab = 'import'"
+          style="flex:1; padding:11px 18px; font-weight:800; font-size:13px; gap:8px; border-left:1px solid #cbd5e1;">
+          <i class="ph-bold ph-cloud-arrow-up" style="font-size:16px;"></i>
+          <span>Subir e Importar Archivo</span>
         </button>
       </div>
+
+      <!-- Contenedor scrollable -->
+      <div style="overflow-y:auto; flex:1; padding-right:4px;">
+        
+        <!-- ================= PESTAÑA: DISEÑAR MI PLANTILLA ================= -->
+        <div x-show="importModalTab === 'builder'">
+          <div style="font-size:13px; color:#475569; margin-bottom:14px; line-height:1.5;">
+            Selecciona las columnas que necesitas para tu formato. El sistema creará un archivo <strong>Microsoft Excel (.xlsx)</strong> listo para usar con estilos Odoo y filas de muestra:
+          </div>
+
+          <!-- Plantillas Rápidas (Filter Pills Oficiales de la App) -->
+          <div style="margin-bottom:18px;">
+            <div style="font-size:11.5px; font-weight:800; color:#64748b; text-transform:uppercase; margin-bottom:8px; letter-spacing:0.5px;">
+              ⚡ Plantillas Rápidas (1 Clic):
+            </div>
+            <div style="display:flex; flex-wrap:wrap; gap:8px;">
+              <button type="button" class="filter-pill" :class="templatePreset === 'basic' ? 'active' : ''" @click="applyTemplatePreset('basic')">
+                <span>⚡ Básica (5 col)</span>
+              </button>
+              <button type="button" class="filter-pill" :class="templatePreset === 'fiscal' ? 'active' : ''" @click="applyTemplatePreset('fiscal')">
+                <span>🧾 Fiscal y FEL (7 col)</span>
+              </button>
+              <button type="button" class="filter-pill" :class="templatePreset === 'sales' ? 'active' : ''" @click="applyTemplatePreset('sales')">
+                <span>📱 Contacto y Ventas (7 col)</span>
+              </button>
+              <button type="button" class="filter-pill" :class="templatePreset === 'credit' ? 'active' : ''" @click="applyTemplatePreset('credit')">
+                <span>💳 Crédito y Cobranza (7 col)</span>
+              </button>
+              <button type="button" class="filter-pill" :class="templatePreset === 'banking' ? 'active' : ''" @click="applyTemplatePreset('banking')">
+                <span>🏦 Proveedores y Bancario (7 col)</span>
+              </button>
+              <button type="button" class="filter-pill" :class="templatePreset === 'full' ? 'active' : ''" @click="applyTemplatePreset('full')">
+                <span>👥 Completa (19 col)</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Selector de Columnas Agrupadas -->
+          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:16px; margin-bottom:18px;">
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:16px;">
+              
+              <!-- Grupo 1: Identificación y Fiscal -->
+              <div>
+                <div style="font-size:11.5px; font-weight:800; color:#1e293b; text-transform:uppercase; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+                  <i class="ph ph-identification-card" style="color:#0f766e;"></i> Identificación y Fiscal
+                </div>
+                <div style="display:flex; flex-direction:column; gap:6px; font-size:12.5px; color:#334155;">
+                  <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                    <input type="checkbox" x-model="templateCols.nombre" style="accent-color:#107c41; cursor:pointer;">
+                    <span><strong>Nombre / Razón Social</strong> (Obligatorio)</span>
+                  </label>
+                  <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                    <input type="checkbox" x-model="templateCols.nit" style="accent-color:#107c41; cursor:pointer;">
+                    <span><strong>NIT</strong> (o CF)</span>
+                  </label>
+                  <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                    <input type="checkbox" x-model="templateCols.cui" style="accent-color:#107c41; cursor:pointer;">
+                    <span>DPI / CUI (13 dígitos)</span>
+                  </label>
+                  <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                    <input type="checkbox" x-model="templateCols.tipo" style="accent-color:#107c41; cursor:pointer;">
+                    <span><strong>Tipo de Contacto</strong> (Cliente/Proveedor)</span>
+                  </label>
+                  <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                    <input type="checkbox" x-model="templateCols.razon_comercial" style="accent-color:#107c41; cursor:pointer;">
+                    <span>Nombre Comercial</span>
+                  </label>
+                  <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                    <input type="checkbox" x-model="templateCols.es_empresa" style="accent-color:#107c41; cursor:pointer;">
+                    <span>Es Empresa (S.A. / Sociedad)</span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Grupo 2: Contacto y Ubicación -->
+              <div>
+                <div style="font-size:11.5px; font-weight:800; color:#1e293b; text-transform:uppercase; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+                  <i class="ph ph-map-pin" style="color:#2563eb;"></i> Contacto y Ubicación
+                </div>
+                <div style="display:flex; flex-direction:column; gap:6px; font-size:12.5px; color:#334155;">
+                  <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                    <input type="checkbox" x-model="templateCols.telefono" style="accent-color:#107c41; cursor:pointer;">
+                    <span>Teléfono Fijo / PBX</span>
+                  </label>
+                  <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                    <input type="checkbox" x-model="templateCols.celular" style="accent-color:#107c41; cursor:pointer;">
+                    <span>Celular / WhatsApp</span>
+                  </label>
+                  <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                    <input type="checkbox" x-model="templateCols.email" style="accent-color:#107c41; cursor:pointer;">
+                    <span>Correo Electrónico (Facturación)</span>
+                  </label>
+                  <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                    <input type="checkbox" x-model="templateCols.direccion" style="accent-color:#107c41; cursor:pointer;">
+                    <span>Dirección Completa</span>
+                  </label>
+                  <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                    <input type="checkbox" x-model="templateCols.ciudad" style="accent-color:#107c41; cursor:pointer;">
+                    <span>Ciudad / Municipio</span>
+                  </label>
+                  <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                    <input type="checkbox" x-model="templateCols.departamento_pais" style="accent-color:#107c41; cursor:pointer;">
+                    <span>País</span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Grupo 3: Condiciones de Crédito -->
+              <div>
+                <div style="font-size:11.5px; font-weight:800; color:#1e293b; text-transform:uppercase; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+                  <i class="ph ph-credit-card" style="color:#d97706;"></i> Condiciones de Crédito
+                </div>
+                <div style="display:flex; flex-direction:column; gap:6px; font-size:12.5px; color:#334155;">
+                  <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                    <input type="checkbox" x-model="templateCols.limite_credito" style="accent-color:#107c41; cursor:pointer;">
+                    <span>Límite de Crédito Autorizado (Q)</span>
+                  </label>
+                  <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                    <input type="checkbox" x-model="templateCols.dias_credito" style="accent-color:#107c41; cursor:pointer;">
+                    <span>Días de Crédito (Plazo)</span>
+                  </label>
+                  <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                    <input type="checkbox" x-model="templateCols.estado_credito" style="accent-color:#107c41; cursor:pointer;">
+                    <span>Estado Crédito (Activo/Bloqueado)</span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Grupo 4: Bancario, Foto y Notas -->
+              <div>
+                <div style="font-size:11.5px; font-weight:800; color:#1e293b; text-transform:uppercase; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+                  <i class="ph ph-bank" style="color:#714B67;"></i> Bancario, Foto y Notas
+                </div>
+                <div style="display:flex; flex-direction:column; gap:6px; font-size:12.5px; color:#334155;">
+                  <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                    <input type="checkbox" x-model="templateCols.banco" style="accent-color:#107c41; cursor:pointer;">
+                    <span>Nombre del Banco</span>
+                  </label>
+                  <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                    <input type="checkbox" x-model="templateCols.cuenta_bancaria" style="accent-color:#107c41; cursor:pointer;">
+                    <span>No. Cuenta Bancaria</span>
+                  </label>
+                  <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                    <input type="checkbox" x-model="templateCols.imagen_url" style="accent-color:#107c41; cursor:pointer;">
+                    <span><strong>Foto / Logo URL</strong> (Drive / Web)</span>
+                  </label>
+                  <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                    <input type="checkbox" x-model="templateCols.notas" style="accent-color:#107c41; cursor:pointer;">
+                    <span>Notas / Observaciones</span>
+                  </label>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Botón de Generación y Descarga (Excel Verde Oficial) -->
+          <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:12px; padding:16px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+            <div>
+              <div style="font-size:13.5px; font-weight:800; color:#14532d;">
+                Plantilla lista: <span x-text="getSelectedColsCount()"></span> columnas seleccionadas
+              </div>
+              <div style="font-size:11.5px; color:#166534; margin-top:2px;">
+                Genera tu archivo .xlsx nativo al instante con exactamente los campos elegidos.
+              </div>
+            </div>
+            <button type="button" @click="downloadCustomTemplate()" class="btn btn-sm"
+              style="background:#107c41; color:#ffffff; font-weight:800; border-radius:6px; padding:10px 18px; font-size:13px; text-decoration:none; display:flex; align-items:center; gap:8px; box-shadow:0 1px 3px rgba(16,124,65,0.25); border:none; cursor:pointer;">
+              <i class="ph-bold ph-file-xls" style="font-size:18px;"></i>
+              <span>Descargar Mi Plantilla (.xlsx)</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- ================= PESTAÑA: SUBIR E IMPORTAR ================= -->
+        <div x-show="importModalTab === 'import'">
+          
+          <!-- Paso 1: Descargar Plantilla Oficial -->
+          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:14px; margin-bottom:18px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+            <div>
+              <div style="font-size:12.5px; font-weight:800; color:#334155;">Plantilla oficial estándar</div>
+              <div style="font-size:11.5px; color:#64748b;">Descarga el formato general predeterminado en Excel o CSV</div>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <a href="/api/v1/partners/template-excel" download class="btn btn-sm"
+                style="background:#107c41; color:#ffffff; font-weight:700; border-radius:6px; padding:7px 12px; font-size:12px; text-decoration:none; display:flex; align-items:center; gap:5px;">
+                <i class="ph-bold ph-file-xls"></i> Plantilla .xlsx
+              </a>
+              <a href="/api/v1/partners/template-csv" download class="btn btn-sm"
+                style="background:#64748b; color:#ffffff; font-weight:700; border-radius:6px; padding:7px 12px; font-size:12px; text-decoration:none; display:flex; align-items:center; gap:5px;">
+                <i class="ph ph-download-simple"></i> .csv
+              </a>
+            </div>
+          </div>
+
+          <!-- Paso 2: Seleccionar archivo -->
+          <div style="margin-bottom:18px;">
+            <label style="font-size:12px; font-weight:800; color:#475569; display:block; margin-bottom:6px;">
+              SELECCIONA TU ARCHIVO (EXCEL O CSV)
+            </label>
+            <input type="file" id="partnerFileInput" accept=".xlsx, .xls, .csv, text/csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+              style="width:100%; padding:12px; border:1.5px dashed #cbd5e1; border-radius:10px; background:#f8fafc; font-size:13px; cursor:pointer;"
+              @change="selectedCsvFile = $event.target.files[0]">
+            <p style="font-size:11.5px; color:#64748b; margin:6px 0 0 0;">
+              Formatos aceptados: <strong>.xlsx</strong> (Microsoft Excel) y <strong>.csv</strong>. Si el NIT ya existe, se actualizará su información automáticamente.
+            </p>
+          </div>
+
+          <!-- Mensaje de resultado -->
+          <template x-if="importResult">
+            <div style="padding:14px 16px; border-radius:10px; margin-bottom:16px; font-size:13px;"
+              :style="importResult.status === 'success' ? 'background:#ecfdf5; border:1px solid #a7f3d0; color:#065f46;' : 'background:#fef2f2; border:1px solid #fecaca; color:#991b1b;'">
+              <div style="font-weight:800; margin-bottom:4px;"
+                x-text="importResult.status === 'success' ? '✅ Importación Exitosa' : '❌ Error al importar'"></div>
+              <div x-text="'Se procesaron ' + (importResult.total_processed || 0) + ' contactos (' + (importResult.created || 0) + ' nuevos, ' + (importResult.updated || 0) + ' actualizados)'"></div>
+              <template x-if="importResult.errors && importResult.errors.length > 0">
+                <div style="margin-top:8px; font-size:11.5px;">
+                  <div style="font-weight:700;">Detalles:</div>
+                  <ul style="margin:4px 0 0 16px; padding:0; max-height:120px; overflow-y:auto;">
+                    <template x-for="err in importResult.errors">
+                      <li x-text="err"></li>
+                    </template>
+                  </ul>
+                </div>
+              </template>
+            </div>
+          </template>
+
+        </div>
+
+      </div>
+
+      <!-- Footer Botones (Formato Oficial de la App) -->
+      <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:16px; padding-top:16px; border-top:1px solid #f1f5f9;">
+        <button type="button" class="btn btn-secondary"
+          style="border:1px solid #cbd5e1; background:#ffffff; color:#475569; font-weight:700; border-radius:8px; padding:8px 18px; cursor:pointer;"
+          @click="showImportModal = false; importResult = null">Cerrar</button>
+        <template x-if="importModalTab === 'import'">
+          <button type="button" class="btn btn-primary"
+            style="background:#0f766e; color:#ffffff; font-weight:800; border-radius:8px; padding:8px 22px; border:none; cursor:pointer; display:flex; align-items:center; gap:8px;"
+            :disabled="!selectedCsvFile || isUploadingCsv" @click="uploadPartnersCsv()">
+            <i class="ph-bold ph-upload-simple" x-show="!isUploadingCsv"></i>
+            <span x-show="!isUploadingCsv">Subir e Importar</span>
+            <span x-show="isUploadingCsv">Procesando archivo...</span>
+          </button>
+        </template>
+        <template x-if="importModalTab === 'builder'">
+          <button type="button" class="btn" @click="downloadCustomTemplate()"
+            style="background:#107c41; color:#ffffff; font-weight:800; border-radius:8px; padding:8px 22px; border:none; cursor:pointer; display:flex; align-items:center; gap:8px;">
+            <i class="ph-bold ph-file-xls"></i>
+            <span>Descargar Plantilla (.xlsx)</span>
+          </button>
+        </template>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== MODAL DE EXPORTACIÓN PERSONALIZADA EXCEL DE CONTACTOS ===== -->
+  <div class="modal-backdrop" x-show="showExportModal"
+    style="position:fixed; inset:0; background:rgba(15,23,42,0.6); backdrop-filter:blur(4px); z-index:1500; align-items:center; justify-content:center; padding:16px;"
+    :style="{ display: showExportModal ? 'flex' : 'none' }" x-cloak>
+    <div class="card"
+      style="background:#ffffff; border-radius:16px; max-width:680px; width:100%; max-height:90vh; display:flex; flex-direction:column; padding:24px; box-shadow:0 20px 40px rgba(0,0,0,0.2); animation:slideUp 0.2s ease-out; overflow:hidden;">
+      
+      <!-- Header -->
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div style="width:38px; height:38px; border-radius:10px; background:#dcfce7; color:#15803d; display:flex; align-items:center; justify-content:center; font-size:20px;">
+            <i class="ph-bold ph-file-xls"></i>
+          </div>
+          <div>
+            <h3 style="font-size:17px; font-weight:800; color:#0f172a; margin:0;">Exportar Directorio a Excel</h3>
+            <p style="font-size:12px; color:#64748b; margin:2px 0 0 0;">Genera tu archivo .xlsx personalizado con las columnas y filtros que necesites</p>
+          </div>
+        </div>
+        <button type="button" @click="showExportModal = false"
+          style="background:none; border:none; font-size:24px; color:#94a3b8; cursor:pointer;">&times;</button>
+      </div>
+
+      <!-- Contenedor scrollable -->
+      <div style="overflow-y:auto; flex:1; padding-right:4px;">
+        
+        <!-- Filtro de tipo de contacto -->
+        <div style="margin-bottom:14px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px 14px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+          <div style="font-size:12px; font-weight:800; color:#334155;">CONTACTOS A INCLUIR:</div>
+          <div style="display:flex; gap:6px; flex-wrap:wrap;">
+            <button type="button" class="filter-pill" :class="exportFilterType === 'all' ? 'active' : ''" @click="exportFilterType = 'all'">
+              <span>Todos</span>
+            </button>
+            <button type="button" class="filter-pill" :class="exportFilterType === 'customers' ? 'active' : ''" @click="exportFilterType = 'customers'">
+              <span>👤 Solo Clientes</span>
+            </button>
+            <button type="button" class="filter-pill" :class="exportFilterType === 'suppliers' ? 'active' : ''" @click="exportFilterType = 'suppliers'">
+              <span>🏭 Solo Proveedores</span>
+            </button>
+            <button type="button" class="filter-pill" :class="exportFilterType === 'with_debt' ? 'active' : ''" @click="exportFilterType = 'with_debt'">
+              <span>⚠️ Con Deuda</span>
+            </button>
+            <button type="button" class="filter-pill" :class="exportFilterType === 'credit_active' ? 'active' : ''" @click="exportFilterType = 'credit_active'">
+              <span>💳 Con Crédito</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Plantillas Rápidas (Filter Pills Oficiales de la App) -->
+        <div style="margin-bottom:18px;">
+          <div style="font-size:11.5px; font-weight:800; color:#64748b; text-transform:uppercase; margin-bottom:8px; letter-spacing:0.5px;">
+            ⚡ Plantillas Rápidas de Exportación (1 Clic):
+          </div>
+          <div style="display:flex; flex-wrap:wrap; gap:8px;">
+            <button type="button" class="filter-pill" :class="exportPreset === 'basic' ? 'active' : ''" @click="applyExportPreset('basic')">
+              <span>⚡ Básica (6 col)</span>
+            </button>
+            <button type="button" class="filter-pill" :class="exportPreset === 'fiscal' ? 'active' : ''" @click="applyExportPreset('fiscal')">
+              <span>🧾 Fiscal y FEL (7 col)</span>
+            </button>
+            <button type="button" class="filter-pill" :class="exportPreset === 'sales' ? 'active' : ''" @click="applyExportPreset('sales')">
+              <span>📱 Contacto y Ventas (7 col)</span>
+            </button>
+            <button type="button" class="filter-pill" :class="exportPreset === 'credit' ? 'active' : ''" @click="applyExportPreset('credit')">
+              <span>💳 Crédito y Saldos (7 col)</span>
+            </button>
+            <button type="button" class="filter-pill" :class="exportPreset === 'banking' ? 'active' : ''" @click="applyExportPreset('banking')">
+              <span>🏦 Proveedores y Bancario (7 col)</span>
+            </button>
+            <button type="button" class="filter-pill" :class="exportPreset === 'full' ? 'active' : ''" @click="applyExportPreset('full')">
+              <span>📋 Completa (22 col)</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Selector de Columnas Agrupadas -->
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:16px; margin-bottom:18px;">
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:16px;">
+            
+            <!-- Grupo 1: Identificación y Fiscal -->
+            <div>
+              <div style="font-size:11.5px; font-weight:800; color:#1e293b; text-transform:uppercase; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+                <i class="ph ph-identification-card" style="color:#0f766e;"></i> Identificación y Fiscal
+              </div>
+              <div style="display:flex; flex-direction:column; gap:6px; font-size:12.5px; color:#334155;">
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                  <input type="checkbox" x-model="exportCols.nombre" style="accent-color:#107c41; cursor:pointer;">
+                  <span><strong>Nombre / Razón Social</strong></span>
+                </label>
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                  <input type="checkbox" x-model="exportCols.nit" style="accent-color:#107c41; cursor:pointer;">
+                  <span><strong>NIT</strong></span>
+                </label>
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                  <input type="checkbox" x-model="exportCols.cui" style="accent-color:#107c41; cursor:pointer;">
+                  <span>DPI / CUI</span>
+                </label>
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                  <input type="checkbox" x-model="exportCols.tipo" style="accent-color:#107c41; cursor:pointer;">
+                  <span>Tipo de Contacto</span>
+                </label>
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                  <input type="checkbox" x-model="exportCols.razon_comercial" style="accent-color:#107c41; cursor:pointer;">
+                  <span>Nombre Comercial</span>
+                </label>
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                  <input type="checkbox" x-model="exportCols.es_empresa" style="accent-color:#107c41; cursor:pointer;">
+                  <span>Es Empresa (S.A. / Sociedad)</span>
+                </label>
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                  <input type="checkbox" x-model="exportCols.estado" style="accent-color:#107c41; cursor:pointer;">
+                  <span>Estado (Activo / Inactivo)</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Grupo 2: Contacto y Ubicación -->
+            <div>
+              <div style="font-size:11.5px; font-weight:800; color:#1e293b; text-transform:uppercase; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+                <i class="ph ph-map-pin" style="color:#2563eb;"></i> Contacto y Ubicación
+              </div>
+              <div style="display:flex; flex-direction:column; gap:6px; font-size:12.5px; color:#334155;">
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                  <input type="checkbox" x-model="exportCols.telefono" style="accent-color:#107c41; cursor:pointer;">
+                  <span>Teléfono Fijo / PBX</span>
+                </label>
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                  <input type="checkbox" x-model="exportCols.celular" style="accent-color:#107c41; cursor:pointer;">
+                  <span>Celular / WhatsApp</span>
+                </label>
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                  <input type="checkbox" x-model="exportCols.email" style="accent-color:#107c41; cursor:pointer;">
+                  <span>Correo Electrónico</span>
+                </label>
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                  <input type="checkbox" x-model="exportCols.direccion" style="accent-color:#107c41; cursor:pointer;">
+                  <span>Dirección Completa</span>
+                </label>
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                  <input type="checkbox" x-model="exportCols.ciudad" style="accent-color:#107c41; cursor:pointer;">
+                  <span>Ciudad / Municipio</span>
+                </label>
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                  <input type="checkbox" x-model="exportCols.departamento_pais" style="accent-color:#107c41; cursor:pointer;">
+                  <span>País</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Grupo 3: Crédito y Saldos -->
+            <div>
+              <div style="font-size:11.5px; font-weight:800; color:#1e293b; text-transform:uppercase; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+                <i class="ph ph-credit-card" style="color:#d97706;"></i> Crédito y Saldos
+              </div>
+              <div style="display:flex; flex-direction:column; gap:6px; font-size:12.5px; color:#334155;">
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                  <input type="checkbox" x-model="exportCols.limite_credito" style="accent-color:#107c41; cursor:pointer;">
+                  <span>Límite de Crédito (Q)</span>
+                </label>
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                  <input type="checkbox" x-model="exportCols.saldo_pendiente" style="accent-color:#107c41; cursor:pointer;">
+                  <span><strong>Saldo Pendiente / Deuda (Q)</strong></span>
+                </label>
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                  <input type="checkbox" x-model="exportCols.credito_disponible" style="accent-color:#107c41; cursor:pointer;">
+                  <span>Crédito Disponible (Q)</span>
+                </label>
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                  <input type="checkbox" x-model="exportCols.dias_credito" style="accent-color:#107c41; cursor:pointer;">
+                  <span>Días de Crédito</span>
+                </label>
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                  <input type="checkbox" x-model="exportCols.estado_credito" style="accent-color:#107c41; cursor:pointer;">
+                  <span>Estado de Crédito</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Grupo 4: Bancario, Foto y Notas -->
+            <div>
+              <div style="font-size:11.5px; font-weight:800; color:#1e293b; text-transform:uppercase; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+                <i class="ph ph-bank" style="color:#714B67;"></i> Bancario, Foto y Notas
+              </div>
+              <div style="display:flex; flex-direction:column; gap:6px; font-size:12.5px; color:#334155;">
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                  <input type="checkbox" x-model="exportCols.banco" style="accent-color:#107c41; cursor:pointer;">
+                  <span>Banco</span>
+                </label>
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                  <input type="checkbox" x-model="exportCols.cuenta_bancaria" style="accent-color:#107c41; cursor:pointer;">
+                  <span>No. Cuenta Bancaria</span>
+                </label>
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                  <input type="checkbox" x-model="exportCols.imagen_url" style="accent-color:#107c41; cursor:pointer;">
+                  <span>Foto / Logo URL</span>
+                </label>
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                  <input type="checkbox" x-model="exportCols.notas" style="accent-color:#107c41; cursor:pointer;">
+                  <span>Notas / Observaciones</span>
+                </label>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Footer Botones (Formato Oficial de la App) -->
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-top:16px; padding-top:16px; border-top:1px solid #f1f5f9;">
+        <div style="font-size:13px; color:#64748b;">
+          Columnas seleccionadas: <strong style="color:#0f766e;" x-text="getSelectedExportColsCount()"></strong>
+        </div>
+        <div style="display:flex; gap:10px;">
+          <button type="button" class="btn btn-secondary"
+            style="border:1px solid #cbd5e1; background:#ffffff; color:#475569; font-weight:700; border-radius:8px; padding:8px 18px; cursor:pointer;"
+            @click="showExportModal = false">Cancelar</button>
+          <button type="button" class="btn" @click="downloadCustomExport()"
+            style="background:#107c41; color:#ffffff; font-weight:800; border-radius:8px; padding:8px 22px; border:none; cursor:pointer; display:flex; align-items:center; gap:8px; box-shadow:0 1px 3px rgba(16,124,65,0.25);">
+            <i class="ph-bold ph-file-xls" style="font-size:18px;"></i>
+            <span>Exportar Mi Directorio (.xlsx)</span>
+          </button>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -1325,9 +1783,59 @@
       showDetailModal: false,
       showPayModal: false,
       showImportModal: false,
+      importModalTab: 'builder',
       selectedCsvFile: null,
       isUploadingCsv: false,
       importResult: null,
+      templatePreset: 'basic',
+      templateCols: {
+        nombre: true,
+        nit: true,
+        cui: false,
+        tipo: true,
+        razon_comercial: false,
+        es_empresa: false,
+        telefono: true,
+        celular: false,
+        email: false,
+        direccion: true,
+        ciudad: false,
+        departamento_pais: false,
+        limite_credito: false,
+        dias_credito: false,
+        estado_credito: false,
+        banco: false,
+        cuenta_bancaria: false,
+        imagen_url: false,
+        notas: false,
+      },
+      showExportModal: false,
+      exportFilterType: 'all',
+      exportPreset: 'basic',
+      exportCols: {
+        nombre: true,
+        nit: true,
+        cui: false,
+        tipo: true,
+        razon_comercial: false,
+        es_empresa: false,
+        telefono: true,
+        celular: false,
+        email: false,
+        direccion: true,
+        ciudad: false,
+        departamento_pais: false,
+        limite_credito: false,
+        saldo_pendiente: true,
+        credito_disponible: false,
+        dias_credito: false,
+        estado_credito: false,
+        banco: false,
+        cuenta_bancaria: false,
+        imagen_url: false,
+        notas: false,
+        estado: false,
+      },
       selectedPartner: null,
       partnerSales: [],
       salesFilter: 'all',
@@ -1608,6 +2116,84 @@
         } finally {
           this.isUploadingCsv = false;
         }
+      },
+
+      applyTemplatePreset(preset) {
+        this.templatePreset = preset;
+        if (preset === 'basic') {
+          Object.keys(this.templateCols).forEach(k => this.templateCols[k] = false);
+          ['nombre', 'nit', 'tipo', 'telefono', 'direccion'].forEach(k => this.templateCols[k] = true);
+        } else if (preset === 'fiscal') {
+          Object.keys(this.templateCols).forEach(k => this.templateCols[k] = false);
+          ['nombre', 'nit', 'cui', 'razon_comercial', 'es_empresa', 'direccion', 'email'].forEach(k => this.templateCols[k] = true);
+        } else if (preset === 'sales') {
+          Object.keys(this.templateCols).forEach(k => this.templateCols[k] = false);
+          ['nombre', 'nit', 'telefono', 'celular', 'email', 'direccion', 'ciudad'].forEach(k => this.templateCols[k] = true);
+        } else if (preset === 'credit') {
+          Object.keys(this.templateCols).forEach(k => this.templateCols[k] = false);
+          ['nombre', 'nit', 'limite_credito', 'dias_credito', 'estado_credito', 'telefono', 'email'].forEach(k => this.templateCols[k] = true);
+        } else if (preset === 'banking') {
+          Object.keys(this.templateCols).forEach(k => this.templateCols[k] = false);
+          ['nombre', 'nit', 'tipo', 'telefono', 'banco', 'cuenta_bancaria', 'email'].forEach(k => this.templateCols[k] = true);
+        } else if (preset === 'full') {
+          Object.keys(this.templateCols).forEach(k => this.templateCols[k] = true);
+        }
+      },
+
+      downloadCustomTemplate() {
+        const selected = Object.keys(this.templateCols).filter(k => this.templateCols[k]);
+        if (selected.length === 0) {
+          alert('Por favor selecciona al menos una columna para tu plantilla.');
+          return;
+        }
+        window.location.href = '/api/v1/partners/custom-template-excel?cols=' + encodeURIComponent(selected.join(','));
+      },
+
+      getSelectedColsCount() {
+        return Object.values(this.templateCols).filter(Boolean).length;
+      },
+
+      applyExportPreset(preset) {
+        this.exportPreset = preset;
+        if (preset === 'basic') {
+          Object.keys(this.exportCols).forEach(k => this.exportCols[k] = false);
+          ['nombre', 'nit', 'tipo', 'telefono', 'direccion', 'saldo_pendiente'].forEach(k => this.exportCols[k] = true);
+        } else if (preset === 'fiscal') {
+          Object.keys(this.exportCols).forEach(k => this.exportCols[k] = false);
+          ['nombre', 'nit', 'cui', 'razon_comercial', 'es_empresa', 'direccion', 'email'].forEach(k => this.exportCols[k] = true);
+        } else if (preset === 'sales') {
+          Object.keys(this.exportCols).forEach(k => this.exportCols[k] = false);
+          ['nombre', 'nit', 'telefono', 'celular', 'email', 'direccion', 'ciudad'].forEach(k => this.exportCols[k] = true);
+        } else if (preset === 'credit') {
+          Object.keys(this.exportCols).forEach(k => this.exportCols[k] = false);
+          ['nombre', 'nit', 'limite_credito', 'saldo_pendiente', 'credito_disponible', 'dias_credito', 'estado_credito'].forEach(k => this.exportCols[k] = true);
+        } else if (preset === 'banking') {
+          Object.keys(this.exportCols).forEach(k => this.exportCols[k] = false);
+          ['nombre', 'nit', 'tipo', 'telefono', 'banco', 'cuenta_bancaria', 'saldo_pendiente'].forEach(k => this.exportCols[k] = true);
+        } else if (preset === 'full') {
+          Object.keys(this.exportCols).forEach(k => this.exportCols[k] = true);
+        }
+      },
+
+      downloadCustomExport() {
+        const selected = Object.keys(this.exportCols).filter(k => this.exportCols[k]);
+        if (selected.length === 0) {
+          alert('Por favor selecciona al menos una columna para exportar.');
+          return;
+        }
+        let url = '/api/v1/partners/export-excel?cols=' + encodeURIComponent(selected.join(','));
+        if (this.exportFilterType && this.exportFilterType !== 'all') {
+          url += '&filter_type=' + encodeURIComponent(this.exportFilterType);
+        }
+        if (this.search) {
+          url += '&search=' + encodeURIComponent(this.search);
+        }
+        window.location.href = url;
+        this.showExportModal = false;
+      },
+
+      getSelectedExportColsCount() {
+        return Object.values(this.exportCols).filter(Boolean).length;
       },
 
       async savePartner() {

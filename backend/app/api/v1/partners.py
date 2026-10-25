@@ -358,10 +358,262 @@ async def get_partners_kpis(
     }
 
 
-# ===== IMPORTACIÓN / EXPORTACIÓN CSV DE CLIENTES / PROVEEDORES =====
+# ===== IMPORTACIÓN / EXPORTACIÓN EXCEL Y CSV DE CLIENTES / PROVEEDORES =====
+
+def normalize_partner_media_url(url: str) -> str:
+    """Convierte URLs de Google Drive o Dropbox en enlaces directos accesibles para fotos/logos."""
+    import re
+    if not url:
+        return ""
+    u = str(url).strip()
+    if not u:
+        return ""
+    if "drive.google.com" in u:
+        m = re.search(r"/d/([a-zA-Z0-9_-]+)", u) or re.search(r"[?&]id=([a-zA-Z0-9_-]+)", u)
+        if m:
+            fid = m.group(1)
+            return f"https://drive.google.com/thumbnail?id={fid}&sz=w1000"
+    if "dropbox.com" in u:
+        if "?dl=0" in u:
+            return u.replace("?dl=0", "?raw=1")
+        elif "&dl=0" in u:
+            return u.replace("&dl=0", "&raw=1")
+    return u
+
+
+PARTNER_TEMPLATE_DEFINITIONS = {
+    "nombre": {
+        "header": "NOMBRE / RAZON SOCIAL",
+        "sample": "Distribuidora Los Altos, S.A.",
+        "sample2": "Juan Carlos Pérez Gómez",
+        "description": "Nombre completo o razón social del cliente/proveedor (Obligatorio)."
+    },
+    "nit": {
+        "header": "NIT",
+        "sample": "1234567-8",
+        "sample2": "CF",
+        "description": "NIT guatemalteco o CF (Consumidor Final)."
+    },
+    "cui": {
+        "header": "DPI / CUI",
+        "sample": "2500123450101",
+        "sample2": "1980123450101",
+        "description": "Código Único de Identificación (DPI de 13 dígitos)."
+    },
+    "tipo": {
+        "header": "TIPO DE CONTACTO",
+        "sample": "Cliente",
+        "sample2": "Proveedor",
+        "description": "Cliente, Proveedor, o Ambos."
+    },
+    "razon_comercial": {
+        "header": "NOMBRE COMERCIAL",
+        "sample": "Los Altos Auto Partes",
+        "sample2": "Taller El Amigo",
+        "description": "Nombre de fantasía o comercial."
+    },
+    "es_empresa": {
+        "header": "ES EMPRESA (SI/NO)",
+        "sample": "SI",
+        "sample2": "NO",
+        "description": "SI si es personería jurídica (S.A., Ltda.), NO si es persona individual."
+    },
+    "telefono": {
+        "header": "TELEFONO FIJO",
+        "sample": "23456789",
+        "sample2": "77661122",
+        "description": "Número telefónico PBX o fijo."
+    },
+    "celular": {
+        "header": "CELULAR / WHATSAPP",
+        "sample": "55551234",
+        "sample2": "44332211",
+        "description": "Teléfono móvil o de contacto comercial."
+    },
+    "email": {
+        "header": "CORREO ELECTRONICO",
+        "sample": "ventas@losaltos.com",
+        "sample2": "juan.perez@gmail.com",
+        "description": "Correo para envío de facturas FEL y cotizaciones."
+    },
+    "direccion": {
+        "header": "DIRECCION COMPLETA",
+        "sample": "Zona 10, Ciudad de Guatemala",
+        "sample2": "3ra Avenida 4-50 Zona 1",
+        "description": "Dirección física o fiscal."
+    },
+    "ciudad": {
+        "header": "CIUDAD / MUNICIPIO",
+        "sample": "Guatemala",
+        "sample2": "Quetzaltenango",
+        "description": "Municipio o ciudad de residencia/entrega."
+    },
+    "departamento_pais": {
+        "header": "PAIS",
+        "sample": "Guatemala",
+        "sample2": "Guatemala",
+        "description": "País del contacto."
+    },
+    "limite_credito": {
+        "header": "LIMITE DE CREDITO (Q)",
+        "sample": 10000.0,
+        "sample2": 0.0,
+        "description": "Monto máximo autorizado de crédito en Quetzales."
+    },
+    "dias_credito": {
+        "header": "DIAS DE CREDITO",
+        "sample": 30,
+        "sample2": 0,
+        "description": "Plazo en días para cancelar compras a crédito."
+    },
+    "estado_credito": {
+        "header": "ESTADO DE CREDITO",
+        "sample": "Activo",
+        "sample2": "Sin Credito",
+        "description": "Activo, Bloqueado, Suspendido o Sin Credito."
+    },
+    "banco": {
+        "header": "BANCO",
+        "sample": "Banco Industrial",
+        "sample2": "BANRURAL",
+        "description": "Nombre de la entidad bancaria para transferencias."
+    },
+    "cuenta_bancaria": {
+        "header": "NO. CUENTA BANCARIA",
+        "sample": "001-234567-8",
+        "sample2": "301-987654-2",
+        "description": "Número de cuenta monetaria o de ahorros."
+    },
+    "imagen_url": {
+        "header": "FOTO / LOGO URL",
+        "sample": "https://drive.google.com/file/d/1A2B3C.../view",
+        "sample2": "",
+        "description": "Enlace directo o de Google Drive / Dropbox al logo o foto."
+    },
+    "notas": {
+        "header": "NOTAS / OBSERVACIONES",
+        "sample": "Cliente mayorista calificado, descuento del 5%",
+        "sample2": "Paga puntual cada quincena",
+        "description": "Anotaciones comerciales o preferencias del socio."
+    },
+}
+
+
+@router.get("/template-excel")
+async def download_partner_excel_template():
+    """Descargar plantilla oficial en Microsoft Excel (.xlsx) con estilos Odoo (#714B67) y filas de muestra."""
+    import io
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment
+    from openpyxl.utils import get_column_letter
+    from fastapi.responses import Response
+
+    default_cols = [
+        "nombre", "nit", "cui", "tipo", "razon_comercial",
+        "telefono", "celular", "email", "direccion", "ciudad",
+        "limite_credito", "dias_credito", "imagen_url", "notas"
+    ]
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Directorio Contactos"
+
+    headers = [PARTNER_TEMPLATE_DEFINITIONS[k]["header"] for k in default_cols]
+    sample1 = [PARTNER_TEMPLATE_DEFINITIONS[k]["sample"] for k in default_cols]
+    sample2 = [PARTNER_TEMPLATE_DEFINITIONS[k]["sample2"] for k in default_cols]
+
+    ws.append(headers)
+    ws.append(sample1)
+    ws.append(sample2)
+
+    header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="714B67", end_color="714B67", fill_type="solid")
+    header_align = Alignment(horizontal="center", vertical="center", wrap_text=True)
+
+    for col_idx in range(1, len(headers) + 1):
+        cell = ws.cell(row=1, column=col_idx)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = header_align
+
+    for col in ws.columns:
+        col_letter = get_column_letter(col[0].column)
+        max_len = max(len(str(cell.value or "")) for cell in col)
+        ws.column_dimensions[col_letter].width = max(max_len + 4, 15)
+
+    ws.row_dimensions[1].height = 28
+
+    output = io.BytesIO()
+    wb.save(output)
+    xlsx_bytes = output.getvalue()
+
+    return Response(
+        content=xlsx_bytes,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": 'attachment; filename="plantilla_clientes_proveedores.xlsx"'}
+    )
+
+
+@router.get("/custom-template-excel")
+async def download_custom_partner_excel_template(cols: Optional[str] = Query(None)):
+    """Generador dinámico de plantillas en Microsoft Excel (.xlsx) con columnas elegidas por el usuario."""
+    import io
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment
+    from openpyxl.utils import get_column_letter
+    from fastapi.responses import Response
+
+    if cols:
+        requested = [c.strip().lower() for c in cols.split(",") if c.strip().lower() in PARTNER_TEMPLATE_DEFINITIONS]
+    else:
+        requested = ["nombre", "nit", "tipo", "telefono", "direccion"]
+
+    if not requested:
+        requested = ["nombre", "nit", "tipo", "telefono", "direccion"]
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Plantilla Personalizada"
+
+    headers = [PARTNER_TEMPLATE_DEFINITIONS[k]["header"] for k in requested]
+    sample1 = [PARTNER_TEMPLATE_DEFINITIONS[k]["sample"] for k in requested]
+    sample2 = [PARTNER_TEMPLATE_DEFINITIONS[k]["sample2"] for k in requested]
+
+    ws.append(headers)
+    ws.append(sample1)
+    ws.append(sample2)
+
+    header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="714B67", end_color="714B67", fill_type="solid")
+    header_align = Alignment(horizontal="center", vertical="center", wrap_text=True)
+
+    for col_idx in range(1, len(headers) + 1):
+        cell = ws.cell(row=1, column=col_idx)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = header_align
+
+    for col in ws.columns:
+        col_letter = get_column_letter(col[0].column)
+        max_len = max(len(str(cell.value or "")) for cell in col)
+        ws.column_dimensions[col_letter].width = max(max_len + 4, 15)
+
+    ws.row_dimensions[1].height = 28
+
+    output = io.BytesIO()
+    wb.save(output)
+    xlsx_bytes = output.getvalue()
+
+    return Response(
+        content=xlsx_bytes,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": 'attachment; filename="plantilla_clientes_personalizada.xlsx"'}
+    )
+
+
 @router.get("/template-csv")
 async def download_partner_csv_template():
-    """Descargar plantilla CSV para importación masiva de clientes y proveedores."""
+    """Descargar plantilla CSV básica para compatibilidad."""
     import csv
     import io
     from fastapi.responses import Response
@@ -373,11 +625,11 @@ async def download_partner_csv_template():
         "email", "direccion", "limite_credito", "dias_credito"
     ])
     writer.writerow([
-        "Juan Carlos Pérez", "1234567-8", "2500123450101", "customer", "55551234",
+        "Juan Carlos Pérez", "1234567-8", "2500123450101", "Cliente", "55551234",
         "juan@ejemplo.com", "Zona 10, Ciudad de Guatemala", "5000.00", "30"
     ])
     writer.writerow([
-        "Distribuidora El Éxito S.A.", "8765432-1", "", "supplier", "22223333",
+        "Distribuidora El Éxito S.A.", "8765432-1", "", "Proveedor", "22223333",
         "ventas@elexito.com", "Calzada Roosevelt, Mixco", "0.00", "0"
     ])
 
@@ -396,50 +648,182 @@ async def import_partners_csv(
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    """Importar clientes o proveedores masivamente desde archivo CSV."""
+    """Importar clientes o proveedores masivamente desde archivo Excel (.xlsx) o CSV con mapeo dinámico de columnas."""
     check_partner_management_permission(current_user)
     import csv
     import io
+    import openpyxl
 
     content = await file.read()
-    text = content.decode("utf-8-sig", errors="replace")
-    csv_reader = csv.DictReader(io.StringIO(text))
+    filename = (file.filename or "").lower()
+    is_excel = filename.endswith(".xlsx") or filename.endswith(".xls")
 
-    if not csv_reader.fieldnames:
-        raise HTTPException(status_code=400, detail="El archivo CSV está vacío o no es válido.")
+    rows_data = []
+
+    if is_excel:
+        try:
+            wb = openpyxl.load_workbook(io.BytesIO(content), data_only=True)
+            sheet = wb.active
+            headers = []
+            for col_idx, cell in enumerate(sheet.iter_rows(min_row=1, max_row=1, values_only=True).__next__(), start=1):
+                headers.append(str(cell or "").strip())
+
+            for row_idx, row_cells in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
+                if not any(row_cells):
+                    continue
+                row_dict = {}
+                for col_idx, h in enumerate(headers):
+                    if h and col_idx < len(row_cells):
+                        val = row_cells[col_idx]
+                        row_dict[h] = str(val if val is not None else "").strip()
+                rows_data.append((row_idx, row_dict))
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Error al leer archivo Excel: {e}")
+    else:
+        text = content.decode("utf-8-sig", errors="replace")
+        csv_reader = csv.DictReader(io.StringIO(text))
+        if not csv_reader.fieldnames:
+            raise HTTPException(status_code=400, detail="El archivo CSV está vacío o mal formateado.")
+        for idx, r in enumerate(csv_reader, start=2):
+            rows_data.append((idx, r))
 
     def clean_col(s):
-        return s.strip().lower().replace(" ", "_").replace("á", "a").replace("é", "e").replace("í", "i").replace("ó", "o").replace("ú", "u")
+        return str(s).strip().lower().replace(" ", "_").replace("á", "a").replace("é", "e").replace("í", "i").replace("ó", "o").replace("ú", "u").replace("-", "_").replace("/", "_")
+
+    def parse_bool_val(v, default=False):
+        if v is None:
+            return default
+        s = str(v).strip().lower()
+        if not s:
+            return default
+        return s in ["1", "si", "sí", "true", "t", "s", "empresa", "sociedad", "yes", "y"]
 
     created_count = 0
     updated_count = 0
     errors = []
 
-    for idx, raw_row in enumerate(csv_reader, start=2):
-        row = {clean_col(k): v.strip() for k, v in raw_row.items() if k}
-        name = row.get("nombre") or row.get("name") or row.get("razon_social")
+    for idx, raw_row in rows_data:
+        row = {clean_col(k): str(v).strip() for k, v in raw_row.items() if k}
+        name = (
+            row.get("nombre")
+            or row.get("nombre___razon_social")
+            or row.get("nombre_razon_social")
+            or row.get("razon_social")
+            or row.get("name")
+            or row.get("cliente")
+            or row.get("proveedor")
+        )
         if not name:
             errors.append(f"Fila {idx}: Nombre es obligatorio.")
             continue
 
         nit = row.get("nit") or "CF"
-        cui = row.get("cui") or row.get("dpi") or None
-        partner_type_str = (row.get("tipo") or row.get("type") or "customer").lower()
-        partner_type = PartnerType.SUPPLIER if "prov" in partner_type_str or "sup" in partner_type_str else PartnerType.CUSTOMER
+        cui = row.get("dpi___cui") or row.get("dpi_cui") or row.get("cui") or row.get("dpi") or None
+        
+        # Tipo de contacto
+        partner_type_str = (
+            row.get("tipo_de_contacto")
+            or row.get("tipo_contacto")
+            or row.get("tipo")
+            or row.get("type")
+            or "customer"
+        ).lower()
 
-        phone = row.get("telefono") or row.get("phone") or row.get("celular") or None
-        email = row.get("email") or row.get("correo") or None
-        address = row.get("direccion") or row.get("address") or None
+        if "amb" in partner_type_str or "both" in partner_type_str:
+            p_type = PartnerType.BOTH
+        elif "prov" in partner_type_str or "sup" in partner_type_str:
+            p_type = PartnerType.SUPPLIER
+        else:
+            p_type = PartnerType.CUSTOMER
+
+        trade_name = (
+            row.get("nombre_comercial")
+            or row.get("razon_comercial")
+            or row.get("trade_name")
+            or None
+        )
+
+        is_company = parse_bool_val(
+            row.get("es_empresa__si_no_")
+            or row.get("es_empresa")
+            or row.get("empresa")
+            or row.get("is_company"),
+            default=False
+        )
+
+        phone = row.get("telefono_fijo") or row.get("telefono") or row.get("phone") or row.get("tel") or None
+        mobile = row.get("celular___whatsapp") or row.get("celular_whatsapp") or row.get("celular") or row.get("mobile") or row.get("whatsapp") or None
+        email = row.get("correo_electronico") or row.get("correo") or row.get("email") or row.get("mail") or None
+        address = row.get("direccion_completa") or row.get("direccion") or row.get("address") or None
+        city = row.get("ciudad___municipio") or row.get("ciudad_municipio") or row.get("ciudad") or row.get("city") or "Guatemala"
+        country = row.get("pais") or row.get("departamento_pais") or row.get("country") or "Guatemala"
 
         try:
-            credit_limit = Decimal(str(row.get("limite_credito") or "0").replace(",", "."))
+            credit_limit = Decimal(str(
+                row.get("limite_de_credito__q_")
+                or row.get("limite_de_credito")
+                or row.get("limite_credito")
+                or row.get("credit_limit")
+                or "0"
+            ).replace(",", "."))
         except Exception:
             credit_limit = Decimal("0")
 
         try:
-            payment_days = int(row.get("dias_credito") or 0)
+            payment_days = int(
+                row.get("dias_de_credito")
+                or row.get("dias_credito")
+                or row.get("payment_days")
+                or 0
+            )
         except Exception:
             payment_days = 0
+
+        # Estado de crédito
+        raw_cred_status = (
+            row.get("estado_de_credito")
+            or row.get("estado_credito")
+            or row.get("credit_status")
+            or ""
+        ).lower()
+        if "bloq" in raw_cred_status or "block" in raw_cred_status:
+            cred_status = CreditStatus.BLOCKED
+        elif "susp" in raw_cred_status:
+            cred_status = CreditStatus.SUSPENDED
+        elif "act" in raw_cred_status or credit_limit > 0:
+            cred_status = CreditStatus.ACTIVE
+        else:
+            cred_status = CreditStatus.NONE
+
+        bank_name = row.get("banco") or row.get("bank_name") or None
+        bank_account = (
+            row.get("no__cuenta_bancaria")
+            or row.get("no_cuenta_bancaria")
+            or row.get("cuenta_bancaria")
+            or row.get("bank_account")
+            or None
+        )
+
+        image_url = normalize_partner_media_url(
+            row.get("foto___logo_url")
+            or row.get("foto_logo_url")
+            or row.get("foto_url")
+            or row.get("logo_url")
+            or row.get("imagen_url")
+            or row.get("image_url")
+            or row.get("foto")
+            or row.get("logo")
+            or ""
+        )
+
+        notes = (
+            row.get("notas___observaciones")
+            or row.get("notas_observaciones")
+            or row.get("notas")
+            or row.get("observaciones")
+            or row.get("notes")
+            or ""
+        )
 
         existing = None
         if nit and nit.upper() != "CF":
@@ -454,16 +838,38 @@ async def import_partners_csv(
             existing.name = name
             if cui:
                 existing.cui = cui
+            if trade_name:
+                existing.trade_name = trade_name
+            if p_type:
+                existing.partner_type = p_type
+            if is_company is not None:
+                existing.is_company = is_company
             if phone:
                 existing.phone = phone
+            if mobile:
+                existing.mobile = mobile
             if email:
                 existing.email = email
             if address:
                 existing.address = address
+            if city:
+                existing.city = city
+            if country:
+                existing.country = country
             if credit_limit > 0:
                 existing.credit_limit = credit_limit
             if payment_days > 0:
                 existing.payment_days = payment_days
+            if cred_status != CreditStatus.NONE:
+                existing.credit_status = cred_status
+            if bank_name:
+                existing.bank_name = bank_name
+            if bank_account:
+                existing.bank_account = bank_account
+            if image_url:
+                existing.image_url = image_url
+            if notes:
+                existing.notes = notes
             updated_count += 1
         else:
             partner_obj = Partner(
@@ -471,12 +877,22 @@ async def import_partners_csv(
                 name=name,
                 nit=nit,
                 cui=cui,
-                partner_type=partner_type,
+                partner_type=p_type,
+                trade_name=trade_name,
+                is_company=is_company,
                 phone=phone,
+                mobile=mobile,
                 email=email,
                 address=address,
+                city=city,
+                country=country,
                 credit_limit=credit_limit,
                 payment_days=payment_days,
+                credit_status=cred_status,
+                bank_name=bank_name,
+                bank_account=bank_account,
+                image_url=image_url or None,
+                notes=notes,
                 is_active=True
             )
             db.add(partner_obj)
@@ -490,6 +906,153 @@ async def import_partners_csv(
         "errors": errors,
         "total_processed": created_count + updated_count
     }
+
+
+@router.get("/export-excel")
+async def export_partners_excel(
+    cols: Optional[str] = Query(None),
+    filter_type: Optional[str] = Query("all"),
+    search: Optional[str] = Query(None),
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """Exportar listado de clientes y proveedores a Microsoft Excel (.xlsx) con columnas y filtros personalizados."""
+    import io
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment
+    from openpyxl.utils import get_column_letter
+    from fastapi.responses import Response
+
+    stmt = select(Partner).where(Partner.company_id == current_user.company_id)
+
+    # Filtros por tipo y estado
+    if filter_type == "customers":
+        stmt = stmt.where(Partner.partner_type.in_([PartnerType.CUSTOMER, PartnerType.BOTH]))
+    elif filter_type == "suppliers":
+        stmt = stmt.where(Partner.partner_type.in_([PartnerType.SUPPLIER, PartnerType.BOTH]))
+    elif filter_type == "with_debt":
+        stmt = stmt.where(Partner.balance > 0)
+    elif filter_type == "credit_active":
+        stmt = stmt.where(Partner.credit_limit > 0)
+    elif filter_type == "companies":
+        stmt = stmt.where(Partner.is_company == True)
+    elif filter_type == "active":
+        stmt = stmt.where(Partner.is_active == True)
+    elif filter_type == "archived":
+        stmt = stmt.where(Partner.is_active == False)
+
+    # Filtro de búsqueda textual
+    if search:
+        s = f"%{search.strip().lower()}%"
+        stmt = stmt.where(
+            or_(
+                func.lower(Partner.name).like(s),
+                func.lower(Partner.nit).like(s),
+                func.lower(Partner.cui).like(s),
+                func.lower(Partner.trade_name).like(s),
+                func.lower(Partner.phone).like(s),
+                func.lower(Partner.email).like(s),
+            )
+        )
+
+    stmt = stmt.order_by(Partner.name)
+    res = await db.execute(stmt)
+    partners = res.scalars().all()
+
+    def get_type_label(pt):
+        if pt == PartnerType.CUSTOMER:
+            return "Cliente"
+        elif pt == PartnerType.SUPPLIER:
+            return "Proveedor"
+        elif pt == PartnerType.BOTH:
+            return "Cliente / Proveedor"
+        return "Contacto"
+
+    def get_credit_label(cs):
+        if cs == CreditStatus.ACTIVE:
+            return "Activo"
+        elif cs == CreditStatus.BLOCKED:
+            return "Bloqueado"
+        elif cs == CreditStatus.SUSPENDED:
+            return "Suspendido"
+        return "Sin Crédito"
+
+    partner_col_defs = {
+        "nombre": ("NOMBRE / RAZON SOCIAL", lambda p: p.name or ""),
+        "nit": ("NIT", lambda p: p.nit or "CF"),
+        "cui": ("DPI / CUI", lambda p: p.cui or ""),
+        "tipo": ("TIPO DE CONTACTO", lambda p: get_type_label(p.partner_type)),
+        "razon_comercial": ("NOMBRE COMERCIAL", lambda p: p.trade_name or ""),
+        "es_empresa": ("ES EMPRESA", lambda p: "SI" if p.is_company else "NO"),
+        "telefono": ("TELEFONO FIJO", lambda p: p.phone or ""),
+        "celular": ("CELULAR / WHATSAPP", lambda p: p.mobile or ""),
+        "email": ("CORREO ELECTRONICO", lambda p: p.email or ""),
+        "direccion": ("DIRECCION", lambda p: p.address or ""),
+        "ciudad": ("CIUDAD / MUNICIPIO", lambda p: p.city or "Guatemala"),
+        "departamento_pais": ("PAIS", lambda p: p.country or "Guatemala"),
+        "limite_credito": ("LIMITE DE CREDITO (Q)", lambda p: float(p.credit_limit or 0)),
+        "saldo_pendiente": ("SALDO PENDIENTE (Q)", lambda p: float(p.balance or 0)),
+        "credito_disponible": ("CREDITO DISPONIBLE (Q)", lambda p: max(0.0, float(p.credit_limit or 0) - float(p.balance or 0))),
+        "dias_credito": ("DIAS DE CREDITO", lambda p: int(p.payment_days or 0)),
+        "estado_credito": ("ESTADO DE CREDITO", lambda p: get_credit_label(p.credit_status)),
+        "banco": ("BANCO", lambda p: p.bank_name or ""),
+        "cuenta_bancaria": ("NO. CUENTA BANCARIA", lambda p: p.bank_account or ""),
+        "imagen_url": ("FOTO / LOGO URL", lambda p: p.image_url or ""),
+        "notas": ("NOTAS / OBSERVACIONES", lambda p: p.notes or ""),
+        "estado": ("ESTADO", lambda p: "Activo" if p.is_active else "Inactivo"),
+    }
+
+    if cols:
+        requested = [c.strip().lower() for c in cols.split(",") if c.strip().lower() in partner_col_defs]
+    else:
+        requested = ["nombre", "nit", "tipo", "telefono", "direccion", "saldo_pendiente"]
+
+    if not requested:
+        requested = ["nombre", "nit", "tipo", "telefono", "direccion", "saldo_pendiente"]
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Directorio de Contactos"
+
+    headers = [partner_col_defs[k][0] for k in requested]
+    ws.append(headers)
+
+    header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="714B67", end_color="714B67", fill_type="solid")
+    header_align = Alignment(horizontal="center", vertical="center", wrap_text=True)
+
+    for col_idx in range(1, len(headers) + 1):
+        cell = ws.cell(row=1, column=col_idx)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = header_align
+
+    for p in partners:
+        row_vals = []
+        for k in requested:
+            fn = partner_col_defs[k][1]
+            try:
+                row_vals.append(fn(p))
+            except Exception:
+                row_vals.append("")
+        ws.append(row_vals)
+
+    for col in ws.columns:
+        col_letter = get_column_letter(col[0].column)
+        max_len = max(len(str(cell.value or "")) for cell in col)
+        ws.column_dimensions[col_letter].width = max(max_len + 4, 15)
+
+    ws.row_dimensions[1].height = 28
+
+    output = io.BytesIO()
+    wb.save(output)
+    xlsx_bytes = output.getvalue()
+
+    return Response(
+        content=xlsx_bytes,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": 'attachment; filename="directorio_clientes_proveedores.xlsx"'}
+    )
 
 
 @router.get("/export-csv")

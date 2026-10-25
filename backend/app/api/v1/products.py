@@ -937,9 +937,175 @@ async def get_products_stock_levels(
 
 
 # ===== IMPORTACIÓN / EXPORTACIÓN CSV Y EXCEL =====
+@router.get("/template-excel")
+async def download_product_excel_template():
+    """Descargar plantilla Excel (.xlsx) nativa con formato profesional para importación de productos."""
+    import io
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from openpyxl.utils import get_column_letter
+    from fastapi.responses import Response
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Catálogo Productos"
+
+    headers = [
+        "CODIGO INTERNO", "CODIGO DE BARRAS", "NOMBRE", "CATEGORIA",
+        "TIPO DE PRODUCTO", "UNIDAD DE MEDIDA BASE",
+        "PRECIO VENTA PUBLICO", "PRECIO CONTADO", "PRECIO CONTADO EXCLUSIVO", "PRECIO ESPECIAL",
+        "PRECIO COSTO", "STOCK MINIMO", "STOCK INICIAL",
+        "DISPONIBLE EN POS", "DISPONIBLE EN PRE-VENTA",
+        "IMAGEN URL", "FICHA TECNICA PDF", "DESCRIPCION"
+    ]
+    ws.append(headers)
+
+    # Estilo visual de encabezados (Odoo Purple)
+    header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="714B67", end_color="714B67", fill_type="solid")
+    header_align = Alignment(horizontal="center", vertical="center", wrap_text=True)
+
+    for col_idx in range(1, len(headers) + 1):
+        cell = ws.cell(row=1, column=col_idx)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = header_align
+
+    # Filas de ejemplo con datos reales
+    sample_rows = [
+        [
+            "BEB-001", "740100100101", "Coca Cola 2.5L Retornable", "Bebidas",
+            "Almacenable", "Unidad",
+            15.00, 14.50, 14.00, 13.50,
+            11.50, 10, 50,
+            "SI", "SI",
+            "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=500",
+            "",
+            "Bebida gaseosa familiar retornable"
+        ],
+        [
+            "ABA-002", "740100100102", "Arroz Blanco Superior 1lb", "Abarrotes",
+            "Almacenable", "Libra",
+            6.50, 6.25, 6.00, 5.80,
+            4.80, 20, 100,
+            "SI", "SI",
+            "",
+            "",
+            "Arroz grano entero seleccionado"
+        ],
+        [
+            "ACE-003", "740100100103", "Aceite Motor Sintético 5W-30", "Lubricantes",
+            "Almacenable", "Unidad",
+            180.00, 175.00, 170.00, 165.00,
+            140.00, 15, 80,
+            "SI", "SI",
+            "https://ejemplo.com/fotos/aceite5w30.jpg",
+            "https://ejemplo.com/manuales/ficha_5w30.pdf",
+            "Aceite automotriz sintético de alto rendimiento"
+        ]
+    ]
+
+    for r in sample_rows:
+        ws.append(r)
+
+    # Auto-ajuste de ancho de columnas
+    for col in ws.columns:
+        col_letter = get_column_letter(col[0].column)
+        max_len = max(len(str(cell.value or "")) for cell in col)
+        ws.column_dimensions[col_letter].width = max(max_len + 4, 15)
+
+    ws.row_dimensions[1].height = 28
+
+    output = io.BytesIO()
+    wb.save(output)
+    xlsx_bytes = output.getvalue()
+
+    return Response(
+        content=xlsx_bytes,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": 'attachment; filename="plantilla_productos.xlsx"'}
+    )
+
+
+@router.get("/custom-template-excel")
+async def download_custom_product_excel_template(cols: Optional[str] = Query(None)):
+    """Generar plantilla Excel (.xlsx) personalizada según las columnas seleccionadas por el usuario."""
+    import io
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment
+    from openpyxl.utils import get_column_letter
+    from fastapi.responses import Response
+
+    col_definitions = {
+        "codigo_interno": ("CODIGO INTERNO", "BEB-001"),
+        "codigo_barras": ("CODIGO DE BARRAS", "740100100101"),
+        "nombre": ("NOMBRE", "Coca Cola 2.5L Retornable"),
+        "categoria": ("CATEGORIA", "Bebidas"),
+        "tipo_producto": ("TIPO DE PRODUCTO", "Almacenable"),
+        "unidad_medida": ("UNIDAD DE MEDIDA BASE", "Unidad"),
+        "precio_venta": ("PRECIO VENTA PUBLICO", 15.00),
+        "precio_contado": ("PRECIO CONTADO", 14.50),
+        "precio_contado_exclusivo": ("PRECIO CONTADO EXCLUSIVO", 14.00),
+        "precio_especial": ("PRECIO ESPECIAL", 13.50),
+        "precio_costo": ("PRECIO COSTO", 11.50),
+        "stock_minimo": ("STOCK MINIMO", 10),
+        "stock_inicial": ("STOCK INICIAL", 50),
+        "disponible_pos": ("DISPONIBLE EN POS", "SI"),
+        "disponible_preventa": ("DISPONIBLE EN PRE-VENTA", "SI"),
+        "imagen_url": ("IMAGEN URL", "https://ejemplo.com/fotos/producto.jpg"),
+        "ficha_tecnica_pdf": ("FICHA TECNICA PDF", "https://ejemplo.com/manuales/ficha.pdf"),
+        "descripcion": ("DESCRIPCION", "Bebida gaseosa familiar retornable"),
+    }
+
+    if cols:
+        requested = [c.strip().lower() for c in cols.split(",") if c.strip().lower() in col_definitions]
+    else:
+        requested = list(col_definitions.keys())
+
+    if not requested:
+        requested = ["codigo_interno", "nombre", "categoria", "precio_venta"]
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Mi Plantilla"
+
+    headers = [col_definitions[k][0] for k in requested]
+    sample_row = [col_definitions[k][1] for k in requested]
+
+    ws.append(headers)
+    ws.append(sample_row)
+
+    header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="714B67", end_color="714B67", fill_type="solid")
+    header_align = Alignment(horizontal="center", vertical="center", wrap_text=True)
+
+    for col_idx in range(1, len(headers) + 1):
+        cell = ws.cell(row=1, column=col_idx)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = header_align
+
+    for col in ws.columns:
+        col_letter = get_column_letter(col[0].column)
+        max_len = max(len(str(cell.value or "")) for cell in col)
+        ws.column_dimensions[col_letter].width = max(max_len + 5, 16)
+
+    ws.row_dimensions[1].height = 28
+
+    output = io.BytesIO()
+    wb.save(output)
+    xlsx_bytes = output.getvalue()
+
+    return Response(
+        content=xlsx_bytes,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": 'attachment; filename="mi_plantilla_personalizada.xlsx"'}
+    )
+
+
 @router.get("/template-csv")
 async def download_product_csv_template():
-    """Descargar plantilla CSV para importación masiva de productos."""
+    """Descargar plantilla CSV para importación masiva de productos (compatible con delimitadores regionales de Excel)."""
     import csv
     import io
     from fastapi.responses import Response
@@ -951,24 +1117,21 @@ async def download_product_csv_template():
         "tipo_producto", "unidad_medida",
         "precio_venta", "precio_contado", "precio_contado_exclusivo", "precio_especial",
         "precio_costo", "stock_minimo", "stock_inicial",
-        "disponible_pos", "disponible_preventa",
-        "descripcion"
+        "disponible_pos", "disponible_preventa", "descripcion"
     ])
     writer.writerow([
-        "PROD-001", "740100100101", "Coca Cola 2.5L Retornable", "Bebidas",
+        "BEB-001", "740100100101", "Coca Cola 2.5L Retornable", "Bebidas",
         "Almacenable", "Unidad",
         "15.00", "14.50", "14.00", "13.50",
         "11.50", "10", "50",
-        "SI", "SI",
-        "Bebida gaseosa familiar"
+        "SI", "SI", "Bebida gaseosa familiar retornable"
     ])
     writer.writerow([
-        "PROD-002", "740100100102", "Arroz Blanco Superior 1lb", "Abarrotes",
+        "ABA-002", "740100100102", "Arroz Blanco Superior 1lb", "Abarrotes",
         "Almacenable", "Libra",
         "6.50", "6.25", "6.00", "5.80",
         "4.80", "20", "100",
-        "SI", "SI",
-        "Arroz grano entero"
+        "SI", "SI", "Arroz grano entero seleccionado"
     ])
 
     csv_data = "\ufeff" + output.getvalue()
@@ -1044,6 +1207,25 @@ async def import_products_csv(
         if "consu" in s:
             return ProductType.CONSUMABLE
         return ProductType.PRODUCT
+
+    import re
+    def normalize_media_url(url, is_image=True):
+        if not url:
+            return ""
+        u = str(url).strip()
+        if not u:
+            return ""
+        if "drive.google.com" in u:
+            m = re.search(r"/d/([a-zA-Z0-9_-]+)", u) or re.search(r"[?&]id=([a-zA-Z0-9_-]+)", u)
+            if m:
+                fid = m.group(1)
+                return f"https://drive.google.com/thumbnail?id={fid}&sz=w1000" if is_image else f"https://drive.google.com/uc?export=download&id={fid}"
+        if "dropbox.com" in u:
+            if "?dl=0" in u:
+                return u.replace("?dl=0", "?raw=1")
+            elif "&dl=0" in u:
+                return u.replace("&dl=0", "&raw=1")
+        return u
 
     created_count = 0
     updated_count = 0
@@ -1196,6 +1378,28 @@ async def import_products_csv(
         avail_pos = parse_bool_col(raw_pos, True)
         avail_presale = parse_bool_col(raw_presale, True)
 
+        raw_image = normalize_media_url(
+            row.get("imagen_url")
+            or row.get("imagen")
+            or row.get("image_url")
+            or row.get("foto")
+            or row.get("foto_url")
+            or row.get("url_imagen")
+            or row.get("link_imagen")
+            or "",
+            is_image=True
+        )
+        raw_pdf = normalize_media_url(
+            row.get("ficha_tecnica_pdf")
+            or row.get("ficha_tecnica")
+            or row.get("pdf")
+            or row.get("pdf_url")
+            or row.get("url_pdf")
+            or row.get("ficha_tecnica_url")
+            or "",
+            is_image=False
+        )
+
         description = row.get("descripcion") or ""
 
         cat_stmt = select(ProductCategory).where(
@@ -1247,6 +1451,10 @@ async def import_products_csv(
                 existing_prod.min_stock = min_stock
             if description:
                 existing_prod.description = description
+            if raw_image:
+                existing_prod.image_url = raw_image
+            if raw_pdf:
+                existing_prod.pdf_datasheet_url = raw_pdf
             if raw_pos is not None:
                 existing_prod.available_in_pos = avail_pos
                 existing_prod.is_published = avail_pos
@@ -1270,6 +1478,8 @@ async def import_products_csv(
                 special_price=special_price,
                 min_stock=min_stock,
                 description=description,
+                image_url=raw_image or None,
+                pdf_datasheet_url=raw_pdf or None,
                 is_active=True,
                 is_published=avail_pos,
                 available_in_pos=avail_pos,
@@ -1307,6 +1517,157 @@ async def import_products_csv(
         "errors": errors,
         "total_processed": created_count + updated_count
     }
+
+
+@router.get("/export-excel")
+async def export_products_excel(
+    cols: Optional[str] = Query(None),
+    status: Optional[str] = Query("active"),
+    category_id: Optional[str] = Query(None),
+    search: Optional[str] = Query(None),
+    warehouse_id: Optional[str] = Query(None),
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """Exportar catálogo de productos a Microsoft Excel (.xlsx) con columnas y filtros personalizables."""
+    import io
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment
+    from openpyxl.utils import get_column_letter
+    from fastapi.responses import Response
+
+    stmt = select(Product).options(
+        selectinload(Product.category),
+        selectinload(Product.uom)
+    ).where(Product.company_id == current_user.company_id)
+
+    if status == "active":
+        stmt = stmt.where(Product.is_active == True)
+    elif status == "archived":
+        stmt = stmt.where(Product.is_active == False)
+
+    if category_id:
+        try:
+            c_uuid = uuid.UUID(category_id.strip())
+            stmt = stmt.where(Product.category_id == c_uuid)
+        except Exception:
+            pass
+
+    if search:
+        s = f"%{search.strip().lower()}%"
+        stmt = stmt.where(
+            or_(
+                func.lower(Product.name).like(s),
+                func.lower(Product.internal_ref).like(s),
+                func.lower(Product.barcode).like(s),
+            )
+        )
+
+    stmt = stmt.order_by(Product.name)
+    res = await db.execute(stmt)
+    products = res.scalars().all()
+
+    product_ids = [p.id for p in products]
+    stocks = {}
+    if product_ids:
+        q_stmt = select(
+            StockQuant.product_id,
+            func.sum(StockQuant.qty_on_hand).label("stock")
+        ).join(Warehouse, StockQuant.warehouse_id == Warehouse.id).where(
+            StockQuant.product_id.in_(product_ids),
+            StockQuant.is_deleted == False,
+            Warehouse.is_active == True
+        )
+        if warehouse_id:
+            try:
+                w_uuid = uuid.UUID(warehouse_id.strip())
+                q_stmt = q_stmt.where(StockQuant.warehouse_id == w_uuid)
+            except Exception:
+                pass
+        q_stmt = q_stmt.group_by(StockQuant.product_id)
+        q_res = await db.execute(q_stmt)
+        for r in q_res.all():
+            stocks[r[0]] = float(r[1] or 0)
+
+    type_labels = {
+        ProductType.PRODUCT: "Almacenable",
+        ProductType.SERVICE: "Servicio",
+        ProductType.CONSUMABLE: "Consumible",
+    }
+
+    col_definitions = {
+        "codigo_interno": ("CODIGO INTERNO", lambda p: p.internal_ref or ""),
+        "codigo_barras": ("CODIGO DE BARRAS", lambda p: p.barcode or ""),
+        "nombre": ("NOMBRE", lambda p: p.name or ""),
+        "categoria": ("CATEGORIA", lambda p: p.category.name if p.category else "General"),
+        "tipo_producto": ("TIPO DE PRODUCTO", lambda p: type_labels.get(p.product_type, "Almacenable")),
+        "unidad_medida": ("UNIDAD DE MEDIDA BASE", lambda p: p.uom.name if p.uom else "Unidad"),
+        "precio_venta": ("PRECIO VENTA PUBLICO (Q)", lambda p: float(p.sale_price or 0)),
+        "precio_contado": ("PRECIO CONTADO (Q)", lambda p: float(p.cash_price or 0)),
+        "precio_contado_exclusivo": ("PRECIO CONTADO EXCLUSIVO (Q)", lambda p: float(p.exclusive_cash_price or 0)),
+        "precio_especial": ("PRECIO ESPECIAL (Q)", lambda p: float(p.special_price or 0)),
+        "precio_costo": ("PRECIO COSTO (Q)", lambda p: float(p.cost_price or 0)),
+        "stock_actual": ("STOCK ACTUAL", lambda p: stocks.get(p.id, 0.0)),
+        "stock_minimo": ("STOCK MINIMO", lambda p: float(p.min_stock or 0)),
+        "disponible_pos": ("DISPONIBLE EN POS", lambda p: "SI" if getattr(p, "available_in_pos", True) else "NO"),
+        "disponible_preventa": ("DISPONIBLE EN PRE-VENTA", lambda p: "SI" if getattr(p, "available_in_presale", True) else "NO"),
+        "imagen_url": ("IMAGEN URL", lambda p: getattr(p, "image_url", "") or ""),
+        "ficha_tecnica_pdf": ("FICHA TECNICA PDF", lambda p: getattr(p, "pdf_datasheet_url", "") or ""),
+        "descripcion": ("DESCRIPCION", lambda p: p.description or ""),
+        "estado": ("ESTADO", lambda p: "Activo" if p.is_active else "Inactivo"),
+    }
+
+    if cols:
+        requested = [c.strip().lower() for c in cols.split(",") if c.strip().lower() in col_definitions]
+    else:
+        requested = list(col_definitions.keys())
+
+    if not requested:
+        requested = ["codigo_interno", "nombre", "categoria", "precio_venta", "stock_actual"]
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Catálogo Inventario"
+
+    headers = [col_definitions[k][0] for k in requested]
+    ws.append(headers)
+
+    header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="714B67", end_color="714B67", fill_type="solid")
+    header_align = Alignment(horizontal="center", vertical="center", wrap_text=True)
+
+    for col_idx in range(1, len(headers) + 1):
+        cell = ws.cell(row=1, column=col_idx)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = header_align
+
+    for p in products:
+        row_vals = []
+        for k in requested:
+            fn = col_definitions[k][1]
+            try:
+                row_vals.append(fn(p))
+            except Exception:
+                row_vals.append("")
+        ws.append(row_vals)
+
+    for col in ws.columns:
+        col_letter = get_column_letter(col[0].column)
+        max_len = max(len(str(cell.value or "")) for cell in col)
+        ws.column_dimensions[col_letter].width = max(max_len + 4, 15)
+
+    ws.row_dimensions[1].height = 28
+
+    output = io.BytesIO()
+    wb.save(output)
+    xlsx_bytes = output.getvalue()
+
+    return Response(
+        content=xlsx_bytes,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": 'attachment; filename="catalogo_inventario.xlsx"'}
+    )
 
 
 @router.get("/export-csv")
