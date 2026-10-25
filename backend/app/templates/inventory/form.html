@@ -1486,8 +1486,39 @@
         }
       },
 
+      async safeUpload(endpoint, formData) {
+        if (window.API && typeof window.API.upload === 'function') {
+          return await window.API.upload(endpoint, formData);
+        }
+        let token = localStorage.getItem('access_token') || localStorage.getItem('pos_token') || '';
+        if (typeof token === 'string') {
+          token = token.replace(/^Bearer\s+/i, '').replace(/["'\r\n\t\s]/g, '');
+          if (token === 'null' || token === 'undefined' || token.length < 10) token = '';
+        } else {
+          token = '';
+        }
+
+        const headers = {};
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+
+        const res = await fetch('/api/v1' + endpoint, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: headers,
+          body: formData
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          let msg = err.detail || `Error HTTP ${res.status}`;
+          if (Array.isArray(msg)) msg = msg.map(m => m.msg || JSON.stringify(m)).join(', ');
+          throw new Error(typeof msg === 'object' ? JSON.stringify(msg) : msg);
+        }
+        return await res.json();
+      },
+
       async uploadLocalImage(event) {
-        const file = event.target.files[0];
+        const file = event.target.files && event.target.files[0];
         if (!file) return;
 
         if (file.size > 5 * 1024 * 1024) {
@@ -1498,22 +1529,7 @@
         formData.append('file', file);
 
         try {
-          const token = localStorage.getItem('pos_token') || localStorage.getItem('access_token');
-          const headers = {};
-          if (token) headers['Authorization'] = `Bearer ${token}`;
-
-          const res = await fetch('/api/v1/products/upload-image', {
-            method: 'POST',
-            headers: headers,
-            body: formData
-          });
-
-          if (!res.ok) {
-            const err = await res.json();
-            throw new Error(err.detail || 'Error al subir la imagen');
-          }
-
-          const data = await res.json();
+          const data = await this.safeUpload('/products/upload-image', formData);
           this.form.image_url = data.url;
           alert('¡Imagen subida y asignada con éxito!');
         } catch(e) {
@@ -1524,7 +1540,7 @@
       },
 
       async uploadDatasheet(event) {
-        const file = event.target.files[0];
+        const file = event.target.files && event.target.files[0];
         if (!file) return;
 
         if (!file.name.toLowerCase().endsWith('.pdf')) {
@@ -1544,22 +1560,7 @@
         formData.append('file', file);
 
         try {
-          const token = localStorage.getItem('pos_token') || localStorage.getItem('access_token');
-          const headers = {};
-          if (token) headers['Authorization'] = `Bearer ${token}`;
-
-          const res = await fetch('/api/v1/products/upload-datasheet', {
-            method: 'POST',
-            headers: headers,
-            body: formData
-          });
-
-          if (!res.ok) {
-            const err = await res.json();
-            throw new Error(err.detail || 'Error al subir la ficha técnica');
-          }
-
-          const data = await res.json();
+          const data = await this.safeUpload('/products/upload-datasheet', formData);
           this.form.pdf_datasheet_url = data.url;
           alert('¡Ficha técnica en PDF subida con éxito!');
         } catch(e) {

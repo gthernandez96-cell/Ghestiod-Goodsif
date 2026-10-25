@@ -792,72 +792,99 @@
         formData.append('file', file);
 
         try {
-          const token = localStorage.getItem('access_token');
-          const res = await fetch('/api/v1/website/upload-image', {
-            method: 'POST',
-            headers: { 'Authorization': 'Bearer ' + (token || '') },
-            body: formData
-          });
+          let data;
+          if (window.API && typeof window.API.upload === 'function') {
+            data = await window.API.upload('/website/upload-image', formData);
+          } else {
+            let token = localStorage.getItem('access_token') || '';
+            token = token.replace(/^Bearer\s+/i, '').replace(/["'\r\n\t\s]/g, '');
+            const headers = (token && token.length > 10 && token !== 'null') ? { 'Authorization': `Bearer ${token}` } : {};
+            const res = await fetch('/api/v1/website/upload-image', {
+              method: 'POST',
+              credentials: 'same-origin',
+              headers: headers,
+              body: formData
+            });
+            if (!res.ok) throw new Error('Error al subir imagen');
+            data = await res.json();
+          }
 
-          if (res.ok) {
-            const data = await res.json();
+          if (data && data.url) {
             this.config.sectors[index].image_url = data.url;
             this.notify('Imagen subida correctamente');
           } else {
             alert('Error al subir imagen');
           }
         } catch (e) {
-          alert('Error de conexión al subir');
+          alert('Error al subir imagen: ' + (e.message || e));
         }
       },
 
       async uploadBannerImage(event) {
-        const file = event.target.files[0];
+        const file = event.target.files && event.target.files[0];
         if (!file) return;
 
         const formData = new FormData();
         formData.append('file', file);
 
         try {
-          const token = localStorage.getItem('access_token');
-          const res = await fetch('/api/v1/website/upload-image', {
-            method: 'POST',
-            headers: { 'Authorization': 'Bearer ' + (token || '') },
-            body: formData
-          });
+          let data;
+          if (window.API && typeof window.API.upload === 'function') {
+            data = await window.API.upload('/website/upload-image', formData);
+          } else {
+            let token = localStorage.getItem('access_token') || '';
+            token = token.replace(/^Bearer\s+/i, '').replace(/["'\r\n\t\s]/g, '');
+            const headers = (token && token.length > 10 && token !== 'null') ? { 'Authorization': `Bearer ${token}` } : {};
+            const res = await fetch('/api/v1/website/upload-image', {
+              method: 'POST',
+              credentials: 'same-origin',
+              headers: headers,
+              body: formData
+            });
+            if (!res.ok) throw new Error('Error al subir banner');
+            data = await res.json();
+          }
 
-          if (res.ok) {
-            const data = await res.json();
+          if (data && data.url) {
             this.config.hero_image_url = data.url;
             this.notify('Banner actualizado');
           }
         } catch (e) {
-          alert('Error al subir banner');
+          alert('Error al subir banner: ' + (e.message || e));
         }
       },
 
       async uploadLogoImage(event) {
-        const file = event.target.files[0];
+        const file = event.target.files && event.target.files[0];
         if (!file) return;
 
         const formData = new FormData();
         formData.append('file', file);
 
         try {
-          const token = localStorage.getItem('access_token');
-          const res = await fetch('/api/v1/website/upload-image', {
-            method: 'POST',
-            headers: { 'Authorization': 'Bearer ' + (token || '') },
-            body: formData
-          });
+          let data;
+          if (window.API && typeof window.API.upload === 'function') {
+            data = await window.API.upload('/website/upload-image', formData);
+          } else {
+            let token = localStorage.getItem('access_token') || '';
+            token = token.replace(/^Bearer\s+/i, '').replace(/["'\r\n\t\s]/g, '');
+            const headers = (token && token.length > 10 && token !== 'null') ? { 'Authorization': `Bearer ${token}` } : {};
+            const res = await fetch('/api/v1/website/upload-image', {
+              method: 'POST',
+              credentials: 'same-origin',
+              headers: headers,
+              body: formData
+            });
+            if (!res.ok) throw new Error('Error al subir logo');
+            data = await res.json();
+          }
 
-          if (res.ok) {
-            const data = await res.json();
+          if (data && data.url) {
             this.config.logo_url = data.url;
             this.notify('Logo actualizado');
           }
         } catch (e) {
-          alert('Error al subir logo');
+          alert('Error al subir logo: ' + (e.message || e));
         }
       },
 

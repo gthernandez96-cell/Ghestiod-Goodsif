@@ -5,8 +5,19 @@
 const API = {
   baseUrl: '/api/v1',
 
+  _cleanToken() {
+    let token = localStorage.getItem('access_token') || localStorage.getItem('pos_token') || '';
+    if (typeof token === 'string') {
+      token = token.replace(/^Bearer\s+/i, '').replace(/["'\r\n\t\s]/g, '');
+      if (token === 'null' || token === 'undefined' || token.length < 10) token = '';
+    } else {
+      token = '';
+    }
+    return token;
+  },
+
   _getHeaders() {
-    const token = localStorage.getItem('access_token');
+    const token = this._cleanToken();
     return {
       'Content-Type': 'application/json',
       ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
@@ -83,7 +94,7 @@ const API = {
   upload: async (endpoint, formData) => {
     let url = API.baseUrl + endpoint;
     const getHeaders = () => {
-      const token = localStorage.getItem('access_token');
+      const token = API._cleanToken();
       return token ? { 'Authorization': `Bearer ${token}` } : {};
     };
 
