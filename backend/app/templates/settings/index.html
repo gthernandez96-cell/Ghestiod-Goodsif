@@ -603,7 +603,7 @@
           </div>
         </button>
 
-        <!-- 9. Copia de Seguridad -->
+        <!-- 9. Copia de Seguridad & Almacenamiento -->
         <button 
           type="button" 
           class="odoo-nav-item" 
@@ -613,8 +613,8 @@
         >
           <div class="nav-icon-box"><i class="ph ph-database"></i></div>
           <div class="nav-text-col">
-            <span class="nav-title">Copia de Seguridad</span>
-            <span class="nav-subtitle">Descarga de respaldo .db</span>
+            <span class="nav-title">Almacenamiento & BD</span>
+            <span class="nav-subtitle">Consumo en GB y tablas</span>
           </div>
         </button>
 
@@ -1315,42 +1315,187 @@
       <!-- ========================================== -->
       <section x-show="activeTab === 'backup'">
         
-        <div class="odoo-section-header">
+        <div class="odoo-section-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
           <div class="odoo-section-title-wrap">
             <div class="odoo-section-badge"><i class="ph ph-database"></i></div>
             <div>
-              <h2 class="odoo-section-title">Copia de Seguridad & Respaldos</h2>
-              <div class="odoo-section-desc">Descarga un respaldo completo y cifrado de toda la base de datos del sistema ERP.</div>
+              <h2 class="odoo-section-title">Almacenamiento & Base de Datos</h2>
+              <div class="odoo-section-desc">Monitoreo en tiempo real del tamaño de la base de datos en DigitalOcean, espacio consumido en GB y respaldos.</div>
             </div>
+          </div>
+          <button 
+            type="button" 
+            class="btn" 
+            style="background:#f1f5f9; color:#475569; font-weight:700; border:1px solid #cbd5e1; border-radius:8px; padding:7px 16px; font-size:12.5px; display:inline-flex; align-items:center; gap:6px; cursor:pointer;"
+            @click="loadDatabaseStorage()"
+            :disabled="dbStorage.loading"
+          >
+            <i class="ph ph-arrows-clockwise" :class="dbStorage.loading ? 'ph-spin' : ''" style="font-size:16px;"></i>
+            <span x-text="dbStorage.loading ? 'Consultando...' : 'Actualizar Métricas'"></span>
+          </button>
+        </div>
+
+        <!-- TARJETAS DE KPIS DE ALMACENAMIENTO -->
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:16px; margin:20px 0;">
+          
+          <!-- KPI: Espacio Usado -->
+          <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; padding:18px; box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <span style="font-size:11.5px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:0.5px;">Espacio Consumido</span>
+              <div style="width:28px; height:28px; border-radius:7px; background:var(--odoo-purple-light); color:var(--odoo-purple); display:flex; align-items:center; justify-content:center; font-size:16px;">
+                <i class="ph ph-hard-drive"></i>
+              </div>
+            </div>
+            <div style="font-size:24px; font-weight:900; color:#0f172a; line-height:1.2;" x-text="dbStorage.pretty_size || (dbStorage.size_mb + ' MB')">
+              0 MB
+            </div>
+            <div style="font-size:11px; color:#64748b; margin-top:4px;">
+              Equivale a <strong style="color:var(--odoo-purple);" x-text="dbStorage.size_gb + ' GB'">0 GB</strong>
+            </div>
+          </div>
+
+          <!-- KPI: Cuota del Servidor -->
+          <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; padding:18px; box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <span style="font-size:11.5px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:0.5px;">Capacidad Base</span>
+              <div style="width:28px; height:28px; border-radius:7px; background:#e0f2fe; color:#0284c7; display:flex; align-items:center; justify-content:center; font-size:16px;">
+                <i class="ph ph-cloud"></i>
+              </div>
+            </div>
+            <div style="font-size:24px; font-weight:900; color:#0284c7; line-height:1.2;" x-text="(dbStorage.quota_gb || 10) + ' GB'">
+              10 GB
+            </div>
+            <div style="font-size:11px; color:#64748b; margin-top:4px;">
+              Plan DigitalOcean Databases
+            </div>
+          </div>
+
+          <!-- KPI: Espacio Disponible -->
+          <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; padding:18px; box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <span style="font-size:11.5px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:0.5px;">Espacio Libre</span>
+              <div style="width:28px; height:28px; border-radius:7px; background:#dcfce7; color:#16a34a; display:flex; align-items:center; justify-content:center; font-size:16px;">
+                <i class="ph ph-check-circle"></i>
+              </div>
+            </div>
+            <div style="font-size:24px; font-weight:900; color:#16a34a; line-height:1.2;" x-text="(dbStorage.free_gb || 10) + ' GB'">
+              10 GB
+            </div>
+            <div style="font-size:11px; color:#64748b; margin-top:4px;">
+              <span style="color:#16a34a; font-weight:700;" x-text="(100 - (dbStorage.used_percentage || 0)).toFixed(1) + '% libre'"></span>
+            </div>
+          </div>
+
+          <!-- KPI: Motor de BD -->
+          <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; padding:18px; box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <span style="font-size:11.5px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:0.5px;">Motor Activo</span>
+              <div style="width:28px; height:28px; border-radius:7px; background:#fef3c7; color:#d97706; display:flex; align-items:center; justify-content:center; font-size:16px;">
+                <i class="ph ph-cpu"></i>
+              </div>
+            </div>
+            <div style="font-size:13px; font-weight:800; color:#0f172a; line-height:1.3; overflow:hidden; text-overflow:ellipsis;" x-text="dbStorage.database_type || 'PostgreSQL'">
+              PostgreSQL
+            </div>
+            <div style="font-size:11px; color:#64748b; margin-top:4px;">
+              Último test: <span x-text="dbStorage.last_checked || 'Hoy'"></span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- BARRA VISUAL DE CAPACIDAD -->
+        <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; padding:20px; margin-bottom:20px; box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="font-size:13px; font-weight:800; color:#0f172a;">Capacidad de Almacenamiento Utilizada</span>
+              <span style="font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px; background:var(--odoo-purple-light); color:var(--odoo-purple);" x-text="(dbStorage.used_percentage || 0) + '% usado'">0% usado</span>
+            </div>
+            <span style="font-size:12px; font-weight:600; color:#64748b;">
+              <strong style="color:#0f172a;" x-text="dbStorage.pretty_size || (dbStorage.size_mb + ' MB')">0 MB</strong> de <strong style="color:#0f172a;" x-text="(dbStorage.quota_gb || 10) + ' GB'">10 GB</strong>
+            </span>
+          </div>
+
+          <!-- Barra de progreso -->
+          <div style="width:100%; height:12px; background:#f1f5f9; border-radius:999px; overflow:hidden; position:relative;">
+            <div 
+              style="height:100%; background:linear-gradient(90deg, #714B67 0%, #00A09D 100%); border-radius:999px; transition:width 0.6s cubic-bezier(0.4, 0, 0.2, 1);"
+              :style="'width: ' + Math.max(0.5, Math.min(100, dbStorage.used_percentage || 0)) + '%'"
+            ></div>
+          </div>
+
+          <div style="display:flex; justify-content:space-between; font-size:11px; color:#94a3b8; margin-top:6px;">
+            <span>0 GB</span>
+            <span>2.5 GB</span>
+            <span>5.0 GB</span>
+            <span>7.5 GB</span>
+            <span>10.0 GB</span>
           </div>
         </div>
 
-        <div style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:12px; padding:36px 24px; text-align:center; max-width:600px; margin:20px auto;">
-          
-          <div style="width:70px; height:70px; border-radius:50%; background:var(--odoo-purple-light); color:var(--odoo-purple); display:flex; align-items:center; justify-content:center; font-size:36px; margin:0 auto 18px auto; box-shadow:0 4px 12px rgba(113,75,103,0.12);">
-            <i class="ph ph-database"></i>
+        <!-- TABLA: DESGLOSE DE ESPACIO POR TABLAS -->
+        <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; padding:20px; margin-bottom:24px; box-shadow:0 1px 3px rgba(0,0,0,0.02);" x-show="dbStorage.tables && dbStorage.tables.length > 0">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+            <div>
+              <h3 style="margin:0; font-size:14px; font-weight:800; color:#0f172a;">Consumo por Módulos y Tablas Principales</h3>
+              <div style="font-size:11.5px; color:#64748b;">Detalle del peso en disco y número de registros almacenados en el servidor.</div>
+            </div>
+            <i class="ph ph-table" style="font-size:18px; color:#94a3b8;"></i>
           </div>
 
-          <h3 style="margin:0 0 8px 0; font-size:19px; font-weight:800; color:#0f172a;">Respaldo Completo de la Base de Datos</h3>
-          <p style="font-size:13px; color:#64748b; line-height:1.5; margin:0 auto 24px auto;">
-            Descarga en un solo clic el archivo integral con todas las transacciones, ventas, partidas contables, catálogo de productos, clientes y configuraciones.
+          <div style="overflow-x:auto;">
+            <table style="width:100%; border-collapse:collapse; text-align:left; font-size:12.5px;">
+              <thead>
+                <tr style="border-bottom:1px solid #f1f5f9; color:#64748b; font-weight:700; font-size:11px; text-transform:uppercase; letter-spacing:0.5px;">
+                  <th style="padding:8px 12px;">Módulo / Tabla</th>
+                  <th style="padding:8px 12px; text-align:right;">Registros</th>
+                  <th style="padding:8px 12px; text-align:right;">Tamaño en Disco</th>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-for="t in dbStorage.tables" :key="t.table">
+                  <tr style="border-bottom:1px solid #f8fafc;" onmouseover="this.style.background='#faf5f9'" onmouseout="this.style.background='transparent'">
+                    <td style="padding:10px 12px; font-weight:600; color:#1e293b; display:flex; align-items:center; gap:8px;">
+                      <i class="ph ph-folder" style="color:var(--odoo-purple); font-size:15px;"></i>
+                      <div>
+                        <span x-text="t.label"></span>
+                        <span style="font-size:10.5px; color:#94a3b8; font-family:monospace; margin-left:4px;" x-text="'(' + t.table + ')'"></span>
+                      </div>
+                    </td>
+                    <td style="padding:10px 12px; text-align:right; font-weight:700; color:#475569;" x-text="(t.rows || 0).toLocaleString()"></td>
+                    <td style="padding:10px 12px; text-align:right; font-weight:800; color:var(--odoo-purple);" x-text="t.pretty_size || '0 KB'"></td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- COPIA DE SEGURIDAD / DESCARGA LOCAL -->
+        <div style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:12px; padding:28px 24px; text-align:center; max-width:640px; margin:20px auto;">
+          <div style="width:56px; height:56px; border-radius:50%; background:var(--odoo-purple-light); color:var(--odoo-purple); display:flex; align-items:center; justify-content:center; font-size:28px; margin:0 auto 14px auto; box-shadow:0 3px 10px rgba(113,75,103,0.12);">
+            <i class="ph ph-cloud-arrow-down"></i>
+          </div>
+
+          <h3 style="margin:0 0 6px 0; font-size:17px; font-weight:800; color:#0f172a;">Respaldos y Seguridad</h3>
+          <p style="font-size:12.5px; color:#64748b; line-height:1.5; margin:0 auto 20px auto;">
+            En producción con **PostgreSQL Managed Databases en DigitalOcean**, tus respaldos se realizan automáticamente cada día con retención de hasta 7 días y recuperación punto en el tiempo (Point-in-Time Recovery).
           </p>
 
           <a 
             href="/api/v1/companies/backup/download" 
             class="btn btn-primary" 
-            style="background:#059669; color:#ffffff; font-weight:800; border-radius:8px; padding:11px 28px; font-size:14px; display:inline-flex; align-items:center; gap:8px; text-decoration:none; box-shadow:0 4px 14px rgba(5,150,105,0.28); transition:transform 0.15s ease;"
+            style="background:#059669; color:#ffffff; font-weight:800; border-radius:8px; padding:10px 24px; font-size:13px; display:inline-flex; align-items:center; gap:8px; text-decoration:none; box-shadow:0 3px 10px rgba(5,150,105,0.22); transition:transform 0.15s ease;"
             onmouseover="this.style.transform='translateY(-1px)'"
             onmouseout="this.style.transform='translateY(0)'"
           >
-            <i class="ph ph-download-simple" style="font-size:20px;"></i>
-            <span>Descargar Base de Datos Ahora (.db)</span>
+            <i class="ph ph-download-simple" style="font-size:18px;"></i>
+            <span>Descargar Respaldo Estructurado</span>
           </a>
 
-          <div style="font-size:11.5px; color:#94a3b8; margin-top:16px;">
-            Compatible con SQLite 3 y herramientas de restauración local.
+          <div style="font-size:11px; color:#94a3b8; margin-top:14px;">
+            Los datos de producción están protegidos con cifrado en reposo (AES-256) y tránsito (SSL/TLS).
           </div>
-
         </div>
 
       </section>
@@ -1445,6 +1590,19 @@
       branches: [],
       showUserModal: false,
       initialFormSnapshot: '',
+      dbStorage: {
+        loading: false,
+        loaded: false,
+        database_type: '',
+        size_gb: 0,
+        size_mb: 0,
+        pretty_size: '0 MB',
+        quota_gb: 10,
+        free_gb: 10,
+        used_percentage: 0,
+        tables: [],
+        last_checked: ''
+      },
       userForm: {
         full_name: '',
         username: '',
@@ -1503,14 +1661,15 @@
         loyalty: ['lealtad', 'puntos', 'recompensas', 'canje', 'club'],
         notifications: ['notificaciones', 'whatsapp', 'correo', 'email', 'alertas'],
         users: ['usuarios', 'roles', 'colaboradores', 'permisos', 'sucursal'],
-        backup: ['backup', 'copia', 'seguridad', 'respaldo', 'sqlite', 'base de datos']
+        backup: ['backup', 'copia', 'seguridad', 'respaldo', 'sqlite', 'base de datos', 'almacenamiento', 'disco', 'gb', 'mb', 'espacio', 'postgresql', 'digitalocean']
       },
 
       async init() {
         await Promise.all([
           this.loadSettings(),
           this.loadUsers(),
-          this.loadBranches()
+          this.loadBranches(),
+          this.loadDatabaseStorage()
         ]);
         this.initialFormSnapshot = JSON.stringify(this.form);
         this.isDirty = false;
@@ -1522,6 +1681,9 @@
 
       setTab(tab) {
         this.activeTab = tab;
+        if (tab === 'backup' && !this.dbStorage.loaded) {
+          this.loadDatabaseStorage();
+        }
       },
 
       isTabVisible(tab) {
@@ -1547,6 +1709,20 @@
             this.isDirty = false;
           }
         } catch(e) {}
+      },
+
+      async loadDatabaseStorage() {
+        this.dbStorage.loading = true;
+        try {
+          const res = await API.get('/companies/database-storage');
+          if (res) {
+            this.dbStorage = { ...this.dbStorage, ...res, loaded: true };
+          }
+        } catch (e) {
+          console.error('Error cargando almacenamiento:', e);
+        } finally {
+          this.dbStorage.loading = false;
+        }
       },
 
       discardChanges() {

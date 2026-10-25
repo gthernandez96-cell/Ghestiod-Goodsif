@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, or_
+from sqlalchemy import select, func, or_, text
 from sqlalchemy.orm import selectinload
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
@@ -15,6 +15,9 @@ from app.core.security import get_current_user, get_password_hash
 from app.models.company import Company, Branch, Warehouse, TaxRegime
 from app.models.inventory import StockQuant
 from app.models.user import User
+
+import logging
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -219,6 +222,106 @@ async def download_database_backup(
         filename=filename,
         media_type="application/x-sqlite3"
     )
+
+
+@router.get("/companies/database-storage")
+async def get_database_storage_stats(
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """Consultar estadísticas de almacenamiento, peso en GB/MB y tablas principales de la base de datos."""
+    from app.core.config import settings
+
+    is_pg = "postgresql" in settings.DATABASE_URL
+    quota_gb = 10.0  # Plan estándar DigitalOcean Managed Database (10 GB)
+
+    TABLE_LABELS = {
+        "partners": "Clientes y Proveedores",
+        "products": "Catálogo de Productos",
+        "sale_orders": "Ventas y Facturación",
+        "sale_order_items": "Líneas de Detalle de Ventas",
+        "stock_quants": "Inventario en Bodegas",
+        "stock_moves": "Kárdex y Movimientos",
+        "purchase_orders": "Compras a Proveedores",
+        "purchase_order_items": "Detalle de Compras",
+        "audit_logs": "Bitácora de Auditoría",
+        "account_moves": "Asientos Contables",
+        "users": "Usuarios y Colaboradores",
+        "cashier_sessions": "Cortes y Sesiones de Caja",
+        "payments": "Abonos y Cobranzas",
+    }
+
+    size_bytes = 0
+    tables_info = []
+
+    if is_pg:
+        try:
+            # Tamaño global de la base de datos en PostgreSQL
+            res = await db.execute(text("SELECT pg_database_size(current_database())"))
+            size_bytes = int(res.scalar() or 0)
+
+            # Desglose de tablas principales
+            t_res = await db.execute(text("""
+                SELECT 
+                    s.relname AS table_name,
+                    pg_total_relation_size(s.relid) AS total_bytes,
+                    COALESCE(st.n_live_tup, 0) AS estimated_rows
+                FROM pg_catalog.pg_statio_user_tables s
+                LEFT JOIN pg_stat_user_tables st ON s.relid = st.relid
+                ORDER BY pg_total_relation_size(s.relid) DESC
+                LIMIT 10
+            """))
+            for r in t_res.fetchall():
+                t_bytes = int(r[1] or 0)
+                t_name = str(r[0])
+                tables_info.append({
+                    "table": t_name,
+                    "label": TABLE_LABELS.get(t_name, t_name.replace("_", " ").title()),
+                    "bytes": t_bytes,
+                    "pretty_size": f"{t_bytes / (1024 * 1024):.2f} MB" if t_bytes >= 1024 * 1024 else f"{t_bytes / 1024:.1f} KB",
+                    "rows": int(r[2] or 0)
+                })
+        except Exception as e:
+            logger.warning(f"Error consultando tamaño en PostgreSQL: {e}")
+    else:
+        # Modo SQLite Local
+        db_file = os.path.abspath("pos.db")
+        if os.path.exists(db_file):
+            size_bytes = os.path.getsize(db_file)
+
+        for t_name, t_label in list(TABLE_LABELS.items())[:8]:
+            try:
+                cnt_res = await db.execute(text(f"SELECT COUNT(*) FROM {t_name}"))
+                cnt = int(cnt_res.scalar() or 0)
+                tables_info.append({
+                    "table": t_name,
+                    "label": t_label,
+                    "bytes": 0,
+                    "pretty_size": f"{cnt} registros",
+                    "rows": cnt
+                })
+            except Exception:
+                pass
+
+    size_mb = round(size_bytes / (1024 * 1024), 2)
+    size_gb = round(size_bytes / (1024 * 1024 * 1024), 4)
+    used_percentage = round((size_gb / quota_gb) * 100, 2)
+    free_gb = round(max(0.0, quota_gb - size_gb), 2)
+
+    return {
+        "status": "success",
+        "database_type": "PostgreSQL (DigitalOcean Managed Database)" if is_pg else "SQLite 3 (Desarrollo Local)",
+        "is_production_pg": is_pg,
+        "size_bytes": size_bytes,
+        "size_mb": size_mb,
+        "size_gb": size_gb,
+        "pretty_size": f"{size_gb:.3f} GB" if size_gb >= 1.0 else f"{size_mb:.2f} MB",
+        "quota_gb": quota_gb,
+        "free_gb": free_gb,
+        "used_percentage": used_percentage,
+        "tables": tables_info,
+        "last_checked": datetime.now(timezone.utc).strftime("%d/%m/%Y %H:%M:%S UTC")
+    }
 
 
 @router.get("/companies/users")
