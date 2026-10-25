@@ -94,9 +94,6 @@ class Product(BaseModel):
     sale_price = Column(Numeric(18, 4), nullable=False, default=0)
     cost_price = Column(Numeric(18, 4), default=0)
     min_price = Column(Numeric(18, 4), default=0)  # Precio mínimo de venta
-    cash_price = Column(Numeric(18, 4), default=0)  # Precio contado
-    exclusive_cash_price = Column(Numeric(18, 4), default=0)  # Precio contado exclusivo
-    special_price = Column(Numeric(18, 4), default=0)  # Precio especial
     wholesale_price = Column(Numeric(18, 4), default=0)  # Precio de venta mayorista
     wholesale_uom_id = Column(UUID(as_uuid=True), ForeignKey("units_of_measure.id"), nullable=True)  # Unidad mayorista (paquete, caja, etc)
     wholesale_ratio = Column(Numeric(18, 4), default=1.0)  # Cantidad de unidades base que contiene (ej: 12 por paquete)
@@ -110,11 +107,9 @@ class Product(BaseModel):
     max_stock = Column(Numeric(18, 4), default=0)  # Stock máximo
     reorder_point = Column(Numeric(18, 4), default=0)
 
-    # Estado y Canales de Venta
+    # Estado
     is_active = Column(Boolean, default=True)
-    is_published = Column(Boolean, default=True)  # Visible en POS (retrocompatibilidad)
-    available_in_pos = Column(Boolean, default=True)  # Visible en Punto de Venta (POS)
-    available_in_presale = Column(Boolean, default=True)  # Visible en Pre-Venta (Preventistas)
+    is_published = Column(Boolean, default=True)  # Visible en POS
     can_be_sold = Column(Boolean, default=True)
     can_be_purchased = Column(Boolean, default=True)
 

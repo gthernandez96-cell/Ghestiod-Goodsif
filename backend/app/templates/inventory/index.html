@@ -1344,26 +1344,8 @@
                   x-text="p.category_name || 'General'"></td>
                 <td style="padding:14px 18px; text-align:right; color:#64748b; font-weight:600; font-size:13px;"
                   x-text="'Q ' + Number(p.cost_price || 0).toFixed(2)"></td>
-                <td style="padding:14px 18px; text-align:right;">
-                  <div style="font-weight:900; font-size:13.5px; color:#0f172a;" x-text="'Q ' + Number(p.sale_price || 0).toFixed(2)"></div>
-                  <div style="display:flex; flex-wrap:wrap; justify-content:flex-end; gap:3px; margin-top:3px;" x-show="p.cash_price > 0 || p.exclusive_cash_price > 0 || p.special_price > 0">
-                    <template x-if="p.cash_price > 0">
-                      <span style="font-size:9.5px; font-weight:800; background:#f0fdfa; color:#0f766e; border:1px solid #ccfbf1; padding:1px 5px; border-radius:4px;" :title="'Contado: Q' + Number(p.cash_price).toFixed(2)">
-                        Cont: Q<span x-text="Number(p.cash_price).toFixed(2)"></span>
-                      </span>
-                    </template>
-                    <template x-if="p.exclusive_cash_price > 0">
-                      <span style="font-size:9.5px; font-weight:800; background:#eff6ff; color:#1d4ed8; border:1px solid #dbeafe; padding:1px 5px; border-radius:4px;" :title="'Contado Excl.: Q' + Number(p.exclusive_cash_price).toFixed(2)">
-                        Excl: Q<span x-text="Number(p.exclusive_cash_price).toFixed(2)"></span>
-                      </span>
-                    </template>
-                    <template x-if="p.special_price > 0">
-                      <span style="font-size:9.5px; font-weight:800; background:#fffbeb; color:#b45309; border:1px solid #fef3c7; padding:1px 5px; border-radius:4px;" :title="'Especial: Q' + Number(p.special_price).toFixed(2)">
-                        Esp: Q<span x-text="Number(p.special_price).toFixed(2)"></span>
-                      </span>
-                    </template>
-                  </div>
-                </td>
+                <td style="padding:14px 18px; text-align:right; font-weight:800; font-size:13.5px; color:#0f172a;"
+                  x-text="'Q ' + Number(p.sale_price || 0).toFixed(2)"></td>
                 <td style="padding:14px 18px; text-align:center;">
                   <span style="font-size:11.5px; font-weight:900; padding:3px 10px; border-radius:10px;"
                     :style="((p.stock_physical !== undefined ? p.stock_physical : p.stock) || 0) <= 0 ? 'background:#fee2e2; color:#b91c1c;' : (((p.stock_physical !== undefined ? p.stock_physical : p.stock) || 0) <= (p.min_stock || 5) ? 'background:#ffedd5; color:#c2410c;' : 'background:#dcfce7; color:#15803d;')"
@@ -1378,14 +1360,6 @@
                   <span style="font-size:11px; font-weight:800; padding:3px 8px; border-radius:8px;"
                     :style="p.is_active ? 'background:#dcfce7; color:#15803d;' : 'background:#fef3c7; color:#b45309;'"
                     x-text="p.is_active ? 'Activo' : 'Archivado'"></span>
-                  <div style="display:flex; justify-content:center; gap:4px; margin-top:4px;">
-                    <template x-if="p.available_in_pos !== false">
-                      <span style="font-size:9px; font-weight:800; background:#f0fdfa; color:#0d9488; border:1px solid #ccfbf1; padding:1px 4px; border-radius:4px;" title="Disponible en Punto de Venta">POS</span>
-                    </template>
-                    <template x-if="p.available_in_presale !== false">
-                      <span style="font-size:9px; font-weight:800; background:#fdf4fa; color:#714B67; border:1px solid #fbcfe8; padding:1px 4px; border-radius:4px;" title="Disponible en Pre-Venta">PRE</span>
-                    </template>
-                  </div>
                 </td>
                 <td style="padding:14px 18px; text-align:right;">
                   <div style="display:inline-flex; align-items:center; gap:6px;">
@@ -1946,8 +1920,9 @@
             <i class="ph ph-file-arrow-up"></i>
           </div>
           <div>
-            <h3 style="font-size:17px; font-weight:800; color:#0f172a; margin:0;">Importar Productos (Excel o CSV)</h3>
-            <p style="font-size:12px; color:#64748b; margin:2px 0 0 0;">Carga masiva rápida de catálogo con stock y múltiples tarifas de precios</p>
+            <h3 style="font-size:17px; font-weight:800; color:#0f172a; margin:0;">Importar Productos desde CSV</h3>
+            <p style="font-size:12px; color:#64748b; margin:2px 0 0 0;">Carga masiva rápida de catálogo con stock y
+              precios</p>
           </div>
         </div>
         <button type="button" @click="showImportModal = false; importResult = null"
@@ -1958,8 +1933,8 @@
       <div
         style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:14px; margin-bottom:18px; display:flex; align-items:center; justify-content:space-between;">
         <div>
-          <div style="font-size:12.5px; font-weight:800; color:#334155;">1. Descarga la plantilla oficial con tarifas</div>
-          <div style="font-size:11.5px; color:#64748b;">Compatible con Excel (.xlsx) y CSV. Incluye precio público, contado, contado exclusivo y especial.</div>
+          <div style="font-size:12.5px; font-weight:800; color:#334155;">1. Descarga la plantilla oficial</div>
+          <div style="font-size:11.5px; color:#64748b;">Archivo CSV con las columnas requeridas para Excel</div>
         </div>
         <a href="/api/v1/products/template-csv" download class="btn btn-sm"
           style="background:#714B67; color:#ffffff; font-weight:700; border-radius:6px; padding:6px 12px; font-size:12px; text-decoration:none; display:flex; align-items:center; gap:5px;">
@@ -1969,13 +1944,11 @@
 
       <!-- Paso 2: Seleccionar archivo -->
       <div style="margin-bottom:18px;">
-        <label style="font-size:12px; font-weight:800; color:#475569; display:block; margin-bottom:6px;">2. SELECCIONA TU ARCHIVO (EXCEL .XLSX O CSV)</label>
-        <input type="file" id="csvFileInput" accept=".csv, .xlsx, .xls, text/csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
+        <label style="font-size:12px; font-weight:800; color:#475569; display:block; margin-bottom:6px;">2. SELECCIONA
+          TU ARCHIVO CSV</label>
+        <input type="file" id="csvFileInput" accept=".csv, text/csv"
           style="width:100%; padding:10px; border:1.5px dashed #cbd5e1; border-radius:10px; background:#f8fafc; font-size:13px; cursor:pointer;"
           @change="selectedCsvFile = $event.target.files[0]">
-        <div style="font-size:11px; color:#64748b; margin-top:5px;">
-          Columnas reconocidas: <code>codigo_interno</code>, <code>codigo_barras</code>, <code>nombre</code>, <code>categoria</code>, <code>precio_venta</code>, <code>precio_contado</code>, <code>precio_contado_exclusivo</code>, <code>precio_especial</code>, <code>precio_costo</code>, <code>stock_inicial</code>.
-        </div>
       </div>
 
       <!-- Mensaje de resultado -->

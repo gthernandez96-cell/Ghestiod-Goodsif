@@ -41,11 +41,6 @@ def setup_test_db():
                 "ALTER TABLE products ADD COLUMN wholesale_price NUMERIC(18, 4) DEFAULT 0",
                 "ALTER TABLE products ADD COLUMN wholesale_uom_id VARCHAR(36)",
                 "ALTER TABLE products ADD COLUMN wholesale_ratio NUMERIC(18, 4) DEFAULT 1.0",
-                "ALTER TABLE products ADD COLUMN cash_price NUMERIC(18, 4) DEFAULT 0",
-                "ALTER TABLE products ADD COLUMN exclusive_cash_price NUMERIC(18, 4) DEFAULT 0",
-                "ALTER TABLE products ADD COLUMN special_price NUMERIC(18, 4) DEFAULT 0",
-                "ALTER TABLE products ADD COLUMN available_in_pos BOOLEAN DEFAULT TRUE",
-                "ALTER TABLE products ADD COLUMN available_in_presale BOOLEAN DEFAULT TRUE",
             ]:
                 try:
                     await conn.execute(text(col_sql))
