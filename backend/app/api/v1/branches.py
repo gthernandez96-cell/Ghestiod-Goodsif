@@ -288,6 +288,50 @@ async def download_database_backup(
     )
 
 
+@router.post("/companies/backup/cloud-now")
+async def trigger_cloud_backup_now(
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """Ejecutar un respaldo inmediato en la nube y subirlo a DigitalOcean Spaces."""
+    from app.services.backup_service import create_cloud_backup
+    from app.services.spaces_storage import is_spaces_configured
+
+    if not is_spaces_configured():
+        raise HTTPException(
+            status_code=400,
+            detail="DigitalOcean Spaces no está configurado aún. Configura las credenciales en DigitalOcean para activar los respaldos en la nube."
+        )
+
+    try:
+        company_id = getattr(current_user, "company_id", None)
+        result = await create_cloud_backup(db, company_id=company_id, source="manual")
+        return result
+    except Exception as e:
+        logger.error(f"Error generando respaldo en la nube: {e}")
+        raise HTTPException(status_code=500, detail=f"Error al generar respaldo en la nube: {str(e)}")
+
+
+@router.get("/companies/backup/cloud-list")
+async def list_cloud_backups_endpoint(
+    current_user=Depends(get_current_user),
+):
+    """Listar los respaldos almacenados en la nube (DigitalOcean Spaces)."""
+    from app.services.spaces_storage import list_spaces_files, is_spaces_configured
+
+    if not is_spaces_configured():
+        return {
+            "configured": False,
+            "backups": []
+        }
+
+    files = list_spaces_files(prefix="backups/")
+    return {
+        "configured": True,
+        "backups": files
+    }
+
+
 @router.get("/companies/database-storage")
 async def get_database_storage_stats(
     db: AsyncSession = Depends(get_db),

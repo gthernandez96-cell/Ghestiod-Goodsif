@@ -58,8 +58,21 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"⚠️  Redis no disponible: {e}")
 
+    # Iniciar scheduler de respaldos automáticos diarios a DigitalOcean Spaces
+    try:
+        from app.services.backup_service import start_backup_scheduler, stop_backup_scheduler
+        start_backup_scheduler()
+    except Exception as e:
+        logger.warning(f"⚠️ No se pudo iniciar el scheduler de respaldos: {e}")
+
     logger.info("✅ Sistema POS listo para recibir solicitudes")
     yield
+
+    try:
+        from app.services.backup_service import stop_backup_scheduler
+        stop_backup_scheduler()
+    except Exception:
+        pass
 
     logger.info("🔴 Cerrando el sistema POS...")
 
