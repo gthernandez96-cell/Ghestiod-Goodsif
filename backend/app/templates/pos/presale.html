@@ -3112,9 +3112,9 @@ function presaleApp() {
 
     async loadProducts() {
       try {
-        const res = await API.get('/products/?is_active=true');
+        const res = await API.get('/products/?is_active=true&available_in_presale=true');
         const items = res.items || res.products || (Array.isArray(res) ? res : []);
-        this.products = items.filter(p => p.is_active === true && !p.is_deleted);
+        this.products = items.filter(p => p.is_active === true && !p.is_deleted && p.available_in_presale !== false);
         if (this.products.length > 0) {
           try {
             localStorage.setItem('presale_cached_products', JSON.stringify(this.products));
