@@ -372,6 +372,11 @@ async def get_database_storage_stats(
     used_percentage = round((size_gb / quota_gb) * 100, 2)
     free_gb = round(max(0.0, quota_gb - size_gb), 2)
 
+    from app.services.spaces_storage import is_spaces_configured
+    spaces_active = is_spaces_configured()
+    bucket_name = os.environ.get("SPACES_BUCKET_NAME", "")
+    region_name = os.environ.get("SPACES_REGION", "atl1")
+
     return {
         "status": "success",
         "database_type": "PostgreSQL (DigitalOcean Managed Database)" if is_pg else "SQLite 3 (Desarrollo Local)",
@@ -384,6 +389,13 @@ async def get_database_storage_stats(
         "free_gb": free_gb,
         "used_percentage": used_percentage,
         "tables": tables_info,
+        "spaces_storage": {
+            "active": spaces_active,
+            "bucket": bucket_name,
+            "region": region_name,
+            "quota_label": "250 GB" if spaces_active else "No configurado",
+            "status_label": "Conectado a DigitalOcean Spaces" if spaces_active else "Almacenamiento Local (Sin Spaces)"
+        },
         "last_checked": datetime.now(timezone.utc).strftime("%d/%m/%Y %H:%M:%S UTC")
     }
 
