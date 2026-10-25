@@ -1362,11 +1362,11 @@
                 <i class="ph ph-cloud"></i>
               </div>
             </div>
-            <div style="font-size:24px; font-weight:900; color:#0284c7; line-height:1.2;" x-text="(dbStorage.quota_gb || 10) + ' GB'">
-              10 GB
+            <div style="font-size:24px; font-weight:900; color:#0284c7; line-height:1.2;" x-text="(dbStorage.quota_gb || 1) + ' GB'">
+              1 GB
             </div>
             <div style="font-size:11px; color:#64748b; margin-top:4px;">
-              Plan DigitalOcean Databases
+              Plan DigitalOcean Dev Database ($7/mes)
             </div>
           </div>
 
@@ -1378,8 +1378,8 @@
                 <i class="ph ph-check-circle"></i>
               </div>
             </div>
-            <div style="font-size:24px; font-weight:900; color:#16a34a; line-height:1.2;" x-text="(dbStorage.free_gb || 10) + ' GB'">
-              10 GB
+            <div style="font-size:24px; font-weight:900; color:#16a34a; line-height:1.2;" x-text="(dbStorage.free_gb != null ? dbStorage.free_gb : 1) + ' GB'">
+              1 GB
             </div>
             <div style="font-size:11px; color:#64748b; margin-top:4px;">
               <span style="color:#16a34a; font-weight:700;" x-text="(100 - (dbStorage.used_percentage || 0)).toFixed(1) + '% libre'"></span>
@@ -1412,7 +1412,7 @@
               <span style="font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px; background:var(--odoo-purple-light); color:var(--odoo-purple);" x-text="(dbStorage.used_percentage || 0) + '% usado'">0% usado</span>
             </div>
             <span style="font-size:12px; font-weight:600; color:#64748b;">
-              <strong style="color:#0f172a;" x-text="dbStorage.pretty_size || (dbStorage.size_mb + ' MB')">0 MB</strong> de <strong style="color:#0f172a;" x-text="(dbStorage.quota_gb || 10) + ' GB'">10 GB</strong>
+              <strong style="color:#0f172a;" x-text="dbStorage.pretty_size || (dbStorage.size_mb + ' MB')">0 MB</strong> de <strong style="color:#0f172a;" x-text="(dbStorage.quota_gb || 1) + ' GB'">1 GB</strong>
             </span>
           </div>
 
@@ -1425,11 +1425,11 @@
           </div>
 
           <div style="display:flex; justify-content:space-between; font-size:11px; color:#94a3b8; margin-top:6px;">
-            <span>0 GB</span>
-            <span>2.5 GB</span>
-            <span>5.0 GB</span>
-            <span>7.5 GB</span>
-            <span>10.0 GB</span>
+            <span>0 MB</span>
+            <span>250 MB (0.25 GB)</span>
+            <span>500 MB (0.50 GB)</span>
+            <span>750 MB (0.75 GB)</span>
+            <span>1000 MB (1.0 GB)</span>
           </div>
         </div>
 

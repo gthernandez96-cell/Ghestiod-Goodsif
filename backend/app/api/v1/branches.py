@@ -233,7 +233,7 @@ async def get_database_storage_stats(
     from app.core.config import settings
 
     is_pg = "postgresql" in settings.DATABASE_URL
-    quota_gb = 10.0  # Plan estándar DigitalOcean Managed Database (10 GB)
+    quota_gb = 1.0  # Plan Dev Database de DigitalOcean (1.0 GB Disk, 512 MB RAM)
 
     TABLE_LABELS = {
         "partners": "Clientes y Proveedores",
