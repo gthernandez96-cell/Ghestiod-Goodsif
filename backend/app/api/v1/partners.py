@@ -46,6 +46,7 @@ def check_credit_payment_permission(current_user):
 
 
 class PartnerCreateIn(BaseModel):
+    code: Optional[int] = None
     name: str
     nit: Optional[str] = "CF"
     cui: Optional[str] = None
@@ -67,6 +68,7 @@ class PartnerCreateIn(BaseModel):
 
 
 class PartnerUpdateIn(BaseModel):
+    code: Optional[int] = None
     name: Optional[str] = None
     nit: Optional[str] = None
     cui: Optional[str] = None
@@ -130,17 +132,20 @@ async def list_partners(
             pass
 
     if search:
-        pattern = f"%{search}%"
-        stmt = stmt.where(
-            or_(
-                Partner.name.ilike(pattern),
-                Partner.nit.ilike(pattern),
-                Partner.phone.ilike(pattern),
-                Partner.email.ilike(pattern),
-            )
-        )
+        s_clean = search.strip()
+        pattern = f"%{s_clean}%"
+        conds = [
+            Partner.name.ilike(pattern),
+            Partner.nit.ilike(pattern),
+            Partner.phone.ilike(pattern),
+            Partner.email.ilike(pattern),
+            Partner.trade_name.ilike(pattern),
+        ]
+        if s_clean.isdigit():
+            conds.append(Partner.code == int(s_clean))
+        stmt = stmt.where(or_(*conds))
 
-    stmt = stmt.order_by(Partner.name)
+    stmt = stmt.order_by(Partner.code.asc().nulls_last(), Partner.name.asc())
     res = await db.execute(stmt)
     partners = res.scalars().all()
 
@@ -151,6 +156,7 @@ async def list_partners(
         c_available = max(Decimal("0"), c_limit - c_balance)
         items.append({
             "id": str(p.id),
+            "code": p.code,
             "name": p.name,
             "nit": p.nit or "CF",
             "cui": p.cui or "",
@@ -382,6 +388,12 @@ def normalize_partner_media_url(url: str) -> str:
 
 
 PARTNER_TEMPLATE_DEFINITIONS = {
+    "codigo": {
+        "header": "ID / CODIGO",
+        "sample": "1",
+        "sample2": "2",
+        "description": "Número correlativo/ID del cliente (Opcional, se genera automáticamente si está vacío)."
+    },
     "nombre": {
         "header": "NOMBRE / RAZON SOCIAL",
         "sample": "Distribuidora Los Altos, S.A.",
@@ -702,8 +714,30 @@ async def import_partners_csv(
     updated_count = 0
     errors = []
 
+    # Obtener el ID/código correlativo máximo actual de la empresa
+    max_code_res = await db.execute(
+        select(func.coalesce(func.max(Partner.code), 0)).where(Partner.company_id == current_user.company_id)
+    )
+    current_max_code = int(max_code_res.scalar() or 0)
+
     for idx, raw_row in rows_data:
         row = {clean_col(k): str(v).strip() for k, v in raw_row.items() if k}
+        row_code_val = (
+            row.get("id___codigo")
+            or row.get("id_codigo")
+            or row.get("codigo")
+            or row.get("id")
+            or None
+        )
+        assigned_row_code = None
+        if row_code_val:
+            try:
+                parsed_c = int(str(row_code_val).strip().replace("#", ""))
+                if parsed_c > 0:
+                    assigned_row_code = parsed_c
+            except Exception:
+                pass
+
         name = (
             row.get("nombre")
             or row.get("nombre___razon_social")
@@ -835,6 +869,8 @@ async def import_partners_csv(
             existing = res.scalars().first()
 
         if existing:
+            if assigned_row_code:
+                existing.code = assigned_row_code
             existing.name = name
             if cui:
                 existing.cui = cui
@@ -872,8 +908,16 @@ async def import_partners_csv(
                 existing.notes = notes
             updated_count += 1
         else:
+            if not assigned_row_code:
+                current_max_code += 1
+                assigned_row_code = current_max_code
+            else:
+                if assigned_row_code > current_max_code:
+                    current_max_code = assigned_row_code
+
             partner_obj = Partner(
                 company_id=current_user.company_id,
+                code=assigned_row_code,
                 name=name,
                 nit=nit,
                 cui=cui,
@@ -978,6 +1022,7 @@ async def export_partners_excel(
         return "Sin Crédito"
 
     partner_col_defs = {
+        "codigo": ("ID", lambda p: p.code or ""),
         "nombre": ("NOMBRE / RAZON SOCIAL", lambda p: p.name or ""),
         "nit": ("NIT", lambda p: p.nit or "CF"),
         "cui": ("DPI / CUI", lambda p: p.cui or ""),
@@ -1132,6 +1177,7 @@ async def get_partner(
 
     return {
         "id": str(p.id),
+        "code": p.code,
         "name": p.name,
         "nit": p.nit,
         "cui": p.cui,
@@ -1351,8 +1397,16 @@ async def create_partner(
     except ValueError:
         cs_enum = CreditStatus.ACTIVE
 
+    assigned_code = data.code
+    if not assigned_code or assigned_code <= 0:
+        max_code_res = await db.execute(
+            select(func.coalesce(func.max(Partner.code), 0)).where(Partner.company_id == current_user.company_id)
+        )
+        assigned_code = int(max_code_res.scalar() or 0) + 1
+
     partner = Partner(
         company_id=current_user.company_id,
+        code=assigned_code,
         name=data.name,
         nit=data.nit or "CF",
         cui=data.cui,
@@ -1376,7 +1430,7 @@ async def create_partner(
     await db.commit()
     await db.refresh(partner)
 
-    return {"id": str(partner.id), "name": partner.name, "nit": partner.nit, "status": "created"}
+    return {"id": str(partner.id), "code": partner.code, "name": partner.name, "nit": partner.nit, "status": "created"}
 
 
 @router.put("/{partner_id}")
@@ -1400,6 +1454,7 @@ async def update_partner(
     if not p:
         raise HTTPException(status_code=404, detail="Socio no encontrado")
 
+    if data.code is not None and data.code > 0: p.code = data.code
     if data.name is not None: p.name = data.name
     if data.nit is not None: p.nit = data.nit
     if data.cui is not None: p.cui = data.cui

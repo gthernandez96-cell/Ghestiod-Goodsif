@@ -650,8 +650,9 @@
               <div style="font-weight:700; font-size:14px; color:#111827; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" x-text="p.name"></div>
               <div style="font-size:11px; color:#6b7280; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:-1px;" x-text="p.trade_name ? p.trade_name : ''" x-show="p.trade_name"></div>
 
-              <!-- Tags / Monospace NIT (Sin bordes duros) -->
+              <!-- Tags / Monospace NIT & ID (Sin bordes duros) -->
               <div style="display:flex; align-items:center; gap:6px; margin-top:4px; flex-wrap:wrap;">
+                <span style="font-size:11px; font-weight:800; background:#f3e8ff; color:#6b21a8; padding:2px 8px; border-radius:12px; font-family:monospace;" x-text="'ID: #' + (p.code || '—')"></span>
                 <span style="font-size:11px; font-weight:700; background:#f1f5f9; color:#475569; padding:2px 8px; border-radius:12px; font-family:monospace;" x-text="'NIT: ' + (p.nit || 'CF')"></span>
                 <span 
                   style="font-size:11px; font-weight:700; padding:2px 8px; border-radius:12px;"
@@ -739,6 +740,7 @@
         <table class="table" style="width:100%; border-collapse:collapse;">
           <thead>
             <tr style="border-bottom:2px solid #e2e8f0; background:#f8fafc;">
+              <th style="padding:14px 18px; text-align:left; color:#475569; font-size:11px; text-transform:uppercase; font-weight:800; width:70px;">ID</th>
               <th style="padding:14px 18px; text-align:left; color:#475569; font-size:11px; text-transform:uppercase; font-weight:800;">Contacto / Razón Social</th>
               <th style="padding:14px 18px; text-align:left; color:#475569; font-size:11px; text-transform:uppercase; font-weight:800;">NIT Guatemala</th>
               <th style="padding:14px 18px; text-align:left; color:#475569; font-size:11px; text-transform:uppercase; font-weight:800;">Tipo</th>
@@ -751,6 +753,9 @@
           <tbody>
             <template x-for="p in filteredPartners" :key="p.id">
               <tr style="border-bottom:1px solid #f1f5f9; transition:background 0.15s; cursor:pointer;" @click="openDetailModal(p)" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#ffffff'">
+                <td style="padding:14px 18px;">
+                  <span style="font-size:11.5px; font-weight:800; background:#f3e8ff; color:#6b21a8; padding:3px 9px; border-radius:12px; font-family:monospace;" x-text="'#' + (p.code || '—')"></span>
+                </td>
                 <td style="padding:14px 18px;">
                   <div style="display:flex; align-items:center; gap:10px;">
                     <template x-if="p.image_url">
@@ -802,7 +807,7 @@
           </div>
           <div>
             <div style="font-size:17px; font-weight:800; letter-spacing:0.3px;" x-text="detailForm.name || 'Nuevo Contacto'"></div>
-            <div style="font-size:11.5px; opacity:0.85;" x-text="'NIT: ' + (detailForm.nit || 'CF') + ' · ' + (detailForm.partner_type === 'supplier' ? 'Proveedor' : 'Cliente')"></div>
+            <div style="font-size:11.5px; opacity:0.85;" x-text="'ID: #' + (detailForm.code || '—') + ' · NIT: ' + (detailForm.nit || 'CF') + ' · ' + (detailForm.partner_type === 'supplier' ? 'Proveedor' : 'Cliente')"></div>
           </div>
         </div>
 
@@ -1330,6 +1335,10 @@
                 </div>
                 <div style="display:flex; flex-direction:column; gap:6px; font-size:12.5px; color:#334155;">
                   <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                    <input type="checkbox" x-model="templateCols.codigo" style="accent-color:#107c41; cursor:pointer;">
+                    <span>ID / Código Correlativo</span>
+                  </label>
+                  <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
                     <input type="checkbox" x-model="templateCols.nombre" style="accent-color:#107c41; cursor:pointer;">
                     <span><strong>Nombre / Razón Social</strong> (Obligatorio)</span>
                   </label>
@@ -1625,6 +1634,10 @@
               </div>
               <div style="display:flex; flex-direction:column; gap:6px; font-size:12.5px; color:#334155;">
                 <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                  <input type="checkbox" x-model="exportCols.codigo" style="accent-color:#107c41; cursor:pointer;">
+                  <span><strong>ID / Código Correlativo</strong></span>
+                </label>
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
                   <input type="checkbox" x-model="exportCols.nombre" style="accent-color:#107c41; cursor:pointer;">
                   <span><strong>Nombre / Razón Social</strong></span>
                 </label>
@@ -1789,6 +1802,7 @@
       importResult: null,
       templatePreset: 'basic',
       templateCols: {
+        codigo: false,
         nombre: true,
         nit: true,
         cui: false,
@@ -1813,6 +1827,7 @@
       exportFilterType: 'all',
       exportPreset: 'basic',
       exportCols: {
+        codigo: true,
         nombre: true,
         nit: true,
         cui: false,
@@ -2157,19 +2172,19 @@
         this.exportPreset = preset;
         if (preset === 'basic') {
           Object.keys(this.exportCols).forEach(k => this.exportCols[k] = false);
-          ['nombre', 'nit', 'tipo', 'telefono', 'direccion', 'saldo_pendiente'].forEach(k => this.exportCols[k] = true);
+          ['codigo', 'nombre', 'nit', 'tipo', 'telefono', 'direccion', 'saldo_pendiente'].forEach(k => this.exportCols[k] = true);
         } else if (preset === 'fiscal') {
           Object.keys(this.exportCols).forEach(k => this.exportCols[k] = false);
-          ['nombre', 'nit', 'cui', 'razon_comercial', 'es_empresa', 'direccion', 'email'].forEach(k => this.exportCols[k] = true);
+          ['codigo', 'nombre', 'nit', 'cui', 'razon_comercial', 'es_empresa', 'direccion', 'email'].forEach(k => this.exportCols[k] = true);
         } else if (preset === 'sales') {
           Object.keys(this.exportCols).forEach(k => this.exportCols[k] = false);
-          ['nombre', 'nit', 'telefono', 'celular', 'email', 'direccion', 'ciudad'].forEach(k => this.exportCols[k] = true);
+          ['codigo', 'nombre', 'nit', 'telefono', 'celular', 'email', 'direccion', 'ciudad'].forEach(k => this.exportCols[k] = true);
         } else if (preset === 'credit') {
           Object.keys(this.exportCols).forEach(k => this.exportCols[k] = false);
-          ['nombre', 'nit', 'limite_credito', 'saldo_pendiente', 'credito_disponible', 'dias_credito', 'estado_credito'].forEach(k => this.exportCols[k] = true);
+          ['codigo', 'nombre', 'nit', 'limite_credito', 'saldo_pendiente', 'credito_disponible', 'dias_credito', 'estado_credito'].forEach(k => this.exportCols[k] = true);
         } else if (preset === 'banking') {
           Object.keys(this.exportCols).forEach(k => this.exportCols[k] = false);
-          ['nombre', 'nit', 'tipo', 'telefono', 'banco', 'cuenta_bancaria', 'saldo_pendiente'].forEach(k => this.exportCols[k] = true);
+          ['codigo', 'nombre', 'nit', 'tipo', 'telefono', 'banco', 'cuenta_bancaria', 'saldo_pendiente'].forEach(k => this.exportCols[k] = true);
         } else if (preset === 'full') {
           Object.keys(this.exportCols).forEach(k => this.exportCols[k] = true);
         }
@@ -2215,7 +2230,7 @@
       exportToCSV() {
         let csv = 'ID,Nombre,Nombre Comercial,NIT,DPI,Tipo,Telefono,Celular,Correo,Direccion,Saldo,Limite Credito\n';
         this.partners.forEach(p => {
-          csv += `"${p.id}","${p.name}","${p.trade_name || ''}","${p.nit || 'CF'}","${p.cui || ''}","${p.partner_type || 'customer'}","${p.phone || ''}","${p.mobile || ''}","${p.email || ''}","${p.address || ''}",${p.balance || 0},${p.credit_limit || 0}\n`;
+          csv += `"${p.code || ''}","${p.name}","${p.trade_name || ''}","${p.nit || 'CF'}","${p.cui || ''}","${p.partner_type || 'customer'}","${p.phone || ''}","${p.mobile || ''}","${p.email || ''}","${p.address || ''}",${p.balance || 0},${p.credit_limit || 0}\n`;
         });
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');

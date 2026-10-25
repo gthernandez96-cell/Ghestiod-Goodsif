@@ -28,6 +28,7 @@ class Partner(BaseModel):
     partner_type = Column(SAEnum(PartnerType), default=PartnerType.CUSTOMER)
 
     # Identificación (Guatemala)
+    code = Column(Integer, index=True, nullable=True)  # ID numérico correlativo (1, 2, 3...)
     nit = Column(String(20), index=True)  # NIT o CF (consumidor final)
     cui = Column(String(20))              # DPI
     name = Column(String(300), nullable=False, index=True)

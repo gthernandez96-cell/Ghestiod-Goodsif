@@ -82,6 +82,7 @@ async def check_db_connection():
         columns_to_add = [
             ("products", "supplier_id", "VARCHAR(36)"),
             ("partners", "image_url", "VARCHAR(500)"),
+            ("partners", "code", "INTEGER"),
             ("products", "pdf_datasheet_url", "VARCHAR(500)"),
             ("products", "internal_notes", "TEXT"),
             ("products", "cash_price", "NUMERIC(18, 4) DEFAULT 0"),
@@ -108,10 +109,49 @@ async def check_db_connection():
         logger.info("✅ Conexión a base de datos establecida y tablas sincronizadas")
         await ensure_initial_bootstrap()
         await ensure_preventista_role()
+        await ensure_partners_code()
         return True
     except Exception as e:
         logger.error(f"❌ Error conectando a base de datos: {e}")
         return False
+
+
+async def ensure_partners_code():
+    """Asignar automáticamente un ID numérico correlativo (1, 2, 3...) a clientes existentes que no lo tengan."""
+    try:
+        from app.models.partner import Partner
+        from app.models.company import Company
+        from sqlalchemy import select, func
+
+        async with AsyncSessionLocal() as db:
+            c_res = await db.execute(select(Partner.company_id).distinct())
+            company_ids = c_res.scalars().all()
+
+            total_assigned = 0
+            for comp_id in company_ids:
+                max_res = await db.execute(
+                    select(func.coalesce(func.max(Partner.code), 0))
+                    .where(Partner.company_id == comp_id)
+                )
+                curr_max = max_res.scalar() or 0
+
+                p_res = await db.execute(
+                    select(Partner)
+                    .where(Partner.company_id == comp_id, Partner.code.is_(None))
+                    .order_by(Partner.created_at.asc())
+                )
+                partners_without_code = p_res.scalars().all()
+
+                for p in partners_without_code:
+                    curr_max += 1
+                    p.code = curr_max
+                    total_assigned += 1
+
+            if total_assigned > 0:
+                await db.commit()
+                logger.info(f"✅ Se asignó ID numérico correlativo a {total_assigned} clientes/proveedores existentes.")
+    except Exception as e:
+        logger.warning(f"Error al sincronizar IDs correlativos de partners: {e}")
 
 
 async def ensure_initial_bootstrap():

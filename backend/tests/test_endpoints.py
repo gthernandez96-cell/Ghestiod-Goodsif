@@ -23,9 +23,10 @@ headers = {"Authorization": f"Bearer {token}"}
 @pytest.fixture(scope="module", autouse=True)
 def setup_database():
     """Crear tablas y usuario inicial para los tests."""
-    from app.core.database import engine
+    from app.core.database import engine, check_db_connection
 
     async def _init():
+        await check_db_connection()
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
 
@@ -116,7 +117,7 @@ def test_products_api():
 
 
 def test_partners_api():
-    # Crear cliente
+    # Crear cliente con asignación automática de ID correlativo
     res = client.post("/api/v1/partners/", json={
         "name": "Cliente de Prueba API",
         "nit": "123456-7",
@@ -124,6 +125,32 @@ def test_partners_api():
         "phone": "5555-1234"
     }, headers=headers)
     assert res.status_code == 200
+    p1_data = res.json()
+    assert "code" in p1_data
+    assert isinstance(p1_data["code"], int)
+    assert p1_data["code"] > 0
+    p1_id = p1_data["id"]
+    p1_code = p1_data["code"]
+
+    # Detalle del cliente contiene el código correlativo
+    detail_res = client.get(f"/api/v1/partners/{p1_id}", headers=headers)
+    assert detail_res.status_code == 200
+    assert detail_res.json()["code"] == p1_code
+
+    # Crear segundo cliente para validar autoincremento correlativo (+1)
+    res2 = client.post("/api/v1/partners/", json={
+        "name": "Cliente Segundo Correlativo",
+        "nit": "765432-1",
+        "partner_type": "customer"
+    }, headers=headers)
+    assert res2.status_code == 200
+    assert res2.json()["code"] == p1_code + 1
+
+    # Búsqueda por ID numérico en list_partners
+    search_res = client.get(f"/api/v1/partners/?search={p1_code}", headers=headers)
+    assert search_res.status_code == 200
+    found_codes = [p["code"] for p in search_res.json()["items"]]
+    assert p1_code in found_codes
 
     # Buscar por NIT
     lookup = client.get("/api/v1/partners/lookup-nit/123456-7", headers=headers)
