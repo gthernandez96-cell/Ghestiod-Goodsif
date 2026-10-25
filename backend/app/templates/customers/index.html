@@ -2105,6 +2105,43 @@
         }
       },
 
+      async safeUpload(endpoint, formData) {
+        if (window.API && typeof window.API.upload === 'function') {
+          return await window.API.upload(endpoint, formData);
+        }
+        const token = localStorage.getItem('access_token');
+        const opts = {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+          body: formData
+        };
+        let resp = await fetch('/api/v1' + endpoint, opts);
+        if (resp.status === 401 && window.API && typeof window.API._refreshToken === 'function') {
+          const ok = await window.API._refreshToken();
+          if (ok) {
+            const newToken = localStorage.getItem('access_token');
+            opts.headers = newToken ? { 'Authorization': `Bearer ${newToken}` } : {};
+            resp = await fetch('/api/v1' + endpoint, opts);
+          }
+        }
+        const contentType = resp.headers.get('content-type') || '';
+        let data = null;
+        if (contentType.includes('application/json')) {
+          data = await resp.json().catch(() => null);
+        } else {
+          const raw = await resp.text().catch(() => '');
+          if (!resp.ok) throw new Error(`Error en el servidor (${resp.status}): ${raw.slice(0, 150)}`);
+          data = { status: 'success', raw };
+        }
+        if (!resp.ok) {
+          let msg = (data && data.detail) || `Error HTTP ${resp.status}`;
+          if (Array.isArray(msg)) msg = msg.map(m => m.msg || JSON.stringify(m)).join(', ');
+          throw new Error(typeof msg === 'object' ? JSON.stringify(msg) : msg);
+        }
+        return data;
+      },
+
       async uploadPartnersCsv() {
         if (!this.selectedCsvFile) return;
         this.isUploadingCsv = true;
@@ -2113,7 +2150,7 @@
           const formData = new FormData();
           formData.append('file', this.selectedCsvFile);
 
-          const data = await API.upload('/partners/import-csv', formData);
+          const data = await this.safeUpload('/partners/import-csv', formData);
           this.importResult = data;
           await this.loadKPIs();
           await this.loadPartners();
