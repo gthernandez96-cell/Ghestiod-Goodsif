@@ -1,7 +1,7 @@
 """API v1 — Clientes y Proveedores."""
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, or_, func
+from sqlalchemy import select, or_, func, text
 from sqlalchemy.orm import selectinload
 from pydantic import BaseModel
 from typing import Optional, List
@@ -719,6 +719,20 @@ async def import_partners_csv(
     updated_count = 0
     errors = []
 
+    # Asegurar que las columnas en PostgreSQL soporten teléfonos largos y nombres extensos
+    try:
+        from app.core.config import settings
+        if "postgresql" in settings.DATABASE_URL:
+            await db.execute(text("ALTER TABLE partners ALTER COLUMN phone TYPE VARCHAR(100)"))
+            await db.execute(text("ALTER TABLE partners ALTER COLUMN mobile TYPE VARCHAR(100)"))
+            await db.execute(text("ALTER TABLE partners ALTER COLUMN nit TYPE VARCHAR(50)"))
+            await db.execute(text("ALTER TABLE partners ALTER COLUMN cui TYPE VARCHAR(50)"))
+            await db.execute(text("ALTER TABLE partners ALTER COLUMN bank_account TYPE VARCHAR(150)"))
+            await db.execute(text("ALTER TABLE partners ALTER COLUMN bank_name TYPE VARCHAR(255)"))
+            await db.commit()
+    except Exception:
+        pass
+
     # Obtener el ID/código correlativo máximo actual de la empresa
     max_code_res = await db.execute(
         select(func.coalesce(func.max(Partner.code), 0)).where(Partner.company_id == current_user.company_id)
@@ -755,9 +769,11 @@ async def import_partners_csv(
         if not name:
             errors.append(f"Fila {idx}: Nombre es obligatorio.")
             continue
+        name = str(name).strip()[:300]
 
-        nit = row.get("nit") or "CF"
-        cui = row.get("dpi___cui") or row.get("dpi_cui") or row.get("cui") or row.get("dpi") or None
+        nit = str(row.get("nit") or "CF").strip()[:50]
+        raw_cui = row.get("dpi___cui") or row.get("dpi_cui") or row.get("cui") or row.get("dpi") or None
+        cui = str(raw_cui).strip()[:50] if raw_cui else None
         
         # Tipo de contacto
         partner_type_str = (
@@ -775,12 +791,13 @@ async def import_partners_csv(
         else:
             p_type = PartnerType.CUSTOMER
 
-        trade_name = (
+        raw_trade_name = (
             row.get("nombre_comercial")
             or row.get("razon_comercial")
             or row.get("trade_name")
             or None
         )
+        trade_name = str(raw_trade_name).strip()[:300] if raw_trade_name else None
 
         is_company = parse_bool_val(
             row.get("es_empresa__si_no_")
@@ -790,12 +807,18 @@ async def import_partners_csv(
             default=False
         )
 
-        phone = row.get("telefono_fijo") or row.get("telefono") or row.get("phone") or row.get("tel") or None
-        mobile = row.get("celular___whatsapp") or row.get("celular_whatsapp") or row.get("celular") or row.get("mobile") or row.get("whatsapp") or None
-        email = row.get("correo_electronico") or row.get("correo") or row.get("email") or row.get("mail") or None
+        raw_phone = row.get("telefono_fijo") or row.get("telefono") or row.get("phone") or row.get("tel") or None
+        phone = str(raw_phone).strip()[:100] if raw_phone else None
+
+        raw_mobile = row.get("celular___whatsapp") or row.get("celular_whatsapp") or row.get("celular") or row.get("mobile") or row.get("whatsapp") or None
+        mobile = str(raw_mobile).strip()[:100] if raw_mobile else None
+
+        raw_email = row.get("correo_electronico") or row.get("correo") or row.get("email") or row.get("mail") or None
+        email = str(raw_email).strip()[:200] if raw_email else None
+
         address = row.get("direccion_completa") or row.get("direccion") or row.get("address") or None
-        city = row.get("ciudad___municipio") or row.get("ciudad_municipio") or row.get("ciudad") or row.get("city") or "Guatemala"
-        country = row.get("pais") or row.get("departamento_pais") or row.get("country") or "Guatemala"
+        city = str(row.get("ciudad___municipio") or row.get("ciudad_municipio") or row.get("ciudad") or row.get("city") or "Guatemala").strip()[:100]
+        country = str(row.get("pais") or row.get("departamento_pais") or row.get("country") or "Guatemala").strip()[:100]
 
         try:
             credit_limit = Decimal(str(
@@ -834,14 +857,17 @@ async def import_partners_csv(
         else:
             cred_status = CreditStatus.NONE
 
-        bank_name = row.get("banco") or row.get("bank_name") or None
-        bank_account = (
+        raw_bank_name = row.get("banco") or row.get("bank_name") or None
+        bank_name = str(raw_bank_name).strip()[:255] if raw_bank_name else None
+
+        raw_bank_account = (
             row.get("no__cuenta_bancaria")
             or row.get("no_cuenta_bancaria")
             or row.get("cuenta_bancaria")
             or row.get("bank_account")
             or None
         )
+        bank_account = str(raw_bank_account).strip()[:150] if raw_bank_account else None
 
         image_url = normalize_partner_media_url(
             row.get("foto___logo_url")

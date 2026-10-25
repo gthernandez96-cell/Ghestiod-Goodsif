@@ -29,16 +29,16 @@ class Partner(BaseModel):
 
     # Identificación (Guatemala)
     code = Column(Integer, index=True, nullable=True)  # ID numérico correlativo (1, 2, 3...)
-    nit = Column(String(20), index=True)  # NIT o CF (consumidor final)
-    cui = Column(String(20))              # DPI
+    nit = Column(String(50), index=True)  # NIT o CF (consumidor final)
+    cui = Column(String(50))              # DPI
     name = Column(String(300), nullable=False, index=True)
     trade_name = Column(String(300))
     is_company = Column(Boolean, default=False)
 
     # Contacto
     email = Column(String(200))
-    phone = Column(String(30))
-    mobile = Column(String(30))
+    phone = Column(String(100))
+    mobile = Column(String(100))
     address = Column(Text)
     city = Column(String(100))
     country = Column(String(100), default="Guatemala")
@@ -53,8 +53,8 @@ class Partner(BaseModel):
     price_list_id = Column(UUID(as_uuid=True), ForeignKey("price_lists.id"), nullable=True)
 
     # Proveedor
-    bank_account = Column(String(100))
-    bank_name = Column(String(200))
+    bank_account = Column(String(150))
+    bank_name = Column(String(255))
 
     # Foto / Logo del contacto
     image_url = Column(Text, nullable=True)

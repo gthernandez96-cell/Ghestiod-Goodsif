@@ -106,6 +106,23 @@ async def check_db_connection():
             except Exception:
                 pass
 
+        # 3. Ampliar tamaño de columnas existentes en PostgreSQL (evita 'value too long for character varying')
+        if is_pg:
+            columns_to_alter = [
+                ("partners", "phone", "VARCHAR(100)"),
+                ("partners", "mobile", "VARCHAR(100)"),
+                ("partners", "nit", "VARCHAR(50)"),
+                ("partners", "cui", "VARCHAR(50)"),
+                ("partners", "bank_account", "VARCHAR(150)"),
+                ("partners", "bank_name", "VARCHAR(255)"),
+            ]
+            for table, col, col_type in columns_to_alter:
+                try:
+                    async with engine.begin() as conn:
+                        await conn.execute(text(f"ALTER TABLE {table} ALTER COLUMN {col} TYPE {col_type}"))
+                except Exception:
+                    pass
+
         logger.info("✅ Conexión a base de datos establecida y tablas sincronizadas")
         await ensure_initial_bootstrap()
         await ensure_preventista_role()
