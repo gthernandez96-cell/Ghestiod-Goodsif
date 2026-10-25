@@ -677,7 +677,10 @@ async def import_partners_csv(
             wb = openpyxl.load_workbook(io.BytesIO(content), data_only=True)
             sheet = wb.active
             headers = []
-            for col_idx, cell in enumerate(sheet.iter_rows(min_row=1, max_row=1, values_only=True).__next__(), start=1):
+            first_row = next(sheet.iter_rows(min_row=1, max_row=1, values_only=True), None)
+            if not first_row:
+                raise HTTPException(status_code=400, detail="El archivo Excel está vacío o no contiene encabezados.")
+            for cell in first_row:
                 headers.append(str(cell or "").strip())
 
             for row_idx, row_cells in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
@@ -689,6 +692,8 @@ async def import_partners_csv(
                         val = row_cells[col_idx]
                         row_dict[h] = str(val if val is not None else "").strip()
                 rows_data.append((row_idx, row_dict))
+        except HTTPException:
+            raise
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Error al leer archivo Excel: {e}")
     else:
@@ -942,7 +947,12 @@ async def import_partners_csv(
             db.add(partner_obj)
             created_count += 1
 
-    await db.commit()
+    try:
+        await db.commit()
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail=f"Error al guardar los contactos en la base de datos: {str(e)}")
+
     return {
         "status": "success",
         "created": created_count,

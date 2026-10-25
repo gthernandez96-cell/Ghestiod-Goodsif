@@ -774,22 +774,13 @@
           const formData = new FormData();
           formData.append('file', this.selectedCsvFile);
 
-          const token = localStorage.getItem('access_token');
-          const response = await fetch('/api/v1/products/import-csv', {
-            method: 'POST',
-            headers: token ? { 'Authorization': `Bearer ${token}` } : {},
-            body: formData
-          });
-
-          const data = await response.json();
-          if (!response.ok) throw new Error(data.detail || 'Error al procesar el archivo');
-
+          const data = await API.upload('/products/import-csv', formData);
           this.importResult = data;
           await this.loadKPIs();
           await this.loadCategories();
           await this.loadProducts();
         } catch (err) {
-          this.importResult = { status: 'error', errors: [err.message || 'Error de conexión'] };
+          this.importResult = { status: 'error', errors: [err.message || 'Error al procesar el archivo'] };
         } finally {
           this.isUploadingCsv = false;
         }

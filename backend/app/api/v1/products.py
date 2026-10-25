@@ -1509,7 +1509,12 @@ async def import_products_csv(
             else:
                 quant.qty_on_hand += init_stock
 
-    await db.commit()
+    try:
+        await db.commit()
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail=f"Error al guardar los productos en la base de datos: {str(e)}")
+
     return {
         "status": "success",
         "created": created_count,

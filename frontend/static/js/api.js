@@ -80,6 +80,68 @@ const API = {
   put: (endpoint, body) => API._request('PUT', endpoint, body),
   patch: (endpoint, body) => API._request('PATCH', endpoint, body),
   delete: (endpoint) => API._request('DELETE', endpoint),
+  upload: async (endpoint, formData) => {
+    let url = API.baseUrl + endpoint;
+    const getHeaders = () => {
+      const token = localStorage.getItem('access_token');
+      return token ? { 'Authorization': `Bearer ${token}` } : {};
+    };
+
+    let opts = {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: getHeaders(),
+      body: formData,
+    };
+
+    let resp;
+    try {
+      resp = await fetch(url, opts);
+    } catch (netErr) {
+      throw new Error('Error de conexión con el servidor. Revisa tu conexión a internet.');
+    }
+
+    if (resp.status === 401) {
+      const refreshed = await API._refreshToken();
+      if (refreshed) {
+        opts.headers = getHeaders();
+        try {
+          resp = await fetch(url, opts);
+        } catch (netErr) {
+          throw new Error('Error de conexión al reintentar la subida.');
+        }
+      } else {
+        localStorage.clear();
+        document.cookie = "access_token=; path=/; max-age=0; SameSite=Lax";
+        window.location.href = '/login';
+        throw new Error('Sesión expirada. Por favor inicia sesión nuevamente.');
+      }
+    }
+
+    const contentType = resp.headers.get('content-type') || '';
+    let data = null;
+    if (contentType.includes('application/json')) {
+      data = await resp.json().catch(() => null);
+    } else {
+      const text = await resp.text().catch(() => '');
+      if (!resp.ok) {
+        throw new Error(`Error en el servidor (${resp.status}): ${text.slice(0, 150) || resp.statusText}`);
+      }
+      data = { status: 'success', raw: text };
+    }
+
+    if (!resp.ok) {
+      let msg = data && data.detail ? data.detail : `Error HTTP ${resp.status}`;
+      if (Array.isArray(msg)) {
+        msg = msg.map(m => m.msg || JSON.stringify(m)).join(', ');
+      } else if (typeof msg === 'object') {
+        msg = JSON.stringify(msg);
+      }
+      throw new Error(msg);
+    }
+
+    return data;
+  },
 };
 
 /**

@@ -1111,6 +1111,15 @@ Proveedor Mayorista,1122334-5,,supplier,22334455,ventas@prov.com,Carretera al Sa
     assert part_imp.json()["status"] == "success"
     assert part_imp.json()["total_processed"] >= 2
 
+    # 4.1 Importar Clientes desde Plantilla Personalizada Excel (.xlsx)
+    tpl_res = client.get("/api/v1/partners/custom-template-excel?cols=codigo,nombre,nit,tipo,telefono,direccion", headers=headers)
+    assert tpl_res.status_code == 200
+    files_xlsx = {"file": ("plantilla_clientes_personalizada-2.xlsx", tpl_res.content, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")}
+    xlsx_imp = client.post("/api/v1/partners/import-csv", files=files_xlsx, headers=headers)
+    assert xlsx_imp.status_code == 200
+    assert xlsx_imp.json()["status"] == "success"
+    assert xlsx_imp.json()["total_processed"] >= 1
+
     # 5. Exportar Clientes CSV
     part_exp = client.get("/api/v1/partners/export-csv", headers=headers)
     assert part_exp.status_code == 200
