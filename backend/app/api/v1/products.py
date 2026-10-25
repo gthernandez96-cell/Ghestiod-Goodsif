@@ -192,6 +192,9 @@ class ProductCreateIn(BaseModel):
     sale_price: Decimal = Decimal("0")
     cost_price: Decimal = Decimal("0")
     min_price: Decimal = Decimal("0")
+    cash_price: Decimal = Decimal("0")
+    exclusive_cash_price: Decimal = Decimal("0")
+    special_price: Decimal = Decimal("0")
     tax_rate: Decimal = Decimal("12.00")
     includes_tax: bool = True
     min_stock: Decimal = Decimal("0")
@@ -199,6 +202,8 @@ class ProductCreateIn(BaseModel):
     stock: Optional[Decimal] = None
     initial_stock: Optional[Decimal] = None
     is_active: bool = True
+    available_in_pos: bool = True
+    available_in_presale: bool = True
     can_be_sold: bool = True
     can_be_purchased: bool = True
     image_url: Optional[str] = None
@@ -220,10 +225,15 @@ class ProductUpdateIn(BaseModel):
     sale_price: Optional[Decimal] = None
     cost_price: Optional[Decimal] = None
     min_price: Optional[Decimal] = None
+    cash_price: Optional[Decimal] = None
+    exclusive_cash_price: Optional[Decimal] = None
+    special_price: Optional[Decimal] = None
     min_stock: Optional[Decimal] = None
     max_stock: Optional[Decimal] = None
     tax_rate: Optional[Decimal] = None
     is_active: Optional[bool] = None
+    available_in_pos: Optional[bool] = None
+    available_in_presale: Optional[bool] = None
     image_url: Optional[str] = None
     pdf_datasheet_url: Optional[str] = None
     internal_notes: Optional[str] = None
@@ -393,6 +403,8 @@ async def list_products(
     branch_id: Optional[str] = Query(None),
     warehouse_id: Optional[str] = Query(None),
     is_active: Optional[bool] = Query(None),
+    available_in_pos: Optional[bool] = Query(None),
+    available_in_presale: Optional[bool] = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
@@ -408,6 +420,12 @@ async def list_products(
 
     if isinstance(is_active, bool):
         stmt = stmt.where(Product.is_active == is_active)
+
+    if isinstance(available_in_pos, bool):
+        stmt = stmt.where(Product.available_in_pos == available_in_pos)
+
+    if isinstance(available_in_presale, bool):
+        stmt = stmt.where(Product.available_in_presale == available_in_presale)
 
     if category_id and isinstance(category_id, str) and category_id.strip():
         try:
@@ -529,6 +547,9 @@ async def list_products(
             "sale_price": float(p.sale_price or 0),
             "cost_price": float(p.cost_price or 0),
             "min_price": float(p.min_price or 0),
+            "cash_price": float(p.cash_price or 0),
+            "exclusive_cash_price": float(p.exclusive_cash_price or 0),
+            "special_price": float(p.special_price or 0),
             "wholesale_price": float(p.wholesale_price or 0) if p.wholesale_price else None,
             "wholesale_uom_id": str(p.wholesale_uom_id) if p.wholesale_uom_id else None,
             "wholesale_uom_name": p.wholesale_uom.name if p.wholesale_uom else None,
@@ -547,6 +568,8 @@ async def list_products(
             "product_type": _val_to_str(p.product_type),
             "tracking": _val_to_str(p.tracking),
             "is_active": p.is_active,
+            "available_in_pos": getattr(p, "available_in_pos", True) if getattr(p, "available_in_pos", None) is not None else getattr(p, "is_published", True),
+            "available_in_presale": getattr(p, "available_in_presale", True) if getattr(p, "available_in_presale", None) is not None else True,
             "can_be_sold": p.can_be_sold,
             "image_url": p.image_url,
             "pdf_datasheet_url": getattr(p, "pdf_datasheet_url", None),
@@ -580,7 +603,7 @@ async def get_pos_catalog(
         for c in cat_res.scalars().all()
     ]
 
-    # 2. Productos activos para venta
+    # 2. Productos activos para venta en POS
     prod_stmt = select(Product).options(
         selectinload(Product.category),
         selectinload(Product.uom),
@@ -589,7 +612,8 @@ async def get_pos_catalog(
         Product.company_id == current_user.company_id,
         Product.is_active == True,
         Product.is_deleted == False,
-        Product.can_be_sold == True
+        Product.can_be_sold == True,
+        Product.available_in_pos == True
     ).order_by(Product.name)
     prod_res = await db.execute(prod_stmt)
     products = prod_res.scalars().all()
@@ -912,7 +936,7 @@ async def get_products_stock_levels(
     }
 
 
-# ===== IMPORTACIÓN / EXPORTACIÓN CSV =====
+# ===== IMPORTACIÓN / EXPORTACIÓN CSV Y EXCEL =====
 @router.get("/template-csv")
 async def download_product_csv_template():
     """Descargar plantilla CSV para importación masiva de productos."""
@@ -924,18 +948,27 @@ async def download_product_csv_template():
     writer = csv.writer(output, delimiter=",")
     writer.writerow([
         "codigo_interno", "codigo_barras", "nombre", "categoria",
-        "precio_venta", "precio_costo", "stock_minimo", "stock_inicial",
-        "unidad_medida", "descripcion"
+        "tipo_producto", "unidad_medida",
+        "precio_venta", "precio_contado", "precio_contado_exclusivo", "precio_especial",
+        "precio_costo", "stock_minimo", "stock_inicial",
+        "disponible_pos", "disponible_preventa",
+        "descripcion"
     ])
     writer.writerow([
         "PROD-001", "740100100101", "Coca Cola 2.5L Retornable", "Bebidas",
-        "15.00", "11.50", "10", "50",
-        "Unidad", "Bebida gaseosa familiar"
+        "Almacenable", "Unidad",
+        "15.00", "14.50", "14.00", "13.50",
+        "11.50", "10", "50",
+        "SI", "SI",
+        "Bebida gaseosa familiar"
     ])
     writer.writerow([
         "PROD-002", "740100100102", "Arroz Blanco Superior 1lb", "Abarrotes",
-        "6.50", "4.80", "20", "100",
-        "Libra", "Arroz grano entero"
+        "Almacenable", "Libra",
+        "6.50", "6.25", "6.00", "5.80",
+        "4.80", "20", "100",
+        "SI", "SI",
+        "Arroz grano entero"
     ])
 
     csv_data = "\ufeff" + output.getvalue()
@@ -952,20 +985,65 @@ async def import_products_csv(
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    """Importar productos masivamente desde un archivo CSV."""
+    """Importar productos masivamente desde un archivo CSV o Excel (.xlsx)."""
     check_product_management_permission(current_user)
     import csv
     import io
 
-    content = await file.read()
-    text = content.decode("utf-8-sig", errors="replace")
-    csv_reader = csv.DictReader(io.StringIO(text))
+    filename = (file.filename or "").lower()
+    is_excel = filename.endswith(".xlsx") or filename.endswith(".xls")
 
-    if not csv_reader.fieldnames:
-        raise HTTPException(status_code=400, detail="El archivo CSV está vacío o mal formateado.")
+    content = await file.read()
+    rows_data = []
+
+    if is_excel:
+        import openpyxl
+        try:
+            wb = openpyxl.load_workbook(io.BytesIO(content), data_only=True)
+            sheet = wb.active
+            headers = []
+            for cell in sheet[1]:
+                headers.append(str(cell.value or "").strip())
+
+            for row_idx, row_cells in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
+                if not any(row_cells):
+                    continue
+                row_dict = {}
+                for col_idx, h in enumerate(headers):
+                    if h and col_idx < len(row_cells):
+                        val = row_cells[col_idx]
+                        row_dict[h] = str(val if val is not None else "").strip()
+                rows_data.append((row_idx, row_dict))
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Error al leer archivo Excel: {e}")
+    else:
+        text = content.decode("utf-8-sig", errors="replace")
+        csv_reader = csv.DictReader(io.StringIO(text))
+        if not csv_reader.fieldnames:
+            raise HTTPException(status_code=400, detail="El archivo CSV está vacío o mal formateado.")
+        for idx, r in enumerate(csv_reader, start=2):
+            rows_data.append((idx, r))
 
     def clean_col(s):
-        return s.strip().lower().replace(" ", "_").replace("á", "a").replace("é", "e").replace("í", "i").replace("ó", "o").replace("ú", "u")
+        return str(s).strip().lower().replace(" ", "_").replace("á", "a").replace("é", "e").replace("í", "i").replace("ó", "o").replace("ú", "u").replace("-", "_")
+
+    def parse_bool_col(v, default=True):
+        if v is None:
+            return default
+        s = str(v).strip().lower()
+        if not s:
+            return default
+        return s not in ["0", "no", "false", "f", "n", "inactivo", "desactivado", "oculto"]
+
+    def parse_product_type(v):
+        if not v:
+            return ProductType.PRODUCT
+        s = str(v).strip().lower()
+        if "serv" in s:
+            return ProductType.SERVICE
+        if "consu" in s:
+            return ProductType.CONSUMABLE
+        return ProductType.PRODUCT
 
     created_count = 0
     updated_count = 0
@@ -978,8 +1056,8 @@ async def import_products_csv(
     wh_res = await db.execute(wh_stmt)
     default_wh = wh_res.scalars().first()
 
-    for idx, raw_row in enumerate(csv_reader, start=2):
-        row = {clean_col(k): v.strip() for k, v in raw_row.items() if k}
+    for idx, raw_row in rows_data:
+        row = {clean_col(k): str(v).strip() for k, v in raw_row.items() if k}
         name = row.get("nombre") or row.get("name") or row.get("descripcion_corta")
         if not name:
             errors.append(f"Fila {idx}: Falta el nombre del producto.")
@@ -988,14 +1066,101 @@ async def import_products_csv(
         internal_ref = row.get("codigo_interno") or row.get("sku") or row.get("codigo") or ""
         barcode = row.get("codigo_barras") or row.get("barcode") or row.get("codigo_barra") or ""
         category_name = row.get("categoria") or row.get("category") or "General"
-        
+
+        # Tipo de producto
+        raw_type = (
+            row.get("tipo_producto")
+            or row.get("tipo_de_producto")
+            or row.get("tipo")
+            or row.get("product_type")
+        )
+        p_type = parse_product_type(raw_type)
+
+        # Unidad de medida base
+        uom_name = (
+            row.get("unidad_medida")
+            or row.get("unidad_de_medida")
+            or row.get("unidad_medida_base")
+            or row.get("unidad_de_medida_base")
+            or row.get("unidad_base")
+            or row.get("unidad")
+            or row.get("uom")
+            or ""
+        )
+        uom_id = None
+        if uom_name:
+            uom_stmt = select(UnitOfMeasure).where(
+                UnitOfMeasure.company_id == current_user.company_id,
+                or_(
+                    func.lower(UnitOfMeasure.name) == uom_name.lower(),
+                    func.lower(UnitOfMeasure.symbol) == uom_name.lower()
+                )
+            )
+            uom_res = await db.execute(uom_stmt)
+            uom = uom_res.scalars().first()
+            if not uom:
+                uom = UnitOfMeasure(
+                    company_id=current_user.company_id,
+                    name=uom_name.capitalize(),
+                    symbol=uom_name[:10].lower(),
+                    is_base=True,
+                    is_active=True
+                )
+                db.add(uom)
+                await db.flush()
+            uom_id = uom.id
+
         try:
-            sale_price = Decimal(str(row.get("precio_venta") or row.get("precio") or "0").replace(",", "."))
+            sale_price = Decimal(str(
+                row.get("precio_venta") 
+                or row.get("precio_de_venta_publico")
+                or row.get("precio_de_venta_público")
+                or row.get("precio_venta_publico")
+                or row.get("precio_publico")
+                or row.get("precio") 
+                or "0"
+            ).replace(",", "."))
         except Exception:
             sale_price = Decimal("0")
 
         try:
-            cost_price = Decimal(str(row.get("precio_costo") or row.get("costo") or "0").replace(",", "."))
+            cash_price = Decimal(str(
+                row.get("precio_contado") 
+                or row.get("precio_de_contado") 
+                or row.get("contado") 
+                or "0"
+            ).replace(",", "."))
+        except Exception:
+            cash_price = Decimal("0")
+
+        try:
+            exclusive_cash_price = Decimal(str(
+                row.get("precio_contado_exclusivo") 
+                or row.get("precio_de_contado_exclusivo") 
+                or row.get("contado_exclusivo") 
+                or row.get("precio_exclusivo") 
+                or "0"
+            ).replace(",", "."))
+        except Exception:
+            exclusive_cash_price = Decimal("0")
+
+        try:
+            special_price = Decimal(str(
+                row.get("precio_especial") 
+                or row.get("precio_de_especial") 
+                or row.get("especial") 
+                or "0"
+            ).replace(",", "."))
+        except Exception:
+            special_price = Decimal("0")
+
+        try:
+            cost_price = Decimal(str(
+                row.get("precio_costo") 
+                or row.get("precio_de_costo") 
+                or row.get("costo") 
+                or "0"
+            ).replace(",", "."))
         except Exception:
             cost_price = Decimal("0")
 
@@ -1008,6 +1173,28 @@ async def import_products_csv(
             init_stock = Decimal(str(row.get("stock_inicial") or row.get("existencia") or "0").replace(",", "."))
         except Exception:
             init_stock = Decimal("0")
+
+        # Canales de venta (Punto de venta y Pre-venta)
+        raw_pos = (
+            row.get("disponible_pos")
+            or row.get("disponible_en_pos")
+            or row.get("en_pos")
+            or row.get("punto_de_venta")
+            or row.get("disponible_en_punto_de_venta")
+            or row.get("pos")
+        )
+        raw_presale = (
+            row.get("disponible_preventa")
+            or row.get("disponible_en_preventa")
+            or row.get("disponible_pre_venta")
+            or row.get("disponible_en_pre_venta")
+            or row.get("en_preventa")
+            or row.get("en_pre_venta")
+            or row.get("pre_venta")
+            or row.get("preventa")
+        )
+        avail_pos = parse_bool_col(raw_pos, True)
+        avail_presale = parse_bool_col(raw_presale, True)
 
         description = row.get("descripcion") or ""
 
@@ -1043,6 +1230,16 @@ async def import_products_csv(
         if existing_prod:
             existing_prod.name = name
             existing_prod.sale_price = sale_price
+            if raw_type:
+                existing_prod.product_type = p_type
+            if uom_id:
+                existing_prod.uom_id = uom_id
+            if cash_price > 0:
+                existing_prod.cash_price = cash_price
+            if exclusive_cash_price > 0:
+                existing_prod.exclusive_cash_price = exclusive_cash_price
+            if special_price > 0:
+                existing_prod.special_price = special_price
             if cost_price > 0:
                 existing_prod.cost_price = cost_price
             existing_prod.category_id = cat.id
@@ -1050,21 +1247,33 @@ async def import_products_csv(
                 existing_prod.min_stock = min_stock
             if description:
                 existing_prod.description = description
+            if raw_pos is not None:
+                existing_prod.available_in_pos = avail_pos
+                existing_prod.is_published = avail_pos
+            if raw_presale is not None:
+                existing_prod.available_in_presale = avail_presale
             updated_count += 1
             prod_obj = existing_prod
         else:
             prod_obj = Product(
                 company_id=current_user.company_id,
                 category_id=cat.id,
+                uom_id=uom_id,
                 name=name,
                 internal_ref=internal_ref or f"PRD-{uuid.uuid4().hex[:6].upper()}",
                 barcode=barcode or None,
+                product_type=p_type,
                 sale_price=sale_price,
                 cost_price=cost_price,
+                cash_price=cash_price,
+                exclusive_cash_price=exclusive_cash_price,
+                special_price=special_price,
                 min_stock=min_stock,
                 description=description,
                 is_active=True,
-                is_published=True,
+                is_published=avail_pos,
+                available_in_pos=avail_pos,
+                available_in_presale=avail_presale,
                 can_be_sold=True,
                 can_be_purchased=True
             )
@@ -1111,7 +1320,8 @@ async def export_products_csv(
     from fastapi.responses import Response
 
     stmt = select(Product).options(
-        selectinload(Product.category)
+        selectinload(Product.category),
+        selectinload(Product.uom)
     ).where(
         Product.company_id == current_user.company_id,
         Product.is_active == True
@@ -1120,24 +1330,41 @@ async def export_products_csv(
     res = await db.execute(stmt)
     products = res.scalars().all()
 
+    type_labels = {
+        ProductType.PRODUCT: "Almacenable",
+        ProductType.SERVICE: "Servicio",
+        ProductType.CONSUMABLE: "Consumible",
+    }
+
     output = io.StringIO()
     writer = csv.writer(output, delimiter=",")
     writer.writerow([
         "ID", "Código Interno", "Código de Barras", "Nombre",
-        "Categoría", "Precio Venta (Q)", "Precio Costo (Q)", "Stock Mínimo", "Estado"
+        "Categoría", "Tipo de Producto", "Unidad de Medida",
+        "Precio Venta (Q)", "Precio Contado (Q)", "Precio Contado Exclusivo (Q)", "Precio Especial (Q)",
+        "Precio Costo (Q)", "Stock Mínimo", "En POS", "En Pre-Venta", "Estado"
     ])
 
     for p in products:
         cat_name = p.category.name if p.category else "Sin Categoría"
+        uom_name = p.uom.name if p.uom else "Unidad"
+        t_label = type_labels.get(p.product_type, "Almacenable")
         writer.writerow([
             str(p.id),
             p.internal_ref or "",
             p.barcode or "",
             p.name,
             cat_name,
+            t_label,
+            uom_name,
             f"{float(p.sale_price or 0):.2f}",
+            f"{float(p.cash_price or 0):.2f}",
+            f"{float(p.exclusive_cash_price or 0):.2f}",
+            f"{float(p.special_price or 0):.2f}",
             f"{float(p.cost_price or 0):.2f}",
             f"{float(p.min_stock or 0):.2f}",
+            "Sí" if getattr(p, "available_in_pos", True) else "No",
+            "Sí" if getattr(p, "available_in_presale", True) else "No",
             "Activo" if p.is_active else "Inactivo"
         ])
 
@@ -1244,11 +1471,16 @@ async def get_product(
         "sale_price": float(p.sale_price or 0),
         "cost_price": float(p.cost_price or 0),
         "min_price": float(p.min_price or 0),
+        "cash_price": float(p.cash_price or 0),
+        "exclusive_cash_price": float(p.exclusive_cash_price or 0),
+        "special_price": float(p.special_price or 0),
         "min_stock": float(p.min_stock or 0),
         "max_stock": float(p.max_stock or 0),
         "tax_rate": float(p.tax_rate or 12.0),
         "includes_tax": p.includes_tax,
         "is_active": p.is_active,
+        "available_in_pos": getattr(p, "available_in_pos", True) if getattr(p, "available_in_pos", None) is not None else getattr(p, "is_published", True),
+        "available_in_presale": getattr(p, "available_in_presale", True) if getattr(p, "available_in_presale", None) is not None else True,
         "stock_by_warehouse": quant_map,
         "warehouses": warehouse_list,
         "total_stock": total_stock,
@@ -1701,11 +1933,17 @@ async def create_product(
         sale_price=data.sale_price,
         cost_price=data.cost_price,
         min_price=data.min_price,
+        cash_price=data.cash_price or Decimal("0"),
+        exclusive_cash_price=data.exclusive_cash_price or Decimal("0"),
+        special_price=data.special_price or Decimal("0"),
         tax_rate=data.tax_rate,
         includes_tax=data.includes_tax,
         min_stock=data.min_stock,
         max_stock=data.max_stock,
         is_active=data.is_active,
+        is_published=data.available_in_pos if data.available_in_pos is not None else True,
+        available_in_pos=data.available_in_pos if data.available_in_pos is not None else True,
+        available_in_presale=data.available_in_presale if data.available_in_presale is not None else True,
         can_be_sold=data.can_be_sold,
         can_be_purchased=data.can_be_purchased,
         image_url=data.image_url,
@@ -1785,10 +2023,18 @@ async def update_product(
     if data.sale_price is not None: p.sale_price = data.sale_price
     if data.cost_price is not None: p.cost_price = data.cost_price
     if data.min_price is not None: p.min_price = data.min_price
+    if data.cash_price is not None: p.cash_price = data.cash_price
+    if data.exclusive_cash_price is not None: p.exclusive_cash_price = data.exclusive_cash_price
+    if data.special_price is not None: p.special_price = data.special_price
     if data.min_stock is not None: p.min_stock = data.min_stock
     if data.max_stock is not None: p.max_stock = data.max_stock
     if data.tax_rate is not None: p.tax_rate = data.tax_rate
     if data.is_active is not None: p.is_active = data.is_active
+    if data.available_in_pos is not None:
+        p.available_in_pos = data.available_in_pos
+        p.is_published = data.available_in_pos
+    if data.available_in_presale is not None:
+        p.available_in_presale = data.available_in_presale
     if data.image_url is not None: p.image_url = data.image_url
     if data.pdf_datasheet_url is not None: p.pdf_datasheet_url = data.pdf_datasheet_url
     if data.internal_notes is not None: p.internal_notes = data.internal_notes

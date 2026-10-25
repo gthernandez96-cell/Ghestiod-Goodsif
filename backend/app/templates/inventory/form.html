@@ -360,6 +360,44 @@
               </div>
             </div>
 
+            <!-- Fila 4: Canales de Venta / Disponibilidad en Módulos (POS y Pre-Venta) -->
+            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:16px; margin-top:4px;">
+              <div style="font-size:12px; font-weight:800; color:#334155; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:12px; display:flex; align-items:center; gap:6px;">
+                <i class="ph ph-storefront" style="font-size:16px; color:#714B67;"></i> Disponibilidad en Módulos de Venta
+              </div>
+              <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:16px;">
+                
+                <!-- Opción 1: Punto de Venta (POS) -->
+                <label style="background:#ffffff; border:1.5px solid #cbd5e1; border-radius:10px; padding:14px; display:flex; align-items:flex-start; gap:12px; cursor:pointer; transition:all 0.15s ease;"
+                  :style="form.available_in_pos ? 'border-color:#0d9488; background:#f0fdfa;' : ''">
+                  <input type="checkbox" x-model="form.available_in_pos" style="width:20px; height:20px; accent-color:#0d9488; cursor:pointer; margin-top:2px;">
+                  <div>
+                    <div style="font-size:13.5px; font-weight:800; color:#0f172a; display:flex; align-items:center; gap:6px;">
+                      <i class="ph ph-cash-register" style="font-size:17px; color:#0d9488;"></i> Módulo de Punto de Venta (POS)
+                    </div>
+                    <div style="font-size:11.5px; color:#64748b; margin-top:3px;">
+                      El producto aparecerá disponible en la pantalla de cobro y caja de las sucursales.
+                    </div>
+                  </div>
+                </label>
+
+                <!-- Opción 2: Pre-Venta -->
+                <label style="background:#ffffff; border:1.5px solid #cbd5e1; border-radius:10px; padding:14px; display:flex; align-items:flex-start; gap:12px; cursor:pointer; transition:all 0.15s ease;"
+                  :style="form.available_in_presale ? 'border-color:#714B67; background:#fdf4fa;' : ''">
+                  <input type="checkbox" x-model="form.available_in_presale" style="width:20px; height:20px; accent-color:#714B67; cursor:pointer; margin-top:2px;">
+                  <div>
+                    <div style="font-size:13.5px; font-weight:800; color:#0f172a; display:flex; align-items:center; gap:6px;">
+                      <i class="ph ph-device-mobile" style="font-size:17px; color:#714B67;"></i> Módulo de Pre-Venta (Ruta / Preventistas)
+                    </div>
+                    <div style="font-size:11.5px; color:#64748b; margin-top:3px;">
+                      El producto aparecerá disponible para que los preventistas tomen pedidos en ruta.
+                    </div>
+                  </div>
+                </label>
+
+              </div>
+            </div>
+
           </div>
         </div>
 
@@ -412,6 +450,66 @@
                   >
                 </div>
                 <div style="font-size:11px; color:#714B67; margin-top:4px; font-weight:600;">Precio estándar para tickets y facturación POS.</div>
+              </div>
+            </div>
+
+            <!-- Tarifas Diferenciadas de Precios (3 Columnas estilo Odoo Enterprise) -->
+            <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:16px;">
+              <!-- 1. PRECIO CONTADO -->
+              <div style="background:#ffffff; border:1px solid #cbd5e1; border-radius:12px; padding:14px; transition:border-color 0.2s;">
+                <label class="form-label-inv" style="color:#0f766e; font-weight:800; display:flex; align-items:center; gap:6px;">
+                  <i class="ph ph-money" style="font-size:16px;"></i> PRECIO CONTADO (Q)
+                </label>
+                <div style="position:relative; margin-top:6px;">
+                  <span style="position:absolute; left:14px; top:50%; transform:translateY(-50%); font-weight:800; color:#0f766e; font-size:15px;">Q</span>
+                  <input 
+                    type="number" 
+                    step="0.01" 
+                    class="form-control-inv" 
+                    style="padding-left:34px; font-weight:800; font-size:16px; height:44px; border-radius:10px; color:#0f766e; border-color:#99f6e4;" 
+                    x-model.number="form.cash_price" 
+                    placeholder="0.00"
+                  >
+                </div>
+                <div style="font-size:11px; color:#64748b; margin-top:4px;">Tarifa especial pago en efectivo o transferencia.</div>
+              </div>
+
+              <!-- 2. PRECIO CONTADO EXCLUSIVO -->
+              <div style="background:#ffffff; border:1px solid #cbd5e1; border-radius:12px; padding:14px; transition:border-color 0.2s;">
+                <label class="form-label-inv" style="color:#1d4ed8; font-weight:800; display:flex; align-items:center; gap:6px;">
+                  <i class="ph ph-seal-check" style="font-size:16px;"></i> PRECIO CONTADO EXCLUSIVO (Q)
+                </label>
+                <div style="position:relative; margin-top:6px;">
+                  <span style="position:absolute; left:14px; top:50%; transform:translateY(-50%); font-weight:800; color:#1d4ed8; font-size:15px;">Q</span>
+                  <input 
+                    type="number" 
+                    step="0.01" 
+                    class="form-control-inv" 
+                    style="padding-left:34px; font-weight:800; font-size:16px; height:44px; border-radius:10px; color:#1d4ed8; border-color:#bfdbfe;" 
+                    x-model.number="form.exclusive_cash_price" 
+                    placeholder="0.00"
+                  >
+                </div>
+                <div style="font-size:11px; color:#64748b; margin-top:4px;">Tarifa preferencial clientes VIP / pronto pago.</div>
+              </div>
+
+              <!-- 3. PRECIO ESPECIAL -->
+              <div style="background:#ffffff; border:1px solid #cbd5e1; border-radius:12px; padding:14px; transition:border-color 0.2s;">
+                <label class="form-label-inv" style="color:#b45309; font-weight:800; display:flex; align-items:center; gap:6px;">
+                  <i class="ph ph-sparkle" style="font-size:16px;"></i> PRECIO ESPECIAL (Q)
+                </label>
+                <div style="position:relative; margin-top:6px;">
+                  <span style="position:absolute; left:14px; top:50%; transform:translateY(-50%); font-weight:800; color:#b45309; font-size:15px;">Q</span>
+                  <input 
+                    type="number" 
+                    step="0.01" 
+                    class="form-control-inv" 
+                    style="padding-left:34px; font-weight:800; font-size:16px; height:44px; border-radius:10px; color:#b45309; border-color:#fde68a;" 
+                    x-model.number="form.special_price" 
+                    placeholder="0.00"
+                  >
+                </div>
+                <div style="font-size:11px; color:#64748b; margin-top:4px;">Tarifa convenios, promociones o excepciones.</div>
               </div>
             </div>
 
@@ -1214,6 +1312,9 @@
         sale_price: 0,
         cost_price: 0,
         min_price: 0,
+        cash_price: 0,
+        exclusive_cash_price: 0,
+        special_price: 0,
         tax_rate: 12.0,
         includes_tax: true,
         min_stock: 5,
@@ -1221,6 +1322,8 @@
         total_stock: 0,
         warehouses: [],
         is_active: true,
+        available_in_pos: true,
+        available_in_presale: true,
         image_url: ''
       },
       adjustForm: {
