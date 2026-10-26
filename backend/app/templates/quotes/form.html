@@ -221,14 +221,14 @@
         <i class="ph ph-file-text"></i> 1. Borrador
       </div>
       <i class="ph ph-caret-right" style="color:#94a3b8; font-size:12px;"></i>
-      <div class="pipeline-step" :class="form.state === 'sent' ? 'active' : (form.state === 'converted' ? 'completed' : '')">
+      <div class="pipeline-step" :class="form.state === 'sent' ? 'active' : (isConverted() ? 'completed' : '')">
         <i class="ph ph-paper-plane-tilt"></i> 2. Enviada
       </div>
       <i class="ph ph-caret-right" style="color:#94a3b8; font-size:12px;"></i>
-      <div class="pipeline-step" :class="form.state === 'converted' ? 'completed active' : ''">
+      <div class="pipeline-step" :class="isConverted() ? 'completed active' : ''">
         <i class="ph ph-check-circle"></i> 3. Aprobada / Venta
       </div>
-      <template x-if="form.is_expired">
+      <template x-if="form.is_expired && !isConverted()">
         <span class="pipeline-step expired" style="margin-left:6px;">
           <i class="ph ph-warning-circle"></i> ¡Vencida!
         </span>
@@ -285,26 +285,24 @@
         <i class="ph ph-printer" style="font-size:16px; color:#562B82;"></i> Imprimir Carta (PDF)
       </button>
 
-      <!-- Convertir a Venta / Factura -->
-      <template x-if="quoteId !== 'new' && form.state !== 'converted'">
-        <div style="display:flex; align-items:center; gap:8px;">
-          <template x-if="hasOutOfStockLines()">
-            <div style="display:flex; align-items:center; gap:5px; font-size:11px; font-weight:800; color:#b91c1c; background:#fee2e2; border:1px solid #fca5a5; padding:6px 10px; border-radius:8px;" title="No se puede vender si hay productos con stock en 0 o insuficiente">
-              <i class="ph ph-warning-octagon" style="font-size:15px;"></i> Stock en 0 (Bloqueado)
-            </div>
-          </template>
-          <button 
-            type="button" 
-            class="btn" 
-            :style="hasOutOfStockLines() 
-              ? 'background:#94a3b8; color:#ffffff; font-weight:800; border-radius:8px; padding:7px 14px; border:none; cursor:not-allowed; opacity:0.85; font-size:12.5px; display:flex; align-items:center; gap:6px;' 
-              : 'background:#059669; color:#ffffff; font-weight:800; border-radius:8px; padding:7px 14px; border:none; box-shadow:0 2px 8px rgba(5,150,105,0.25); display:flex; align-items:center; gap:6px; cursor:pointer; font-size:12.5px;'"
-            @click="convertToSaleOrder()"
-            :title="hasOutOfStockLines() ? 'No se puede vender: hay productos con stock en 0' : 'Convertir esta cotización en venta confirmada'"
-          >
-            <i class="ph ph-arrows-clockwise" style="font-weight:800;"></i> Convertir a Venta
-          </button>
+      <!-- Badge de Estado cuando ya es Aprobada / Venta -->
+      <template x-if="isConverted()">
+        <div style="display:flex; align-items:center; gap:6px; background:#dcfce7; color:#15803d; border:1.5px solid #86efac; font-weight:800; border-radius:8px; padding:7px 14px; font-size:12.5px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+          <i class="ph ph-check-circle" style="font-size:16px;"></i> Aprobada / Venta
         </div>
+      </template>
+
+      <!-- Convertir a Venta / Factura -->
+      <template x-if="quoteId !== 'new' && !isConverted()">
+        <button 
+          type="button" 
+          class="btn" 
+          style="background:#059669; color:#ffffff; font-weight:800; border-radius:8px; padding:7px 16px; border:none; box-shadow:0 2px 8px rgba(5,150,105,0.25); display:flex; align-items:center; gap:6px; cursor:pointer; font-size:12.5px; transition:all 0.2s;"
+          @click="convertToSaleOrder()"
+          title="Convertir esta cotización en una venta oficial con descuento de inventario"
+        >
+          <i class="ph ph-arrows-clockwise" style="font-weight:800;"></i> Convertir a Venta
+        </button>
       </template>
 
       <!-- Guardar Cambios -->
@@ -313,7 +311,7 @@
         class="btn btn-primary" 
         style="background:var(--odoo-purple); color:#ffffff; font-weight:800; border-radius:8px; padding:7px 18px; border:none; box-shadow:0 2px 8px rgba(113,75,103,0.25); display:flex; align-items:center; gap:6px; cursor:pointer; font-size:12.5px;"
         @click="saveQuote()"
-        :disabled="isSaving || form.state === 'converted'"
+        :disabled="isSaving || isConverted()"
       >
         <i class="ph ph-floppy-disk" style="font-weight:800;"></i>
         <span x-text="isSaving ? 'Guardando...' : (quoteId === 'new' ? 'Crear Cotización' : 'Guardar Cambios')"></span>
@@ -1252,7 +1250,7 @@
             discount_amount: data.discount_amount || 0,
             tax_amount: data.tax_amount,
             total: data.total,
-            state: data.state,
+            state: (data.state === 'confirmed' || data.state === 'approved') ? 'converted' : data.state,
             is_expired: data.is_expired,
             lines: (data.lines || []).map(l => ({
               id: l.id,
@@ -1494,6 +1492,11 @@
         }
       },
 
+      isConverted() {
+        const s = (this.form.state || '').toLowerCase();
+        return s === 'converted' || s === 'confirmed' || s === 'approved';
+      },
+
       hasOutOfStockLines() {
         return (this.form.lines || []).some(l => {
           if (!l.product_id) return false;
@@ -1517,9 +1520,9 @@
             const cur = Number(l.current_stock || 0);
             const req = Number(l.qty || 1);
             if (cur <= 0) {
-              return `• ${l.description || 'Producto'}: Stock agotado (0 disponible)`;
+              return `• ${l.description || l.product_name || 'Producto'}: Stock agotado (0 disponible)`;
             } else {
-              return `• ${l.description || 'Producto'}: Stock insuficiente (${cur} disponible, ${req} solicitado)`;
+              return `• ${l.description || l.product_name || 'Producto'}: Stock insuficiente (${cur} disponible, ${req} solicitado)`;
             }
           }).join('\n');
 
@@ -1527,10 +1530,11 @@
           return;
         }
 
-        if (!confirm('¿Deseas convertir esta cotización en una venta confirmada y descontar el inventario?')) return;
+        if (!confirm('¿Deseas convertir esta cotización en una venta aprobada y descontar el inventario?')) return;
         try {
           const res = await API.post(`/quotes/${this.quoteId}/convert`);
-          alert(res.message || '¡Cotización convertida a venta!');
+          alert(res.message || '¡Cotización aprobada y convertida a venta!');
+          this.form.state = 'converted';
           await this.loadQuoteData();
         } catch(e) {
           alert('Error al convertir: ' + (e.message || e));

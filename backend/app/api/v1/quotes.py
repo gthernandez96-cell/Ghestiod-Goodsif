@@ -84,11 +84,15 @@ class EmailQuoteIn(BaseModel):
 
 # ===== HELPER PARA DETERMINAR ESTADO REAL =====
 def _resolve_quote_state(quote: SaleOrder, now: datetime) -> str:
-    """Calcula el estado dinámico (draft, sent, confirmed, expired, cancelled)."""
-    if quote.state == SaleState.CONFIRMED:
-        return "confirmed"
+    """Calcula el estado dinámico (draft, sent, converted, expired, cancelled)."""
+    if quote.state in (SaleState.CONFIRMED, SaleState.APPROVED):
+        return "converted"
     if quote.state == SaleState.CANCELLED:
         return "cancelled"
+    
+    extra = quote.extra or {}
+    if extra.get("state_custom") in ("confirmed", "converted"):
+        return "converted"
     
     # Si la fecha de vencimiento ya pasó y sigue abierta, es expired
     if quote.due_date:
@@ -98,7 +102,6 @@ def _resolve_quote_state(quote: SaleOrder, now: datetime) -> str:
         if due < now:
             return "expired"
 
-    extra = quote.extra or {}
     if extra.get("state_custom") == "sent" or quote.state == SaleState.PENDING_APPROVAL:
         return "sent"
 
@@ -1182,16 +1185,17 @@ async def convert_quote_to_sale(
     # Actualizar estado de cotización a CONFIRMED
     quote.state = SaleState.CONFIRMED
     extra = dict(quote.extra or {})
-    extra["state_custom"] = "confirmed"
+    extra["state_custom"] = "converted"
     quote.extra = extra
 
     await db.commit()
 
     return {
         "status": "converted",
+        "state": "converted",
         "sale_id": str(quote.id),
         "number": quote.number,
-        "message": f"¡Cotización {quote.number} convertida a venta exitosamente!"
+        "message": f"¡Cotización {quote.number} aprobada y convertida a venta exitosamente!"
     }
 
 
