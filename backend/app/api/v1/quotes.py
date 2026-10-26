@@ -1081,7 +1081,7 @@ async def convert_quote_to_sale(
 
     stmt = (
         select(SaleOrder)
-        .options(selectinload(SaleOrder.lines))
+        .options(selectinload(SaleOrder.lines).selectinload(SaleOrderLine.product))
         .where(
             SaleOrder.id == q_uuid,
             SaleOrder.company_id == current_user.company_id,
@@ -1096,22 +1096,79 @@ async def convert_quote_to_sale(
     if quote.state == SaleState.CONFIRMED:
         return {"status": "already_converted", "sale_id": str(quote.id), "number": quote.number}
 
-    # Descontar inventario por cada línea
+    if not quote.lines:
+        raise HTTPException(status_code=400, detail="La cotización no contiene productos para procesar la venta.")
+
+    # Asegurar bodega de despacho
+    wh_id = quote.warehouse_id
+    if not wh_id:
+        w_res = await db.execute(
+            select(Warehouse.id)
+            .where(Warehouse.company_id == current_user.company_id, Warehouse.is_active == True)
+            .limit(1)
+        )
+        wh_id = w_res.scalar_one_or_none()
+        if not wh_id:
+            w_res = await db.execute(select(Warehouse.id).limit(1))
+            wh_id = w_res.scalar_one_or_none()
+        quote.warehouse_id = wh_id
+
+    # 1. Agrupar cantidades requeridas por producto para validación integral
+    qty_by_product = {}
+    lines_by_product = {}
     for line in quote.lines:
         if line.product_id:
-            # Buscar quant
-            q_stmt = select(StockQuant).where(
-                StockQuant.product_id == line.product_id,
-                StockQuant.warehouse_id == quote.warehouse_id
-            ).limit(1)
-            q_res = await db.execute(q_stmt)
-            quant = q_res.scalar_one_or_none()
+            req_qty = Decimal(str(line.qty or 1))
+            qty_by_product[line.product_id] = qty_by_product.get(line.product_id, Decimal("0")) + req_qty
+            if line.product_id not in lines_by_product:
+                lines_by_product[line.product_id] = []
+            lines_by_product[line.product_id].append(line)
+
+    # 2. VALIDACIÓN ESTRICTA DE STOCK: No permitir vender si el stock está en 0 o es menor a lo solicitado
+    out_of_stock_errors = []
+    quants_map = {}
+
+    for p_id, total_req in qty_by_product.items():
+        q_stmt = select(StockQuant).where(
+            StockQuant.product_id == p_id,
+            StockQuant.warehouse_id == wh_id,
+            StockQuant.is_deleted == False
+        ).limit(1)
+        q_res = await db.execute(q_stmt)
+        quant = q_res.scalar_one_or_none()
+
+        avail_stock = Decimal(str(quant.qty_on_hand)) if (quant and quant.qty_on_hand is not None) else Decimal("0")
+        
+        sample_line = lines_by_product[p_id][0]
+        prod_obj = sample_line.product
+        p_name = prod_obj.name if (prod_obj and prod_obj.name) else (sample_line.description or "Producto")
+        p_code = getattr(prod_obj, "internal_ref", None) or getattr(prod_obj, "barcode", None) or ""
+        ref = f"{p_name} [{p_code}]" if p_code else p_name
+
+        if avail_stock <= Decimal("0"):
+            out_of_stock_errors.append(f"• {ref}: Stock agotado en bodega (0 disponible)")
+        elif avail_stock < total_req:
+            out_of_stock_errors.append(f"• {ref}: Stock insuficiente (Disponible: {avail_stock}, Solicitado: {total_req})")
+        else:
+            quants_map[p_id] = quant
+
+    if out_of_stock_errors:
+        err_msg = (
+            "No se puede realizar la venta porque hay productos sin existencias suficientes en la bodega:\n\n"
+            + "\n".join(out_of_stock_errors)
+            + "\n\nPor favor ajusta las cantidades o ingresa inventario antes de procesar la venta."
+        )
+        raise HTTPException(status_code=400, detail=err_msg)
+
+    # 3. Descontar inventario y asentar los movimientos de salida
+    for line in quote.lines:
+        if line.product_id and line.product_id in quants_map:
+            quant = quants_map[line.product_id]
             if quant:
                 quant.qty_on_hand = (quant.qty_on_hand or Decimal("0")) - Decimal(str(line.qty))
 
-            # Registrar movimiento de salida
             move = StockMove(
-                warehouse_id=quote.warehouse_id,
+                warehouse_id=wh_id,
                 product_id=line.product_id,
                 move_type=StockMoveType.SALE,
                 qty=Decimal(str(line.qty)),

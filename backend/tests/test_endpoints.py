@@ -774,10 +774,31 @@ def test_quotes_and_ap_flow():
     assert em_res.status_code == 200
     assert em_res.json()["status"] in ["sent", "fallback"]
 
-    # 4. Convertir cotización a venta
+    # 4. Convertir cotización a venta (tiene stock suficiente = 25)
     conv_res = client.post(f"/api/v1/quotes/{q_id}/convert", headers=headers)
     assert conv_res.status_code == 200
     assert conv_res.json()["status"] == "converted"
+
+    # 4.1. Validar que NO permite vender si el stock está en 0
+    p_zero_res = client.post("/api/v1/products/", json={
+        "name": "Producto Sin Stock Test",
+        "sale_price": 50.0,
+        "stock": 0.0
+    }, headers=headers)
+    assert p_zero_res.status_code == 200
+    p_zero_id = p_zero_res.json()["id"]
+
+    q_zero_res = client.post("/api/v1/quotes/", json={
+        "customer_name": "Cliente Sin Stock",
+        "customer_nit": "CF",
+        "lines": [{"product_id": p_zero_id, "qty": 1.0, "unit_price": 50.0}]
+    }, headers=headers)
+    assert q_zero_res.status_code == 200
+    q_zero_id = q_zero_res.json()["id"]
+
+    fail_conv = client.post(f"/api/v1/quotes/{q_zero_id}/convert", headers=headers)
+    assert fail_conv.status_code == 400
+    assert "stock" in fail_conv.json()["detail"].lower()
 
     # 5. Cuentas por Pagar (AP): Crear factura de proveedor
     bill_res = client.post("/api/v1/ap/bills", json={

@@ -287,14 +287,24 @@
 
       <!-- Convertir a Venta / Factura -->
       <template x-if="quoteId !== 'new' && form.state !== 'converted'">
-        <button 
-          type="button" 
-          class="btn" 
-          style="background:#059669; color:#ffffff; font-weight:800; border-radius:8px; padding:7px 14px; border:none; box-shadow:0 2px 8px rgba(5,150,105,0.25); display:flex; align-items:center; gap:6px; cursor:pointer; font-size:12.5px;"
-          @click="convertToSaleOrder()"
-        >
-          <i class="ph ph-arrows-clockwise" style="font-weight:800;"></i> Convertir a Venta
-        </button>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <template x-if="hasOutOfStockLines()">
+            <div style="display:flex; align-items:center; gap:5px; font-size:11px; font-weight:800; color:#b91c1c; background:#fee2e2; border:1px solid #fca5a5; padding:6px 10px; border-radius:8px;" title="No se puede vender si hay productos con stock en 0 o insuficiente">
+              <i class="ph ph-warning-octagon" style="font-size:15px;"></i> Stock en 0 (Bloqueado)
+            </div>
+          </template>
+          <button 
+            type="button" 
+            class="btn" 
+            :style="hasOutOfStockLines() 
+              ? 'background:#94a3b8; color:#ffffff; font-weight:800; border-radius:8px; padding:7px 14px; border:none; cursor:not-allowed; opacity:0.85; font-size:12.5px; display:flex; align-items:center; gap:6px;' 
+              : 'background:#059669; color:#ffffff; font-weight:800; border-radius:8px; padding:7px 14px; border:none; box-shadow:0 2px 8px rgba(5,150,105,0.25); display:flex; align-items:center; gap:6px; cursor:pointer; font-size:12.5px;'"
+            @click="convertToSaleOrder()"
+            :title="hasOutOfStockLines() ? 'No se puede vender: hay productos con stock en 0' : 'Convertir esta cotización en venta confirmada'"
+          >
+            <i class="ph ph-arrows-clockwise" style="font-weight:800;"></i> Convertir a Venta
+          </button>
+        </div>
       </template>
 
       <!-- Guardar Cambios -->
@@ -603,12 +613,15 @@
               <!-- Stock en Tiempo Real con Semáforo (Opción 3) -->
               <td style="padding:6px 10px; text-align:center;">
                 <template x-if="line.product_id">
-                  <div>
+                  <div style="display:flex; flex-direction:column; align-items:center; gap:2px;">
                     <span 
                       class="stock-badge"
                       :class="line.stock_status === 'in_stock' ? 'stock-in' : (line.stock_status === 'partial' ? 'stock-partial' : 'stock-out')"
                       x-text="line.current_stock + ' ' + (line.uom_name || 'uds')"
                     ></span>
+                    <span x-show="Number(line.current_stock || 0) <= 0" style="font-size:9.5px; font-weight:800; color:#dc2626; display:inline-flex; align-items:center; gap:2px; margin-top:2px;">
+                      ⚠️ Sin Stock
+                    </span>
                   </div>
                 </template>
                 <template x-if="!line.product_id">
@@ -1481,7 +1494,39 @@
         }
       },
 
+      hasOutOfStockLines() {
+        return (this.form.lines || []).some(l => {
+          if (!l.product_id) return false;
+          const cur = Number(l.current_stock || 0);
+          const req = Number(l.qty || 1);
+          return cur <= 0 || cur < req;
+        });
+      },
+
       async convertToSaleOrder() {
+        // Validación estricta: No dejar vender si el stock está en 0 o es insuficiente
+        const outOfStockItems = (this.form.lines || []).filter(l => {
+          if (!l.product_id) return false;
+          const cur = Number(l.current_stock || 0);
+          const req = Number(l.qty || 1);
+          return cur <= 0 || cur < req;
+        });
+
+        if (outOfStockItems.length > 0) {
+          const listStr = outOfStockItems.map(l => {
+            const cur = Number(l.current_stock || 0);
+            const req = Number(l.qty || 1);
+            if (cur <= 0) {
+              return `• ${l.description || 'Producto'}: Stock agotado (0 disponible)`;
+            } else {
+              return `• ${l.description || 'Producto'}: Stock insuficiente (${cur} disponible, ${req} solicitado)`;
+            }
+          }).join('\n');
+
+          alert(`❌ NO SE PUEDE REALIZAR LA VENTA:\n\nHay productos sin existencias suficientes en bodega:\n\n${listStr}\n\nPor favor ajusta las cantidades o ingresa inventario antes de vender.`);
+          return;
+        }
+
         if (!confirm('¿Deseas convertir esta cotización en una venta confirmada y descontar el inventario?')) return;
         try {
           const res = await API.post(`/quotes/${this.quoteId}/convert`);
