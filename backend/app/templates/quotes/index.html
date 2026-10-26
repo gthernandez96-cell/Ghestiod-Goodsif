@@ -15,7 +15,7 @@
     background: #ffffff;
     border: 1px solid #e2e8f0;
     border-radius: 12px;
-    padding: 16px 20px;
+    padding: 14px 18px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.03);
     display: flex;
     align-items: center;
@@ -29,7 +29,7 @@
 
   .status-filter-btn {
     padding: 6px 14px;
-    font-size: 12.5px;
+    font-size: 12px;
     font-weight: 700;
     border-radius: 20px;
     border: 1px solid #cbd5e1;
@@ -61,12 +61,12 @@
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    padding: 12px 16px;
+    padding: 12px 14px;
     border-bottom: 2px solid #e2e8f0;
     text-align: left;
   }
   .quote-table td {
-    padding: 12px 16px;
+    padding: 12px 14px;
     border-bottom: 1px solid #f1f5f9;
     color: #1e293b;
     vertical-align: middle;
@@ -93,12 +93,6 @@
     display: flex;
     align-items: center;
     gap: 12px;
-  }
-
-  .quote-header-title-box {
-    display: flex;
-    align-items: center;
-    gap: 6px;
   }
 
   .quote-header-title {
@@ -134,17 +128,13 @@
     white-space: nowrap;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
-    -ms-overflow-style: none;
     padding-bottom: 2px;
   }
-
   .quote-pills-scroll::-webkit-scrollbar {
     display: none;
   }
-
   .quote-pills-scroll .status-filter-btn {
     flex-shrink: 0;
-    white-space: nowrap;
   }
 
   @media screen and (max-width: 768px) {
@@ -154,33 +144,6 @@
       flex-direction: column !important;
       align-items: stretch !important;
       gap: 10px !important;
-      border-radius: 0 0 10px 10px !important;
-    }
-
-    .quote-header-main-row {
-      display: flex !important;
-      align-items: center !important;
-      justify-content: space-between !important;
-      width: 100% !important;
-    }
-
-    .quote-header-title {
-      font-size: 16px !important;
-    }
-
-    .quote-btn-new {
-      padding: 6px 12px !important;
-      font-size: 12px !important;
-      min-height: 34px !important;
-    }
-
-    .quote-search-box {
-      width: 100% !important;
-      max-width: 100% !important;
-    }
-
-    .quote-pills-scroll {
-      width: 100% !important;
     }
   }
 </style>
@@ -189,142 +152,133 @@
 {% block content %}
 <div x-data="quotesDashboardPage()" x-init="init()">
   
-  <!-- ===== TOP ODOO CONTROL PANEL SUB-HEADER ===== -->
+  <!-- ===== 1. TOP HEADER & ACCIONES RÁPIDAS ===== -->
   <div class="quote-header-bar">
     
-    <!-- Top Row: Title on Left, New Button on Right -->
     <div class="quote-header-main-row">
-      <div class="quote-header-title-box">
-        <h1 class="quote-header-title">Cotizaciones & Proformas</h1>
+      <div style="width:34px; height:34px; border-radius:9px; background:var(--odoo-purple-light); color:var(--odoo-purple); display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:800;">
+        <i class="ph ph-receipt"></i>
       </div>
-
-      <a 
-        href="/quotes/new"
-        class="btn btn-primary quote-btn-new" 
-      >
+      <div>
+        <h1 class="quote-header-title">Cotizaciones & Proformas 360°</h1>
+        <div style="font-size:11.5px; color:#64748b; margin-top:2px;">
+          <span>Productos Automotrices del Sur, S.A.</span>
+        </div>
+      </div>
+      <a href="/quotes/new" class="quote-btn-new">
         <i class="ph ph-plus" style="font-weight:800;"></i>
         <span>Nueva Cotización</span>
       </a>
     </div>
 
-    <!-- Center: Search Input -->
-    <div class="quote-search-box" style="position:relative; display:flex; align-items:center; width:320px; max-width:100%;">
-      <i class="ph ph-magnifying-glass" style="position:absolute; left:12px; color:var(--odoo-purple); font-size:16px; font-weight:800; pointer-events:none;"></i>
+    <!-- Barra de Búsqueda Rápida -->
+    <div style="flex:1; max-width:340px; min-width:220px; position:relative;">
+      <i class="ph ph-magnifying-glass" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#94a3b8; font-size:16px;"></i>
       <input 
         type="text" 
+        class="form-control" 
         placeholder="Buscar cotización, cliente o NIT..." 
-        style="width:100%; padding:7px 30px 7px 36px; border:1.5px solid #cbd5e1; border-radius:8px; font-size:13px; font-weight:600; color:#1e293b; outline:none;"
+        style="width:100%; padding-left:36px; padding-top:7px; padding-bottom:7px; border-radius:20px; border:1px solid #cbd5e1; font-size:12.5px;"
         x-model="search"
-        @input.debounce.250ms="loadQuotes()"
+        @input.debounce.300ms="loadQuotes()"
       >
-      <i class="ph ph-x-circle" style="position:absolute; right:10px; color:#94a3b8; font-size:16px; cursor:pointer;" x-show="search" @click="search = ''; loadQuotes()"></i>
+      <i class="ph ph-x-circle" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); color:#94a3b8; font-size:16px; cursor:pointer;" x-show="search" @click="search = ''; loadQuotes()"></i>
     </div>
 
-    <!-- Right: Quick Filters & Resumen Dropdown -->
-    <div class="quote-pills-scroll" style="position:relative;">
-      <button class="status-filter-btn" :class="statusFilter === '' ? 'active' : ''" @click="setStatusFilter('')">Todas</button>
-      <button class="status-filter-btn" :class="statusFilter === 'draft' ? 'active' : ''" @click="setStatusFilter('draft')">📝 Borradores</button>
-      <button class="status-filter-btn" :class="statusFilter === 'converted' ? 'active' : ''" @click="setStatusFilter('converted')">✅ Convertidas a Venta</button>
+    <!-- Filtros de Estado & Botón KPIs -->
+    <div style="display:flex; align-items:center; gap:8px;">
+      <div class="quote-pills-scroll">
+        <button type="button" class="status-filter-btn" :class="statusFilter === '' ? 'active' : ''" @click="setStatusFilter('')">
+          Todas
+        </button>
+        <button type="button" class="status-filter-btn" :class="statusFilter === 'draft' ? 'active' : ''" @click="setStatusFilter('draft')">
+          📝 Borrador
+        </button>
+        <button type="button" class="status-filter-btn" :class="statusFilter === 'sent' ? 'active' : ''" @click="setStatusFilter('sent')">
+          📨 Enviadas
+        </button>
+        <button type="button" class="status-filter-btn" :class="statusFilter === 'confirmed' ? 'active' : ''" @click="setStatusFilter('confirmed')">
+          ✓ Convertidas
+        </button>
+        <button type="button" class="status-filter-btn" :class="statusFilter === 'expired' ? 'active' : ''" @click="setStatusFilter('expired')">
+          ⏰ Vencidas
+        </button>
+      </div>
 
-      <!-- Botón Píldora Resumen -->
-      <button
-        type="button"
-        class="hide-on-mobile"
-        @click="showKpis = !showKpis"
-        style="
-          display:inline-flex; align-items:center; gap:7px;
-          padding:6px 14px;
-          background:linear-gradient(135deg, #714B67 0%, #9b6b8f 100%);
-          border:none; border-radius:20px;
-          font-size:11.5px; font-weight:800; color:#ffffff;
-          cursor:pointer; transition:all 0.22s cubic-bezier(0.4,0,0.2,1);
-          box-shadow:0 2px 10px rgba(113,75,103,0.3);
-          letter-spacing:0.3px; white-space:nowrap;
-        "
-        onmouseover="this.style.boxShadow='0 4px 16px rgba(113,75,103,0.5)'; this.style.transform='translateY(-1px)'"
-        onmouseout="this.style.boxShadow='0 2px 10px rgba(113,75,103,0.3)'; this.style.transform='translateY(0)'"
-      >
-        <i class="ph ph-chart-bar" style="font-size:15px;"></i>
-        <span x-text="showKpis ? 'Ocultar resumen' : 'Resumen'"></span>
-        <i
-          class="ph ph-caret-down"
-          style="font-size:12px; transition:transform 0.25s ease;"
-          :style="showKpis ? 'transform:rotate(180deg)' : 'transform:rotate(0deg)'"
-        ></i>
-      </button>
+      <!-- Popover KPIs -->
+      <div style="position:relative;">
+        <button 
+          type="button" 
+          @click="showKpis = !showKpis" 
+          class="btn btn-secondary" 
+          style="border-radius:20px; padding:6px 14px; font-size:12.5px; font-weight:700; border:1px solid #cbd5e1; display:flex; align-items:center; gap:6px; cursor:pointer;"
+          :style="showKpis ? 'background:var(--odoo-purple-light); border-color:var(--odoo-purple); color:var(--odoo-purple);' : 'background:#ffffff; color:#475569;'"
+        >
+          <i class="ph ph-chart-line-up" style="font-size:16px;"></i>
+          <span>Métricas</span>
+          <i class="ph ph-caret-down" :style="showKpis ? 'transform:rotate(180deg)' : ''" style="font-size:11px; transition:transform 0.2s;"></i>
+        </button>
 
-      <!-- Floating Popover Dropdown Panel (alineado a la derecha) -->
-      <div
-        class="hide-on-mobile"
-        x-show="showKpis"
-        @click.outside="showKpis = false"
-        x-transition:enter="transition ease-out duration-200"
-        x-transition:enter-start="opacity-0 scale-95"
-        x-transition:enter-end="opacity-100 scale-100"
-        x-transition:leave="transition ease-in duration-150"
-        x-transition:leave-start="opacity-100 scale-100"
-        x-transition:leave-end="opacity-0 scale-95"
-        style="
-          position:absolute; top:calc(100% + 8px); right:0; z-index:999;
-          background:#ffffff; border:1.5px solid #e2e8f0; border-radius:14px;
-          box-shadow:0 12px 40px -8px rgba(0,0,0,0.15), 0 4px 14px -4px rgba(0,0,0,0.08);
-          padding:14px; display:grid; grid-template-columns:repeat(3, 1fr);
-          gap:10px; width:700px; max-width:90vw;
-        "
-        x-cloak
-      >
-        <!-- Total Cotizaciones -->
-        <div class="quote-kpi-card" style="margin:0; padding:12px 14px; border-left:4px solid var(--odoo-purple);">
-          <div>
-            <div style="font-size:10.5px; font-weight:800; color:var(--odoo-purple); text-transform:uppercase; letter-spacing:0.5px;">Cotizaciones Emitidas</div>
-            <div style="font-size:20px; font-weight:900; color:#1e293b; margin-top:2px;" x-text="kpis.total_quotes">0</div>
-            <div style="font-size:10.5px; color:#64748b;">En cartera</div>
+        <div 
+          x-show="showKpis" 
+          @click.outside="showKpis = false" 
+          style="position:absolute; right:0; top:calc(100% + 8px); z-index:100; background:#ffffff; border:1px solid #cbd5e1; border-radius:14px; box-shadow:0 12px 40px rgba(0,0,0,0.15); padding:16px; display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; width:780px; max-width:92vw;"
+          x-cloak
+        >
+          <!-- Total Cotizaciones -->
+          <div class="quote-kpi-card" style="border-left:4px solid var(--odoo-purple);">
+            <div>
+              <div style="font-size:10px; font-weight:800; color:var(--odoo-purple); text-transform:uppercase;">Emitidas</div>
+              <div style="font-size:20px; font-weight:900; color:#1e293b; margin-top:2px;" x-text="kpis.total_quotes">0</div>
+              <div style="font-size:10.5px; color:#64748b;">En cartera</div>
+            </div>
           </div>
-          <div style="width:36px; height:36px; border-radius:9px; background:var(--odoo-purple-light); color:var(--odoo-purple); display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;">
-            <i class="ph ph-file-text"></i>
-          </div>
-        </div>
 
-        <!-- Monto Total Cotizado -->
-        <div class="quote-kpi-card" style="margin:0; padding:12px 14px; border-left:4px solid #0284c7;">
-          <div>
-            <div style="font-size:10.5px; font-weight:800; color:#0369a1; text-transform:uppercase; letter-spacing:0.5px;">Total Cotizado</div>
-            <div style="font-size:18px; font-weight:900; color:#0284c7; margin-top:2px;" x-text="'Q ' + Number(kpis.total_amount || 0).toLocaleString('es-GT', {minimumFractionDigits:2, maximumFractionDigits:2})">Q 0.00</div>
-            <div style="font-size:10.5px; color:#64748b;">Volumen emitido</div>
+          <!-- Monto Total Cotizado -->
+          <div class="quote-kpi-card" style="border-left:4px solid #0284c7;">
+            <div>
+              <div style="font-size:10px; font-weight:800; color:#0369a1; text-transform:uppercase;">Total Cotizado</div>
+              <div style="font-size:18px; font-weight:900; color:#0284c7; margin-top:2px;" x-text="'Q ' + Number(kpis.total_amount || 0).toLocaleString('es-GT', {minimumFractionDigits:2, maximumFractionDigits:2})">Q 0.00</div>
+              <div style="font-size:10.5px; color:#64748b;">Volumen total</div>
+            </div>
           </div>
-          <div style="width:36px; height:36px; border-radius:9px; background:#e0f2fe; color:#0284c7; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;">
-            <i class="ph ph-currency-circle-dollar"></i>
-          </div>
-        </div>
 
-        <!-- Cotizaciones Convertidas -->
-        <div class="quote-kpi-card" style="margin:0; padding:12px 14px; border-left:4px solid #10b981;">
-          <div>
-            <div style="font-size:10.5px; font-weight:800; color:#047857; text-transform:uppercase; letter-spacing:0.5px;">Convertidas a Venta</div>
-            <div style="font-size:20px; font-weight:900; color:#059669; margin-top:2px;" x-text="kpis.converted_count">0</div>
-            <div style="font-size:10.5px; color:#059669; font-weight:700;">Ventas cerradas</div>
+          <!-- Enviadas / En Negociación -->
+          <div class="quote-kpi-card" style="border-left:4px solid #d97706;">
+            <div>
+              <div style="font-size:10px; font-weight:800; color:#b45309; text-transform:uppercase;">En Negociación</div>
+              <div style="font-size:20px; font-weight:900; color:#d97706; margin-top:2px;" x-text="kpis.sent_count || 0">0</div>
+              <div style="font-size:10.5px; color:#b45309;">Enviadas cliente</div>
+            </div>
           </div>
-          <div style="width:36px; height:36px; border-radius:9px; background:#dcfce7; color:#15803d; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;">
-            <i class="ph ph-check-circle"></i>
+
+          <!-- Convertidas a Venta -->
+          <div class="quote-kpi-card" style="border-left:4px solid #10b981;">
+            <div>
+              <div style="font-size:10px; font-weight:800; color:#047857; text-transform:uppercase;">Convertidas</div>
+              <div style="font-size:20px; font-weight:900; color:#059669; margin-top:2px;" x-text="kpis.converted_count">0</div>
+              <div style="font-size:10.5px; color:#059669; font-weight:700;">Ventas cerradas</div>
+            </div>
           </div>
         </div>
       </div>
+
     </div>
 
   </div>
 
-  <!-- ===== 2. QUOTES TABLE ===== -->
+  <!-- ===== 2. TABLA DE COTIZACIONES ===== -->
   <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:14px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
     <div style="overflow-x:auto;">
       <table class="quote-table">
         <thead>
           <tr>
-            <th>Número / Referencia</th>
-            <th>Cliente / Razón Social</th>
-            <th>NIT</th>
+            <th>Número / Ref.</th>
+            <th>Cliente & Empresa</th>
+            <th>NIT / DPI</th>
+            <th>Condición / Vendedor</th>
             <th>Fecha Emisión</th>
             <th>Vigencia</th>
-            <th style="text-align:right;">Subtotal</th>
             <th style="text-align:right;">Total (Q)</th>
             <th style="text-align:center;">Estado</th>
             <th style="text-align:right;">Acciones</th>
@@ -333,39 +287,83 @@
         <tbody>
           <template x-for="q in quotes" :key="q.id">
             <tr>
+              
+              <!-- Número -->
               <td>
                 <a :href="'/quotes/' + q.id" style="font-weight:900; color:var(--odoo-purple); font-family:monospace; text-decoration:none; font-size:13.5px;" x-text="q.number"></a>
               </td>
-              <td style="font-weight:700; color:#1e293b;" x-text="q.customer_name"></td>
-              <td style="font-family:monospace; color:#64748b;" x-text="q.customer_nit"></td>
+
+              <!-- Cliente -->
+              <td>
+                <div style="font-weight:800; color:#1e293b;" x-text="q.customer_name"></div>
+                <div style="font-size:11px; color:#64748b;" x-show="q.customer_company" x-text="q.customer_company"></div>
+              </td>
+
+              <!-- NIT -->
+              <td style="font-family:monospace; color:#64748b; font-weight:700;" x-text="q.customer_nit || 'CF'"></td>
+
+              <!-- Condición y Vendedor -->
+              <td style="font-size:12px;">
+                <div style="font-weight:700; color:#334155;" x-text="q.condition || 'Contado'"></div>
+                <div style="font-size:10.5px; color:#64748b;" x-text="q.seller_name || 'Ventas'"></div>
+              </td>
+
+              <!-- Fecha -->
               <td style="color:#475569;" x-text="q.date"></td>
+
+              <!-- Vigencia -->
               <td style="color:#64748b;" x-text="q.valid_until"></td>
-              <td style="text-align:right; color:#64748b;" x-text="'Q ' + Number(q.subtotal).toFixed(2)"></td>
+
+              <!-- Total -->
               <td style="text-align:right; font-weight:900; color:#0f172a; font-size:14px;" x-text="'Q ' + Number(q.total).toFixed(2)"></td>
+
+              <!-- Estado (Opción 5) -->
               <td style="text-align:center;">
                 <template x-if="q.state === 'converted'">
                   <span style="font-size:11px; font-weight:800; padding:3px 10px; border-radius:12px; background:#dcfce7; color:#15803d; border:1px solid #86efac;">
                     ✓ Convertida a Venta
                   </span>
                 </template>
+                <template x-if="q.state === 'sent'">
+                  <span style="font-size:11px; font-weight:800; padding:3px 10px; border-radius:12px; background:#fef3c7; color:#b45309; border:1px solid #fde68a;">
+                    📨 Enviada
+                  </span>
+                </template>
                 <template x-if="q.state === 'draft'">
                   <span style="font-size:11px; font-weight:800; padding:3px 10px; border-radius:12px; background:#f1f5f9; color:#475569;">
-                    📝 Borrador / Enviada
+                    📝 Borrador
+                  </span>
+                </template>
+                <template x-if="q.state === 'expired'">
+                  <span style="font-size:11px; font-weight:800; padding:3px 10px; border-radius:12px; background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5;">
+                    ⏰ Vencida
                   </span>
                 </template>
                 <template x-if="q.state === 'cancelled'">
-                  <span style="font-size:11px; font-weight:800; padding:3px 10px; border-radius:12px; background:#fee2e2; color:#b91c1c;">
+                  <span style="font-size:11px; font-weight:800; padding:3px 10px; border-radius:12px; background:#fee2e2; color:#991b1b;">
                     ✗ Cancelada
                   </span>
                 </template>
               </td>
+
+              <!-- Acciones Rápidas -->
               <td style="text-align:right;">
                 <div style="display:flex; justify-content:flex-end; gap:6px;">
-                  <a :href="'/quotes/' + q.id" class="btn btn-sm btn-secondary" style="font-size:12px; padding:4px 10px; text-decoration:none; font-weight:700; display:flex; align-items:center; gap:4px;" title="Ver o Imprimir Proforma">
-                    <i class="ph ph-file-text"></i> Ver / PDF
+                  <a :href="'/quotes/' + q.id" class="btn btn-sm btn-secondary" style="font-size:12px; padding:4px 10px; text-decoration:none; font-weight:700; display:flex; align-items:center; gap:4px;" title="Ver o Imprimir Proforma Carta">
+                    <i class="ph ph-file-text"></i> Ver / Carta
                   </a>
+                  <button 
+                    type="button" 
+                    class="btn btn-sm" 
+                    style="background:#f1f5f9; border:1px solid #cbd5e1; color:#334155; font-size:11px; padding:4px 8px; border-radius:6px; cursor:pointer;"
+                    @click="duplicateQuote(q.id)"
+                    title="Duplicar cotización"
+                  >
+                    <i class="ph ph-copy"></i>
+                  </button>
                 </div>
               </td>
+
             </tr>
           </template>
           <tr x-show="quotes.length === 0">
@@ -384,7 +382,7 @@
   function quotesDashboardPage() {
     return {
       quotes: [],
-      kpis: { total_quotes: 0, total_amount: 0, draft_count: 0, converted_count: 0 },
+      kpis: { total_quotes: 0, total_amount: 0, draft_count: 0, sent_count: 0, converted_count: 0, expired_count: 0 },
       search: '',
       statusFilter: '',
       showKpis: false,
@@ -412,6 +410,17 @@
       setStatusFilter(val) {
         this.statusFilter = val;
         this.loadQuotes();
+      },
+
+      async duplicateQuote(quoteId) {
+        if (!confirm('¿Deseas duplicar esta cotización para generar una nueva en borrador?')) return;
+        try {
+          const res = await API.post(`/quotes/${quoteId}/duplicate`);
+          alert(res.message || 'Cotización duplicada con éxito.');
+          window.location.href = `/quotes/${res.id}`;
+        } catch(e) {
+          alert('Error al duplicar: ' + (e.message || e));
+        }
       }
     }
   }

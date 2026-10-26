@@ -16,7 +16,7 @@
     border: 1px solid #d9d9d9;
     border-radius: 12px;
     box-shadow: 0 2px 10px rgba(0,0,0,0.04);
-    padding: 28px 36px;
+    padding: 24px 30px;
     margin-bottom: 28px;
   }
 
@@ -30,6 +30,7 @@
     font-weight: 800;
     background: #f1f5f9;
     color: #64748b;
+    transition: all 0.2s;
   }
   .pipeline-step.active {
     background: var(--odoo-purple);
@@ -39,6 +40,10 @@
   .pipeline-step.completed {
     background: #dcfce7;
     color: #15803d;
+  }
+  .pipeline-step.expired {
+    background: #fee2e2;
+    color: #b91c1c;
   }
 
   .odoo-label {
@@ -66,6 +71,32 @@
     box-shadow: 0 0 0 3px rgba(113, 75, 103, 0.12);
   }
 
+  .stock-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+  .stock-in {
+    background: #dcfce7;
+    color: #15803d;
+    border: 1px solid #86efac;
+  }
+  .stock-partial {
+    background: #fef3c7;
+    color: #b45309;
+    border: 1px solid #fde68a;
+  }
+  .stock-out {
+    background: #fee2e2;
+    color: #b91c1c;
+    border: 1px solid #fca5a5;
+  }
+
   .product-select-card {
     padding: 10px 14px;
     border: 1px solid #e2e8f0;
@@ -83,22 +114,86 @@
     transform: translateY(-1px);
   }
 
-  @media print {
-    body * {
-      visibility: hidden;
-    }
-    .print-voucher, .print-voucher * {
-      visibility: visible;
-    }
+  /* MODAL ESTILOS */
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 16px;
+  }
+  .modal-box {
+    background: #ffffff;
+    border-radius: 14px;
+    max-width: 600px;
+    width: 100%;
+    box-shadow: 0 20px 45px rgba(0,0,0,0.25);
+    overflow: hidden;
+  }
+
+  /* ========================================================
+     ESTILOS DE IMPRESIÓN Y HOJA TAMAÑO CARTA EXACTA (OPCIÓN 1)
+     ======================================================== */
+  @page {
+    size: letter portrait;
+    margin: 8mm 10mm;
+  }
+
+  @media screen {
     .print-voucher {
-      position: absolute;
-      left: 0;
-      top: 0;
-      width: 100%;
-      background: #ffffff;
-      padding: 20px;
-      font-family: Arial, sans-serif;
+      display: none;
     }
+  }
+
+  @media print {
+    body {
+      background: #ffffff !important;
+      color: #000000 !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    body * {
+      visibility: hidden !important;
+    }
+    #print_voucher_container, #print_voucher_container * {
+      visibility: visible !important;
+    }
+    #print_voucher_container {
+      display: block !important;
+      position: absolute !important;
+      left: 0 !important;
+      top: 0 !important;
+      width: 100% !important;
+      background: #ffffff !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      font-family: Arial, Helvetica, sans-serif !important;
+    }
+    .no-print {
+      display: none !important;
+    }
+  }
+
+  /* Vista previa de carta dentro del navegador */
+  .letter-preview-sheet {
+    max-width: 820px;
+    margin: 0 auto;
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+    padding: 24px 28px;
+    font-family: Arial, Helvetica, sans-serif;
+    color: #000000;
   }
 </style>
 {% endblock %}
@@ -107,7 +202,7 @@
 <div x-data="quoteFormModule('{{ quote_id }}')" x-init="init()">
   
   <!-- ===== TOP CONTROL PANEL SUB-HEADER ===== -->
-  <div style="margin:-20px -24px 22px -24px; padding:12px 24px; background:#ffffff; border-bottom:1px solid #e2e8f0; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px; box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+  <div class="no-print" style="margin:-20px -24px 22px -24px; padding:12px 24px; background:#ffffff; border-bottom:1px solid #e2e8f0; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px; box-shadow:0 1px 3px rgba(0,0,0,0.02);">
     
     <!-- Left: Back & Title -->
     <div style="display:flex; align-items:center; gap:12px;">
@@ -120,49 +215,93 @@
       </div>
     </div>
 
-    <!-- Center: Pipeline Status Indicator -->
+    <!-- Center: Pipeline Status Indicator (Opción 5) -->
     <div style="display:flex; align-items:center; gap:8px;">
-      <div class="pipeline-step" :class="form.state === 'draft' ? 'active' : (form.state === 'converted' ? 'completed' : '')">
+      <div class="pipeline-step" :class="form.state === 'draft' ? 'active' : (form.state !== 'draft' ? 'completed' : '')">
         <i class="ph ph-file-text"></i> 1. Borrador
       </div>
       <i class="ph ph-caret-right" style="color:#94a3b8; font-size:12px;"></i>
-      <div class="pipeline-step" :class="form.state === 'converted' ? 'completed' : ''">
-        <i class="ph ph-check-circle"></i> 2. Aprobada
+      <div class="pipeline-step" :class="form.state === 'sent' ? 'active' : (form.state === 'converted' ? 'completed' : '')">
+        <i class="ph ph-paper-plane-tilt"></i> 2. Enviada
       </div>
       <i class="ph ph-caret-right" style="color:#94a3b8; font-size:12px;"></i>
-      <div class="pipeline-step" :class="form.state === 'converted' ? 'active' : ''">
-        <i class="ph ph-shopping-bag-open"></i> 3. Convertida a Venta
+      <div class="pipeline-step" :class="form.state === 'converted' ? 'completed active' : ''">
+        <i class="ph ph-check-circle"></i> 3. Aprobada / Venta
       </div>
+      <template x-if="form.is_expired">
+        <span class="pipeline-step expired" style="margin-left:6px;">
+          <i class="ph ph-warning-circle"></i> ¡Vencida!
+        </span>
+      </template>
     </div>
 
     <!-- Right: Action Buttons -->
-    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-      <template x-if="quoteId !== 'new' && form.state !== 'converted'">
-        <button 
-          type="button" 
-          class="btn" 
-          style="background:#059669; color:#ffffff; font-weight:800; border-radius:8px; padding:7px 16px; border:none; box-shadow:0 2px 8px rgba(5,150,105,0.25); display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px;"
-          @click="convertToSaleOrder()"
-        >
-          <i class="ph ph-arrows-clockwise" style="font-weight:800;"></i> Convertir a Factura / Venta
-        </button>
-      </template>
-
+    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+      
+      <!-- Duplicar Cotización -->
       <template x-if="quoteId !== 'new'">
         <button 
           type="button" 
           class="btn btn-secondary" 
-          style="background:#f8fafc; color:#334155; border:1px solid #cbd5e1; font-weight:700; border-radius:8px; padding:7px 14px; font-size:12.5px; display:flex; align-items:center; gap:6px; cursor:pointer;"
-          @click="printQuotePDF()"
+          style="background:#f8fafc; color:#334155; border:1px solid #cbd5e1; font-weight:700; border-radius:8px; padding:7px 12px; font-size:12px; display:flex; align-items:center; gap:4px; cursor:pointer;"
+          @click="duplicateQuote()"
+          title="Crear una copia de esta cotización"
         >
-          <i class="ph ph-printer" style="font-size:16px;"></i> Imprimir Proforma PDF
+          <i class="ph ph-copy"></i> Duplicar
         </button>
       </template>
 
+      <!-- Enviar por Correo Electrónico (Opción 4) -->
+      <template x-if="quoteId !== 'new'">
+        <button 
+          type="button" 
+          class="btn" 
+          style="background:#0284c7; color:#ffffff; font-weight:700; border-radius:8px; padding:7px 14px; border:none; font-size:12.5px; display:flex; align-items:center; gap:6px; cursor:pointer; box-shadow:0 2px 6px rgba(2,132,199,0.25);"
+          @click="openEmailModal()"
+        >
+          <i class="ph ph-envelope-simple" style="font-size:16px;"></i> Enviar Correo
+        </button>
+      </template>
+
+      <!-- Marcar como Enviada -->
+      <template x-if="quoteId !== 'new' && form.state === 'draft'">
+        <button 
+          type="button" 
+          class="btn" 
+          style="background:#475569; color:#ffffff; font-weight:700; border-radius:8px; padding:7px 12px; border:none; font-size:12px; display:flex; align-items:center; gap:4px; cursor:pointer;"
+          @click="markState('sent')"
+        >
+          <i class="ph ph-paper-plane-tilt"></i> Marcar Enviada
+        </button>
+      </template>
+
+      <!-- Imprimir Formato Carta Oficial (Opción 1) -->
+      <button 
+        type="button" 
+        class="btn btn-secondary" 
+        style="background:#ffffff; color:#1e293b; border:1.5px solid #475569; font-weight:800; border-radius:8px; padding:7px 14px; font-size:12.5px; display:flex; align-items:center; gap:6px; cursor:pointer;"
+        @click="printQuotePDF()"
+      >
+        <i class="ph ph-printer" style="font-size:16px; color:#562B82;"></i> Imprimir Carta (PDF)
+      </button>
+
+      <!-- Convertir a Venta / Factura -->
+      <template x-if="quoteId !== 'new' && form.state !== 'converted'">
+        <button 
+          type="button" 
+          class="btn" 
+          style="background:#059669; color:#ffffff; font-weight:800; border-radius:8px; padding:7px 14px; border:none; box-shadow:0 2px 8px rgba(5,150,105,0.25); display:flex; align-items:center; gap:6px; cursor:pointer; font-size:12.5px;"
+          @click="convertToSaleOrder()"
+        >
+          <i class="ph ph-arrows-clockwise" style="font-weight:800;"></i> Convertir a Venta
+        </button>
+      </template>
+
+      <!-- Guardar Cambios -->
       <button 
         type="button" 
         class="btn btn-primary" 
-        style="background:var(--odoo-purple); color:#ffffff; font-weight:800; border-radius:8px; padding:7px 20px; border:none; box-shadow:0 2px 8px rgba(113,75,103,0.25); display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px;"
+        style="background:var(--odoo-purple); color:#ffffff; font-weight:800; border-radius:8px; padding:7px 18px; border:none; box-shadow:0 2px 8px rgba(113,75,103,0.25); display:flex; align-items:center; gap:6px; cursor:pointer; font-size:12.5px;"
         @click="saveQuote()"
         :disabled="isSaving || form.state === 'converted'"
       >
@@ -173,193 +312,201 @@
 
   </div>
 
-  <!-- ===== MAIN QUOTE SHEET ===== -->
-  <div class="quote-sheet">
+  <!-- ===== MAIN QUOTE SHEET (FORMULARIO INTERACTIVO) ===== -->
+  <div class="quote-sheet no-print">
     
-    <!-- Top Header: Customer & Terms (Diseño Práctico y Ergonómico) -->
-    <div style="display:grid; grid-template-columns:1.8fr 1.2fr; gap:20px; border-bottom:1px solid #f1f5f9; padding-bottom:22px; margin-bottom:24px;">
+    <!-- Top Header: Customer & Commercial Terms -->
+    <div style="display:grid; grid-template-columns:1.6fr 1.4fr; gap:20px; border-bottom:1px solid #f1f5f9; padding-bottom:20px; margin-bottom:20px;">
       
-      <!-- SECCIÓN PRACTICA DE BÚSQUEDA Y FICHA DE CLIENTE -->
-      <div style="background:#ffffff; border:1.5px solid #e2e8f0; border-radius:12px; padding:16px; box-shadow:0 1px 4px rgba(0,0,0,0.03);">
+      <!-- SECCIÓN CLIENTE -->
+      <div style="background:#ffffff; border:1.5px solid #e2e8f0; border-radius:12px; padding:14px; box-shadow:0 1px 4px rgba(0,0,0,0.03);">
         
-        <!-- Header con título y accesos rápidos -->
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px;">
           <div style="display:flex; align-items:center; gap:6px;">
             <div style="width:28px; height:28px; border-radius:6px; background:var(--odoo-purple-light); color:var(--odoo-purple); display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:800;">
               <i class="ph ph-user"></i>
             </div>
-            <span style="font-size:12px; font-weight:800; color:#1e293b; text-transform:uppercase; letter-spacing:0.5px;">Cliente / Razón Social</span>
+            <span style="font-size:12px; font-weight:800; color:#1e293b; text-transform:uppercase; letter-spacing:0.5px;">Información del Cliente</span>
           </div>
 
           <div style="display:flex; align-items:center; gap:6px;">
             <button 
               type="button" 
               class="btn" 
-              style="background:#f1f5f9; border:1px solid #cbd5e1; color:#334155; padding:4px 10px; border-radius:6px; font-size:11.5px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:4px;"
+              style="background:#f1f5f9; border:1px solid #cbd5e1; color:#334155; padding:4px 8px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer;"
               @click="setConsumidorFinal()"
-              title="Asignar Consumidor Final"
             >
-              <i class="ph ph-user"></i> CF
+              CF
             </button>
             <button 
               type="button" 
               class="btn" 
-              style="background:var(--odoo-purple-light); border:1px solid var(--odoo-purple); color:var(--odoo-purple); padding:4px 10px; border-radius:6px; font-size:11.5px; font-weight:800; cursor:pointer; display:flex; align-items:center; gap:4px;"
+              style="background:var(--odoo-purple-light); border:1px solid var(--odoo-purple); color:var(--odoo-purple); padding:4px 10px; border-radius:6px; font-size:11px; font-weight:800; cursor:pointer; display:flex; align-items:center; gap:4px;"
               @click="showCustomerModal = true; customerModalSearch = ''"
             >
-              <i class="ph ph-users"></i> Directorio Completo
+              <i class="ph ph-users"></i> Directorio
             </button>
           </div>
         </div>
 
-        <!-- Barra de Búsqueda Rápida de Clientes con Autocompletado -->
-        <div style="position:relative; margin-bottom:12px;">
+        <!-- Búsqueda rápida cliente -->
+        <div style="position:relative; margin-bottom:10px;">
           <div 
-            style="display:flex; align-items:center; background:#f8fafc; border:1.5px solid #cbd5e1; border-radius:8px; padding:2px 10px; transition:all 0.15s;" 
+            style="display:flex; align-items:center; background:#f8fafc; border:1.5px solid #cbd5e1; border-radius:8px; padding:2px 10px;" 
             :style="isCustomerSearchFocused ? 'border-color:var(--odoo-purple); background:#ffffff; box-shadow:0 0 0 3px rgba(113,75,103,0.12);' : ''"
           >
-            <i class="ph ph-magnifying-glass" style="font-size:18px; color:var(--odoo-purple); margin-right:8px; font-weight:800;"></i>
+            <i class="ph ph-magnifying-glass" style="font-size:16px; color:var(--odoo-purple); margin-right:6px;"></i>
             <input 
               type="text" 
-              placeholder="Escribe nombre, NIT SAT, teléfono o razón social para buscar..." 
-              style="width:100%; border:none; background:transparent; font-size:13.5px; font-weight:700; color:#1e293b; outline:none; padding:8px 0;"
+              placeholder="Buscar por Nombre, NIT SAT, Teléfono o Empresa..." 
+              style="width:100%; border:none; background:transparent; font-size:13px; font-weight:700; color:#1e293b; outline:none; padding:6px 0;"
               x-model="customerSearchText"
               @focus="isCustomerSearchFocused = true; showCustomerDropdown = true; filterCustomers()"
               @input="filterCustomers()"
               @click.outside="setTimeout(() => { showCustomerDropdown = false; isCustomerSearchFocused = false; }, 250)"
             >
-            <i class="ph ph-x-circle" style="color:#94a3b8; font-size:16px; cursor:pointer; margin-left:6px;" x-show="customerSearchText" @click="customerSearchText = ''; filterCustomers()"></i>
           </div>
 
-          <!-- Dropdown Flotante de Clientes en Tiempo Real -->
+          <!-- Dropdown Flotante -->
           <div 
             x-show="showCustomerDropdown && filteredCustomers.length > 0"
-            style="position:absolute; top:calc(100% + 6px); left:0; right:0; background:#ffffff; border:1.5px solid var(--odoo-purple); border-radius:10px; box-shadow:0 14px 35px rgba(0,0,0,0.15); max-height:240px; overflow-y:auto; z-index:1000; padding:6px;"
+            style="position:absolute; top:calc(100% + 4px); left:0; right:0; background:#ffffff; border:1.5px solid var(--odoo-purple); border-radius:8px; box-shadow:0 12px 30px rgba(0,0,0,0.15); max-height:220px; overflow-y:auto; z-index:1000; padding:4px;"
             x-cloak
           >
             <template x-for="c in filteredCustomers" :key="c.id">
               <div 
-                style="padding:8px 12px; border-radius:8px; cursor:pointer; transition:all 0.15s; border-bottom:1px solid #f1f5f9; display:flex; justify-content:space-between; align-items:center;"
+                style="padding:8px 10px; border-radius:6px; cursor:pointer; border-bottom:1px solid #f1f5f9; display:flex; justify-content:space-between; align-items:center;"
                 onmouseover="this.style.background='#fdf4f9'"
                 onmouseout="this.style.background='#ffffff'"
                 @click="selectCustomer(c)"
               >
-                <div style="display:flex; align-items:center; gap:10px;">
-                  <template x-if="c.image_url">
-                    <img :src="c.image_url" alt="Foto" style="width:32px; height:32px; border-radius:8px; object-fit:cover; border:1px solid #cbd5e1; flex-shrink:0;">
-                  </template>
-                  <template x-if="!c.image_url">
-                    <div style="width:32px; height:32px; border-radius:8px; background:rgba(113,75,103,0.08); color:#714B67; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;">
-                      <i class="ph ph-image-square"></i>
-                    </div>
-                  </template>
-                  <div>
-                    <div style="font-weight:800; font-size:13px; color:#1e293b;" x-text="c.name"></div>
-                    <div style="font-size:11px; color:#64748b; margin-top:2px;">
-                      <span style="font-family:monospace; font-weight:700; color:#0f766e;" x-text="'NIT: ' + (c.nit || 'CF')"></span>
-                      <span x-show="c.phone" x-text="' • 📞 ' + c.phone"></span>
-                      <span x-show="c.address" x-text="' • 📍 ' + c.address"></span>
-                    </div>
+                <div>
+                  <div style="font-weight:800; font-size:13px; color:#1e293b;" x-text="c.name"></div>
+                  <div style="font-size:11px; color:#64748b;">
+                    <span style="font-family:monospace; font-weight:700; color:#0f766e;" x-text="'NIT: ' + (c.nit || 'CF')"></span>
+                    <span x-show="c.phone" x-text="' • 📞 ' + c.phone"></span>
+                    <span x-show="c.trade_name" x-text="' • 🏢 ' + c.trade_name"></span>
                   </div>
                 </div>
-                <button type="button" class="btn btn-sm" style="background:var(--odoo-purple); color:#ffffff; font-weight:800; border:none; padding:4px 10px; border-radius:6px; font-size:11px;">
-                  Seleccionar
+                <button type="button" class="btn btn-sm" style="background:var(--odoo-purple); color:#ffffff; font-weight:700; border:none; padding:3px 8px; border-radius:4px; font-size:11px;">
+                  Elegir
                 </button>
               </div>
             </template>
           </div>
         </div>
 
-        <!-- Tarjeta Visual del Cliente Seleccionado -->
-        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px 14px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
-          <div style="display:flex; align-items:center; gap:12px; min-width:220px;">
-            <div style="width:40px; height:40px; border-radius:10px; background:rgba(113,75,103,0.1); color:#714B67; border:1px solid rgba(113,75,103,0.2); display:flex; align-items:center; justify-content:center; font-size:22px; box-shadow:0 2px 6px rgba(113,75,103,0.08);">
-              <i class="ph ph-image-square"></i>
-            </div>
-            <div>
-              <div style="font-size:13.5px; font-weight:900; color:#1e293b;" x-text="form.customer_name || 'Consumidor Final'"></div>
-              <div style="display:flex; align-items:center; gap:8px; margin-top:3px; flex-wrap:wrap;">
-                <span style="display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:800; font-family:monospace; background:#e0f2fe; color:#0369a1; padding:2px 7px; border-radius:5px;">
-                  <i class="ph ph-identification-card"></i> NIT: <span x-text="form.customer_nit || 'CF'"></span>
-                </span>
-                <span x-show="form.customer_address" style="font-size:11px; color:#64748b; display:inline-flex; align-items:center; gap:4px;">
-                  <i class="ph ph-map-pin"></i> <span x-text="form.customer_address"></span>
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div style="display:flex; align-items:center; gap:8px;">
-            <button 
-              type="button" 
-              style="background:#ffffff; border:1px solid #cbd5e1; color:#334155; font-size:11.5px; font-weight:700; padding:5px 10px; border-radius:6px; cursor:pointer; display:flex; align-items:center; gap:4px;"
-              @click="showEditCustomerFields = !showEditCustomerFields"
-              title="Ajustar NIT o Dirección manualmente"
-            >
-              <i class="ph ph-pencil-simple"></i>
-              <span x-text="showEditCustomerFields ? 'Ocultar campos' : 'Editar datos'"></span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Campos Editables manuales (Desplegables bajo demanda) -->
-        <div x-show="showEditCustomerFields" style="margin-top:12px; padding-top:12px; border-top:1px dashed #cbd5e1; display:grid; grid-template-columns:1fr 1.5fr; gap:10px;" x-cloak>
+        <!-- Campos de información del cliente (formato membretado) -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
           <div>
-            <label class="odoo-label">NIT / DPI PERSONALIZADO</label>
-            <input type="text" class="odoo-control" style="font-family:monospace; font-weight:700;" placeholder="CF o NIT" x-model="form.customer_nit">
+            <label class="odoo-label">CLIENTE (NOMBRE)</label>
+            <input type="text" class="odoo-control" style="font-weight:700;" x-model="form.customer_name" placeholder="Consumidor Final">
           </div>
           <div>
-            <label class="odoo-label">DIRECCIÓN FISCAL PERSONALIZADA</label>
-            <input type="text" class="odoo-control" placeholder="Ciudad de Guatemala..." x-model="form.customer_address">
+            <label class="odoo-label">EMPRESA / RAZÓN SOCIAL</label>
+            <input type="text" class="odoo-control" x-model="form.customer_company" placeholder="Nombre de empresa">
+          </div>
+          <div>
+            <label class="odoo-label" style="color:#562B82;">
+              <i class="ph ph-identification-card"></i> ID CLIENTE (SISTEMA)
+            </label>
+            <input type="text" class="odoo-control" style="font-family:monospace; font-weight:800; color:#562B82; background:#faf5ff; border-color:#d8b4fe;" x-model="form.customer_code" placeholder="#1 o CF">
+          </div>
+          <div>
+            <label class="odoo-label">NIT / DPI</label>
+            <input type="text" class="odoo-control" style="font-family:monospace; font-weight:700;" x-model="form.customer_nit" placeholder="CF o NIT">
+          </div>
+          <div>
+            <label class="odoo-label">TELÉFONO</label>
+            <input type="text" class="odoo-control" x-model="form.customer_phone" placeholder="Ej: 3454-3857">
+          </div>
+          <div>
+            <label class="odoo-label">DIRECCIÓN</label>
+            <input type="text" class="odoo-control" x-model="form.customer_address" placeholder="Dirección de entrega o fiscal">
           </div>
         </div>
 
       </div>
 
-      <!-- SECCIÓN DERECHA: TÉRMINOS COMERCIALES & BODEGA -->
-      <div style="background:#ffffff; border:1.5px solid #e2e8f0; border-radius:12px; padding:16px; display:flex; flex-direction:column; justify-content:space-between; box-shadow:0 1px 4px rgba(0,0,0,0.03);">
+      <!-- SECCIÓN TÉRMINOS COMERCIALES & PRECIOS (OPCIÓN 2 Y 3) -->
+      <div style="background:#ffffff; border:1.5px solid #e2e8f0; border-radius:12px; padding:14px; display:flex; flex-direction:column; justify-content:space-between; box-shadow:0 1px 4px rgba(0,0,0,0.03);">
         <div>
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
+            
+            <!-- Selector Tipo de Precio (Opción 2) -->
+            <div>
+              <label class="odoo-label" style="color:var(--odoo-purple);">
+                <i class="ph ph-tag"></i> TIPO DE PRECIO
+              </label>
+              <select class="odoo-control" style="font-weight:800; border-color:var(--odoo-purple); background:#fdfaff;" x-model="form.price_tier" @change="applyPriceTier()">
+                <option value="standard">Público General</option>
+                <option value="cash">Precio Contado</option>
+                <option value="exclusive_cash">Contado Exclusivo</option>
+                <option value="special">Precio Especial</option>
+                <option value="wholesale">Mayorista</option>
+              </select>
+            </div>
+
+            <!-- Condición de Pago -->
+            <div>
+              <label class="odoo-label">CONDICIÓN DE PAGO</label>
+              <select class="odoo-control" style="font-weight:700;" x-model="form.condition">
+                <option value="Contado">Contado</option>
+                <option value="Crédito 15 días">Crédito 15 días</option>
+                <option value="Crédito 30 días">Crédito 30 días</option>
+                <option value="Contra Entrega">Contra Entrega</option>
+              </select>
+            </div>
+
+            <!-- Días de Validez -->
             <div>
               <label class="odoo-label">DÍAS DE VALIDEZ</label>
-              <select class="odoo-control" style="font-weight:700;" x-model="form.valid_days">
+              <select class="odoo-control" style="font-weight:700;" x-model="form.valid_days" @change="calcValidity()">
                 <option value="7">7 Días</option>
                 <option value="15">15 Días</option>
                 <option value="30">30 Días</option>
                 <option value="60">60 Días</option>
               </select>
             </div>
-            <div>
-              <label class="odoo-label">FECHA DE EMISIÓN</label>
-              <input type="text" class="odoo-control" style="background:#f8fafc; color:#64748b;" :value="form.date || todayStr" disabled>
-            </div>
-          </div>
 
-          <div>
-            <label class="odoo-label">BODEGA DE DESPACHO</label>
-            <select class="odoo-control" style="font-weight:700;" x-model="form.warehouse_id">
-              <template x-for="w in warehouses" :key="w.id">
-                <option :value="w.id" x-text="w.name + ' (' + w.code + ')'"></option>
-              </template>
-            </select>
+            <!-- Vendedor Asignado -->
+            <div>
+              <label class="odoo-label">VENDEDOR(A)</label>
+              <input type="text" class="odoo-control" style="font-weight:700;" x-model="form.seller_name" placeholder="Ventas">
+            </div>
+
+            <!-- Bodega (Opción 3) -->
+            <div style="grid-column: span 2;">
+              <label class="odoo-label">
+                <i class="ph ph-warehouse"></i> BODEGA PARA CONTROL DE STOCK EN TIEMPO REAL
+              </label>
+              <select class="odoo-control" style="font-weight:700;" x-model="form.warehouse_id" @change="onWarehouseChange()">
+                <template x-for="w in warehouses" :key="w.id">
+                  <option :value="w.id" x-text="w.name + ' (' + w.code + ')'"></option>
+                </template>
+              </select>
+            </div>
+
           </div>
         </div>
 
-        <div style="margin-top:12px; padding-top:10px; border-top:1px solid #f1f5f9; display:flex; justify-content:space-between; align-items:center;" x-show="form.valid_until">
-          <span style="font-size:11.5px; font-weight:700; color:#64748b;">Vigencia hasta:</span>
-          <span style="font-size:12.5px; font-weight:900; color:#059669;" x-text="form.valid_until"></span>
+        <div style="margin-top:10px; padding-top:8px; border-top:1px solid #f1f5f9; display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-size:11.5px; font-weight:700; color:#64748b;">
+            Fecha de emisión: <strong x-text="form.date || todayStr"></strong>
+          </span>
+          <span style="font-size:12px; font-weight:900; color:#059669;" x-show="form.valid_until" x-text="'Válida hasta: ' + form.valid_until"></span>
         </div>
       </div>
 
     </div>
 
     <!-- Product Search Bar & Modal Trigger -->
-    <div style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:10px; padding:12px 16px; margin-bottom:18px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
-      <i class="ph ph-magnifying-glass" style="font-size:20px; color:var(--odoo-purple);"></i>
+    <div style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:10px; padding:10px 14px; margin-bottom:16px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+      <i class="ph ph-magnifying-glass" style="font-size:18px; color:var(--odoo-purple);"></i>
       <input 
         type="text" 
-        placeholder="Escribe el nombre o código del producto para buscar..." 
-        style="flex:1; min-width:240px; border:none; background:transparent; font-size:13.5px; font-weight:700; color:#1e293b; outline:none;"
+        placeholder="Escribe el nombre o código interno del producto para agregar..." 
+        style="flex:1; min-width:240px; border:none; background:transparent; font-size:13px; font-weight:700; color:#1e293b; outline:none;"
         x-model="productQuery"
         @input="filterProducts()"
       >
@@ -367,15 +514,15 @@
         <button 
           type="button" 
           class="btn btn-secondary" 
-          style="background:#ffffff; color:#334155; font-weight:800; border-radius:6px; padding:6px 14px; border:1px solid #cbd5e1; display:flex; align-items:center; gap:6px; cursor:pointer;"
+          style="background:#ffffff; color:#334155; font-weight:800; border-radius:6px; padding:6px 12px; border:1px solid #cbd5e1; display:flex; align-items:center; gap:6px; cursor:pointer; font-size:12px;"
           @click="openCatalogModal()"
         >
-          <i class="ph ph-squares-four"></i> Explorar Catálogo
+          <i class="ph ph-squares-four"></i> Catálogo Completo
         </button>
         <button 
           type="button" 
           class="btn btn-primary" 
-          style="background:var(--odoo-purple); color:#ffffff; font-weight:800; border-radius:6px; padding:6px 14px; display:flex; align-items:center; gap:6px; cursor:pointer;"
+          style="background:var(--odoo-purple); color:#ffffff; font-weight:800; border-radius:6px; padding:6px 12px; display:flex; align-items:center; gap:6px; cursor:pointer; font-size:12px;"
           @click="addNewEmptyLine()"
         >
           <i class="ph ph-plus-circle"></i> + Agregar Fila
@@ -383,8 +530,8 @@
       </div>
     </div>
 
-    <!-- Live Search Results Dropdown -->
-    <div style="margin-top:-10px; margin-bottom:18px;" x-show="productQuery.length >= 1 && filteredProducts.length > 0">
+    <!-- Live Search Dropdown -->
+    <div style="margin-top:-10px; margin-bottom:16px;" x-show="productQuery.length >= 1 && filteredProducts.length > 0">
       <div style="background:#ffffff; border:1.5px solid var(--odoo-purple); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,0.12); max-height:220px; overflow-y:auto; padding:6px;">
         <template x-for="p in filteredProducts" :key="p.id">
           <div 
@@ -394,11 +541,14 @@
           >
             <div>
               <div style="font-weight:800; color:#1e293b;" x-text="p.name"></div>
-              <div style="font-size:11px; color:#64748b;" x-text="'SKU: ' + (p.internal_ref || 'N/A') + ' | Stock: ' + (p.stock || 0) + ' uds.'"></div>
+              <div style="font-size:11px; color:#64748b;">
+                <span x-text="'SKU: ' + (p.internal_ref || 'N/A') + ' | Medida: ' + (p.uom_symbol || p.uom_name || 'PZA')"></span>
+                <span :class="p.stock > 0 ? 'stock-badge stock-in' : 'stock-badge stock-out'" style="margin-left:6px;" x-text="'Stock: ' + (p.stock || 0) + ' ' + (p.uom_symbol || 'uds')"></span>
+              </div>
             </div>
             <div style="display:flex; align-items:center; gap:12px;">
-              <div style="font-weight:900; color:var(--odoo-purple); font-size:14px;" x-text="'Q ' + Number(p.sale_price || 0).toFixed(2)"></div>
-              <button type="button" class="btn btn-sm" style="background:var(--odoo-purple); color:#ffffff; border:none; padding:4px 10px; border-radius:6px; font-weight:800; font-size:11.5px;">
+              <div style="font-weight:900; color:var(--odoo-purple); font-size:13.5px;" x-text="'Q ' + Number(getPriceForTier(p)).toFixed(2)"></div>
+              <button type="button" class="btn btn-sm" style="background:var(--odoo-purple); color:#ffffff; border:none; padding:4px 8px; border-radius:6px; font-weight:800; font-size:11px;">
                 + Agregar
               </button>
             </div>
@@ -407,310 +557,493 @@
       </div>
     </div>
 
-    <!-- Items Table -->
-    <div style="border:1px solid #e2e8f0; border-radius:10px; overflow:hidden; margin-bottom:24px;">
-      <table class="table" style="width:100%; border-collapse:collapse;">
+    <!-- Items Table (Opción 2 y 3: Medida, Stock en vivo, Descuentos) -->
+    <div style="border:1px solid #e2e8f0; border-radius:10px; overflow:hidden; margin-bottom:20px;">
+      <table class="table" style="width:100%; border-collapse:collapse; font-size:12.5px;">
         <thead>
           <tr style="background:#f8fafc; border-bottom:2px solid #e2e8f0;">
-            <th style="padding:10px 14px; font-size:11px; text-transform:uppercase; text-align:left; color:#475569;">Producto / Descripción</th>
-            <th style="padding:10px 14px; font-size:11px; text-transform:uppercase; text-align:center; width:110px; color:#475569;">Cantidad</th>
-            <th style="padding:10px 14px; font-size:11px; text-transform:uppercase; text-align:right; width:130px; color:#475569;">Precio Unit. (Q)</th>
-            <th style="padding:10px 14px; font-size:11px; text-transform:uppercase; text-align:center; width:100px; color:#475569;">Desc. %</th>
-            <th style="padding:10px 14px; font-size:11px; text-transform:uppercase; text-align:right; width:140px; color:#475569;">Subtotal (Q)</th>
-            <th style="padding:10px 14px; font-size:11px; text-transform:uppercase; text-align:center; width:60px; color:#475569;"></th>
+            <th style="padding:8px 10px; font-size:11px; text-transform:uppercase; text-align:center; width:110px; color:#475569;">Código (SKU)</th>
+            <th style="padding:8px 10px; font-size:11px; text-transform:uppercase; text-align:left; color:#475569;">Descripción del Producto</th>
+            <th style="padding:8px 10px; font-size:11px; text-transform:uppercase; text-align:center; width:95px; color:#475569;">Medida</th>
+            <th style="padding:8px 10px; font-size:11px; text-transform:uppercase; text-align:center; width:110px; color:#475569;">Stock Bodega</th>
+            <th style="padding:8px 10px; font-size:11px; text-transform:uppercase; text-align:center; width:90px; color:#475569;">Cant.</th>
+            <th style="padding:8px 10px; font-size:11px; text-transform:uppercase; text-align:right; width:125px; color:#475569;">P. Unit (Q)</th>
+            <th style="padding:8px 10px; font-size:11px; text-transform:uppercase; text-align:center; width:85px; color:#475569;">Desc. %</th>
+            <th style="padding:8px 10px; font-size:11px; text-transform:uppercase; text-align:right; width:120px; color:#475569;">Total (Q)</th>
+            <th style="padding:8px 10px; font-size:11px; text-transform:uppercase; text-align:center; width:45px; color:#475569;"></th>
           </tr>
         </thead>
         <tbody>
           <template x-for="(line, idx) in form.lines" :key="idx">
             <tr style="border-bottom:1px solid #f1f5f9;">
-              <td style="padding:8px 14px;">
-                <!-- Product Selector Dropdown -->
+              
+              <!-- SKU -->
+              <td style="padding:6px 10px; text-align:center; font-family:monospace; font-weight:700; color:#475569;" x-text="line.product_code || '-'"></td>
+
+              <!-- Selector de Producto -->
+              <td style="padding:6px 10px;">
                 <select 
                   class="odoo-control" 
-                  style="font-weight:700;" 
+                  style="font-weight:700; padding:6px 8px; font-size:12.5px;" 
                   x-model="line.product_id" 
                   @change="onLineProductChange(line)"
                 >
                   <option value="">-- Seleccionar producto del catálogo --</option>
                   <template x-for="prod in allProducts" :key="prod.id">
-                    <option :value="prod.id" x-text="prod.name + ' (Q ' + Number(prod.sale_price).toFixed(2) + ')'"></option>
+                    <option :value="prod.id" x-text="prod.name + ' (' + (prod.internal_ref || 'S/C') + ')'"></option>
                   </template>
                 </select>
               </td>
-              <td style="padding:8px 14px; text-align:center;">
-                <input 
-                  type="number" 
-                  step="1" 
-                  min="1" 
-                  style="width:75px; padding:6px 8px; text-align:center; border:1px solid #cbd5e1; border-radius:6px; font-weight:800;"
-                  x-model.number="line.qty"
-                  @input="recomputeTotals()"
-                >
+
+              <!-- Medida (UOM) -->
+              <td style="padding:6px 10px; text-align:center;">
+                <input type="text" class="odoo-control" style="text-align:center; font-weight:800; padding:4px 6px;" x-model="line.uom_name" placeholder="PZA">
               </td>
-              <td style="padding:8px 14px; text-align:right;">
+
+              <!-- Stock en Tiempo Real con Semáforo (Opción 3) -->
+              <td style="padding:6px 10px; text-align:center;">
+                <template x-if="line.product_id">
+                  <div>
+                    <span 
+                      class="stock-badge"
+                      :class="line.stock_status === 'in_stock' ? 'stock-in' : (line.stock_status === 'partial' ? 'stock-partial' : 'stock-out')"
+                      x-text="line.current_stock + ' ' + (line.uom_name || 'uds')"
+                    ></span>
+                  </div>
+                </template>
+                <template x-if="!line.product_id">
+                  <span style="color:#94a3b8;">-</span>
+                </template>
+              </td>
+
+              <!-- Cantidad -->
+              <td style="padding:6px 10px; text-align:center;">
                 <input 
                   type="number" 
                   step="0.01" 
-                  min="0" 
-                  style="width:95px; padding:6px 8px; text-align:right; border:1px solid #cbd5e1; border-radius:6px; font-weight:800;"
-                  x-model.number="line.unit_price"
-                  @input="recomputeTotals()"
+                  min="0.01" 
+                  class="odoo-control" 
+                  style="text-align:center; font-weight:800; padding:4px 6px;" 
+                  x-model="line.qty" 
+                  @input="recomputeLine(line)"
                 >
               </td>
-              <td style="padding:8px 14px; text-align:center;">
+
+              <!-- Precio Unitario -->
+              <td style="padding:6px 10px; text-align:right;">
+                <input 
+                  type="number" 
+                  step="0.01" 
+                  class="odoo-control" 
+                  style="text-align:right; font-weight:800; padding:4px 6px;" 
+                  x-model="line.unit_price" 
+                  @input="recomputeLine(line)"
+                >
+              </td>
+
+              <!-- Descuento % -->
+              <td style="padding:6px 10px; text-align:center;">
                 <input 
                   type="number" 
                   step="1" 
                   min="0" 
                   max="100" 
-                  style="width:65px; padding:6px 8px; text-align:center; border:1px solid #cbd5e1; border-radius:6px; font-weight:800;"
-                  x-model.number="line.discount_pct"
-                  @input="recomputeTotals()"
+                  class="odoo-control" 
+                  style="text-align:center; padding:4px 6px;" 
+                  x-model="line.discount_pct" 
+                  @input="recomputeLine(line)"
                 >
               </td>
-              <td style="padding:8px 14px; text-align:right; font-weight:900; color:var(--odoo-purple);" x-text="'Q ' + (line.qty * line.unit_price * (1 - (line.discount_pct || 0)/100)).toFixed(2)"></td>
-              <td style="padding:8px 14px; text-align:center;">
-                <button type="button" style="border:none; background:none; color:#ef4444; font-size:18px; cursor:pointer;" @click="removeProductLine(idx)" title="Eliminar fila">
+
+              <!-- Total Línea -->
+              <td style="padding:6px 10px; text-align:right; font-weight:900; color:#1e293b;" x-text="'Q ' + Number(line.total || 0).toFixed(2)"></td>
+
+              <!-- Eliminar Línea -->
+              <td style="padding:6px 10px; text-align:center;">
+                <button 
+                  type="button" 
+                  style="background:transparent; border:none; color:#ef4444; cursor:pointer; font-size:16px;" 
+                  @click="removeProductLine(idx)"
+                  title="Eliminar fila"
+                >
                   <i class="ph ph-trash"></i>
                 </button>
               </td>
+
             </tr>
           </template>
-          <tr x-show="form.lines.length === 0">
-            <td colspan="6" style="text-align:center; padding:30px; color:#64748b;">
-              <div>No hay productos agregados a esta cotización.</div>
-              <button type="button" class="btn btn-sm" style="background:var(--odoo-purple); color:#ffffff; font-weight:800; margin-top:10px; border-radius:6px; padding:6px 14px;" @click="addNewEmptyLine()">
-                + Agregar Primer Producto
-              </button>
-            </td>
-          </tr>
         </tbody>
       </table>
     </div>
 
     <!-- Bottom Totals & Notes -->
-    <div style="display:grid; grid-template-columns:2fr 1fr; gap:30px; align-items:flex-start;">
+    <div style="display:grid; grid-template-columns:1.6fr 1fr; gap:20px; align-items:start;">
       
-      <!-- Commercial Notes & WhatsApp Share -->
       <div>
-        <label class="odoo-label">TÉRMINOS COMERCIALES & CONDICIONES</label>
+        <label class="odoo-label">OBSERVACIONES / NOTAS COMERCIALES</label>
         <textarea 
           class="odoo-control" 
           rows="3" 
-          placeholder="Precios incluyen IVA. Oferta sujeta a disponibilidad de inventario. Forma de pago: Contado / Transferencia."
           x-model="form.notes"
+          placeholder="Condiciones de pago, tiempo de entrega o detalles para el cliente..."
         ></textarea>
-
-        <div style="margin-top:14px; display:flex; gap:10px;" x-show="quoteId !== 'new'">
+        
+        <!-- Botón Compartir WhatsApp -->
+        <div style="margin-top:12px;">
           <a 
             :href="getWhatsAppLink()" 
             target="_blank" 
             class="btn" 
-            style="background:#25D366; color:#ffffff; font-weight:800; border-radius:8px; padding:7px 16px; text-decoration:none; display:flex; align-items:center; gap:6px; font-size:12.5px;"
+            style="background:#25D366; color:#ffffff; font-weight:800; border-radius:8px; padding:7px 16px; border:none; display:inline-flex; align-items:center; gap:6px; text-decoration:none; font-size:12.5px; box-shadow:0 2px 6px rgba(37,211,102,0.3);"
           >
             <i class="ph ph-whatsapp-logo" style="font-size:18px;"></i> Compartir Cotización por WhatsApp
           </a>
         </div>
       </div>
 
-      <!-- Financial Totals Summary -->
-      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:18px; display:flex; flex-direction:column; gap:8px;">
-        <div style="display:flex; justify-content:space-between; font-size:13px; color:#64748b;">
-          <span>Subtotal Gravado (Base):</span>
-          <span style="font-weight:700; color:#1e293b;" x-text="'Q ' + Number(form.subtotal || 0).toFixed(2)"></span>
+      <!-- Cuadro de Totales Desglosados -->
+      <div style="background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:10px; padding:16px;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:6px; font-size:13px; color:#475569;">
+          <span>Suma Bruta:</span>
+          <span style="font-weight:700;" x-text="'Q ' + Number(form.gross_total || 0).toFixed(2)"></span>
         </div>
-        <div style="display:flex; justify-content:space-between; font-size:13px; color:#64748b;">
-          <span>IVA Débito Fiscal (12%):</span>
-          <span style="font-weight:700; color:#1e293b;" x-text="'Q ' + Number(form.tax_amount || 0).toFixed(2)"></span>
+        <div style="display:flex; justify-content:space-between; margin-bottom:6px; font-size:13px; color:#dc2626;" x-show="form.discount_amount > 0">
+          <span>Descuento Total:</span>
+          <span style="font-weight:700;" x-text="'- Q ' + Number(form.discount_amount || 0).toFixed(2)"></span>
         </div>
-        <div style="border-top:2px solid #cbd5e1; padding-top:10px; margin-top:4px; display:flex; justify-content:space-between; align-items:center;">
-          <span style="font-size:15px; font-weight:900; color:#0f172a;">TOTAL COTIZADO:</span>
-          <span style="font-size:22px; font-weight:900; color:var(--odoo-purple);" x-text="'Q ' + Number(form.total || 0).toFixed(2)"></span>
-        </div>
-      </div>
-
-    </div>
-
-  </div>
-
-  <!-- ===== MODAL: EXPLORAR DIRECTORIO DE TODOS LOS CLIENTES ===== -->
-  <div class="modal-backdrop" x-show="showCustomerModal" style="display:none;" x-cloak>
-    <div class="modal" style="max-width:680px; background:#ffffff; border-radius:14px; padding:24px; box-shadow:0 20px 50px rgba(0,0,0,0.2);">
-      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:12px; margin-bottom:16px;">
-        <div style="display:flex; align-items:center; gap:8px;">
-          <div style="width:36px; height:36px; border-radius:8px; background:var(--odoo-purple-light); color:var(--odoo-purple); display:flex; align-items:center; justify-content:center; font-size:18px;">
-            <i class="ph ph-users"></i>
-          </div>
-          <div>
-            <h3 style="margin:0; font-size:16px; font-weight:800; color:#1e293b;">Directorio de Clientes</h3>
-            <p style="margin:0; font-size:11.5px; color:#64748b;" x-text="allCustomers.length + ' clientes registrados en el sistema'"></p>
-          </div>
-        </div>
-        <button style="border:none; background:none; font-size:22px; cursor:pointer; color:#94a3b8;" @click="showCustomerModal = false">&times;</button>
-      </div>
-
-      <div style="margin-bottom:14px; position:relative;">
-        <i class="ph ph-magnifying-glass" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--odoo-purple); font-size:16px;"></i>
-        <input 
-          type="text" 
-          class="form-control" 
-          style="width:100%; font-weight:700; padding-left:36px;"
-          placeholder="Buscar cliente por nombre, NIT, teléfono..." 
-          x-model="customerModalSearch"
-        >
-      </div>
-
-      <!-- Acceso rápido Consumidor Final -->
-      <div style="margin-bottom:10px;">
-        <div 
-          class="product-select-card"
-          style="background:#fdf4f9; border:1.5px dashed var(--odoo-purple);"
-          @click="setConsumidorFinal(); showCustomerModal = false;"
-        >
-          <div>
-            <div style="font-weight:900; color:var(--odoo-purple);">👤 Consumidor Final (CF)</div>
-            <div style="font-size:11px; color:#64748b;">Venta al mostrador sin NIT específico</div>
-          </div>
-          <button type="button" class="btn btn-sm" style="background:var(--odoo-purple); color:#ffffff; font-weight:800; border:none; padding:4px 12px; border-radius:6px; font-size:11.5px;">
-            Seleccionar
-          </button>
-        </div>
-      </div>
-
-      <div style="max-height:340px; overflow-y:auto; display:flex; flex-direction:column; gap:8px;">
-        <template x-for="c in getFilteredModalCustomers()" :key="'cust_' + c.id">
-          <div 
-            class="product-select-card"
-            @click="selectCustomer(c); showCustomerModal = false;"
-          >
-            <div>
-              <div style="font-weight:800; color:#1e293b;" x-text="c.name"></div>
-              <div style="font-size:11.5px; color:#64748b; margin-top:2px;">
-                <span style="font-family:monospace; font-weight:700; color:#0f766e;" x-text="'NIT: ' + (c.nit || 'CF')"></span>
-                <span x-show="c.phone" x-text="' • 📞 ' + c.phone"></span>
-                <span x-show="c.email" x-text="' • ✉️ ' + c.email"></span>
-              </div>
-              <div style="font-size:10.5px; color:#94a3b8; margin-top:2px;" x-show="c.address" x-text="'📍 ' + c.address"></div>
-            </div>
-            <div style="display:flex; align-items:center; gap:10px;">
-              <button type="button" class="btn btn-sm" style="background:var(--odoo-purple); color:#ffffff; font-weight:800; border:none; padding:5px 12px; border-radius:6px; font-size:11.5px;">
-                Seleccionar
-              </button>
-            </div>
-          </div>
-        </template>
-      </div>
-
-      <div style="margin-top:16px; display:flex; justify-content:space-between; align-items:center;">
-        <span style="font-size:11.5px; color:#64748b;" x-text="getFilteredModalCustomers().length + ' clientes coincidentes'"></span>
-        <button type="button" class="btn btn-secondary" @click="showCustomerModal = false">Cerrar</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ===== MODAL: EXPLORAR CATÁLOGO DE PRODUCTOS ===== -->
-  <div class="modal-backdrop" x-show="showCatalogModal" style="display:none;" x-cloak>
-    <div class="modal" style="max-width:640px; background:#ffffff; border-radius:14px; padding:24px;">
-      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:12px; margin-bottom:16px;">
-        <h3 style="margin:0; font-size:16px; font-weight:800; color:#1e293b;">Catálogo de Productos Disponibles</h3>
-        <button style="border:none; background:none; font-size:22px; cursor:pointer; color:#94a3b8;" @click="showCatalogModal = false">&times;</button>
-      </div>
-
-      <div style="margin-bottom:14px;">
-        <input 
-          type="text" 
-          class="form-control" 
-          style="width:100%; font-weight:700;"
-          placeholder="Filtrar por nombre o SKU..." 
-          x-model="catalogFilter"
-        >
-      </div>
-
-      <div style="max-height:320px; overflow-y:auto; display:flex; flex-direction:column; gap:8px;">
-        <template x-for="p in getFilteredCatalog()" :key="'cat_' + p.id">
-          <div 
-            class="product-select-card"
-            @click="addProductLine(p); showCatalogModal = false;"
-          >
-            <div>
-              <div style="font-weight:800; color:#1e293b;" x-text="p.name"></div>
-              <div style="font-size:11px; color:#64748b;" x-text="'SKU: ' + (p.internal_ref || 'N/A') + ' | Stock: ' + (p.stock || 0) + ' uds.'"></div>
-            </div>
-            <div style="display:flex; align-items:center; gap:12px;">
-              <div style="font-weight:900; color:var(--odoo-purple); font-size:14px;" x-text="'Q ' + Number(p.sale_price || 0).toFixed(2)"></div>
-              <button type="button" class="btn btn-sm" style="background:var(--odoo-purple); color:#ffffff; font-weight:800; border:none; padding:4px 10px; border-radius:6px; font-size:11.5px;">
-                Seleccionar
-              </button>
-            </div>
-          </div>
-        </template>
-      </div>
-
-      <div style="margin-top:16px; display:flex; justify-content:flex-end;">
-        <button type="button" class="btn btn-secondary" @click="showCatalogModal = false">Cerrar</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ===== HIDDEN PRINT VOUCHER (FOR PDF EXPORT) ===== -->
-  <div class="print-voucher" style="display:none;" id="print_voucher_container">
-    <div style="display:flex; justify-content:space-between; border-bottom:2px solid #714B67; padding-bottom:14px; margin-bottom:20px;">
-      <div>
-        <h2 style="margin:0; color:#714B67; font-size:22px; font-weight:900;">PROFORMA COMERCIAL / COTIZACIÓN</h2>
-        <div style="font-size:14px; font-weight:700; color:#1e293b; margin-top:4px;" x-text="'NO. ' + (form.number || 'COT-00001')"></div>
-      </div>
-      <div style="text-align:right; font-size:12px; color:#475569;">
-        <div><strong>Fecha:</strong> <span x-text="form.date || todayStr"></span></div>
-        <div><strong>Vigencia:</strong> <span x-text="form.valid_until || '15 días'"></span></div>
-      </div>
-    </div>
-
-    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:14px; margin-bottom:20px; font-size:13px;">
-      <div><strong>Cliente:</strong> <span x-text="form.customer_name"></span></div>
-      <div><strong>NIT / DPI:</strong> <span x-text="form.customer_nit"></span></div>
-      <div x-show="form.customer_address"><strong>Dirección:</strong> <span x-text="form.customer_address"></span></div>
-    </div>
-
-    <table style="width:100%; border-collapse:collapse; margin-bottom:20px; font-size:12px;">
-      <thead>
-        <tr style="background:#714B67; color:#ffffff;">
-          <th style="padding:8px 10px; text-align:left;">Producto</th>
-          <th style="padding:8px 10px; text-align:center;">Cant.</th>
-          <th style="padding:8px 10px; text-align:right;">Precio Unit.</th>
-          <th style="padding:8px 10px; text-align:right;">Total (Q)</th>
-        </tr>
-      </thead>
-      <tbody>
-        <template x-for="l in form.lines" :key="l.product_id">
-          <tr style="border-bottom:1px solid #e2e8f0;">
-            <td style="padding:8px 10px;" x-text="l.product_name"></td>
-            <td style="padding:8px 10px; text-align:center;" x-text="l.qty"></td>
-            <td style="padding:8px 10px; text-align:right;" x-text="'Q ' + Number(l.unit_price).toFixed(2)"></td>
-            <td style="padding:8px 10px; text-align:right; font-weight:700;" x-text="'Q ' + (l.qty * l.unit_price * (1 - (l.discount_pct||0)/100)).toFixed(2)"></td>
-          </tr>
-        </template>
-      </tbody>
-    </table>
-
-    <div style="display:flex; justify-content:flex-end; margin-bottom:30px;">
-      <div style="width:240px; font-size:13px;">
-        <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
-          <span>Subtotal:</span>
+        <div style="display:flex; justify-content:space-between; margin-bottom:6px; font-size:13px; color:#475569;">
+          <span>Subtotal (Base):</span>
           <span style="font-weight:700;" x-text="'Q ' + Number(form.subtotal || 0).toFixed(2)"></span>
         </div>
-        <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:13px; color:#475569;">
           <span>IVA (12%):</span>
           <span style="font-weight:700;" x-text="'Q ' + Number(form.tax_amount || 0).toFixed(2)"></span>
         </div>
-        <div style="display:flex; justify-content:space-between; border-top:2px solid #714B67; padding-top:6px; font-size:16px; font-weight:900; color:#714B67;">
+        <div style="display:flex; justify-content:space-between; border-top:2px solid var(--odoo-purple); padding-top:10px; font-size:17px; font-weight:900; color:var(--odoo-purple);">
           <span>TOTAL:</span>
           <span x-text="'Q ' + Number(form.total || 0).toFixed(2)"></span>
         </div>
       </div>
+
     </div>
 
-    <div style="font-size:11px; color:#64748b; margin-top:30px; border-top:1px dashed #cbd5e1; padding-top:10px;">
-      * Documento no válido como factura fiscal. Los precios están cotizados en Quetzales e incluyen IVA.
+  </div>
+
+  <!-- =========================================================================
+       FORMATO MEMBRETADO OFICIAL TAMAÑO CARTA (OPCIÓN 1 - IDÉNTICO A LA IMAGEN)
+       Se utiliza para impresión con window.print() o vista previa en pantalla
+       ========================================================================= -->
+  <div class="print-voucher" id="print_voucher_container">
+    <div style="width:100%; max-width:800px; margin:0 auto; padding:10px 14px; font-family:Arial, Helvetica, sans-serif; color:#000000; box-sizing:border-box;">
+      
+      <!-- 1. Encabezado Superior (Logo R78 + Datos + Cuadro Cotización) -->
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+        
+        <!-- Logo circular y datos de la empresa -->
+        <div style="display:flex; align-items:center; gap:14px;">
+          <img src="/static/img/quotes/logo_r78_stamp.png" alt="Productos Automotrices del Sur R78" style="width:82px; height:auto; object-fit:contain;">
+          <div>
+            <div style="font-size:15px; font-weight:900; color:#000000; letter-spacing:0.2px;">PRODUCTOS AUTOMOTRICES DEL SUR, S.A.</div>
+            <div style="font-size:12px; font-weight:800; color:#000000; margin-top:2px;">NUEVA CONCEPCIÓN, ESCUINTLA</div>
+            <div style="font-size:12px; font-weight:800; color:#000000; margin-top:2px;">NIT 11563009-0 / TEL 3454-3857</div>
+            <div style="font-size:11px; color:#1d4ed8; text-decoration:underline; margin-top:2px;">
+              proausur78@gmail.com | proausu.sa@gmail.com
+            </div>
+          </div>
+        </div>
+
+        <!-- Cuadro Cotización Superior Derecho -->
+        <div style="width:205px; border:1.5px solid #374151; font-size:10.5px;">
+          <div style="background:#e5e7eb; color:#111827; font-weight:900; text-align:center; padding:3px; font-size:13px; letter-spacing:0.5px; border-bottom:1.5px solid #374151;">
+            COTIZACIÓN
+          </div>
+          <div style="display:grid; grid-template-columns:85px 1fr; border-bottom:1px solid #d1d5db; padding:2px 6px;">
+            <span style="font-weight:700;">FECHA:</span>
+            <span x-text="form.date || todayStr"></span>
+          </div>
+          <div style="display:grid; grid-template-columns:85px 1fr; border-bottom:1px solid #d1d5db; padding:2px 6px; background:#f9fafb;">
+            <span style="font-weight:700;">COT#:</span>
+            <span style="font-weight:800;" x-text="form.number || 'COT-00001'"></span>
+          </div>
+          <div style="display:grid; grid-template-columns:85px 1fr; border-bottom:1px solid #d1d5db; padding:2px 6px;">
+            <span style="font-weight:700;">ID CLIENTE:</span>
+            <span style="font-weight:800; font-family:monospace;" x-text="form.customer_code || 'CF'"></span>
+          </div>
+          <div style="display:grid; grid-template-columns:85px 1fr; padding:2px 6px; background:#f9fafb;">
+            <span style="font-weight:700;">CONDICIÓN:</span>
+            <span style="font-weight:700;" x-text="form.condition || 'Contado'"></span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 2. Barra y Datos: INFORMACION DEL CLIENTE -->
+      <div style="border:1.5px solid #4b5563; margin-bottom:10px;">
+        <div style="background:#6b7280; color:#ffffff; font-weight:900; font-style:italic; padding:3px 8px; font-size:11px; letter-spacing:0.5px;">
+          INFORMACION DEL CLIENTE
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:3px 18px; padding:6px 10px; font-size:11px; background:#ffffff;">
+          <div><strong>Cliente:</strong> <span x-text="form.customer_name || 'Consumidor Final'"></span></div>
+          <div><strong>Teléfono:</strong> <span x-text="form.customer_phone || '-'"></span></div>
+          <div><strong>Empresa:</strong> <span x-text="form.customer_company || '-'"></span></div>
+          <div><strong>Dirección:</strong> <span x-text="form.customer_address || '-'"></span></div>
+          <div><strong>NIT:</strong> <span x-text="form.customer_nit || 'CF'"></span></div>
+          <div><strong>Vendedor(a):</strong> <span x-text="form.seller_name || 'Ventas'"></span></div>
+        </div>
+      </div>
+
+      <!-- 3. Tabla de Productos con Marca de Agua diagonal -->
+      <div style="position:relative; border:1.5px solid #1e3a8a; min-height:360px; margin-bottom:10px;">
+        
+        <!-- Marca de agua de COTIZACIÓN -->
+        <div style="position:absolute; top:46%; left:50%; transform:translate(-50%, -50%) rotate(-30deg); font-size:68px; font-weight:900; color:rgba(209, 213, 219, 0.38); letter-spacing:14px; pointer-events:none; z-index:0; user-select:none;">
+          COTIZACIÓN
+        </div>
+
+        <table style="width:100%; border-collapse:collapse; font-size:10.5px; position:relative; z-index:1;">
+          <thead>
+            <tr style="background:#6b7280; color:#ffffff; font-style:italic; font-weight:900; border-bottom:1.5px solid #1e3a8a;">
+              <th style="padding:4px 6px; text-align:center; border-right:1.5px solid #1e3a8a; width:15%;">CODIGO</th>
+              <th style="padding:4px 8px; text-align:left; border-right:1.5px solid #1e3a8a; width:45%;">DESCRIPCION</th>
+              <th style="padding:4px 6px; text-align:center; border-right:1.5px solid #1e3a8a; width:12%;">MEDIDA</th>
+              <th style="padding:4px 6px; text-align:center; border-right:1.5px solid #1e3a8a; width:8%;">CANT</th>
+              <th style="padding:4px 6px; text-align:right; border-right:1.5px solid #1e3a8a; width:10%;">PRECIO</th>
+              <th style="padding:4px 6px; text-align:right; width:10%;">TOTAL</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="l in form.lines" :key="l.product_id">
+              <tr style="border-bottom:1px solid #e5e7eb; height:24px;">
+                <td style="padding:3px 6px; border-right:1.5px solid #1e3a8a; text-align:center; font-family:monospace;" x-text="l.product_code || '-'"></td>
+                <td style="padding:3px 8px; border-right:1.5px solid #1e3a8a;" x-text="l.product_name"></td>
+                <td style="padding:3px 6px; border-right:1.5px solid #1e3a8a; text-align:center;" x-text="l.uom_name || 'PZA'"></td>
+                <td style="padding:3px 6px; border-right:1.5px solid #1e3a8a; text-align:center; font-weight:700;" x-text="l.qty"></td>
+                <td style="padding:3px 6px; border-right:1.5px solid #1e3a8a; text-align:right;" x-text="'Q ' + Number(l.unit_price).toFixed(2)"></td>
+                <td style="padding:3px 6px; text-align:right; font-weight:700;" x-text="'Q ' + Number(l.total || (l.qty * l.unit_price)).toFixed(2)"></td>
+              </tr>
+            </template>
+            <!-- Filas vacías de relleno para conservar la altura exacta de la hoja carta -->
+            <template x-for="i in Math.max(0, 10 - form.lines.length)" :key="'empty_' + i">
+              <tr style="height:24px; border-bottom:1px solid #f3f4f6;">
+                <td style="border-right:1.5px solid #1e3a8a;">&nbsp;</td>
+                <td style="border-right:1.5px solid #1e3a8a;"></td>
+                <td style="border-right:1.5px solid #1e3a8a;"></td>
+                <td style="border-right:1.5px solid #1e3a8a;"></td>
+                <td style="border-right:1.5px solid #1e3a8a;"></td>
+                <td></td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+
+      </div>
+
+      <!-- 4. Sección Inferior: Observaciones, Logos de Marcas y Totales -->
+      <div style="display:grid; grid-template-columns:1.75fr 1.05fr; gap:14px; align-items:flex-start; margin-bottom:8px;">
+        
+        <!-- Observaciones y Logos de Marcas -->
+        <div>
+          <div style="border:1.5px solid #1f2937;">
+            <div style="background:#1f2937; color:#ffffff; font-weight:900; font-size:10px; text-align:center; padding:2px;">
+              OBSERVACIONES
+            </div>
+            <div style="padding:4px 6px; font-size:8px; line-height:1.25; color:#111827; text-align:justify;">
+              LA PRESENTE COTIZACIÓN ES ÚNICAMENTE INFORMATIVA Y NO CONSTITUYE UNA VENTA. LOS PRECIOS INDICADOS CORRESPONDEN A LA FECHA DE EMISIÓN Y PUEDEN VARIAR SIN PREVIO AVISO. PARA COMPRAS REALIZADAS EN FECHAS POSTERIORES, SE DEBERÁN CONFIRMAR NUEVAMENTE LOS PRECIOS Y LA DISPONIBILIDAD DE LOS PRODUCTOS.
+            </div>
+          </div>
+
+          <!-- Franja oficial de marcas: GOODSIF, BOYET, R78 ESPECIALES -->
+          <div style="margin-top:6px;">
+            <img src="/static/img/quotes/marcas_footer.png" alt="Goodsif Auto Paint, Boyet, R78 Suministros Especiales" style="width:100%; max-width:440px; height:auto; display:block;">
+          </div>
+
+          <!-- Fecha de Cotización -->
+          <div style="margin-top:6px; font-size:10.5px;">
+            <strong>FECHA DE COTIZACIÓN:</strong> <span style="text-decoration:underline;" x-text="formatDateSpanish(form.date || todayStr)"></span>
+          </div>
+        </div>
+
+        <!-- Cuadro de Totales -->
+        <div style="border:1.5px solid #000000; font-size:11px;">
+          <div style="display:grid; grid-template-columns:95px 25px 1fr; border-bottom:1px solid #000000; padding:2px 6px; background:#e5e7eb; font-weight:800;">
+            <span>Suma</span>
+            <span>Q</span>
+            <span style="text-align:right;" x-text="Number(form.gross_total || 0).toFixed(2)"></span>
+          </div>
+          <div style="display:grid; grid-template-columns:95px 25px 1fr; border-bottom:1px solid #000000; padding:2px 6px;">
+            <span style="font-weight:700;">Descuento</span>
+            <span>Q</span>
+            <span style="text-align:right;" x-text="Number(form.discount_amount || 0).toFixed(2)"></span>
+          </div>
+          <div style="display:grid; grid-template-columns:95px 25px 1fr; border-bottom:1px solid #000000; padding:2px 6px; background:#f9fafb;">
+            <span style="font-weight:700;">Subtotal</span>
+            <span>Q</span>
+            <span style="text-align:right;" x-text="Number(form.subtotal || 0).toFixed(2)"></span>
+          </div>
+          <div style="display:grid; grid-template-columns:95px 25px 1fr; border-bottom:1px solid #000000; padding:2px 6px;">
+            <span style="font-weight:700;">IVA</span>
+            <span>Q</span>
+            <span style="text-align:right;" x-text="Number(form.tax_amount || 0).toFixed(2)"></span>
+          </div>
+          <div style="display:grid; grid-template-columns:95px 25px 1fr; padding:3px 6px; background:#e5e7eb; font-size:12px; font-weight:900;">
+            <span>TOTAL</span>
+            <span>Q</span>
+            <span style="text-align:right;" x-text="Number(form.total || 0).toFixed(2)"></span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 5. Pie de página centrado -->
+      <div style="border-top:1px solid #cbd5e1; padding-top:6px; margin-top:10px; text-align:center; font-size:10px; color:#475569;">
+        Si tienes alguna pregunta por favor contáctanos: Tel: + 502 3454-3857 / Gmail: proausu.sa@gmail.com
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== MODAL: ENVIAR POR CORREO ELECTRÓNICO (OPCIÓN 4) ===== -->
+  <div class="modal-overlay" x-show="showEmailModal" x-cloak>
+    <div class="modal-box" @click.outside="showEmailModal = false">
+      <div style="background:#562B82; color:#ffffff; padding:16px 20px; display:flex; justify-content:space-between; align-items:center;">
+        <div style="font-weight:800; font-size:15px; display:flex; align-items:center; gap:8px;">
+          <i class="ph ph-envelope-simple" style="font-size:20px;"></i> Enviar Cotización por Correo
+        </div>
+        <i class="ph ph-x" style="cursor:pointer; font-size:18px;" @click="showEmailModal = false"></i>
+      </div>
+
+      <div style="padding:20px;">
+        <div style="margin-bottom:14px;">
+          <label class="odoo-label">CORREO DESTINATARIO</label>
+          <input 
+            type="email" 
+            class="odoo-control" 
+            style="font-weight:700;" 
+            placeholder="cliente@ejemplo.com" 
+            x-model="emailData.recipient_email"
+          >
+        </div>
+
+        <div style="margin-bottom:14px;">
+          <label class="odoo-label">ASUNTO</label>
+          <input 
+            type="text" 
+            class="odoo-control" 
+            x-model="emailData.subject"
+          >
+        </div>
+
+        <div style="margin-bottom:16px;">
+          <label class="odoo-label">MENSAJE PERSONALIZADO (OPCIONAL)</label>
+          <textarea 
+            class="odoo-control" 
+            rows="3" 
+            placeholder="Hola, adjuntamos la cotización de los productos solicitados..." 
+            x-model="emailData.message"
+          ></textarea>
+        </div>
+
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:10px 12px; font-size:12px; color:#475569; margin-bottom:16px;">
+          <i class="ph ph-info" style="color:#0284c7;"></i> Se enviará un desglose formal de la cotización con la identidad membretada de <strong>Productos Automotrices del Sur, S.A.</strong>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:10px;">
+          <button type="button" class="btn btn-secondary" @click="showEmailModal = false">Cancelar</button>
+          <button 
+            type="button" 
+            class="btn" 
+            style="background:#0284c7; color:#ffffff; font-weight:800; border-radius:8px; padding:8px 18px; border:none; display:flex; align-items:center; gap:6px; cursor:pointer;"
+            @click="sendEmailQuote()"
+            :disabled="isSendingEmail"
+          >
+            <i class="ph ph-paper-plane-right"></i>
+            <span x-text="isSendingEmail ? 'Enviando...' : 'Enviar Ahora'"></span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MODAL DIRECTORIODE CLIENTES ===== -->
+  <div class="modal-overlay" x-show="showCustomerModal" x-cloak>
+    <div class="modal-box" style="max-width:650px;" @click.outside="showCustomerModal = false">
+      <div style="background:#ffffff; border-bottom:1px solid #e2e8f0; padding:16px 20px; display:flex; justify-content:space-between; align-items:center;">
+        <div style="font-weight:900; font-size:16px; color:#1e293b;">Directorio de Clientes</div>
+        <i class="ph ph-x" style="cursor:pointer; font-size:18px;" @click="showCustomerModal = false"></i>
+      </div>
+      <div style="padding:16px 20px;">
+        <input 
+          type="text" 
+          class="odoo-control" 
+          placeholder="Filtrar por nombre, NIT, teléfono..." 
+          x-model="customerModalSearch"
+          style="margin-bottom:14px;"
+        >
+        <div style="max-height:300px; overflow-y:auto;">
+          <template x-for="c in getFilteredModalCustomers()" :key="c.id">
+            <div 
+              style="padding:10px 12px; border-bottom:1px solid #f1f5f9; display:flex; justify-content:space-between; align-items:center; cursor:pointer;"
+              onmouseover="this.style.background='#fdf4f9'"
+              onmouseout="this.style.background='#ffffff'"
+              @click="selectCustomer(c); showCustomerModal = false;"
+            >
+              <div>
+                <div style="font-weight:800; font-size:13.5px; color:#1e293b;" x-text="c.name"></div>
+                <div style="font-size:11.5px; color:#64748b; margin-top:2px;">
+                  <span style="font-family:monospace; font-weight:700; color:#0f766e;" x-text="'NIT: ' + (c.nit || 'CF')"></span>
+                  <span x-show="c.phone" x-text="' • 📞 ' + c.phone"></span>
+                  <span x-show="c.trade_name" x-text="' • 🏢 ' + c.trade_name"></span>
+                </div>
+              </div>
+              <button type="button" class="btn btn-sm" style="background:var(--odoo-purple); color:#ffffff; font-weight:700; border:none; padding:4px 10px; border-radius:6px; font-size:11.5px;">
+                Seleccionar
+              </button>
+            </div>
+          </template>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MODAL CATÁLOGO COMPLETO ===== -->
+  <div class="modal-overlay" x-show="showCatalogModal" x-cloak>
+    <div class="modal-box" style="max-width:700px;" @click.outside="showCatalogModal = false">
+      <div style="background:#ffffff; border-bottom:1px solid #e2e8f0; padding:16px 20px; display:flex; justify-content:space-between; align-items:center;">
+        <div style="font-weight:900; font-size:16px; color:#1e293b;">Catálogo de Productos</div>
+        <i class="ph ph-x" style="cursor:pointer; font-size:18px;" @click="showCatalogModal = false"></i>
+      </div>
+      <div style="padding:16px 20px;">
+        <input 
+          type="text" 
+          class="odoo-control" 
+          placeholder="Buscar producto por nombre o código SKU..." 
+          x-model="catalogFilter"
+          style="margin-bottom:14px;"
+        >
+        <div style="max-height:320px; overflow-y:auto;">
+          <template x-for="p in getFilteredCatalog()" :key="p.id">
+            <div 
+              class="product-select-card"
+              style="margin-bottom:6px;"
+              @click="addProductLine(p); showCatalogModal = false;"
+            >
+              <div>
+                <div style="font-weight:800; color:#1e293b;" x-text="p.name"></div>
+                <div style="font-size:11px; color:#64748b;">
+                  <span x-text="'SKU: ' + (p.internal_ref || 'N/A') + ' | ' + (p.uom_symbol || p.uom_name || 'PZA')"></span>
+                  <span :class="p.stock > 0 ? 'stock-badge stock-in' : 'stock-badge stock-out'" style="margin-left:6px;" x-text="'Stock: ' + (p.stock || 0)"></span>
+                </div>
+              </div>
+              <div style="display:flex; align-items:center; gap:10px;">
+                <div style="font-weight:900; color:var(--odoo-purple); font-size:14px;" x-text="'Q ' + Number(getPriceForTier(p)).toFixed(2)"></div>
+                <button type="button" class="btn btn-sm" style="background:var(--odoo-purple); color:#ffffff; font-weight:800; border:none; padding:4px 10px; border-radius:6px; font-size:11px;">
+                  + Agregar
+                </button>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -721,6 +1054,8 @@
     return {
       quoteId: quoteId,
       isSaving: false,
+      isSendingEmail: false,
+      showEmailModal: false,
       todayStr: new Date().toISOString().slice(0, 10),
       warehouses: [],
       allProducts: [],
@@ -735,7 +1070,7 @@
       customerModalSearch: '',
       customerSearchText: '',
       isCustomerSearchFocused: false,
-      showEditCustomerFields: false,
+
       form: {
         id: null,
         number: '',
@@ -743,16 +1078,32 @@
         valid_until: '',
         valid_days: 15,
         customer_id: null,
+        customer_code: 'CF',
         customer_name: 'Consumidor Final',
         customer_nit: 'CF',
+        customer_phone: '',
+        customer_company: '',
         customer_address: '',
+        customer_email: '',
+        seller_name: 'Ventas',
+        condition: 'Contado',
+        price_tier: 'standard',
         warehouse_id: '',
-        notes: 'Precios incluyen IVA. Oferta válida por 15 días.',
+        notes: 'La presente cotización es únicamente informativa y no constituye una venta. Precios incluyen IVA.',
+        gross_total: 0,
         subtotal: 0,
+        discount_amount: 0,
         tax_amount: 0,
         total: 0,
         state: 'draft',
+        is_expired: false,
         lines: []
+      },
+
+      emailData: {
+        recipient_email: '',
+        subject: '',
+        message: ''
       },
 
       async init() {
@@ -765,6 +1116,7 @@
           await this.loadQuoteData();
         } else {
           this.addNewEmptyLine();
+          this.calcValidity();
         }
       },
 
@@ -786,7 +1138,7 @@
           return;
         }
         this.filteredCustomers = this.allCustomers.filter(c =>
-          c.name.toLowerCase().includes(q) ||
+          (c.name && c.name.toLowerCase().includes(q)) ||
           (c.nit && c.nit.toLowerCase().includes(q)) ||
           (c.phone && c.phone.includes(q)) ||
           (c.trade_name && c.trade_name.toLowerCase().includes(q))
@@ -797,27 +1149,36 @@
         if (!this.customerModalSearch) return this.allCustomers;
         const q = this.customerModalSearch.toLowerCase().trim();
         return this.allCustomers.filter(c =>
-          c.name.toLowerCase().includes(q) ||
+          (c.name && c.name.toLowerCase().includes(q)) ||
           (c.nit && c.nit.toLowerCase().includes(q)) ||
           (c.phone && c.phone.includes(q)) ||
-          (c.email && c.email.toLowerCase().includes(q))
+          (c.email && c.email.toLowerCase().includes(q)) ||
+          (c.trade_name && c.trade_name.toLowerCase().includes(q))
         );
       },
 
       selectCustomer(c) {
         this.form.customer_id = c.id;
+        this.form.customer_code = c.code ? `#${c.code}` : (c.id ? `#${c.id.slice(0,6)}` : 'CF');
         this.form.customer_name = c.name;
         this.form.customer_nit = c.nit || 'CF';
         this.form.customer_address = c.address || '';
+        this.form.customer_phone = c.phone || '';
+        this.form.customer_company = c.trade_name || '';
+        this.form.customer_email = c.email || '';
         this.customerSearchText = '';
         this.showCustomerDropdown = false;
       },
 
       setConsumidorFinal() {
         this.form.customer_id = null;
+        this.form.customer_code = 'CF';
         this.form.customer_name = 'Consumidor Final';
         this.form.customer_nit = 'CF';
-        this.form.customer_address = 'Ciudad de Guatemala';
+        this.form.customer_address = 'Ciudad';
+        this.form.customer_phone = '';
+        this.form.customer_company = '';
+        this.form.customer_email = '';
         this.customerSearchText = '';
         this.showCustomerDropdown = false;
       },
@@ -834,41 +1195,100 @@
 
       async loadAllProducts() {
         try {
-          const res = await API.get('/products/?limit=200');
+          const whParam = this.form.warehouse_id ? `&warehouse_id=${this.form.warehouse_id}` : '';
+          const res = await API.get(`/products/?limit=300${whParam}`);
           this.allProducts = res.items || (Array.isArray(res) ? res : []);
         } catch(e) {}
       },
 
+      async onWarehouseChange() {
+        await this.loadAllProducts();
+        // Actualizar stock de las líneas existentes
+        this.form.lines.forEach(l => {
+          const p = this.allProducts.find(x => x.id === l.product_id);
+          if (p) {
+            l.current_stock = Number(p.stock || 0);
+            this.updateLineStockStatus(l);
+          }
+        });
+      },
+
       async loadQuoteData() {
         try {
-          const res = await API.get(`/quotes/${this.quoteId}`);
-          if (res) {
-            this.form = res;
-            this.recomputeTotals();
-          }
+          const data = await API.get(`/quotes/${this.quoteId}`);
+          this.form = {
+            id: data.id,
+            number: data.number,
+            date: data.date,
+            valid_until: data.valid_until,
+            valid_days: data.valid_days || 15,
+            customer_id: data.customer_id,
+            customer_code: data.customer_code || 'CF',
+            customer_name: data.customer_name,
+            customer_nit: data.customer_nit,
+            customer_phone: data.customer_phone || '',
+            customer_company: data.customer_company || '',
+            customer_address: data.customer_address || '',
+            customer_email: data.customer_email || '',
+            seller_name: data.seller_name || 'Ventas',
+            condition: data.condition || 'Contado',
+            price_tier: data.price_tier || 'standard',
+            warehouse_id: data.warehouse_id || (this.warehouses[0]?.id || ''),
+            notes: data.notes || '',
+            subtotal: data.subtotal,
+            discount_amount: data.discount_amount || 0,
+            tax_amount: data.tax_amount,
+            total: data.total,
+            state: data.state,
+            is_expired: data.is_expired,
+            lines: (data.lines || []).map(l => ({
+              id: l.id,
+              product_id: l.product_id,
+              product_name: l.product_name,
+              product_code: l.product_code || '',
+              uom_name: l.uom_name || 'PZA',
+              qty: l.qty,
+              unit_price: l.unit_price,
+              cost_price: l.cost_price || 0,
+              discount_pct: l.discount_pct || 0,
+              discount_amount: l.discount_amount || 0,
+              total: l.total,
+              current_stock: l.current_stock || 0,
+              stock_status: l.stock_status || 'in_stock'
+            }))
+          };
+          this.recomputeTotals();
         } catch(e) {
           alert('Error al cargar cotización: ' + (e.message || e));
         }
       },
 
+      calcValidity() {
+        const d = new Date();
+        d.setDate(d.getDate() + Number(this.form.valid_days || 15));
+        const dd = String(d.getDate()).padStart(2, '0');
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const yyyy = d.getFullYear();
+        this.form.valid_until = `${dd}/${mm}/${yyyy}`;
+      },
+
       filterProducts() {
-        if (!this.productQuery || this.productQuery.trim().length === 0) {
+        const q = (this.productQuery || '').toLowerCase().trim();
+        if (!q) {
           this.filteredProducts = [];
           return;
         }
-        const q = this.productQuery.toLowerCase();
         this.filteredProducts = this.allProducts.filter(p =>
-          p.name.toLowerCase().includes(q) ||
-          (p.internal_ref && p.internal_ref.toLowerCase().includes(q)) ||
-          (p.barcode && p.barcode.toLowerCase().includes(q))
+          (p.name && p.name.toLowerCase().includes(q)) ||
+          (p.internal_ref && p.internal_ref.toLowerCase().includes(q))
         ).slice(0, 10);
       },
 
       getFilteredCatalog() {
         if (!this.catalogFilter) return this.allProducts;
-        const q = this.catalogFilter.toLowerCase();
+        const q = this.catalogFilter.toLowerCase().trim();
         return this.allProducts.filter(p =>
-          p.name.toLowerCase().includes(q) ||
+          (p.name && p.name.toLowerCase().includes(q)) ||
           (p.internal_ref && p.internal_ref.toLowerCase().includes(q))
         );
       },
@@ -878,13 +1298,54 @@
         this.showCatalogModal = true;
       },
 
+      getPriceForTier(prod) {
+        const tier = this.form.price_tier || 'standard';
+        if (tier === 'cash' && prod.cash_price > 0) return prod.cash_price;
+        if (tier === 'exclusive_cash' && prod.exclusive_cash_price > 0) return prod.exclusive_cash_price;
+        if (tier === 'special' && prod.special_price > 0) return prod.special_price;
+        if (tier === 'wholesale' && prod.wholesale_price > 0) return prod.wholesale_price;
+        return prod.sale_price || 0;
+      },
+
+      applyPriceTier() {
+        let changed = 0;
+        this.form.lines.forEach(l => {
+          if (!l.product_id) return;
+          const p = this.allProducts.find(x => x.id === l.product_id);
+          if (p) {
+            const newP = this.getPriceForTier(p);
+            if (newP > 0) {
+              l.unit_price = Number(newP);
+              this.recomputeLine(l);
+              changed++;
+            }
+          }
+        });
+        if (changed > 0) {
+          this.recomputeTotals();
+        }
+      },
+
+      updateLineStockStatus(line) {
+        const cur = Number(line.current_stock || 0);
+        const req = Number(line.qty || 1);
+        if (cur >= req) line.stock_status = 'in_stock';
+        else if (cur > 0) line.stock_status = 'partial';
+        else line.stock_status = 'out_of_stock';
+      },
+
       addNewEmptyLine() {
         this.form.lines.push({
           product_id: '',
           product_name: '',
+          product_code: '',
+          uom_name: 'PZA',
           qty: 1,
           unit_price: 0,
-          discount_pct: 0
+          discount_pct: 0,
+          total: 0,
+          current_stock: 0,
+          stock_status: 'out_of_stock'
         });
       },
 
@@ -893,25 +1354,36 @@
         const prod = this.allProducts.find(p => p.id === line.product_id);
         if (prod) {
           line.product_name = prod.name;
-          line.unit_price = Number(prod.sale_price || 0);
-          this.recomputeTotals();
+          line.product_code = prod.internal_ref || '';
+          line.uom_name = prod.uom_symbol || prod.uom_name || 'PZA';
+          line.unit_price = Number(this.getPriceForTier(prod));
+          line.current_stock = Number(prod.stock || 0);
+          this.updateLineStockStatus(line);
+          this.recomputeLine(line);
         }
       },
 
       addProductLine(product) {
         const exists = this.form.lines.find(l => l.product_id === product.id);
         if (exists) {
-          exists.qty += 1;
+          exists.qty = Number(exists.qty) + 1;
+          this.updateLineStockStatus(exists);
+          this.recomputeLine(exists);
         } else {
-          // If the last line is empty, replace it
           const emptyIdx = this.form.lines.findIndex(l => !l.product_id);
           const newLine = {
             product_id: product.id,
             product_name: product.name,
+            product_code: product.internal_ref || '',
+            uom_name: product.uom_symbol || product.uom_name || 'PZA',
             qty: 1,
-            unit_price: Number(product.sale_price || 0),
-            discount_pct: 0
+            unit_price: Number(this.getPriceForTier(product)),
+            discount_pct: 0,
+            total: Number(this.getPriceForTier(product)),
+            current_stock: Number(product.stock || 0),
+            stock_status: 'in_stock'
           };
+          this.updateLineStockStatus(newLine);
           if (emptyIdx !== -1) {
             this.form.lines[emptyIdx] = newLine;
           } else {
@@ -928,23 +1400,45 @@
         this.recomputeTotals();
       },
 
+      recomputeLine(line) {
+        const qty = Number(line.qty) || 0;
+        const price = Number(line.unit_price) || 0;
+        const discPct = Number(line.discount_pct) || 0;
+        const gross = qty * price;
+        const disc = gross * (discPct / 100);
+        line.total = gross - disc;
+        line.discount_amount = disc;
+        this.updateLineStockStatus(line);
+        this.recomputeTotals();
+      },
+
       recomputeTotals() {
-        let totalNet = 0;
+        let grossSum = 0;
+        let discSum = 0;
+        let netSum = 0;
+
         this.form.lines.forEach(l => {
-          const gross = (Number(l.qty) || 0) * (Number(l.unit_price) || 0);
-          const disc = gross * ((Number(l.discount_pct) || 0) / 100);
-          totalNet += (gross - disc);
+          const qty = Number(l.qty) || 0;
+          const price = Number(l.unit_price) || 0;
+          const discPct = Number(l.discount_pct) || 0;
+          const gross = qty * price;
+          const disc = gross * (discPct / 100);
+          grossSum += gross;
+          discSum += disc;
+          netSum += (gross - disc);
         });
 
-        this.form.total = totalNet;
-        this.form.subtotal = totalNet / 1.12;
-        this.form.tax_amount = totalNet - this.form.subtotal;
+        this.form.gross_total = grossSum;
+        this.form.discount_amount = discSum;
+        this.form.total = netSum;
+        this.form.subtotal = netSum / 1.12;
+        this.form.tax_amount = netSum - this.form.subtotal;
       },
 
       async saveQuote() {
         const validLines = this.form.lines.filter(l => l.product_id);
         if (!validLines.length) {
-          return alert('Debes agregar y seleccionar al menos un producto a la cotización.');
+          return alert('Debes agregar al menos un producto válido a la cotización.');
         }
         this.form.lines = validLines;
 
@@ -952,7 +1446,7 @@
         try {
           if (this.quoteId === 'new') {
             const res = await API.post('/quotes/', this.form);
-            alert('¡Cotización creada exitosamente!');
+            alert('¡Cotización creada exitosamente con número ' + res.number + '!');
             window.location.href = `/quotes/${res.id}`;
           } else {
             const res = await API.put(`/quotes/${this.quoteId}`, this.form);
@@ -963,6 +1457,27 @@
           alert('Error al guardar: ' + (e.message || e));
         } finally {
           this.isSaving = false;
+        }
+      },
+
+      async markState(newState) {
+        try {
+          const res = await API.patch(`/quotes/${this.quoteId}/state`, { state: newState });
+          alert(res.message || 'Estado actualizado.');
+          await this.loadQuoteData();
+        } catch(e) {
+          alert('Error al actualizar estado: ' + (e.message || e));
+        }
+      },
+
+      async duplicateQuote() {
+        if (!confirm('¿Deseas duplicar esta cotización para generar una nueva versión en borrador?')) return;
+        try {
+          const res = await API.post(`/quotes/${this.quoteId}/duplicate`);
+          alert(res.message || 'Cotización duplicada con éxito.');
+          window.location.href = `/quotes/${res.id}`;
+        } catch(e) {
+          alert('Error al duplicar: ' + (e.message || e));
         }
       },
 
@@ -977,9 +1492,53 @@
         }
       },
 
+      openEmailModal() {
+        this.emailData.recipient_email = this.form.customer_email || '';
+        this.emailData.subject = `Cotización ${this.form.number} — Productos Automotrices del Sur, S.A.`;
+        this.emailData.message = `Estimado(a) ${this.form.customer_name}, le compartimos la cotización adjunta de los productos solicitados.`;
+        this.showEmailModal = true;
+      },
+
+      async sendEmailQuote() {
+        if (!this.emailData.recipient_email || !this.emailData.recipient_email.includes('@')) {
+          return alert('Por favor ingresa un correo electrónico válido.');
+        }
+        this.isSendingEmail = true;
+        try {
+          const res = await API.post(`/quotes/${this.quoteId}/send-email`, this.emailData);
+          if (res.status === 'sent') {
+            alert(res.message || '¡Correo enviado con éxito!');
+            this.showEmailModal = false;
+            await this.loadQuoteData();
+          } else if (res.status === 'fallback' && res.mailto_url) {
+            alert(res.message);
+            window.location.href = res.mailto_url;
+            this.showEmailModal = false;
+            await this.loadQuoteData();
+          }
+        } catch(e) {
+          alert('Error al enviar correo: ' + (e.message || e));
+        } finally {
+          this.isSendingEmail = false;
+        }
+      },
+
       getWhatsAppLink() {
-        const text = `Hola *${this.form.customer_name}*, te compartimos la cotización *${this.form.number}* por un total de *Q ${Number(this.form.total).toFixed(2)}*. Válida por ${this.form.valid_days || 15} días. ¡Quedamos a tus órdenes!`;
+        const text = `Hola *${this.form.customer_name}*, te compartimos la cotización *${this.form.number}* de *Productos Automotrices del Sur, S.A.* por un total de *Q ${Number(this.form.total).toFixed(2)}*. Válida por ${this.form.valid_days || 15} días. ¡Quedamos a tus órdenes!`;
         return `https://wa.me/?text=${encodeURIComponent(text)}`;
+      },
+
+      formatDateSpanish(dStr) {
+        if (!dStr) return '';
+        try {
+          const parts = dStr.split('/');
+          if (parts.length === 3) {
+            const dt = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T12:00:00`);
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            return dt.toLocaleDateString('es-GT', options);
+          }
+        } catch(e) {}
+        return dStr;
       },
 
       printQuotePDF() {

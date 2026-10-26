@@ -751,6 +751,28 @@ def test_quotes_and_ap_flow():
     q_detail = client.get(f"/api/v1/quotes/{q_id}", headers=headers)
     assert q_detail.status_code == 200
     assert len(q_detail.json()["lines"]) == 1
+    assert "condition" in q_detail.json()
+    assert "price_tier" in q_detail.json()
+
+    # 3.1. Cambiar estado a 'sent'
+    st_res = client.patch(f"/api/v1/quotes/{q_id}/state", json={"state": "sent"}, headers=headers)
+    assert st_res.status_code == 200
+    assert st_res.json()["state"] == "sent"
+
+    # 3.2. Probar duplicación de cotización
+    dup_res = client.post(f"/api/v1/quotes/{q_id}/duplicate", headers=headers)
+    assert dup_res.status_code == 200
+    assert "id" in dup_res.json()
+    assert dup_res.json()["id"] != q_id
+
+    # 3.3. Probar envío de email (fallback mailto o smtp)
+    em_res = client.post(f"/api/v1/quotes/{q_id}/send-email", json={
+        "recipient_email": "cliente@corporacionabc.com",
+        "subject": "Tu Cotización",
+        "message": "Adjuntamos cotización"
+    }, headers=headers)
+    assert em_res.status_code == 200
+    assert em_res.json()["status"] in ["sent", "fallback"]
 
     # 4. Convertir cotización a venta
     conv_res = client.post(f"/api/v1/quotes/{q_id}/convert", headers=headers)
