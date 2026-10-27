@@ -1955,3 +1955,55 @@ def test_sales_by_seller_reports():
     assert csv_res.status_code == 200
     assert "text/csv" in csv_res.headers.get("content-type", "")
     assert b"Ranking,Vendedor,Email" in csv_res.content
+
+
+def test_ar_credit_payment_and_media_carta_receipt():
+    """Prueba de registro de abono a cuenta por cobrar y generación de recibo electrónico Media Carta."""
+    # 1. Crear un cliente para la cuenta por cobrar
+    c_res = client.post("/api/v1/partners/", json={
+        "name": "Transportes del Pacífico S.A.",
+        "trade_name": "TransPacífico",
+        "nit": "8765432-1",
+        "partner_type": "customer",
+        "credit_limit": 50000.0,
+        "credit_days": 30
+    }, headers=headers)
+    assert c_res.status_code == 200
+    cust_id = c_res.json()["id"]
+
+    # 2. Crear una cuenta por cobrar
+    inv_res = client.post("/api/v1/ar/invoices", json={
+        "customer_id": cust_id,
+        "number": "FAC-CRED-2026-001",
+        "total": 3500.0,
+        "days": 30,
+        "notes": "Venta al crédito de pintura automotriz"
+    }, headers=headers)
+    assert inv_res.status_code == 200
+    inv_id = inv_res.json()["id"]
+
+    # 3. Registrar un abono de Q 500.00
+    pmt_res = client.post(f"/api/v1/ar/invoices/{inv_id}/payments", json={
+        "amount": 500.0,
+        "payment_method": "cash",
+        "reference": "DEP-78901",
+        "notes": "Abono parcial en efectivo"
+    }, headers=headers)
+    assert pmt_res.status_code == 200
+    pmt_id = pmt_res.json()["payment_id"]
+
+    # 4. Consultar comprobante electrónico de pago en formato Media Carta
+    rcpt_res = client.get(f"/api/v1/ar/payments/{pmt_id}/receipt", headers=headers)
+    assert rcpt_res.status_code == 200
+    rcpt = rcpt_res.json()
+
+    assert rcpt["amount_paid"] == 500.0
+    assert "QUINIENTOS QUETZALES EXACTOS" in rcpt["amount_letters"]
+    assert "date_short" in rcpt
+    assert "date_long" in rcpt
+    assert "DE OCTUBRE DE 2026" in rcpt["date_long"]
+    assert "Productos Automotrices del Sur" in (rcpt["company"].get("title_name") or rcpt["company"]["name"])
+    assert rcpt["customer"]["name"] == "Transportes del Pacífico S.A."
+    assert rcpt["invoice"]["number"] == "FAC-CRED-2026-001"
+    assert rcpt["invoice"]["current_balance"] == 3000.0
+

@@ -153,31 +153,346 @@
     line-height: 1.4;
   }
 
+  /* =============================================
+     VOUCHER MEDIA CARTA (STATEMENT LANDSCAPE)
+     Exact replica of Productos Automotrices del Sur S.A.
+     ============================================= */
+  .half-letter-voucher {
+    width: 100%;
+    max-width: 780px;
+    background: #ffffff;
+    border: 2px solid #1e3a8a;
+    border-radius: 18px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: #0f172a;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+
+  .voucher-top-bar {
+    background: #f1f5f9;
+    padding: 9px 15px;
+    text-align: center;
+    border-bottom: 1px solid #e2e8f0;
+    font-weight: 900;
+    font-style: italic;
+    font-size: 19px;
+    color: #0f172a;
+    letter-spacing: 0.3px;
+  }
+
+  .voucher-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 14px 24px 6px 24px;
+    gap: 15px;
+  }
+
+  .voucher-company-info .company-title {
+    color: #2563eb;
+    font-weight: 900;
+    font-style: italic;
+    font-size: 14.5px;
+    margin-bottom: 2px;
+  }
+
+  .voucher-company-info .company-sub {
+    font-size: 11.5px;
+    color: #1e293b;
+    line-height: 1.35;
+    font-weight: 500;
+  }
+
+  .voucher-boxes {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    align-items: flex-end;
+  }
+
+  .voucher-box-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .voucher-box-row .box-label {
+    font-weight: 900;
+    font-style: italic;
+    font-size: 12px;
+    color: #0f172a;
+    letter-spacing: 0.2px;
+  }
+
+  .voucher-box-row .box-value {
+    border: 1.5px solid #0f172a;
+    border-radius: 2px;
+    width: 155px;
+    height: 27px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #ffffff;
+    font-size: 13.5px;
+    color: #0f172a;
+  }
+
+  .box-mono {
+    font-family: monospace;
+    font-weight: 800;
+  }
+
+  .box-bold {
+    font-weight: 900;
+  }
+
+  .voucher-main-box {
+    border: 1.5px solid #1e3a8a;
+    border-radius: 12px;
+    margin: 8px 22px 6px 22px;
+    padding: 12px 18px;
+    background: #ffffff;
+  }
+
+  .voucher-main-row {
+    display: flex;
+    align-items: baseline;
+    margin-bottom: 9px;
+  }
+
+  .voucher-main-row:last-child {
+    margin-bottom: 0;
+  }
+
+  .field-group {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+
+  .field-group.flex-1 {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .field-label {
+    font-weight: 900;
+    font-style: italic;
+    font-size: 12.5px;
+    color: #0f172a;
+    white-space: nowrap;
+  }
+
+  .field-line {
+    border-bottom: 1px dotted #475569;
+    flex: 1;
+    padding-bottom: 2px;
+    color: #1e293b;
+    font-size: 12.5px;
+    min-height: 18px;
+    line-height: 1.3;
+  }
+
+  .field-bold {
+    font-weight: 800;
+  }
+
+  .field-italic {
+    font-style: italic;
+    font-weight: 700;
+    color: #334155;
+  }
+
+  .field-currency {
+    font-weight: 800;
+    font-size: 13px;
+    color: #0f172a;
+    margin-left: 4px;
+  }
+
+  .field-amount {
+    font-weight: 900;
+    font-size: 13.5px;
+    color: #0f172a;
+    min-width: 60px;
+    text-align: right;
+  }
+
+  .voucher-date-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 24px 4px 24px;
+    font-size: 11.5px;
+  }
+
+  .date-short {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .date-label {
+    font-weight: 900;
+    color: #0f172a;
+  }
+
+  .date-val {
+    font-weight: 700;
+    color: #334155;
+  }
+
+  .date-long {
+    font-weight: 900;
+    color: #0f172a;
+    letter-spacing: 0.3px;
+  }
+
+  .voucher-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 24px 18px 24px;
+  }
+
+  .voucher-logo-left img {
+    height: 48px;
+    width: auto;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.12));
+  }
+
+  .voucher-logo-right img {
+    height: 45px;
+    width: auto;
+    object-fit: contain;
+  }
+
+  .voucher-signatures {
+    display: flex;
+    gap: 40px;
+    align-items: flex-end;
+  }
+
+  .sig-box {
+    text-align: center;
+    width: 140px;
+  }
+
+  .sig-line {
+    border-top: 1.5px solid #0f172a;
+    margin-bottom: 3px;
+    width: 100%;
+  }
+
+  .sig-title {
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.5px;
+    color: #0f172a;
+  }
+
+  .sig-sub {
+    font-size: 9.5px;
+    color: #64748b;
+    margin-top: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* MEDIA CARTA PRINT RULES */
+  @page {
+    size: 8.5in 5.5in landscape;
+    margin: 2mm 4mm 0 4mm;
+  }
+
   @media print {
-    body * {
-      visibility: hidden;
+    body.print-media-carta {
+      background: #ffffff !important;
+      margin: 0 !important;
+      padding: 0 !important;
     }
-    #printableReceipt, #printableReceipt * {
-      visibility: visible;
+    body.print-media-carta .ar-modal-backdrop {
+      position: static !important;
+      inset: auto !important;
+      background: transparent !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      padding: 0 !important;
+      display: block !important;
+      overflow: visible !important;
     }
-    #printableReceipt {
-      position: absolute;
-      left: 0;
-      top: 0;
-      width: 100%;
+    body.print-media-carta .ar-modal-dialog {
+      position: static !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      max-height: none !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      box-shadow: none !important;
       border: none !important;
+      border-radius: 0 !important;
+      overflow: visible !important;
+    }
+    body.print-media-carta .ar-modal-body {
       padding: 0 !important;
       margin: 0 !important;
+      overflow: visible !important;
+      display: block !important;
+      background: transparent !important;
     }
-    #printableStatement, #printableStatement * {
-      visibility: visible;
+    body.print-media-carta .ar-modal-header,
+    body.print-media-carta .ar-modal-footer,
+    body.print-media-carta header,
+    body.print-media-carta nav,
+    body.print-media-carta .sidebar,
+    body.print-media-carta .no-print {
+      display: none !important;
     }
-    #printableStatement {
-      position: absolute;
-      left: 0;
-      top: 0;
-      width: 100%;
-      padding: 15px;
+    body.print-media-carta * {
+      visibility: hidden !important;
+    }
+    body.print-media-carta #printableReceiptMediaCarta,
+    body.print-media-carta #printableReceiptMediaCarta * {
+      visibility: visible !important;
+    }
+    body.print-media-carta #printableReceiptMediaCarta {
+      position: relative !important;
+      left: auto !important;
+      top: 0 !important;
+      width: 8.0in !important;
+      max-width: 8.0in !important;
+      margin: 0 auto !important;
+      border: 2px solid #1e3a8a !important;
+      border-radius: 14px !important;
+      box-shadow: none !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+    }
+
+    body.print-statement * {
+      visibility: hidden !important;
+    }
+    body.print-statement #printableStatement,
+    body.print-statement #printableStatement * {
+      visibility: visible !important;
+    }
+    body.print-statement #printableStatement {
+      position: absolute !important;
+      left: 0 !important;
+      top: 0 !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      padding: 0 !important;
+      box-shadow: none !important;
+      border: 1px solid #94a3b8 !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
     }
   }
   @media (max-width: 768px) {
@@ -768,138 +1083,265 @@
 
   <!-- ===== 6. VISTA 4: ESTADOS DE CUENTA ===== -->
   <div x-show="viewMode === 'statements'" x-cloak>
+    <!-- Selector y Botones de Acción -->
     <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; padding:16px; margin-bottom:16px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px;">
-      <div style="width:100%; max-width:400px;">
-        <label style="display:block; font-size:12px; font-weight:800; color:#475569; margin-bottom:4px;">Seleccionar Cliente:</label>
+      <div style="width:100%; max-width:440px;">
+        <label style="display:block; font-size:12px; font-weight:800; color:#475569; margin-bottom:4px;">Seleccionar Cliente para Estado de Cuenta:</label>
         <select 
           x-model="selectedCustomerId" 
           @change="loadCustomerStatement()" 
           style="width:100%; padding:8px 12px; font-size:13px; font-weight:600; border:1.5px solid #cbd5e1; border-radius:8px; outline:none;"
         >
-          <option value="">-- Seleccionar cliente para ver estado de cuenta --</option>
+          <option value="">-- Seleccionar cliente para ver formato oficial --</option>
           <template x-for="c in customersLookupList" :key="c.id">
-            <option :value="c.id" x-text="c.name + ' (NIT: ' + c.nit + ' - Deuda: ' + formatMoney(c.balance) + ')'"></option>
+            <option :value="c.id" x-text="(c.code ? '[' + c.code + '] ' : '') + c.name + ' (NIT: ' + c.nit + ' - Saldo: ' + formatMoney(c.balance) + ')'"></option>
           </template>
         </select>
       </div>
 
       <template x-if="statementData.customer">
-        <div style="display:flex; align-items:center; gap:8px;">
-          <button type="button" @click="printStatement()" style="background:#ffffff; border:1px solid #cbd5e1; padding:8px 14px; border-radius:8px; font-size:12.5px; font-weight:700; color:#334155; cursor:pointer;">
-            <i class="ph ph-printer"></i> Imprimir
+        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+          <a 
+            :href="'/api/v1/ar/customers/' + statementData.customer.id + '/export-excel'" 
+            target="_blank" 
+            style="background:#16a34a; color:#ffffff; padding:9px 16px; border-radius:8px; font-size:13px; font-weight:800; text-decoration:none; display:inline-flex; align-items:center; gap:8px; box-shadow:0 2px 6px rgba(22,163,74,0.3); transition:background 0.2s;"
+            onmouseover="this.style.background='#15803d'"
+            onmouseout="this.style.background='#16a34a'"
+          >
+            <i class="ph ph-file-xls" style="font-size:18px;"></i> Exportar a Excel (.xlsx)
+          </a>
+          <a 
+            :href="'/api/v1/ar/customers/' + statementData.customer.id + '/export-pdf'" 
+            target="_blank" 
+            style="background:#dc2626; color:#ffffff; padding:9px 16px; border-radius:8px; font-size:13px; font-weight:800; text-decoration:none; display:inline-flex; align-items:center; gap:8px; box-shadow:0 2px 6px rgba(220,38,38,0.3); transition:background 0.2s;"
+            onmouseover="this.style.background='#b91c1c'"
+            onmouseout="this.style.background='#dc2626'"
+          >
+            <i class="ph ph-file-pdf" style="font-size:18px;"></i> Descargar PDF
+          </a>
+          <button 
+            type="button" 
+            @click="printStatement()" 
+            style="background:#ffffff; border:1.5px solid #cbd5e1; padding:9px 16px; border-radius:8px; font-size:13px; font-weight:700; color:#334155; cursor:pointer; display:inline-flex; align-items:center; gap:8px;"
+          >
+            <i class="ph ph-printer" style="font-size:17px;"></i> Imprimir
           </button>
-          <a :href="'/api/v1/ar/customers/' + statementData.customer.id + '/export'" style="background:#059669; color:#ffffff; padding:8px 14px; border-radius:8px; font-size:12.5px; font-weight:800; text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
-            <i class="ph ph-file-csv"></i> Exportar CSV
+          <a 
+            :href="'/api/v1/ar/customers/' + statementData.customer.id + '/export'" 
+            style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; padding:9px 14px; border-radius:8px; font-size:13px; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:6px;"
+          >
+            <i class="ph ph-file-csv"></i> CSV
           </a>
         </div>
       </template>
     </div>
 
-    <!-- Statement View Area -->
+    <!-- Official Statement Voucher View -->
     <template x-if="statementData.customer">
-      <div id="printableStatement" style="display:flex; flex-direction:column; gap:16px;">
-        <!-- Header Info -->
-        <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; padding:18px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px;">
-          <div>
-            <div style="font-size:18px; font-weight:900; color:#1e293b;" x-text="statementData.customer.name"></div>
-            <div style="font-size:12.5px; color:#64748b; margin-top:3px; display:flex; gap:12px;">
-              <span x-text="'NIT: ' + statementData.customer.nit"></span>
-              <span x-show="statementData.customer.phone" x-text="'Tel: ' + statementData.customer.phone"></span>
-              <span x-text="'Plazo: ' + statementData.customer.payment_days + ' días'"></span>
+      <div>
+        <div id="printableStatement" style="background:#ffffff; border:1.5px solid #cbd5e1; border-radius:16px; padding:24px 28px; max-width:980px; margin:0 auto; box-shadow:0 4px 20px rgba(0,0,0,0.06); font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+          
+          <!-- Top Row: Left Company Card & Right Estado de Cuenta Card -->
+          <div style="display:flex; gap:16px; justify-content:space-between; flex-wrap:wrap; align-items:stretch;">
+            
+            <!-- Left Card: Logos & Company Info -->
+            <div style="flex:1 1 54%; min-width:320px; border:1.5px solid #94a3b8; border-radius:16px; padding:12px 18px; display:flex; flex-direction:column; justify-content:space-between;">
+              <div style="display:flex; align-items:center; justify-content:flex-start; gap:18px; flex-wrap:wrap;">
+                <img src="/static/img/receipt_r78_logo.png" alt="R78" style="height:44px; width:auto; object-fit:contain;">
+                <img src="/static/img/receipt_goodsif_logo.png" alt="GOODSIF" style="height:44px; width:auto; object-fit:contain;">
+                <img src="/static/img/quotes/logo_r78_stamp.png" alt="Productos Automotrices del Sur" style="height:50px; width:auto; object-fit:contain;">
+              </div>
+              <div style="margin-top:10px;">
+                <div style="font-size:14.5px; font-weight:900; color:#0f172a;" x-text="statementData.company?.name || 'Productos Automotrices del Sur, S.A.'"></div>
+                <div style="font-size:12px; color:#1e293b; margin-top:3px;">
+                  <strong style="color:#0f172a;">NIT:</strong> <span x-text="statementData.company?.nit || '11563009-0'"></span>
+                </div>
+                <div style="font-size:12px; color:#1e293b; margin-top:2px;">
+                  <strong style="color:#0f172a;">Dirección:</strong> <span x-text="statementData.company?.address || 'Lote 67, Calle Central, Nueva Concepción, Esc.'"></span>
+                </div>
+                <div style="font-size:12px; color:#1e293b; margin-top:2px;">
+                  <strong style="color:#0f172a;">Teléfono:</strong> <span x-text="statementData.company?.phone || '3454-3857'"></span>
+                </div>
+                <div style="font-size:12px; color:#1e293b; margin-top:2px;">
+                  <strong style="color:#0f172a;">Gmail:</strong> <span x-text="statementData.company?.email || 'proausu.sa@gmail.com'"></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right Card: Estado de Cuenta Totals -->
+            <div style="flex:1 1 38%; min-width:280px; border:1.5px solid #94a3b8; border-radius:16px; overflow:hidden; display:flex; flex-direction:column; background:#ffffff;">
+              <div style="background:#eef2f6; padding:8px 12px; font-size:17px; font-weight:900; text-align:center; color:#0f172a; border-bottom:1.5px solid #cbd5e1; letter-spacing:0.3px;">
+                Estado de Cuenta
+              </div>
+              <div style="padding:14px 18px; display:flex; flex-direction:column; justify-content:space-around; flex:1; gap:7px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px; font-weight:800; color:#0f172a;">
+                  <span>Total Envío:</span>
+                  <span style="font-family:monospace; font-size:13.5px; display:inline-flex; width:120px; justify-content:space-between;">
+                    <span>Q</span>
+                    <span x-text="formatNumber(statementData.summary?.total_envio)"></span>
+                  </span>
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px; font-weight:800; color:#0f172a;">
+                  <span>Total Deuda:</span>
+                  <span style="font-family:monospace; font-size:13.5px; display:inline-flex; width:120px; justify-content:space-between;">
+                    <span>Q</span>
+                    <span x-text="formatNumber(statementData.summary?.total_deuda)"></span>
+                  </span>
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px; font-weight:800; color:#0f172a;">
+                  <span>Total Vencido:</span>
+                  <span style="font-family:monospace; font-size:13.5px; display:inline-flex; width:120px; justify-content:space-between;">
+                    <span>Q</span>
+                    <span x-text="formatNumber(statementData.summary?.total_vencido)"></span>
+                  </span>
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px; font-weight:800; color:#0f172a;">
+                  <span>Total de Abono:</span>
+                  <span style="font-family:monospace; font-size:13.5px; display:inline-flex; width:120px; justify-content:space-between;">
+                    <span>Q</span>
+                    <span x-text="(statementData.summary?.total_abono > 0) ? formatNumber(statementData.summary?.total_abono) : '-'"></span>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Client Info Card -->
+          <div style="border:1.5px solid #94a3b8; border-radius:14px; padding:10px 18px; margin-top:14px; background:#ffffff;">
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:4px 0; flex-wrap:wrap; gap:8px;">
+              <div>
+                <span style="font-size:12.5px; font-weight:800; color:#0f172a;">ID Cliente:</span>
+                <span style="font-size:12.5px; font-weight:700; color:#1e293b; margin-left:8px;" x-text="statementData.customer.code || statementData.customer.id.substring(0,8)"></span>
+              </div>
+              <div>
+                <span style="font-size:12.5px; font-weight:800; color:#0f172a;">Fecha:</span>
+                <span style="font-size:12px; font-weight:600; color:#334155; margin-left:8px;" x-text="statementData.date_long || ''"></span>
+              </div>
+            </div>
+            <div style="border-bottom:1px dotted #94a3b8; padding:5px 0; font-size:12.5px; display:flex;">
+              <span style="font-weight:800; color:#0f172a; width:90px; flex-shrink:0;">Nombre:</span>
+              <span style="color:#1e293b; font-weight:600;" x-text="statementData.customer.name"></span>
+            </div>
+            <div style="border-bottom:1px dotted #94a3b8; padding:5px 0; font-size:12.5px; display:flex;">
+              <span style="font-weight:800; color:#0f172a; width:90px; flex-shrink:0;">Dirección:</span>
+              <span style="color:#1e293b; font-weight:600;" x-text="statementData.customer.address || '-'"></span>
+            </div>
+            <div style="border-bottom:1px dotted #94a3b8; padding:5px 0; font-size:12.5px; display:flex;">
+              <span style="font-weight:800; color:#0f172a; width:90px; flex-shrink:0;">Teléfono:</span>
+              <span style="color:#1e293b; font-weight:600;" x-text="statementData.customer.phone || '-'"></span>
             </div>
           </div>
 
-          <div style="display:flex; gap:12px;">
-            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:10px 14px; text-align:right;">
-              <div style="font-size:10.5px; font-weight:800; color:#64748b; text-transform:uppercase;">Límite Crédito</div>
-              <div style="font-size:14px; font-weight:900; color:#1e293b;" x-text="formatMoney(statementData.customer.credit_limit)"></div>
-            </div>
-            <div style="background:#fee2e2; border:1px solid #fca5a5; border-radius:8px; padding:10px 14px; text-align:right;">
-              <div style="font-size:10.5px; font-weight:800; color:#991b1b; text-transform:uppercase;">Deuda Actual</div>
-              <div style="font-size:14px; font-weight:900; color:#dc2626;" x-text="formatMoney(statementData.customer.total_debt)"></div>
-            </div>
-            <div style="background:#dcfce7; border:1px solid #86efac; border-radius:8px; padding:10px 14px; text-align:right;">
-              <div style="font-size:10.5px; font-weight:800; color:#166534; text-transform:uppercase;">Disponible</div>
-              <div style="font-size:14px; font-weight:900; color:#16a34a;" x-text="formatMoney(statementData.customer.available_credit)"></div>
-            </div>
+          <!-- Invoices Table -->
+          <div style="border:1.5px solid #94a3b8; border-radius:12px; overflow:hidden; margin-top:14px;">
+            <table style="width:100%; border-collapse:collapse; font-size:12px;">
+              <thead>
+                <tr style="background:#cbd5e1; height:38px; color:#0f172a; font-weight:800;">
+                  <th style="padding:6px 8px; text-align:center; border-right:1px solid #94a3b8; width:45px;">No.</th>
+                  <th style="padding:6px 8px; text-align:center; border-right:1px solid #94a3b8; width:80px;">ID Cliente</th>
+                  <th style="padding:6px 8px; text-align:center; border-right:1px solid #94a3b8; width:110px;">Factura No.</th>
+                  <th style="padding:6px 8px; text-align:center; border-right:1px solid #94a3b8; width:95px;">Fecha Factura</th>
+                  <th style="padding:6px 8px; text-align:center; border-right:1px solid #94a3b8; width:95px;">Fecha Vencim.</th>
+                  <th style="padding:6px 10px; text-align:right; border-right:1px solid #94a3b8; width:110px;">Total de Factura</th>
+                  <th style="padding:6px 8px; text-align:center; border-right:1px solid #94a3b8; width:95px;">Status Deuda</th>
+                  <th style="padding:6px 8px; text-align:center; border-right:1px solid #94a3b8; width:75px;"># de Días</th>
+                  <th style="padding:6px 10px; text-align:right; border-right:1px solid #94a3b8; width:95px;">Abono</th>
+                  <th style="padding:6px 10px; text-align:right; width:110px;">Saldo Actual</th>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-if="!statementData.invoices || statementData.invoices.length === 0">
+                  <tr>
+                    <td colspan="10" style="text-align:center; padding:24px; color:#64748b; font-weight:600;">
+                      No hay facturas a crédito registradas para este cliente.
+                    </td>
+                  </tr>
+                </template>
+                <template x-for="(inv, idx) in statementData.invoices" :key="inv.id">
+                  <tr style="border-top:1px solid #e2e8f0; height:32px;">
+                    <td style="padding:6px 8px; text-align:center; border-right:1px solid #e2e8f0; color:#334155; font-weight:600;" x-text="inv.no || (idx + 1)"></td>
+                    <td style="padding:6px 8px; text-align:center; border-right:1px solid #e2e8f0; color:#334155;" x-text="inv.customer_code"></td>
+                    <td style="padding:6px 8px; text-align:center; border-right:1px solid #e2e8f0; font-weight:800; color:#0f172a;" x-text="inv.number"></td>
+                    <td style="padding:6px 8px; text-align:center; border-right:1px solid #e2e8f0; color:#334155;" x-text="inv.issue_date_short"></td>
+                    <td style="padding:6px 8px; text-align:center; border-right:1px solid #e2e8f0; color:#334155;" x-text="inv.due_date_short"></td>
+                    <td style="padding:6px 10px; text-align:right; border-right:1px solid #e2e8f0; font-family:monospace; font-weight:600; color:#0f172a;">
+                      <span style="float:left;">Q</span>
+                      <span x-text="formatNumber(inv.total)"></span>
+                    </td>
+                    <td style="padding:6px 8px; text-align:center; border-right:1px solid #e2e8f0; font-weight:600;" :style="inv.status_deuda === 'Vencido' ? 'color:#dc2626;' : 'color:#16a34a;'" x-text="inv.status_deuda"></td>
+                    <td style="padding:6px 8px; text-align:center; border-right:1px solid #e2e8f0; font-weight:700;" :style="inv.days < 0 ? 'color:#dc2626;' : 'color:#1e293b;'" x-text="inv.days"></td>
+                    <td style="padding:6px 10px; text-align:right; border-right:1px solid #e2e8f0; font-family:monospace; color:#0f172a;">
+                      <span style="float:left;">Q</span>
+                      <span x-text="inv.abono > 0 ? formatNumber(inv.abono) : '-'"></span>
+                    </td>
+                    <td style="padding:6px 10px; text-align:right; font-family:monospace; font-weight:800; color:#0f172a;">
+                      <span style="float:left;">Q</span>
+                      <span x-text="formatNumber(inv.balance)"></span>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
           </div>
+
+          <!-- Cyan Footer Strip -->
+          <div style="background:#00e5ff; height:15px; border-radius:2px; margin-top:28px; width:100%;"></div>
+
+          <!-- Bottom Footer Details -->
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px; font-size:11.5px; font-weight:700; color:#475569;">
+            <div x-text="'Hora: ' + (statementData.time_str || '')"></div>
+            <div>Página 1 de 1</div>
+            <div x-text="'Fecha: ' + (statementData.date_footer || '')"></div>
+          </div>
+
         </div>
 
-        <!-- 2 Columns: Invoices & Payments -->
-        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:16px;">
-          <!-- Invoices -->
-          <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; padding:16px;">
-            <div style="font-size:13px; font-weight:800; color:#1e293b; margin-bottom:12px;">Facturas a Crédito</div>
-            <table class="crm-table">
-              <thead>
-                <tr>
-                  <th>No. Factura</th>
-                  <th>Vencimiento</th>
-                  <th style="text-align:right;">Total</th>
-                  <th style="text-align:right;">Saldo</th>
-                  <th style="text-align:center;">Acción</th>
-                </tr>
-              </thead>
-              <tbody>
-                <template x-for="inv in statementData.invoices" :key="inv.id">
-                  <tr>
-                    <td style="font-weight:800; font-family:monospace; color:#714B67;" x-text="inv.number"></td>
-                    <td style="color:#64748b;" x-text="inv.due_date"></td>
-                    <td style="text-align:right;" x-text="formatMoney(inv.total)"></td>
-                    <td style="text-align:right; font-weight:800; color:#dc2626;" x-text="formatMoney(inv.balance)"></td>
-                    <td style="text-align:center;">
-                      <button 
-                        type="button" 
-                        x-show="canRegisterPayment && inv.balance > 0"
-                        @click="openPaymentModal(inv)" 
-                        style="background:#059669; color:#ffffff; font-size:11px; font-weight:800; padding:3px 8px; border-radius:6px; border:none; cursor:pointer;"
-                      >
-                        Abonar
-                      </button>
-                    </td>
-                  </tr>
-                </template>
-              </tbody>
-            </table>
+        <!-- Quick actions: Payments and Receipt viewing (Collapsible) -->
+        <div style="max-width:980px; margin:20px auto 0 auto; background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; padding:16px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <div style="font-size:13.5px; font-weight:800; color:#1e293b; display:flex; align-items:center; gap:8px;">
+              <i class="ph ph-receipt" style="color:#059669; font-size:18px;"></i>
+              Historial de Abonos / Pagos del Cliente & Acciones
+            </div>
+            <div style="font-size:12px; color:#64748b;" x-text="(statementData.payments?.length || 0) + ' recibo(s) registrado(s)'"></div>
           </div>
 
-          <!-- Payments -->
-          <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; padding:16px;">
-            <div style="font-size:13px; font-weight:800; color:#1e293b; margin-bottom:12px;">Historial de Abonos / Pagos</div>
-            <table class="crm-table">
-              <thead>
+          <table class="crm-table">
+            <thead>
+              <tr>
+                <th>No. Recibo</th>
+                <th>Fecha Abono</th>
+                <th>Método</th>
+                <th>Referencia</th>
+                <th style="text-align:right;">Monto Abonado</th>
+                <th style="text-align:center;">Comprobante</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-if="!statementData.payments || statementData.payments.length === 0">
+                <tr><td colspan="6" style="text-align:center; padding:16px; color:#94a3b8;">Sin abonos registrados en el historial de este cliente.</td></tr>
+              </template>
+              <template x-for="p in statementData.payments" :key="p.id">
                 <tr>
-                  <th>Recibo</th>
-                  <th>Fecha</th>
-                  <th>Método</th>
-                  <th style="text-align:right;">Monto</th>
-                  <th style="text-align:center;">Ticket</th>
+                  <td style="font-weight:800; font-family:monospace; color:#714B67;" x-text="p.receipt_number"></td>
+                  <td style="color:#64748b;" x-text="p.payment_date"></td>
+                  <td style="text-transform:uppercase; font-size:11px; font-weight:700;" x-text="p.method"></td>
+                  <td style="color:#64748b;" x-text="p.reference || '-'"></td>
+                  <td style="text-align:right; font-weight:800; color:#059669;" x-text="formatMoney(p.amount)"></td>
+                  <td style="text-align:center;">
+                    <button 
+                      type="button" 
+                      @click="openReceiptModal(p.id)" 
+                      style="background:#f1f5f9; color:#475569; font-size:11px; font-weight:700; padding:4px 8px; border-radius:6px; border:1px solid #cbd5e1; cursor:pointer;"
+                    >
+                      <i class="ph ph-printer"></i> Ver Recibo
+                    </button>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                <template x-if="!statementData.payments || statementData.payments.length === 0">
-                  <tr><td colspan="5" style="text-align:center; padding:16px; color:#94a3b8;">Sin abonos registrados.</td></tr>
-                </template>
-                <template x-for="p in statementData.payments" :key="p.id">
-                  <tr>
-                    <td style="font-weight:800; font-family:monospace;" x-text="p.receipt_number"></td>
-                    <td style="color:#64748b;" x-text="p.payment_date"></td>
-                    <td style="text-transform:uppercase; font-size:11px;" x-text="p.method"></td>
-                    <td style="text-align:right; font-weight:800; color:#059669;" x-text="formatMoney(p.amount)"></td>
-                    <td style="text-align:center;">
-                      <button 
-                        type="button" 
-                        @click="openReceiptModal(p.id)" 
-                        style="background:#f1f5f9; color:#475569; font-size:11px; font-weight:700; padding:3px 6px; border-radius:4px; border:1px solid #cbd5e1; cursor:pointer;"
-                      >
-                        <i class="ph ph-receipt"></i>
-                      </button>
-                    </td>
-                  </tr>
-                </template>
-              </tbody>
-            </table>
-          </div>
+              </template>
+            </tbody>
+          </table>
         </div>
       </div>
     </template>
@@ -1057,78 +1499,150 @@
   </div>
 
 
-  <!-- ===== MODAL: RECIBO DE PAGO TÉRMICO ===== -->
-  <div x-show="showReceiptModal" class="ar-modal-backdrop" x-cloak>
-    <div class="ar-modal-dialog" style="max-width:440px;" @click.outside="showReceiptModal = false">
-      <div class="ar-modal-header">
-        <div style="font-weight:900; font-size:14px; color:#1e293b; display:flex; align-items:center; gap:8px;">
-          <i class="ph ph-printer" style="color:#714B67; font-size:20px;"></i>
-          Comprobante de Abono
+  <!-- ===== MODAL: RECIBO ELECTRÓNICO DE PAGO (MEDIA CARTA) ===== -->
+  <div x-show="showReceiptModal" class="ar-modal-backdrop" style="z-index:1200;" x-cloak>
+    <div class="ar-modal-dialog" style="max-width:840px; width:95%; max-height:92vh; display:flex; flex-direction:column;" @click.outside="showReceiptModal = false">
+      <div class="ar-modal-header" style="border-bottom:1px solid #e2e8f0; padding:12px 20px;">
+        <div style="font-weight:900; font-size:15px; color:#1e293b; display:flex; align-items:center; gap:8px;">
+          <i class="ph ph-receipt" style="color:#2563eb; font-size:22px;"></i>
+          Comprobante de Abono Oficial — Media Carta
         </div>
-        <button type="button" @click="showReceiptModal = false" style="background:#f1f5f9; border:none; width:30px; height:30px; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:18px; color:#64748b; cursor:pointer;">
+        <button type="button" @click="showReceiptModal = false" style="background:#f1f5f9; border:none; width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:18px; color:#64748b; cursor:pointer;" title="Cerrar">
           <i class="ph ph-x"></i>
         </button>
       </div>
 
-      <div class="ar-modal-body">
-        <div id="printableReceipt" class="receipt-thermal-paper">
-          <div style="text-align:center; border-bottom:1px dashed #cbd5e1; padding-bottom:8px; margin-bottom:8px;">
-            <div style="font-weight:bold; font-size:13px;" x-text="receiptData.company?.name || 'POS EMPRESARIAL'"></div>
-            <div style="font-size:11px;" x-text="'NIT: ' + (receiptData.company?.nit || 'CF')"></div>
-            <div style="font-size:11px;" x-text="receiptData.company?.address || 'Guatemala'"></div>
-            <div style="font-size:12px; font-weight:bold; margin-top:5px;">*** RECIBO DE ABONO ***</div>
-            <div style="font-size:11px;" x-text="'No. ' + receiptData.receipt_number"></div>
-            <div style="font-size:11px;" x-text="'Fecha: ' + receiptData.payment_date"></div>
+      <div class="ar-modal-body" style="padding:22px; overflow-y:auto; background:#f8fafc; display:flex; justify-content:center;">
+        
+        <!-- Recibo Media Carta Imprimible (Fiel al formato oficial) -->
+        <div id="printableReceiptMediaCarta" class="half-letter-voucher">
+          
+          <!-- Franja de Encabezado Superior -->
+          <div class="voucher-top-bar">
+            <span>Recibo electrónico de pago</span>
           </div>
 
-          <div style="border-bottom:1px dashed #cbd5e1; padding-bottom:6px; margin-bottom:6px; font-size:11px;">
-            <div><strong>Cliente:</strong> <span x-text="receiptData.customer?.name"></span></div>
-            <div><strong>NIT:</strong> <span x-text="receiptData.customer?.nit"></span></div>
-            <div><strong>Documento:</strong> <span x-text="receiptData.invoice?.number"></span></div>
+          <!-- Cabecera: Empresa (izq) y Cuadros Recibo/Por (der) -->
+          <div class="voucher-header">
+            <!-- Empresa -->
+            <div class="voucher-company-info">
+              <div class="company-title">Productos Automotrices del Sur S.A.</div>
+              <div class="company-sub" x-text="receiptData.company?.address || 'Lote 67, Calle Central, Nueva Concepción, Escuintla.'"></div>
+              <div class="company-sub">Gmail: proausur78@gmail.com | proausu.sa@gmail.com</div>
+              <div class="company-sub">Teléfono: +(502) 3454-3857</div>
+            </div>
+
+            <!-- Cuadros Recibo No y Por -->
+            <div class="voucher-boxes">
+              <div class="voucher-box-row">
+                <span class="box-label">RECIBO Nº</span>
+                <div class="box-value box-mono" x-text="receiptData.receipt_number || 'REC-0001'"></div>
+              </div>
+              <div class="voucher-box-row">
+                <span class="box-label">POR:</span>
+                <div class="box-value box-bold" x-text="'Q ' + Number(receiptData.amount_paid || 0).toFixed(2)"></div>
+              </div>
+            </div>
           </div>
 
-          <div style="border-bottom:1px dashed #cbd5e1; padding-bottom:6px; margin-bottom:6px; font-size:11px;">
-            <div style="display:flex; justify-content:space-between;">
-              <span>Total Factura:</span>
-              <span x-text="formatMoney(receiptData.invoice?.total)"></span>
+          <!-- Caja Central Principal -->
+          <div class="voucher-main-box">
+            <!-- Fila 1: Recibo del Sr(a) y La Cantidad de -->
+            <div class="voucher-main-row">
+              <div class="field-group flex-1">
+                <span class="field-label">RECIBO DEL SR.(A):</span>
+                <span class="field-line field-bold uppercase" x-text="receiptData.customer?.name || 'CONSUMIDOR FINAL'"></span>
+              </div>
+              <div class="field-group" style="margin-left: 20px;">
+                <span class="field-label">LA CANTIDAD DE:</span>
+                <span class="field-currency">Q</span>
+                <span class="field-amount" x-text="Number(receiptData.amount_paid || 0).toFixed(2)"></span>
+              </div>
             </div>
-            <div style="display:flex; justify-content:space-between; font-weight:bold; margin-top:2px;">
-              <span>ABONO:</span>
-              <span x-text="formatMoney(receiptData.amount_paid)"></span>
+
+            <!-- Fila 2: Cantidad en Letras -->
+            <div class="voucher-main-row">
+              <div class="field-group flex-1">
+                <span class="field-label">CANTIDAD EN LETRAS:</span>
+                <span class="field-line field-italic uppercase" x-text="receiptData.amount_letters || numberToLetters(receiptData.amount_paid)"></span>
+              </div>
             </div>
-            <div style="display:flex; justify-content:space-between; margin-top:2px;">
-              <span>Saldo Restante:</span>
-              <span x-text="formatMoney(receiptData.invoice?.current_balance)"></span>
+
+            <!-- Fila 3: Por Concepto de -->
+            <div class="voucher-main-row">
+              <div class="field-group flex-1">
+                <span class="field-label">POR CONCEPTO DE:</span>
+                <span class="field-line" x-text="receiptData.concept || ('Abono a cuenta por cobrar Factura / Venta #' + (receiptData.invoice?.number || ''))"></span>
+              </div>
             </div>
           </div>
 
-          <div style="font-size:11px;">
-            <div><strong>Pago:</strong> <span x-text="receiptData.payment_method?.toUpperCase()"></span></div>
-            <div x-show="receiptData.reference"><strong>Ref:</strong> <span x-text="receiptData.reference"></span></div>
+          <!-- Fila de Fechas -->
+          <div class="voucher-date-row">
+            <div class="date-short">
+              <span class="date-label">FECHA:</span>
+              <span class="date-val" x-text="receiptData.date_short || receiptData.payment_date?.split(' ')[0] || ''"></span>
+            </div>
+            <div class="date-long uppercase" x-text="receiptData.date_long || ''"></div>
           </div>
+
+          <!-- Pie de Página: Logos y Firmas -->
+          <div class="voucher-footer">
+            <!-- Logo Goodsif -->
+            <div class="voucher-logo-left">
+              <img src="/static/img/receipt_goodsif_logo.png" alt="GOODSIF AUTO PAINT GUATEMALA">
+            </div>
+
+            <!-- Firmas Operador y Cliente -->
+            <div class="voucher-signatures">
+              <div class="sig-box">
+                <div class="sig-line"></div>
+                <span class="sig-title">OPERADOR</span>
+                <div class="sig-sub" x-text="receiptData.user_name || 'Ventas'"></div>
+              </div>
+              <div class="sig-box">
+                <div class="sig-line"></div>
+                <span class="sig-title">CLIENTE</span>
+                <div class="sig-sub" x-text="receiptData.customer?.name ? (receiptData.customer.name.length > 22 ? receiptData.customer.name.substring(0,22)+'...' : receiptData.customer.name) : ''"></div>
+              </div>
+            </div>
+
+            <!-- Logo R78 -->
+            <div class="voucher-logo-right">
+              <img src="/static/img/receipt_r78_logo.png" alt="SUMINISTROS R78">
+            </div>
+          </div>
+
         </div>
+
       </div>
 
-      <div class="ar-modal-footer">
-        <button 
-          type="button" 
-          @click="shareReceiptWhatsApp()" 
-          style="background:#22c55e; color:#ffffff; font-size:12px; font-weight:800; padding:8px 14px; border-radius:8px; border:none; cursor:pointer; display:inline-flex; align-items:center; gap:6px;"
-        >
-          <i class="ph ph-whatsapp-logo text-base"></i> WhatsApp
-        </button>
-        <div style="display:flex; gap:8px;">
+      <div class="ar-modal-footer" style="border-top:1px solid #e2e8f0; padding:12px 20px; display:flex; justify-content:space-between; align-items:center;">
+        <div style="display:flex; gap:8px; align-items:center;">
+          <button 
+            type="button" 
+            @click="shareReceiptWhatsApp()" 
+            style="background:#16a34a; color:#ffffff; font-size:12.5px; font-weight:800; padding:8px 14px; border-radius:8px; border:none; cursor:pointer; display:inline-flex; align-items:center; gap:6px; box-shadow:0 2px 6px rgba(22,163,74,0.25);"
+          >
+            <i class="ph ph-whatsapp-logo text-base"></i> WhatsApp
+          </button>
+        </div>
+
+        <div style="display:flex; gap:8px; align-items:center;">
+          <!-- Botón de Impresión / Guardar PDF desde Navegador -->
           <button 
             type="button" 
             @click="printReceipt()" 
-            style="background:#714B67; color:#ffffff; font-size:12px; font-weight:800; padding:8px 16px; border-radius:8px; border:none; cursor:pointer; display:inline-flex; align-items:center; gap:6px;"
+            style="background:#1e3a8a; color:#ffffff; font-size:12.5px; font-weight:800; padding:8px 18px; border-radius:8px; border:none; cursor:pointer; display:inline-flex; align-items:center; gap:6px; box-shadow:0 2px 8px rgba(30,58,138,0.25);"
+            title="Imprimir o Guardar como PDF en formato Media Carta"
           >
-            <i class="ph ph-printer"></i> Imprimir
+            <i class="ph ph-printer" style="font-size:16px;"></i> Imprimir Media Carta
           </button>
+
           <button 
             type="button" 
             @click="showReceiptModal = false" 
-            style="background:#f1f5f9; color:#475569; font-size:12px; font-weight:700; padding:8px 14px; border-radius:8px; border:none; cursor:pointer;"
+            style="background:#f1f5f9; color:#475569; font-size:12.5px; font-weight:700; padding:8px 14px; border-radius:8px; border:1px solid #cbd5e1; cursor:pointer;"
           >
             Cerrar
           </button>
@@ -1389,6 +1903,9 @@ function arApp() {
     },
 
     async init() {
+      window.addEventListener('afterprint', () => {
+        document.body.classList.remove('print-media-carta', 'print-statement');
+      });
       await this.loadAllData();
     },
 
@@ -1570,50 +2087,321 @@ function arApp() {
     },
 
     async openReceiptModal(paymentId) {
+      if (!paymentId) {
+        alert("ID de abono no disponible para generar recibo.");
+        return;
+      }
       try {
         const res = await this.authFetch(`/api/v1/ar/payments/${paymentId}/receipt`);
         if (res.ok) {
           this.receiptData = await res.json();
           this.showReceiptModal = true;
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          alert(errData.detail || "No se pudo cargar el comprobante de este abono.");
         }
       } catch (e) {
         console.error("Error cargando comprobante:", e);
+        alert("Error de conexión al cargar el comprobante.");
       }
     },
 
     printReceipt() {
-      window.print();
+      const receiptEl = document.getElementById('printableReceiptMediaCarta');
+      if (!receiptEl) return;
+
+      // Crear un iframe aislado para garantizar formato Media Carta sin interferencia del DOM padre
+      let printFrame = document.getElementById('receiptPrintFrame');
+      if (printFrame) printFrame.remove();
+
+      printFrame = document.createElement('iframe');
+      printFrame.id = 'receiptPrintFrame';
+      printFrame.style.position = 'fixed';
+      printFrame.style.right = '0';
+      printFrame.style.bottom = '0';
+      printFrame.style.width = '0';
+      printFrame.style.height = '0';
+      printFrame.style.border = '0';
+      document.body.appendChild(printFrame);
+
+      const doc = printFrame.contentWindow.document;
+      doc.open();
+      doc.write(`
+        <!DOCTYPE html>
+        <html lang="es">
+        <head>
+          <meta charset="utf-8">
+          <title>Comprobante_${this.receiptData?.receipt_number || 'Abono'}</title>
+          <style>
+            @page {
+              size: 8.5in 5.5in landscape;
+              margin: 2mm 4mm 0 4mm;
+            }
+            * {
+              box-sizing: border-box;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+            html, body {
+              margin: 0 !important;
+              padding: 0 !important;
+              width: 100% !important;
+              background: #ffffff !important;
+              font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            }
+            .half-letter-voucher {
+              width: 8.0in !important;
+              max-width: 8.0in !important;
+              background: #ffffff !important;
+              border: 2px solid #1e3a8a !important;
+              border-radius: 14px !important;
+              box-sizing: border-box !important;
+              overflow: hidden !important;
+              page-break-inside: avoid !important;
+              break-inside: avoid !important;
+              margin: 0 auto !important;
+            }
+            .voucher-top-bar {
+              background: #f1f5f9 !important;
+              padding: 7px 12px;
+              text-align: center;
+              border-bottom: 1px solid #e2e8f0;
+              font-weight: 900;
+              font-style: italic;
+              font-size: 17px;
+              color: #0f172a;
+              letter-spacing: 0.3px;
+            }
+            .voucher-header {
+              display: flex;
+              justify-content: space-between;
+              align-items: flex-start;
+              padding: 10px 20px 4px 20px;
+              gap: 12px;
+            }
+            .voucher-company-info .company-title {
+              color: #2563eb;
+              font-weight: 900;
+              font-style: italic;
+              font-size: 14px;
+              margin-bottom: 2px;
+            }
+            .voucher-company-info .company-sub {
+              font-size: 11px;
+              color: #1e293b;
+              line-height: 1.3;
+              font-weight: 500;
+            }
+            .voucher-boxes {
+              display: flex;
+              flex-direction: column;
+              gap: 5px;
+              align-items: flex-end;
+            }
+            .voucher-box-row {
+              display: flex;
+              align-items: center;
+              gap: 8px;
+            }
+            .voucher-box-row .box-label {
+              font-weight: 900;
+              font-style: italic;
+              font-size: 11.5px;
+              color: #0f172a;
+            }
+            .voucher-box-row .box-value {
+              border: 1.5px solid #0f172a;
+              border-radius: 2px;
+              width: 145px;
+              height: 25px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              background: #ffffff;
+              font-size: 13px;
+              color: #0f172a;
+            }
+            .box-mono { font-family: monospace; font-weight: 800; }
+            .box-bold { font-weight: 900; }
+            .voucher-main-box {
+              border: 1.5px solid #1e3a8a;
+              border-radius: 10px;
+              margin: 6px 18px 4px 18px;
+              padding: 10px 16px;
+              background: #ffffff;
+            }
+            .voucher-main-row {
+              display: flex;
+              align-items: baseline;
+              margin-bottom: 7px;
+            }
+            .voucher-main-row:last-child { margin-bottom: 0; }
+            .field-group { display: flex; align-items: baseline; gap: 6px; }
+            .field-group.flex-1 { flex: 1; min-width: 0; }
+            .field-label {
+              font-weight: 900;
+              font-style: italic;
+              font-size: 12px;
+              color: #0f172a;
+              white-space: nowrap;
+            }
+            .field-line {
+              border-bottom: 1px dotted #475569;
+              flex: 1;
+              padding-bottom: 1px;
+              color: #1e293b;
+              font-size: 12px;
+              min-height: 16px;
+              line-height: 1.25;
+            }
+            .field-bold { font-weight: 800; }
+            .field-italic { font-style: italic; font-weight: 700; color: #334155; }
+            .field-currency { font-weight: 800; font-size: 12.5px; color: #0f172a; margin-left: 4px; }
+            .field-amount { font-weight: 900; font-size: 13px; color: #0f172a; min-width: 55px; text-align: right; }
+            .voucher-date-row {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              padding: 4px 20px 2px 20px;
+              font-size: 11px;
+            }
+            .date-short { display: flex; align-items: center; gap: 6px; }
+            .date-label { font-weight: 900; color: #0f172a; }
+            .date-val { font-weight: 700; color: #334155; }
+            .date-long { font-weight: 900; color: #0f172a; letter-spacing: 0.2px; }
+            .voucher-footer {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              padding: 8px 20px 10px 20px;
+            }
+            .voucher-logo-left img {
+              height: 42px;
+              width: auto;
+              object-fit: contain;
+              filter: drop-shadow(0 2px 4px rgba(0,0,0,0.12));
+            }
+            .voucher-logo-right img {
+              height: 38px;
+              width: auto;
+              object-fit: contain;
+            }
+            .voucher-signatures {
+              display: flex;
+              gap: 32px;
+              align-items: flex-end;
+            }
+            .sig-box { text-align: center; width: 135px; }
+            .sig-line { border-top: 1.5px solid #0f172a; margin-bottom: 2px; width: 100%; }
+            .sig-title { font-size: 10.5px; font-weight: 900; letter-spacing: 0.5px; color: #0f172a; }
+            .sig-sub { font-size: 9px; color: #64748b; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .uppercase { text-transform: uppercase; }
+          </style>
+        </head>
+        <body>
+          ${receiptEl.outerHTML}
+        </body>
+        </html>
+      `);
+      doc.close();
+
+      setTimeout(() => {
+        printFrame.contentWindow.focus();
+        printFrame.contentWindow.print();
+      }, 350);
     },
 
     printStatement() {
+      document.body.classList.add('print-statement');
       window.print();
+      setTimeout(() => {
+        document.body.classList.remove('print-statement');
+      }, 1500);
     },
 
     shareReceiptWhatsApp() {
       if (!this.receiptData || !this.receiptData.receipt_number) return;
-      const cName = this.receiptData.customer?.name || "Estimado Cliente";
+      const cName = this.receiptData.customer?.name || "Estimado(a) Cliente";
       const rNum = this.receiptData.receipt_number;
-      const docNum = this.receiptData.invoice?.number || "";
       const amt = this.formatMoney(this.receiptData.amount_paid);
+      const docNum = this.receiptData.invoice?.number || "";
       const bal = this.formatMoney(this.receiptData.invoice?.current_balance);
-      const comp = this.receiptData.company?.name || "POS Empresarial";
+      const comp = this.receiptData.company?.name || "Productos Automotrices del Sur S.A.";
+      const dateStr = this.receiptData.date_short || this.receiptData.payment_date || "";
 
-      const text = `*COMPROBANTE DE ABONO - ${comp}*\n\n` +
-                   `Hola *${cName}*, confirmamos la recepción de tu pago.\n\n` +
+      const text = `*COMPROBANTE DE PAGO DE ABONO*\n` +
+                   `*${comp}*\n\n` +
+                   `Estimado(a) *${cName}*, confirmamos con éxito la recepción de su abono:\n\n` +
                    `🧾 *Recibo No.:* ${rNum}\n` +
-                   `📄 *Documento:* ${docNum}\n` +
+                   `📅 *Fecha:* ${dateStr}\n` +
                    `💵 *Monto Abonado:* ${amt}\n` +
-                   `💰 *Nuevo Saldo:* ${bal}\n` +
-                   `📅 *Fecha:* ${this.receiptData.payment_date}\n\n` +
-                   `¡Gracias por tu pago puntual!`;
+                   (this.receiptData.amount_letters ? `📝 *En letras:* ${this.receiptData.amount_letters}\n` : '') +
+                   (docNum ? `📄 *Documento / Factura:* ${docNum}\n` : '') +
+                   `💰 *Saldo Restante:* ${bal}\n\n` +
+                   `¡Muchas gracias por su preferencia!`;
 
       const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
       window.open(url, '_blank');
     },
 
+    numberToLetters(amount) {
+      if (!amount) return 'CERO QUETZALES EXACTOS';
+      const entero = Math.floor(amount);
+      const centavos = Math.round((amount - entero) * 100);
+      const unidades = ['', 'UN', 'DOS', 'TRES', 'CUATRO', 'CINCO', 'SEIS', 'SIETE', 'OCHO', 'NUEVE'];
+      const especiales = ['DIEZ', 'ONCE', 'DOCE', 'TRECE', 'CATORCE', 'QUINCE', 'DIECISEIS', 'DIECISIETE', 'DIECIOCHO', 'DIECINUEVE', 'VEINTE'];
+      const veintes = ['VEINTIUN', 'VEINTIDOS', 'VEINTITRES', 'VEINTICUATRO', 'VEINTICINCO', 'VEINTISEIS', 'VEINTISIETE', 'VEINTIOCHO', 'VEINTINUEVE'];
+      const decenas = ['', 'DIEZ', 'VEINTE', 'TREINTA', 'CUARENTA', 'CINCUENTA', 'SESENTA', 'SETENTA', 'OCHENTA', 'NOVENTA'];
+      const centenas = ['', 'CIENTO', 'DOSCIENTOS', 'TRESCIENTOS', 'CUATROCIENTOS', 'QUINIENTOS', 'SEISCIENTOS', 'SETECIENTOS', 'OCHOCIENTOS', 'NOVECIENTOS'];
+
+      function _cent(n) {
+        if (n === 100) return 'CIEN';
+        const c = Math.floor(n / 100);
+        const d = Math.floor((n % 100) / 10);
+        const u = n % 10;
+        let txt = centenas[c];
+        const r = n % 100;
+        if (r === 0) return txt;
+        if (txt) txt += ' ';
+        if (r <= 20) {
+          if (r <= 9) txt += unidades[r];
+          else if (r === 10) txt += 'DIEZ';
+          else txt += especiales[r - 10];
+        } else if (r < 30) {
+          txt += veintes[r - 21];
+        } else {
+          txt += decenas[d];
+          if (u > 0) txt += ' Y ' + unidades[u];
+        }
+        return txt.trim();
+      }
+
+      function _mil(n) {
+        const m = Math.floor(n / 1000);
+        const r = n % 1000;
+        if (m === 0) return _cent(r);
+        let txt = m === 1 ? 'MIL' : _cent(m) + ' MIL';
+        if (r > 0) txt += ' ' + _cent(r);
+        return txt.trim();
+      }
+
+      let res = entero === 0 ? 'CERO' : _mil(entero);
+      const moneda = entero === 1 ? 'QUETZAL' : 'QUETZALES';
+      if (centavos > 0) {
+        const cStr = centavos < 10 ? '0' + centavos : centavos;
+        return `${res} ${moneda} CON ${cStr}/100`;
+      }
+      return `${res} ${moneda} EXACTOS`;
+    },
+
     formatMoney(val) {
       const num = Number(val) || 0;
       return `Q ${num.toLocaleString('es-GT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    },
+
+    formatNumber(val) {
+      const num = Number(val) || 0;
+      return num.toLocaleString('es-GT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
   };
 }

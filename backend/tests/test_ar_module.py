@@ -140,11 +140,26 @@ def test_ar_customers_lookup_and_statement_export():
         assert "invoices" in st_data
         assert "payments" in st_data
 
-        # 3. Export individual statement
+        # 3. Export individual statement CSV
         exp_res = client.get(f"/api/v1/ar/customers/{cust_id}/export", headers=headers)
         assert exp_res.status_code == 200
         assert "text/csv" in exp_res.headers.get("content-type", "")
         assert "attachment; filename=" in exp_res.headers.get("content-disposition", "")
+
+        # 4. Export individual statement Excel (.xlsx)
+        excel_res = client.get(f"/api/v1/ar/customers/{cust_id}/export-excel", headers=headers)
+        assert excel_res.status_code == 200
+        assert "spreadsheetml.sheet" in excel_res.headers.get("content-type", "")
+        assert "attachment; filename=" in excel_res.headers.get("content-disposition", "")
+        assert len(excel_res.content) > 5000
+
+        # 5. Export individual statement PDF (.pdf)
+        pdf_res = client.get(f"/api/v1/ar/customers/{cust_id}/export-pdf", headers=headers)
+        assert pdf_res.status_code == 200
+        assert "application/pdf" in pdf_res.headers.get("content-type", "")
+        assert "attachment; filename=" in pdf_res.headers.get("content-disposition", "")
+        assert pdf_res.content.startswith(b"%PDF-")
+        assert len(pdf_res.content) > 2000
 
 
 def test_dashboard_analytics_endpoints():
