@@ -37,11 +37,14 @@ FILES_TO_DEPLOY = [
     "backend/app/templates/inventory/form.html",
     "backend/app/templates/inventory/index.html",
     "backend/app/templates/pos/index.html",
+    "backend/app/templates/pos/presale.html",
     "backend/app/templates/pos/sessions.html",
     "backend/app/templates/purchases/form.html",
     "backend/app/templates/purchases/index.html",
+    "backend/app/templates/quotes/form.html",
     "backend/app/templates/quotes/index.html",
     "backend/app/templates/reports/index.html",
+    "backend/app/templates/settings/index.html",
     "backend/app/templates/transfers/index.html",
     "backend/app/templates/users/index.html",
     "backend/app/templates/website/admin.html",
@@ -76,18 +79,28 @@ def main():
             remote_url = f"{BASE_URL}/files/path/home/{USERNAME}/pos-empresarial/{rel_path}"
             fname = os.path.basename(rel_path)
             
-            # Subir archivo
-            resp = client.post(
-                remote_url,
-                files={"content": (fname, content, "application/octet-stream")},
-                headers=HEADERS
-            )
+            # Subir archivo con manejo de throttling (HTTP 429)
+            import time
+            resp = None
+            for attempt in range(5):
+                resp = client.post(
+                    remote_url,
+                    files={"content": (fname, content, "application/octet-stream")},
+                    headers=HEADERS
+                )
+                if resp.status_code == 429:
+                    print(f"    ⏳ Esperando 12s por límite de tasa de la API...")
+                    time.sleep(12)
+                    continue
+                break
 
-            if resp.status_code in (200, 201):
+            if resp and resp.status_code in (200, 201):
                 print(f"  [{i}/{len(FILES_TO_DEPLOY)}] ✅ {rel_path} ({len(content)} bytes) - HTTP {resp.status_code}")
                 success_count += 1
             else:
-                print(f"  [{i}/{len(FILES_TO_DEPLOY)}] ❌ {rel_path} - ERROR HTTP {resp.status_code}: {resp.text}")
+                status_code = resp.status_code if resp else "None"
+                text = resp.text if resp else "No response"
+                print(f"  [{i}/{len(FILES_TO_DEPLOY)}] ❌ {rel_path} - ERROR HTTP {status_code}: {text}")
                 sys.exit(1)
 
         print(f"\n✨ {success_count} archivos sincronizados con éxito.")
