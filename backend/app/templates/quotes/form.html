@@ -292,8 +292,8 @@
         </div>
       </template>
 
-      <!-- Convertir a Venta / Factura -->
-      <template x-if="quoteId !== 'new' && !isConverted()">
+      <!-- Convertir a Venta / Factura (Bloqueado para Pre-Vendedor) -->
+      <template x-if="quoteId !== 'new' && !isConverted() && !isPresaleSeller">
         <button 
           type="button" 
           class="btn" 
@@ -551,7 +551,7 @@
               <div style="font-weight:800; color:#1e293b;" x-text="p.name"></div>
               <div style="font-size:11px; color:#64748b;">
                 <span x-text="'SKU: ' + (p.internal_ref || 'N/A') + ' | Medida: ' + (p.uom_symbol || p.uom_name || 'PZA')"></span>
-                <span :class="p.stock > 0 ? 'stock-badge stock-in' : 'stock-badge stock-out'" style="margin-left:6px;" x-text="'Stock: ' + (p.stock || 0) + ' ' + (p.uom_symbol || 'uds')"></span>
+                <span x-show="!isPresaleSeller" :class="p.stock > 0 ? 'stock-badge stock-in' : 'stock-badge stock-out'" style="margin-left:6px;" x-text="'Stock: ' + (p.stock || 0) + ' ' + (p.uom_symbol || 'uds')"></span>
               </div>
             </div>
             <div style="display:flex; align-items:center; gap:12px;">
@@ -573,7 +573,7 @@
             <th style="padding:8px 10px; font-size:11px; text-transform:uppercase; text-align:center; width:110px; color:#475569;">Código (SKU)</th>
             <th style="padding:8px 10px; font-size:11px; text-transform:uppercase; text-align:left; color:#475569;">Descripción del Producto</th>
             <th style="padding:8px 10px; font-size:11px; text-transform:uppercase; text-align:center; width:95px; color:#475569;">Medida</th>
-            <th style="padding:8px 10px; font-size:11px; text-transform:uppercase; text-align:center; width:110px; color:#475569;">Stock Bodega</th>
+            <th x-show="!isPresaleSeller" style="padding:8px 10px; font-size:11px; text-transform:uppercase; text-align:center; width:110px; color:#475569;">Stock Bodega</th>
             <th style="padding:8px 10px; font-size:11px; text-transform:uppercase; text-align:center; width:90px; color:#475569;">Cant.</th>
             <th style="padding:8px 10px; font-size:11px; text-transform:uppercase; text-align:right; width:125px; color:#475569;">P. Unit (Q)</th>
             <th style="padding:8px 10px; font-size:11px; text-transform:uppercase; text-align:center; width:85px; color:#475569;">Desc. %</th>
@@ -608,8 +608,8 @@
                 <input type="text" class="odoo-control" style="text-align:center; font-weight:800; padding:4px 6px;" x-model="line.uom_name" placeholder="PZA">
               </td>
 
-              <!-- Stock en Tiempo Real con Semáforo (Opción 3) -->
-              <td style="padding:6px 10px; text-align:center;">
+              <!-- Stock en Tiempo Real con Semáforo (Opción 3, oculto para Pre-Vendedor) -->
+              <td x-show="!isPresaleSeller" style="padding:6px 10px; text-align:center;">
                 <template x-if="line.product_id">
                   <div style="display:flex; flex-direction:column; align-items:center; gap:2px;">
                     <span 
@@ -750,16 +750,27 @@
       <!-- 1. Encabezado Superior (Logo R78 + Datos + Cuadro Cotización) -->
       <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
         
-        <!-- Logo circular y datos de la empresa -->
+        <!-- Logo circular / personalizado y datos de la empresa (Multi-Empresa) -->
         <div style="display:flex; align-items:center; gap:14px;">
-          <img src="/static/img/quotes/logo_r78_stamp.png" alt="Productos Automotrices del Sur R78" style="width:82px; height:auto; object-fit:contain;">
-          <div>
-            <div style="font-size:15px; font-weight:900; color:#000000; letter-spacing:0.2px;">PRODUCTOS AUTOMOTRICES DEL SUR, S.A.</div>
-            <div style="font-size:12px; font-weight:800; color:#000000; margin-top:2px;">NUEVA CONCEPCIÓN, ESCUINTLA</div>
-            <div style="font-size:12px; font-weight:800; color:#000000; margin-top:2px;">NIT 11563009-0 / TEL 3454-3857</div>
-            <div style="font-size:11px; color:#1d4ed8; text-decoration:underline; margin-top:2px;">
-              proausur78@gmail.com | proausu.sa@gmail.com
+          <!-- Logo de la empresa si está configurado -->
+          <template x-if="form.company && (form.company.quote_logo || form.company.logo_url || (form.company.is_official_goodsif ? '/static/img/quotes/logo_r78_stamp.png' : ''))">
+            <img 
+              :src="form.company.quote_logo || form.company.logo_url || (form.company.is_official_goodsif ? '/static/img/quotes/logo_r78_stamp.png' : '')" 
+              :alt="(form.company && (form.company.title_name || form.company.name)) || 'Empresa'" 
+              style="width:82px; height:auto; max-height:82px; object-fit:contain;"
+            >
+          </template>
+          <!-- Si no hay imagen pero no es Goodsif, un monograma elegante -->
+          <template x-if="!form.company || (!form.company.quote_logo && !form.company.logo_url && !form.company.is_official_goodsif)">
+            <div style="width:72px; height:72px; border-radius:10px; background:#f1f5f9; border:1.5px solid #cbd5e1; display:flex; align-items:center; justify-content:center; font-size:26px; font-weight:900; color:#475569;">
+              <span x-text="((form.company && (form.company.title_name || form.company.name)) || 'E').charAt(0)"></span>
             </div>
+          </template>
+          <div>
+            <div style="font-size:15px; font-weight:900; color:#000000; letter-spacing:0.2px;" x-text="(form.company && (form.company.title_name || form.company.name)) || 'PRODUCTOS AUTOMOTRICES DEL SUR, S.A.'"></div>
+            <div style="font-size:12px; font-weight:800; color:#000000; margin-top:2px;" x-text="(form.company && (form.company.address || form.company.city)) || 'NUEVA CONCEPCIÓN, ESCUINTLA'"></div>
+            <div style="font-size:12px; font-weight:800; color:#000000; margin-top:2px;" x-text="'NIT ' + ((form.company && form.company.nit) || '11563009-0') + ((form.company && form.company.phone) ? ' / TEL ' + form.company.phone : ' / TEL 3454-3857')"></div>
+            <div style="font-size:11px; color:#1d4ed8; text-decoration:underline; margin-top:2px;" x-text="(form.company && (form.company.emails || form.company.email)) || 'proausur78@gmail.com | proausu.sa@gmail.com'"></div>
           </div>
         </div>
 
@@ -852,7 +863,7 @@
       <!-- 4. Sección Inferior: Observaciones, Logos de Marcas y Totales -->
       <div style="display:grid; grid-template-columns:1.75fr 1.05fr; gap:14px; align-items:flex-start; margin-bottom:8px;">
         
-        <!-- Observaciones y Logos de Marcas -->
+        <!-- Observaciones y Logos de Marcas / Notas Oficiales -->
         <div>
           <div style="border:1.5px solid #1f2937;">
             <div style="background:#1f2937; color:#ffffff; font-weight:900; font-size:10px; text-align:center; padding:2px;">
@@ -863,10 +874,22 @@
             </div>
           </div>
 
-          <!-- Franja oficial de marcas: GOODSIF, BOYET, R78 ESPECIALES -->
-          <div style="margin-top:6px;">
-            <img src="/static/img/quotes/marcas_footer.png" alt="Goodsif Auto Paint, Boyet, R78 Suministros Especiales" style="width:100%; max-width:440px; height:auto; display:block;">
-          </div>
+          <!-- Si es empresa oficial Goodsif: Franja de marcas oficiales (GOODSIF, BOYET, R78) -->
+          <template x-if="form.company && form.company.is_official_goodsif">
+            <div style="margin-top:6px;">
+              <img src="/static/img/quotes/marcas_footer.png" alt="Goodsif Auto Paint, Boyet, R78 Suministros Especiales" style="width:100%; max-width:440px; height:auto; display:block;">
+            </div>
+          </template>
+
+          <!-- Si es otra empresa: Banner o notas personalizadas si existen -->
+          <template x-if="form.company && !form.company.is_official_goodsif && form.company.statement_banner_url && form.company.statement_banner_url !== '/static/img/statement_logos_banner.png'">
+            <div style="margin-top:6px;">
+              <img :src="form.company.statement_banner_url" :alt="form.company.title_name || form.company.name" style="width:100%; max-width:440px; max-height:48px; object-fit:contain; display:block;">
+            </div>
+          </template>
+          <template x-if="form.company && !form.company.is_official_goodsif && (!form.company.statement_banner_url || form.company.statement_banner_url === '/static/img/statement_logos_banner.png') && form.company.receipt_footer_notes">
+            <div style="margin-top:6px; font-size:9px; color:#475569; font-style:italic;" x-text="form.company.receipt_footer_notes"></div>
+          </template>
 
           <!-- Fecha de Cotización -->
           <div style="margin-top:6px; font-size:10.5px;">
@@ -906,8 +929,7 @@
       </div>
 
       <!-- 5. Pie de página centrado -->
-      <div style="border-top:1px solid #cbd5e1; padding-top:6px; margin-top:10px; text-align:center; font-size:10px; color:#475569;">
-        Si tienes alguna pregunta por favor contáctanos: Tel: + 502 3454-3857 / Gmail: proausu.sa@gmail.com
+      <div style="border-top:1px solid #cbd5e1; padding-top:6px; margin-top:10px; text-align:center; font-size:10px; color:#475569;" x-text="(form.company && form.company.contact_footer) || 'Si tienes alguna pregunta por favor contáctanos: Tel: + 502 3454-3857 / Gmail: proausu.sa@gmail.com'">
       </div>
 
     </div>
@@ -955,7 +977,7 @@
         </div>
 
         <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:10px 12px; font-size:12px; color:#475569; margin-bottom:16px;">
-          <i class="ph ph-info" style="color:#0284c7;"></i> Se enviará un desglose formal de la cotización con la identidad membretada de <strong>Productos Automotrices del Sur, S.A.</strong>
+          <i class="ph ph-info" style="color:#0284c7;"></i> Se enviará un desglose formal de la cotización con la identidad membretada de <strong x-text="(form.company && (form.company.title_name || form.company.name)) || 'la empresa emisora'"></strong>
         </div>
 
         <div style="display:flex; justify-content:flex-end; gap:10px;">
@@ -1042,7 +1064,7 @@
                 <div style="font-weight:800; color:#1e293b;" x-text="p.name"></div>
                 <div style="font-size:11px; color:#64748b;">
                   <span x-text="'SKU: ' + (p.internal_ref || 'N/A') + ' | ' + (p.uom_symbol || p.uom_name || 'PZA')"></span>
-                  <span :class="p.stock > 0 ? 'stock-badge stock-in' : 'stock-badge stock-out'" style="margin-left:6px;" x-text="'Stock: ' + (p.stock || 0)"></span>
+                  <span x-show="!isPresaleSeller" :class="p.stock > 0 ? 'stock-badge stock-in' : 'stock-badge stock-out'" style="margin-left:6px;" x-text="'Stock: ' + (p.stock || 0)"></span>
                 </div>
               </div>
               <div style="display:flex; align-items:center; gap:10px;">
@@ -1081,6 +1103,16 @@
       customerModalSearch: '',
       customerSearchText: '',
       isCustomerSearchFocused: false,
+      isPresaleSeller: (() => {
+        try {
+          const u = JSON.parse(localStorage.getItem('user') || '{}');
+          const uname = (u.username || '').toLowerCase();
+          if (u.is_superuser || u.is_admin || uname === 'admin') return false;
+          const codes = (u.role_codes || (u.roles || []).map(r => (typeof r === 'object' ? r.code : r)) || []);
+          if (codes.includes('admin') || codes.includes('store_manager')) return false;
+          return uname === 'prevendedor' || uname.includes('prevend') || codes.includes('presale_seller') || codes.includes('preventista');
+        } catch(e) { return false; }
+      })(),
 
       form: {
         id: null,
@@ -1108,7 +1140,24 @@
         total: 0,
         state: 'draft',
         is_expired: false,
-        lines: []
+        lines: [],
+        company: {
+          name: '',
+          title_name: '',
+          trade_name: '',
+          nit: '',
+          address: '',
+          phone: '',
+          email: '',
+          emails: '',
+          logo_url: '',
+          quote_logo: '',
+          quote_footer_image: '',
+          statement_banner_url: '',
+          receipt_footer_notes: '',
+          is_official_goodsif: true,
+          contact_footer: ''
+        }
       },
 
       emailData: {
@@ -1118,16 +1167,35 @@
       },
 
       async init() {
+        try {
+          const u = JSON.parse(localStorage.getItem('user') || '{}');
+          const uname = (u.username || '').toLowerCase();
+          const codes = (u.role_codes || (u.roles || []).map(r => (typeof r === 'object' ? r.code : r)) || []);
+          const isAdmin = u.is_superuser || u.is_admin || uname === 'admin' || codes.includes('admin') || codes.includes('store_manager');
+          this.isPresaleSeller = (codes.includes('presale_seller') || codes.includes('preventista') || uname === 'prevendedor' || uname.includes('prevend')) && !isAdmin;
+        } catch(e) {}
         await Promise.all([
           this.loadWarehouses(),
           this.loadAllProducts(),
-          this.loadAllCustomers()
+          this.loadAllCustomers(),
+          this.loadCompanyBranding()
         ]);
         if (this.quoteId !== 'new') {
           await this.loadQuoteData();
         } else {
           this.addNewEmptyLine();
           this.calcValidity();
+        }
+      },
+
+      async loadCompanyBranding() {
+        try {
+          const b = await API.get('/quotes/branding/current');
+          if (b && (b.name || b.title_name)) {
+            this.form.company = b;
+          }
+        } catch(e) {
+          console.warn('No se pudo cargar branding activo:', e);
         }
       },
 
@@ -1227,6 +1295,20 @@
       async loadQuoteData() {
         try {
           const data = await API.get(`/quotes/${this.quoteId}`);
+          const companyBranding = data.company || (data.company_info ? {
+            name: data.company_info.name,
+            title_name: data.company_info.name,
+            address: data.company_info.location,
+            nit: data.company_info.nit,
+            phone: data.company_info.phone,
+            emails: data.company_info.emails,
+            logo_url: data.company_info.logo_url,
+            quote_logo: data.company_info.logo_url,
+            quote_footer_image: data.company_info.quote_footer_image,
+            is_official_goodsif: data.company_info.is_official_goodsif,
+            contact_footer: data.company_info.contact_footer
+          } : this.form.company);
+
           this.form = {
             id: data.id,
             number: data.number,
@@ -1252,6 +1334,7 @@
             total: data.total,
             state: (data.state === 'confirmed' || data.state === 'approved') ? 'converted' : data.state,
             is_expired: data.is_expired,
+            company: companyBranding,
             lines: (data.lines || []).map(l => ({
               id: l.id,
               product_id: l.product_id,
@@ -1542,8 +1625,9 @@
       },
 
       openEmailModal() {
+        const compTitle = (this.form.company && (this.form.company.title_name || this.form.company.name)) || 'Productos Automotrices del Sur, S.A.';
         this.emailData.recipient_email = this.form.customer_email || '';
-        this.emailData.subject = `Cotización ${this.form.number} — Productos Automotrices del Sur, S.A.`;
+        this.emailData.subject = `Cotización ${this.form.number} — ${compTitle}`;
         this.emailData.message = `Estimado(a) ${this.form.customer_name}, le compartimos la cotización adjunta de los productos solicitados.`;
         this.showEmailModal = true;
       },
@@ -1573,7 +1657,8 @@
       },
 
       getWhatsAppLink() {
-        const text = `Hola *${this.form.customer_name}*, te compartimos la cotización *${this.form.number}* de *Productos Automotrices del Sur, S.A.* por un total de *Q ${Number(this.form.total).toFixed(2)}*. Válida por ${this.form.valid_days || 15} días. ¡Quedamos a tus órdenes!`;
+        const compTitle = (this.form.company && (this.form.company.title_name || this.form.company.name)) || 'Productos Automotrices del Sur, S.A.';
+        const text = `Hola *${this.form.customer_name}*, te compartimos la cotización *${this.form.number}* de *${compTitle}* por un total de *Q ${Number(this.form.total).toFixed(2)}*. Válida por ${this.form.valid_days || 15} días. ¡Quedamos a tus órdenes!`;
         return `https://wa.me/?text=${encodeURIComponent(text)}`;
       },
 

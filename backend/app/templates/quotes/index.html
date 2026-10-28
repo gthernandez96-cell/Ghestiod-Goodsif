@@ -162,7 +162,7 @@
       <div>
         <h1 class="quote-header-title">Cotizaciones & Proformas 360°</h1>
         <div style="font-size:11.5px; color:#64748b; margin-top:2px;">
-          <span>Productos Automotrices del Sur, S.A.</span>
+          <span x-text="companyName || 'Cotizaciones & Proformas Oficiales'">Cotizaciones & Proformas Oficiales</span>
         </div>
       </div>
       <a href="/quotes/new" class="quote-btn-new">
@@ -386,8 +386,15 @@
       search: '',
       statusFilter: '',
       showKpis: false,
+      companyName: '',
 
       async init() {
+        try {
+          const comp = await API.get('/quotes/branding/current');
+          if (comp && (comp.title_name || comp.name)) {
+            this.companyName = comp.title_name || comp.name;
+          }
+        } catch(e) {}
         await Promise.all([this.loadKPIs(), this.loadQuotes()]);
       },
 

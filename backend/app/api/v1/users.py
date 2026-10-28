@@ -97,6 +97,22 @@ PREDEFINED_ROLES = [
             {"module": "Contabilidad & FEL", "actions": "Libro Diario, Balance de Comprobación, P&L, Conciliaciones SAT"},
             {"module": "Configuración & Usuarios", "actions": "Configuraciones Contables e Impuestos"}
         ]
+    },
+    {
+        "code": "presale_seller",
+        "name": "Pre-Vendedor",
+        "badge_color": "#d97706",
+        "badge_bg": "#fef3c7",
+        "icon": "ph-lightning",
+        "description": "Acceso exclusivo a Pre-Venta de pedidos, Consulta de Estados de Cuenta de Clientes y Emisión de Cotizaciones. Restricción estricta: Bloqueado para ver existencias de inventario de productos.",
+        "permissions": [
+            {"module": "Pre-Venta", "actions": "Toma de pedidos en ruta, catálogo de productos preventa, sincronización offline (Existencias de productos ocultas)"},
+            {"module": "Cotizaciones", "actions": "Creación, consulta e impresión de proformas / cotizaciones (Existencias de stock ocultas)"},
+            {"module": "Créditos & AR", "actions": "Consulta de Estados de Cuenta y saldos de clientes"},
+            {"module": "Inventarios", "actions": "Sin acceso (Existencias de stock, catálogo maestro, costos y traslados bloqueados)"},
+            {"module": "POS & Ventas", "actions": "Sin acceso (Cobro en mostrador bloqueado)"},
+            {"module": "Configuración & Otros", "actions": "Sin acceso"}
+        ]
     }
 ]
 
@@ -129,9 +145,14 @@ class ResetPasswordRequest(BaseModel):
 
 # ===== SEEDING HELPER =====
 async def ensure_roles_seeded(db: AsyncSession):
-    """Asegura que los 5 roles predeterminados existan en la base de datos."""
+    """Asegura que los roles predeterminados existan en la base de datos."""
     for r_data in PREDEFINED_ROLES:
-        stmt = select(Role).where(Role.code == r_data["code"])
+        stmt = select(Role).where(
+            or_(
+                Role.code == r_data["code"],
+                Role.code == "preventista" if r_data["code"] == "presale_seller" else False
+            )
+        )
         res = await db.execute(stmt)
         role = res.scalar_one_or_none()
         if not role:
@@ -142,6 +163,9 @@ async def ensure_roles_seeded(db: AsyncSession):
                 is_system=True
             )
             db.add(role)
+        elif r_data["code"] == "presale_seller":
+            role.name = "Pre-Vendedor"
+            role.description = r_data["description"]
     await db.commit()
 
 
@@ -167,10 +191,12 @@ async def get_roles_permissions_matrix(
     return {
         "roles": PREDEFINED_ROLES,
         "modules": [
+            "Pre-Venta",
+            "Cotizaciones",
+            "Créditos & AR",
             "POS & Ventas",
             "Inventarios",
             "Compras & AP",
-            "Créditos & AR",
             "Contabilidad & FEL",
             "Configuración & Usuarios"
         ]
@@ -200,6 +226,7 @@ async def get_users_kpis(
     managers_count = 0
     inventory_count = 0
     accountants_count = 0
+    presale_count = 0
 
     for u in users:
         role_codes = [r.code for r in u.roles]
@@ -211,6 +238,8 @@ async def get_users_kpis(
             inventory_count += 1
         elif "accountant" in role_codes:
             accountants_count += 1
+        elif "presale_seller" in role_codes or "preventista" in role_codes:
+            presale_count += 1
         else:
             cashiers_count += 1
 
@@ -221,7 +250,8 @@ async def get_users_kpis(
         "admins_count": admins_count,
         "managers_count": managers_count,
         "inventory_count": inventory_count,
-        "accountants_count": accountants_count
+        "accountants_count": accountants_count,
+        "presale_count": presale_count
     }
 
 
@@ -255,6 +285,8 @@ async def list_users(
         # Extraer rol principal
         role_obj = u.roles[0] if u.roles else None
         role_code = "admin" if u.is_superuser else (role_obj.code if role_obj else "cashier")
+        if role_code == "preventista":
+            role_code = "presale_seller"
         
         # Metadata del rol
         role_meta = next((r for r in PREDEFINED_ROLES if r["code"] == role_code), {
@@ -357,7 +389,13 @@ async def create_user(
     )
 
     # Asignar Rol en la base de datos
-    role_stmt = select(Role).where(Role.code == data.role_code)
+    role_stmt = select(Role).where(
+        or_(
+            Role.code == data.role_code,
+            Role.code == "presale_seller" if data.role_code in ["presale_seller", "preventista"] else False,
+            Role.code == "preventista" if data.role_code in ["presale_seller", "preventista"] else False
+        )
+    )
     role_res = await db.execute(role_stmt)
     role = role_res.scalar_one_or_none()
     if role:
@@ -429,7 +467,13 @@ async def update_user(
     if data.role_code is not None:
         user.is_superuser = (data.role_code == "admin")
         await ensure_roles_seeded(db)
-        role_stmt = select(Role).where(Role.code == data.role_code)
+        role_stmt = select(Role).where(
+            or_(
+                Role.code == data.role_code,
+                Role.code == "presale_seller" if data.role_code in ["presale_seller", "preventista"] else False,
+                Role.code == "preventista" if data.role_code in ["presale_seller", "preventista"] else False
+            )
+        )
         role_res = await db.execute(role_stmt)
         role = role_res.scalar_one_or_none()
         if role:

@@ -374,16 +374,24 @@
           <!-- 1. POS Tabs -->
           <template x-if="currentPage === 'pos' || currentPage === 'sessions' || currentPage === 'solicitudes' || currentPage === 'presale' || currentPage === 'preparacion'">
             <div style="display:flex; align-items:center; gap:6px;">
-              <a href="/pos/sessions" class="nav-tab-pill" :class="window.location.pathname.includes('/sessions') ? 'nav-tab-active' : 'nav-tab-inactive'">Terminales & Cajas</a>
-              <a href="/pos" class="nav-tab-pill" :class="window.location.pathname === '/pos' ? 'nav-tab-active' : 'nav-tab-inactive'">Cobro POS</a>
+              <template x-if="!isPresaleSeller">
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <a href="/pos/sessions" class="nav-tab-pill" :class="window.location.pathname.includes('/sessions') ? 'nav-tab-active' : 'nav-tab-inactive'">Terminales & Cajas</a>
+                  <a href="/pos" class="nav-tab-pill" :class="window.location.pathname === '/pos' ? 'nav-tab-active' : 'nav-tab-inactive'">Cobro POS</a>
+                </div>
+              </template>
               <a href="/preventa" class="nav-tab-pill" :class="window.location.pathname.includes('/preventa') ? 'nav-tab-active' : 'nav-tab-inactive'">⚡ Pre-Venta</a>
-              <a href="/pos/solicitudes" class="nav-tab-pill" :class="window.location.pathname.includes('/solicitudes') ? 'nav-tab-active' : 'nav-tab-inactive'">📋 Solicitudes POS</a>
-              <a href="/pos/preparacion" class="nav-tab-pill" :class="window.location.pathname.includes('/preparacion') ? 'nav-tab-active' : 'nav-tab-inactive'">📦 Preparación en Bodega</a>
+              <template x-if="!isPresaleSeller">
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <a href="/pos/solicitudes" class="nav-tab-pill" :class="window.location.pathname.includes('/solicitudes') ? 'nav-tab-active' : 'nav-tab-inactive'">📋 Solicitudes POS</a>
+                  <a href="/pos/preparacion" class="nav-tab-pill" :class="window.location.pathname.includes('/preparacion') ? 'nav-tab-active' : 'nav-tab-inactive'">📦 Preparación en Bodega</a>
+                </div>
+              </template>
             </div>
           </template>
 
           <!-- 2. Inventario Tabs -->
-          <template x-if="currentPage === 'inventory' || currentPage === 'warehouses' || currentPage === 'transfers'">
+          <template x-if="!isPresaleSeller && (currentPage === 'inventory' || currentPage === 'warehouses' || currentPage === 'transfers')">
             <div style="display:flex; align-items:center; gap:6px;">
               <a href="/inventory" class="nav-tab-pill" :class="window.location.pathname === '/inventory' && !window.location.search.includes('tab=wastes') && !window.location.search.includes('tab=kardex') ? 'nav-tab-active' : 'nav-tab-inactive'">Catálogo General</a>
               <a href="/warehouses" class="nav-tab-pill" :class="window.location.pathname.includes('/warehouses') ? 'nav-tab-active' : 'nav-tab-inactive'">🏢 Bodegas</a>
@@ -395,7 +403,7 @@
           </template>
 
           <!-- 3. Clientes Tabs -->
-          <template x-if="currentPage === 'customers'">
+          <template x-if="!isPresaleSeller && currentPage === 'customers'">
             <div style="display:flex; align-items:center; gap:6px;">
               <a href="/customers" class="nav-tab-pill" :class="window.location.pathname.includes('/customers') ? 'nav-tab-active' : 'nav-tab-inactive'">Directorio de Clientes</a>
               <a href="/customers/new" class="nav-tab-pill nav-tab-inactive">+ Nuevo Cliente</a>
@@ -407,12 +415,14 @@
             <div style="display:flex; align-items:center; gap:6px;">
               <a href="/quotes" class="nav-tab-pill nav-tab-active">Cotizaciones</a>
               <a href="/quotes/new" class="nav-tab-pill nav-tab-inactive">+ Nueva Cotización</a>
-              <a href="/pos" class="nav-tab-pill nav-tab-inactive hide-on-mobile">Punto de Venta</a>
+              <template x-if="!isPresaleSeller">
+                <a href="/pos" class="nav-tab-pill nav-tab-inactive hide-on-mobile">Punto de Venta</a>
+              </template>
             </div>
           </template>
 
           <!-- 5. Compras / AP Tabs (Administrador) -->
-          <template x-if="currentPage === 'purchases' || currentPage === 'ap'">
+          <template x-if="!isPresaleSeller && (currentPage === 'purchases' || currentPage === 'ap')">
             <div style="display:flex; align-items:center; gap:6px;">
               <a href="/purchases" class="nav-tab-pill" :class="window.location.pathname.includes('/purchases') ? 'nav-tab-active' : 'nav-tab-inactive'">
                 <span class="hide-on-mobile">Órdenes de Compra</span>
@@ -425,19 +435,21 @@
             </div>
           </template>
 
-          <!-- 6. Cuentas por Cobrar (AR - Administrador) -->
+          <!-- 6. Cuentas por Cobrar (AR - Administrador & Pre-Vendedor) -->
           <template x-if="currentPage === 'ar'">
             <div style="display:flex; align-items:center; gap:6px;">
               <a href="/ar" class="nav-tab-pill nav-tab-active">
-                <span class="hide-on-mobile">💰 Cuentas por Cobrar (AR)</span>
-                <span class="show-on-mobile-inline">💰 Cuentas por Cobrar</span>
+                <span class="hide-on-mobile">💰 Estados de Cuenta (AR)</span>
+                <span class="show-on-mobile-inline">💰 Estados de Cuenta</span>
               </a>
-              <a href="/customers" class="nav-tab-pill nav-tab-inactive">Directorio de Clientes</a>
+              <template x-if="!isPresaleSeller">
+                <a href="/customers" class="nav-tab-pill nav-tab-inactive">Directorio de Clientes</a>
+              </template>
             </div>
           </template>
 
           <!-- 7. Contabilidad / Reportes (Administrador) -->
-          <template x-if="currentPage === 'accounting' || currentPage === 'reports'">
+          <template x-if="!isPresaleSeller && (currentPage === 'accounting' || currentPage === 'reports')">
             <div style="display:flex; align-items:center; gap:6px;">
               <a href="/accounting" class="nav-tab-pill" :class="window.location.pathname.includes('/accounting') ? 'nav-tab-active' : 'nav-tab-inactive'">Libro Diario</a>
               <a href="/reports" class="nav-tab-pill" :class="window.location.pathname.includes('/reports') && !window.location.search.includes('tab=sales_detail') ? 'nav-tab-active' : 'nav-tab-inactive'">Reportes SAT & BI</a>
@@ -446,7 +458,7 @@
           </template>
 
           <!-- 8. Configuración / Usuarios / Empresas / Sitio Web (Administrador) -->
-          <template x-if="currentPage === 'settings' || currentPage === 'users' || currentPage === 'companies' || currentPage === 'website'">
+          <template x-if="!isPresaleSeller && (currentPage === 'settings' || currentPage === 'users' || currentPage === 'companies' || currentPage === 'website')">
             <div style="display:flex; align-items:center; gap:6px;">
               <a href="/settings" class="nav-tab-pill" :class="window.location.pathname === '/settings' ? 'nav-tab-active' : 'nav-tab-inactive'">Ajustes ERP</a>
               <a href="/website-admin" class="nav-tab-pill" :class="window.location.pathname.includes('/website') ? 'nav-tab-active' : 'nav-tab-inactive'">🌐 Sitio Web</a>
@@ -675,7 +687,7 @@
     function appState() {
       return {
         currentUser: JSON.parse(localStorage.getItem('user') || '{}'),
-        activeCompanyName: 'POS Empresarial',
+        activeCompanyName: localStorage.getItem('company_name') || 'Empresa Activa',
         activeBranchId: localStorage.getItem('branch_id') || '',
         activeBranchName: localStorage.getItem('branch_name') || 'Sucursal Principal',
         availableBranches: [],
@@ -687,28 +699,48 @@
             return codes.includes('admin') || codes.includes('store_manager');
           } catch(e) { return false; }
         })(),
+        isPresaleSeller: (() => {
+          try {
+            const u = JSON.parse(localStorage.getItem('user') || '{}');
+            if (u.is_superuser || u.is_admin || u.username === 'admin' || (u.email && u.email.includes('admin'))) return false;
+            const codes = (u.role_codes || (u.roles || []).map(r => r.code || r));
+            return (codes.includes('presale_seller') || codes.includes('preventista')) && !codes.includes('admin') && !codes.includes('store_manager');
+          } catch(e) { return false; }
+        })(),
 
         async init() {
           try {
             const u = JSON.parse(localStorage.getItem('user') || '{}');
             if (u.is_superuser || u.is_admin || u.username === 'admin' || (u.email && u.email.includes('admin'))) {
               this.isAdmin = true;
+              this.isPresaleSeller = false;
             }
             const me = await API.get('/auth/me');
             if (me) {
               this.currentUser = me;
               if (me.is_superuser || me.is_admin || me.username === 'admin' || (me.email && me.email.includes('admin'))) {
                 this.isAdmin = true;
+                this.isPresaleSeller = false;
               } else {
                 const codes = (me.roles || []).map(r => r.code);
                 this.isAdmin = codes.includes('admin') || codes.includes('store_manager');
+                this.isPresaleSeller = (codes.includes('presale_seller') || codes.includes('preventista')) && !this.isAdmin;
               }
             }
           } catch(e) {}
 
           try {
             const res = await API.get('/companies/current');
-            if (res && res.trade_name) this.activeCompanyName = res.trade_name;
+            if (res) {
+              const cName = res.trade_name || res.name;
+              if (cName) {
+                this.activeCompanyName = cName;
+                localStorage.setItem('company_name', cName);
+              }
+              if (res.logo_url) {
+                localStorage.setItem('company_logo', res.logo_url);
+              }
+            }
           } catch(e) {}
 
           await this.loadBranches();

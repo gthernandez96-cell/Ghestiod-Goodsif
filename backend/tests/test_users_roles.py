@@ -412,6 +412,129 @@ def test_cashier_only_sees_assigned_terminal_caja():
     assert f"Sucursal Beta {b_suffix}" in cashier_terms[0]["terminal_name"]
 
 
+def test_presale_seller_user_and_permissions():
+    """Verificar creación y permisos del rol Pre-Vendedor (presale_seller)."""
+    p_suffix = uuid.uuid4().hex[:6]
+    p_username = f"prevendedor_{p_suffix}"
+    p_email = f"{p_username}@pos.gt"
+
+    # 1. Crear usuario Pre-Vendedor
+    create_res = client.post(
+        "/api/v1/users",
+        json={
+            "full_name": f"Pre-Vendedor {p_suffix}",
+            "username": p_username,
+            "email": p_email,
+            "password": "Password123!",
+            "role_code": "presale_seller"
+        },
+        headers=headers
+    )
+    assert create_res.status_code == 201
+    user_id = create_res.json()["id"]
+
+    # 2. Verificar en lista de usuarios
+    users_res = client.get("/api/v1/users", headers=headers)
+    assert users_res.status_code == 200
+    user_data = next((u for u in users_res.json() if u["username"] == p_username), None)
+    assert user_data is not None
+    assert user_data["role_code"] == "presale_seller"
+    assert user_data["role_name"] == "Pre-Vendedor"
+    assert user_data["role_badge_color"] == "#d97706"
+
+    # 3. Verificar KPIs
+    kpis_res = client.get("/api/v1/users/kpis", headers=headers)
+    assert kpis_res.status_code == 200
+    assert "presale_count" in kpis_res.json()
+    assert kpis_res.json()["presale_count"] >= 1
+
+    # 4. Verificar lista de roles predeterminados
+    roles_res = client.get("/api/v1/roles", headers=headers)
+    assert roles_res.status_code == 200
+    presale_role = next((r for r in roles_res.json() if r["code"] == "presale_seller"), None)
+    assert presale_role is not None
+    assert presale_role["name"] == "Pre-Vendedor"
+    modules = [p["module"] for p in presale_role["permissions"]]
+    assert "Pre-Venta" in modules
+    assert "Cotizaciones" in modules
+    assert "Créditos & AR" in modules
+
+    # 5. Token para Pre-Vendedor y verificación de acceso a clientes
+    p_token = create_access_token(data={"sub": str(user_id), "email": p_email, "company_id": str(COMPANY_ID)})
+    p_headers = {"Authorization": f"Bearer {p_token}"}
+
+    # Pre-Vendedor puede crear clientes para sus órdenes y cotizaciones
+    cust_res = client.post(
+        "/api/v1/partners/",
+        json={
+            "name": f"Cliente Preventa {p_suffix}",
+            "partner_type": "customer",
+            "nit": f"NIT-PRE-{p_suffix}"
+        },
+        headers=p_headers
+    )
+    assert cust_res.status_code == 200
+
+    # 6. Condición estricta: Pre-Vendedor NO puede consultar existencias de inventario por bodega -> 403 Forbidden
+    prod_res = client.post(
+        "/api/v1/products/",
+        json={
+            "name": f"Producto Test {p_suffix}",
+            "sale_price": 50.0,
+            "cost_price": 30.0,
+            "barcode": f"BAR-{p_suffix}"
+        },
+        headers=headers
+    )
+    assert prod_res.status_code in (200, 201)
+    prod_id = prod_res.json()["id"]
+
+    stock_res = client.get(f"/api/v1/products/{prod_id}/warehouses-stock", headers=p_headers)
+    assert stock_res.status_code == 403
+    assert "El rol Pre-Vendedor no tiene autorización para consultar existencias" in stock_res.json()["detail"]
+
+    # 7. Pre-Vendedor en /api/v1/products/ tiene stock enmascarado (None)
+    prod_list_pre = client.get("/api/v1/products/", headers=p_headers)
+    assert prod_list_pre.status_code == 200
+    pre_items = prod_list_pre.json()["items"]
+    test_p_pre = next((i for i in pre_items if i["id"] == prod_id), None)
+    assert test_p_pre is not None
+    assert test_p_pre["stock"] is None
+    assert test_p_pre["stock_physical"] is None
+    assert test_p_pre["stock_frozen"] is None
+
+    # Pre-Vendedor en /stock-levels retorna mapas vacíos
+    levels_pre = client.get("/api/v1/products/stock-levels", headers=p_headers)
+    assert levels_pre.status_code == 200
+    assert levels_pre.json()["stock"] == {}
+
+    # 8. Para el RESTO de usuarios (ej. Admin), las existencias SÍ están disponibles (números reales)
+    admin_stock_wh = client.get(f"/api/v1/products/{prod_id}/warehouses-stock", headers=headers)
+    assert admin_stock_wh.status_code == 200
+
+    admin_prod_list = client.get("/api/v1/products/", headers=headers)
+    assert admin_prod_list.status_code == 200
+    admin_items = admin_prod_list.json()["items"]
+    test_p_admin = next((i for i in admin_items if i["id"] == prod_id), None)
+    assert test_p_admin is not None
+    assert test_p_admin["stock"] is not None
+    assert test_p_admin["stock_physical"] is not None
+
+    # 9. Pre-Vendedor SÍ puede consultar el detalle del producto para ver la Ficha Técnica (PDF, notas, descripción)
+    detail_pre = client.get(f"/api/v1/products/{prod_id}", headers=p_headers)
+    assert detail_pre.status_code == 200
+    pre_detail_json = detail_pre.json()
+    assert pre_detail_json["name"] == f"Producto Test {p_suffix}"
+    assert "pdf_datasheet_url" in pre_detail_json
+    assert "description" in pre_detail_json
+    assert pre_detail_json["total_stock"] is None
+    assert pre_detail_json["warehouses"] == []
+
+
+
+
+
+
 
 
 

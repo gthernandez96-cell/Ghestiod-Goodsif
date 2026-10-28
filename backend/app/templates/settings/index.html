@@ -754,6 +754,215 @@
 
         </div>
 
+        <!-- ========================================== -->
+        <!-- FORMATOS OFICIALES DE ESTADO DE CUENTA Y RECIBOS (MULTI-EMPRESA) -->
+        <!-- ========================================== -->
+        <div style="margin-top:28px; background:#ffffff; border:1.5px solid #e2e8f0; border-radius:12px; padding:22px; box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+          
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:18px; border-bottom:1px solid #f1f5f9; padding-bottom:14px;">
+            <div>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <div style="width:32px; height:32px; border-radius:8px; background:#e0f2fe; color:#0369a1; display:flex; align-items:center; justify-content:center; font-size:18px;">
+                  <i class="ph ph-receipt"></i>
+                </div>
+                <h3 style="margin:0; font-size:15px; font-weight:800; color:#0f172a;">Formatos Oficiales de Cotizaciones Carta, Estado de Cuenta & Recibos Media Carta</h3>
+              </div>
+              <div style="font-size:12px; color:#64748b; margin-top:4px;">
+                Personaliza de forma independiente el membrete, logotipos y datos de contacto de esta empresa para Cotizaciones / Proformas, Cuentas por Cobrar y Recibos de Abono.
+              </div>
+            </div>
+
+            <!-- Botones de Presets Rápidos -->
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <button 
+                type="button" 
+                class="btn btn-sm" 
+                style="background:#eff6ff; color:#1d4ed8; font-weight:700; border:1px solid #bfdbfe; font-size:11.5px; border-radius:6px; padding:6px 12px; cursor:pointer; display:inline-flex; align-items:center; gap:6px;"
+                @click="applyOfficialGoodsifPreset()"
+                title="Cargar logos oficiales de Goodsif, R78 y datos del Grupo Automotriz"
+              >
+                <i class="ph ph-sparkle"></i> Preset Oficial Goodsif & R78
+              </button>
+              <button 
+                type="button" 
+                class="btn btn-sm" 
+                style="background:#f8fafc; color:#334155; font-weight:700; border:1px solid #cbd5e1; font-size:11.5px; border-radius:6px; padding:6px 12px; cursor:pointer; display:inline-flex; align-items:center; gap:6px;"
+                @click="applyCustomCompanyPreset()"
+                title="Usar el logotipo principal y nombre comercial de la empresa actual"
+              >
+                <i class="ph ph-buildings"></i> Usar Datos de Empresa Actual
+              </button>
+            </div>
+          </div>
+
+          <!-- Selector de Modo Oficial Goodsif vs Personalizado -->
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:20px; background:#f8fafc; padding:12px 16px; border-radius:10px; border:1px solid #e2e8f0;">
+            <input type="checkbox" id="chkOfficialGoodsif" style="width:18px; height:18px; accent-color:#714B67; cursor:pointer;" x-model="form.is_official_goodsif" @change="markDirty()">
+            <label for="chkOfficialGoodsif" style="font-size:13px; font-weight:700; color:#1e293b; cursor:pointer;">
+              Usar formato oficial de marca Grupo Automotriz (Goodsif & R78 / Grupo H) para esta empresa
+            </label>
+          </div>
+
+          <!-- Grid de Logotipos para Comprobantes -->
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:18px; margin-bottom:20px;">
+            
+            <!-- Banner Estado de Cuenta -->
+            <div style="border:1px solid #e2e8f0; border-radius:10px; padding:14px; background:#ffffff;">
+              <div style="font-size:12px; font-weight:800; color:#1e293b; margin-bottom:4px; display:flex; justify-content:space-between; align-items:center;">
+                <span>Banner / Logo Estado de Cuenta</span>
+                <span style="font-size:10px; color:#64748b;">(Excel, PDF y Pantalla)</span>
+              </div>
+              <div style="height:70px; background:#f8fafc; border:1.5px dashed #cbd5e1; border-radius:8px; display:flex; align-items:center; justify-content:center; overflow:hidden; margin-bottom:8px;">
+                <template x-if="form.statement_banner_url">
+                  <img :src="form.statement_banner_url" style="max-height:60px; max-width:90%; object-fit:contain;">
+                </template>
+                <template x-if="!form.statement_banner_url && form.is_official_goodsif">
+                  <img src="/static/img/statement_logos_banner.png" style="max-height:60px; max-width:90%; object-fit:contain;">
+                </template>
+                <template x-if="!form.statement_banner_url && !form.is_official_goodsif && form.logo_url">
+                  <img :src="form.logo_url" style="max-height:60px; max-width:90%; object-fit:contain;">
+                </template>
+                <template x-if="!form.statement_banner_url && !form.is_official_goodsif && !form.logo_url">
+                  <span style="font-size:11px; color:#94a3b8; font-weight:700;">Sin banner asignado</span>
+                </template>
+              </div>
+              <div style="display:flex; gap:8px;">
+                <button type="button" class="btn btn-sm" style="font-size:11px; font-weight:700; background:#f1f5f9; color:#475569; border:none; padding:4px 10px; border-radius:6px; cursor:pointer;" @click="$refs.stmtBannerInput.click()">
+                  <i class="ph ph-upload-simple"></i> Subir Banner
+                </button>
+                <button type="button" class="btn btn-sm" style="font-size:11px; font-weight:700; background:#fee2e2; color:#b91c1c; border:none; padding:4px 8px; border-radius:6px; cursor:pointer;" x-show="form.statement_banner_url" @click="form.statement_banner_url = ''; markDirty()">
+                  Limpiar
+                </button>
+              </div>
+              <input type="file" x-ref="stmtBannerInput" style="display:none;" accept="image/*" @change="uploadAsset($event, 'statement_banner_url')">
+            </div>
+
+            <!-- Logo Cotización Carta -->
+            <div style="border:1px solid #e2e8f0; border-radius:10px; padding:14px; background:#ffffff;">
+              <div style="font-size:12px; font-weight:800; color:#1e293b; margin-bottom:4px; display:flex; justify-content:space-between; align-items:center;">
+                <span>Logo Cotización Carta</span>
+                <span style="font-size:10px; color:#64748b;">(Membrete)</span>
+              </div>
+              <div style="height:70px; background:#f8fafc; border:1.5px dashed #cbd5e1; border-radius:8px; display:flex; align-items:center; justify-content:center; overflow:hidden; margin-bottom:8px;">
+                <template x-if="form.quote_logo">
+                  <img :src="form.quote_logo" style="max-height:55px; max-width:90%; object-fit:contain;">
+                </template>
+                <template x-if="!form.quote_logo && form.is_official_goodsif">
+                  <img src="/static/img/quotes/logo_r78_stamp.png" style="max-height:55px; max-width:90%; object-fit:contain;">
+                </template>
+                <template x-if="!form.quote_logo && !form.is_official_goodsif && form.logo_url">
+                  <img :src="form.logo_url" style="max-height:55px; max-width:90%; object-fit:contain;">
+                </template>
+                <template x-if="!form.quote_logo && !form.is_official_goodsif && !form.logo_url && form.receipt_logo_left">
+                  <img :src="form.receipt_logo_left" style="max-height:55px; max-width:90%; object-fit:contain;">
+                </template>
+                <template x-if="!form.quote_logo && !form.is_official_goodsif && !form.logo_url && !form.receipt_logo_left">
+                  <span style="font-size:11px; color:#94a3b8; font-weight:700;">Logo principal</span>
+                </template>
+              </div>
+              <div style="display:flex; gap:8px;">
+                <button type="button" class="btn btn-sm" style="font-size:11px; font-weight:700; background:#f1f5f9; color:#475569; border:none; padding:4px 10px; border-radius:6px; cursor:pointer;" @click="$refs.quoteLogoInput.click()">
+                  <i class="ph ph-upload-simple"></i> Subir Logo
+                </button>
+                <button type="button" class="btn btn-sm" style="font-size:11px; font-weight:700; background:#fee2e2; color:#b91c1c; border:none; padding:4px 8px; border-radius:6px; cursor:pointer;" x-show="form.quote_logo" @click="form.quote_logo = ''; markDirty()">
+                  Limpiar
+                </button>
+              </div>
+              <input type="file" x-ref="quoteLogoInput" style="display:none;" accept="image/*" @change="uploadAsset($event, 'quote_logo')">
+            </div>
+
+            <!-- Logo Izquierdo Recibo -->
+            <div style="border:1px solid #e2e8f0; border-radius:10px; padding:14px; background:#ffffff;">
+              <div style="font-size:12px; font-weight:800; color:#1e293b; margin-bottom:4px; display:flex; justify-content:space-between; align-items:center;">
+                <span>Logo Izquierdo Recibo Media Carta</span>
+                <span style="font-size:10px; color:#64748b;">(Pie de Página)</span>
+              </div>
+              <div style="height:70px; background:#f8fafc; border:1.5px dashed #cbd5e1; border-radius:8px; display:flex; align-items:center; justify-content:center; overflow:hidden; margin-bottom:8px;">
+                <template x-if="form.receipt_logo_left">
+                  <img :src="form.receipt_logo_left" style="max-height:55px; max-width:90%; object-fit:contain;">
+                </template>
+                <template x-if="!form.receipt_logo_left && form.is_official_goodsif">
+                  <img src="/static/img/receipt_goodsif_logo.png" style="max-height:55px; max-width:90%; object-fit:contain;">
+                </template>
+                <template x-if="!form.receipt_logo_left && !form.is_official_goodsif && form.logo_url">
+                  <img :src="form.logo_url" style="max-height:55px; max-width:90%; object-fit:contain;">
+                </template>
+                <template x-if="!form.receipt_logo_left && !form.is_official_goodsif && !form.logo_url">
+                  <span style="font-size:11px; color:#94a3b8; font-weight:700;">Logo principal</span>
+                </template>
+              </div>
+              <div style="display:flex; gap:8px;">
+                <button type="button" class="btn btn-sm" style="font-size:11px; font-weight:700; background:#f1f5f9; color:#475569; border:none; padding:4px 10px; border-radius:6px; cursor:pointer;" @click="$refs.receiptLeftInput.click()">
+                  <i class="ph ph-upload-simple"></i> Subir Logo
+                </button>
+                <button type="button" class="btn btn-sm" style="font-size:11px; font-weight:700; background:#fee2e2; color:#b91c1c; border:none; padding:4px 8px; border-radius:6px; cursor:pointer;" x-show="form.receipt_logo_left" @click="form.receipt_logo_left = ''; markDirty()">
+                  Limpiar
+                </button>
+              </div>
+              <input type="file" x-ref="receiptLeftInput" style="display:none;" accept="image/*" @change="uploadAsset($event, 'receipt_logo_left')">
+            </div>
+
+            <!-- Logo Derecho Recibo -->
+            <div style="border:1px solid #e2e8f0; border-radius:10px; padding:14px; background:#ffffff;">
+              <div style="font-size:12px; font-weight:800; color:#1e293b; margin-bottom:4px; display:flex; justify-content:space-between; align-items:center;">
+                <span>Logo Derecho / Marca Secundaria</span>
+                <span style="font-size:10px; color:#64748b;">(Opcional)</span>
+              </div>
+              <div style="height:70px; background:#f8fafc; border:1.5px dashed #cbd5e1; border-radius:8px; display:flex; align-items:center; justify-content:center; overflow:hidden; margin-bottom:8px;">
+                <template x-if="form.receipt_logo_right">
+                  <img :src="form.receipt_logo_right" style="max-height:55px; max-width:90%; object-fit:contain;">
+                </template>
+                <template x-if="!form.receipt_logo_right && form.is_official_goodsif">
+                  <img src="/static/img/receipt_r78_logo.png" style="max-height:55px; max-width:90%; object-fit:contain;">
+                </template>
+                <template x-if="!form.receipt_logo_right && !form.is_official_goodsif">
+                  <span style="font-size:11px; color:#94a3b8; font-weight:700;">Sin logo secundario</span>
+                </template>
+              </div>
+              <div style="display:flex; gap:8px;">
+                <button type="button" class="btn btn-sm" style="font-size:11px; font-weight:700; background:#f1f5f9; color:#475569; border:none; padding:4px 10px; border-radius:6px; cursor:pointer;" @click="$refs.receiptRightInput.click()">
+                  <i class="ph ph-upload-simple"></i> Subir Logo
+                </button>
+                <button type="button" class="btn btn-sm" style="font-size:11px; font-weight:700; background:#fee2e2; color:#b91c1c; border:none; padding:4px 8px; border-radius:6px; cursor:pointer;" x-show="form.receipt_logo_right" @click="form.receipt_logo_right = ''; markDirty()">
+                  Limpiar
+                </button>
+              </div>
+              <input type="file" x-ref="receiptRightInput" style="display:none;" accept="image/*" @change="uploadAsset($event, 'receipt_logo_right')">
+            </div>
+
+          </div>
+
+          <!-- Campos Detallados de Contacto y Encabezado para Recibos -->
+          <div style="display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:16px;">
+            <div class="odoo-field-group">
+              <label class="odoo-label">Título o Razón Comercial en Recibo Media Carta</label>
+              <input type="text" class="odoo-input" placeholder="Ej: Productos Automotrices del Sur S.A." x-model="form.receipt_title" @input="markDirty()">
+              <span class="odoo-hint">Nombre que se imprime en negrita en el encabezado del recibo.</span>
+            </div>
+
+            <div class="odoo-field-group">
+              <label class="odoo-label">Teléfonos en Comprobante Oficial</label>
+              <input type="text" class="odoo-input" placeholder="+(502) 3454-3857" x-model="form.receipt_phone" @input="markDirty()">
+            </div>
+
+            <div class="odoo-field-group">
+              <label class="odoo-label">Correos Electrónicos en Comprobante</label>
+              <input type="text" class="odoo-input" placeholder="proausur78@gmail.com | proausu.sa@gmail.com" x-model="form.receipt_emails" @input="markDirty()">
+            </div>
+
+            <div class="odoo-field-group">
+              <label class="odoo-label">Dirección en Comprobante</label>
+              <input type="text" class="odoo-input" placeholder="Lote 67, Calle Central, Nueva Concepción, Escuintla." x-model="form.receipt_address" @input="markDirty()">
+            </div>
+
+            <div class="odoo-field-group" style="grid-column:1 / -1;">
+              <label class="odoo-label">Pie de Página / Agradecimiento de Comprobante</label>
+              <input type="text" class="odoo-input" placeholder="¡Muchas gracias por su preferencia!" x-model="form.receipt_footer_notes" @input="markDirty()">
+            </div>
+          </div>
+
+        </div>
+
       </section>
 
       <!-- ========================================== -->
@@ -1748,7 +1957,19 @@
         email_alerts_enabled: false,
         enable_loyalty_program: false,
         loyalty_points_per_quetzal: 1.0,
-        loyalty_redeem_rate: 10.0
+        loyalty_redeem_rate: 10.0,
+        // Formatos Oficiales & Membretes (Multi-Empresa)
+        receipt_logo_left: '',
+        receipt_logo_right: '',
+        quote_logo: '',
+        statement_banner_url: '',
+        statement_logo_url: '',
+        receipt_title: '',
+        receipt_emails: '',
+        receipt_phone: '',
+        receipt_address: '',
+        receipt_footer_notes: '',
+        is_official_goodsif: false
       },
 
       tabMeta: {
@@ -1911,6 +2132,69 @@
         } catch(e) {
           alert('Error al subir logotipo: ' + (e.message || e));
         }
+      },
+
+      async uploadAsset(event, formKey) {
+        const file = event.target.files && event.target.files[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+          let data;
+          if (window.API && typeof window.API.upload === 'function') {
+            data = await window.API.upload('/products/upload-image', formData);
+          } else {
+            let token = localStorage.getItem('access_token') || '';
+            token = token.replace(/^Bearer\s+/i, '').replace(/["'\r\n\t\s]/g, '');
+            const headers = (token && token.length > 10 && token !== 'null') ? { 'Authorization': `Bearer ${token}` } : {};
+            const res = await fetch('/api/v1/products/upload-image', {
+              method: 'POST',
+              credentials: 'same-origin',
+              headers: headers,
+              body: formData
+            });
+            data = await res.json();
+          }
+          if (data && data.url) {
+            this.form[formKey] = data.url;
+            this.markDirty();
+            this.showNotification('¡Imagen cargada exitosamente! Recuerda guardar los cambios.');
+          }
+        } catch(e) {
+          alert('Error al subir imagen: ' + (e.message || e));
+        }
+      },
+
+      applyOfficialGoodsifPreset() {
+        this.form.is_official_goodsif = true;
+        this.form.receipt_title = 'Productos Automotrices del Sur S.A.';
+        this.form.statement_banner_url = '/static/img/statement_logos_banner.png';
+        this.form.quote_logo = '/static/img/quotes/logo_r78_stamp.png';
+        this.form.receipt_logo_left = '/static/img/receipt_goodsif_logo.png';
+        this.form.receipt_logo_right = '/static/img/receipt_r78_logo.png';
+        this.form.receipt_emails = 'proausur78@gmail.com | proausu.sa@gmail.com';
+        this.form.receipt_phone = '+(502) 3454-3857';
+        this.form.receipt_address = 'Lote 67, Calle Central, Nueva Concepción, Escuintla.';
+        this.form.receipt_footer_notes = 'Productos Automotrices del Sur S.A. — Gracias por su preferencia.';
+        this.markDirty();
+        this.showNotification('Preset oficial Goodsif & R78 / Grupo H aplicado.');
+      },
+
+      applyCustomCompanyPreset() {
+        this.form.is_official_goodsif = false;
+        this.form.receipt_title = this.form.trade_name || this.form.name || '';
+        this.form.statement_banner_url = this.form.logo_url || '';
+        this.form.quote_logo = this.form.logo_url || '';
+        this.form.receipt_logo_left = this.form.logo_url || '';
+        this.form.receipt_logo_right = '';
+        this.form.receipt_emails = this.form.email || '';
+        this.form.receipt_phone = this.form.phone || '';
+        this.form.receipt_address = this.form.address || '';
+        this.form.receipt_footer_notes = `${this.form.trade_name || this.form.name || 'Nuestra empresa'} — Gracias por su preferencia.`;
+        this.markDirty();
+        this.showNotification('Formato personalizado con datos de la empresa actual configurado.');
       },
 
       showNotification(msg) {

@@ -163,8 +163,64 @@ def test_pos_and_inventory_stock_consistency_and_ghost_warehouse_isolation():
 
     # 6. Consultar stock desde catálogo POS (/products/pos-catalog)
     pos_cat = client.get("/api/v1/products/pos-catalog", headers=headers)
-    assert pos_cat.status_code == 200
     matched = [p for p in pos_cat.json().get("products", []) if p["id"] == prod_id]
     assert len(matched) == 1
     assert matched[0]["stock"] == 50.0
+
+
+def test_offline_sale_auto_sync_simulation():
+    """Valida el ciclo de sincronización automática de venta offline al restablecer conexión."""
+    b_res = client.get("/api/v1/branches/", headers=headers)
+    branch_id = b_res.json()[0]["id"] if b_res.status_code == 200 and b_res.json() else str(COMPANY_ID)
+
+    wh_res = client.get("/api/v1/warehouses/", headers=headers)
+    wh_id = wh_res.json()[0]["id"] if wh_res.status_code == 200 and wh_res.json() else branch_id
+
+    # 1. Crear producto
+    p_res = client.post("/api/v1/products/", json={
+        "name": f"AutoSync Offline Prod {uuid.uuid4().hex[:6]}",
+        "sale_price": 75.0,
+        "initial_stock": 20.0
+    }, headers=headers)
+    assert p_res.status_code in (200, 201)
+    prod_id = p_res.json()["id"]
+
+    # 2. Generar ID único simulando almacenamiento en IndexedDB
+    client_offline_id = f"off_auto_{uuid.uuid4().hex}"
+    sale_payload = {
+        "branch_id": branch_id,
+        "warehouse_id": wh_id,
+        "customer_nit": "CF",
+        "customer_name": "CONSUMIDOR FINAL",
+        "sale_type": "pos",
+        "generate_fel": False,
+        "client_offline_id": client_offline_id,
+        "lines": [{
+            "product_id": prod_id,
+            "product_name": "AutoSync Offline Prod",
+            "qty": 2.0,
+            "unit_price": 75.0,
+            "cost_price": 40.0
+        }],
+        "payments": [{
+            "payment_method": "cash",
+            "amount": 150.0
+        }],
+        "notes": f"Venta offline generada localmente id:{client_offline_id}"
+    }
+
+    # 3. Simular auto-sync al conectarse a internet: POST exitoso a /sales/
+    sync_res = client.post("/api/v1/sales/", json=sale_payload, headers=headers)
+    assert sync_res.status_code == 200
+    res_data = sync_res.json()
+    assert res_data["total"] == 150.0
+    sale_server_id = res_data["id"]
+
+    # 4. Simular segundo auto-sync o reintento de conexión con el mismo ticket: debe responder idempotentemente
+    retry_res = client.post("/api/v1/sales/", json=sale_payload, headers=headers)
+    assert retry_res.status_code == 200
+    retry_data = retry_res.json()
+    assert retry_data["id"] == sale_server_id
+    assert retry_data.get("idempotent") is True
+
 

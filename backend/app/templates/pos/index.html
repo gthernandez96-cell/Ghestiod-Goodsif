@@ -3679,9 +3679,18 @@
 
       <!-- Customer Header -->
       <div class="customer-header-box" style="background:#ffffff; border-bottom:1px solid #e2e8f0; padding:10px 14px;">
-        <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px; cursor:pointer;" @click="openCustomerModal()">
-          <i class="ph ph-user" style="font-size:18px; color:#5c2847;"></i>
-          <div style="font-weight:800; font-size:14px; color:#1e293b;" x-text="customer.name || 'Cliente General'"></div>
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+          <div style="display:flex; align-items:center; gap:8px; cursor:pointer;" @click="openCustomerModal()">
+            <i class="ph ph-user" style="font-size:18px; color:#5c2847;"></i>
+            <div style="font-weight:800; font-size:14px; color:#1e293b;" x-text="customer.name || 'Cliente General'"></div>
+          </div>
+          <template x-if="customer && customer.nit && customer.nit !== 'CF'">
+            <span 
+              class="badge" 
+              :style="customerHasCreditAuthorized() ? 'background:#dcfce7; color:#15803d; font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:10px;' : 'background:#fee2e2; color:#b91c1c; font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:10px;'"
+              x-text="customerHasCreditAuthorized() ? 'Crédito: Q ' + formatPrice(getCreditAvailableAmount()) : getCreditStatusLabel()"
+            ></span>
+          </template>
         </div>
         <div style="position:relative;" @click.outside="showInlineCustomerDropdown = false">
           <input
@@ -3702,11 +3711,18 @@
             x-cloak
           >
             <template x-for="c in customerList" :key="c.id">
-              <div class="settings-dropdown-item" @click="selectCustomer(c); showInlineCustomerDropdown = false">
+              <div class="settings-dropdown-item" @click="selectCustomer(c); showInlineCustomerDropdown = false" style="display:flex; justify-content:space-between; align-items:center;">
                 <div>
                   <div style="font-weight:800; font-size:13px;" x-text="c.name"></div>
                   <div style="font-size:11px; color:#64748b;" x-text="'NIT: ' + (c.nit || 'CF') + (c.phone ? ' | Tel: ' + c.phone : '')"></div>
                 </div>
+                <template x-if="c.nit && c.nit !== 'CF'">
+                  <span 
+                    style="font-size:10px; font-weight:700; padding:2px 6px; border-radius:8px; white-space:nowrap;"
+                    :style="((c.credit_status || 'none') === 'active' && (c.credit_limit || 0) > 0) ? 'background:#dcfce7; color:#15803d;' : 'background:#fee2e2; color:#b91c1c;'"
+                    x-text="((c.credit_status || 'none') === 'active' && (c.credit_limit || 0) > 0) ? 'Crédito Q ' + (c.available_credit !== undefined ? Number(c.available_credit).toFixed(2) : (Number(c.credit_limit || 0) - Number(c.balance || 0)).toFixed(2)) : 'Sin Crédito'"
+                  ></span>
+                </template>
               </div>
             </template>
           </div>
@@ -4058,13 +4074,60 @@
                 class="pay-method-select-card"
                 :class="paymentMethod === 'credit' ? 'active' : ''"
                 @click="setPaymentMethod('credit')"
+                :style="(!customerHasCreditAuthorized()) ? 'opacity:0.9;' : ''"
               >
                 <div class="pay-method-left">
                   <span class="pay-method-emoji">📑</span>
-                  <span class="pay-method-title">Crédito</span>
+                  <div style="display:flex; flex-direction:column;">
+                    <span class="pay-method-title">Crédito</span>
+                    <span style="font-size:10px; font-weight:700;"
+                          :style="customerHasCreditAuthorized() ? 'color:#059669;' : 'color:#dc2626;'"
+                          x-text="customerHasCreditAuthorized() ? 'Disp: Q ' + formatPrice(getCreditAvailableAmount()) : ((customer && customer.nit === 'CF') ? 'No CF' : 'Sin Crédito')">
+                    </span>
+                  </div>
                 </div>
                 <div class="pay-method-badge" x-text="'Q ' + (paymentMethod === 'credit' ? (payBuffer || '0.00') : '0.00')"></div>
               </div>
+
+              <!-- Card Informativa de Crédito -->
+              <template x-if="paymentMethod === 'credit'">
+                <div style="margin-top:12px; padding:12px; border-radius:10px; font-size:12px; transition:all 0.2s ease;"
+                     :style="canCustomerUseCredit() ? 'background:#faf5ff; border:1.5px solid #d8b4fe;' : 'background:#fff1f2; border:1.5px solid #fecdd3;'">
+                  <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+                    <div style="font-weight:800; display:flex; align-items:center; gap:6px;"
+                         :style="canCustomerUseCredit() ? 'color:#7e22ce;' : 'color:#be123c;'">
+                      <i class="fa-solid" :class="canCustomerUseCredit() ? 'fa-circle-check' : 'fa-circle-xmark'"></i>
+                      <span x-text="canCustomerUseCredit() ? 'Crédito Autorizado' : 'Crédito No Permitido'"></span>
+                    </div>
+                    <span style="font-size:10.5px; font-weight:800; padding:2px 8px; border-radius:10px; text-transform:uppercase;"
+                          :style="customerHasCreditAuthorized() ? 'background:#dcfce7; color:#15803d;' : 'background:#fee2e2; color:#b91c1c;'"
+                          x-text="getCreditStatusLabel()">
+                    </span>
+                  </div>
+                  <div style="color:#475569; font-size:11.5px; line-height:1.5;">
+                    <div><b>Cliente:</b> <span x-text="(customer && customer.name) || 'CONSUMIDOR FINAL'"></span></div>
+                    <div style="display:flex; justify-content:space-between; margin-top:2px;">
+                      <span><b>Límite:</b> Q <span x-text="formatPrice(customer && customer.credit_limit || 0)"></span></span>
+                      <span><b>Saldo Deuda:</b> Q <span x-text="formatPrice(customer && customer.balance || 0)"></span></span>
+                    </div>
+                    <div style="margin-top:4px; font-size:12px; font-weight:800;"
+                         :style="canCustomerUseCredit() ? 'color:#15803d;' : 'color:#be123c;'">
+                      Disponible: Q <span x-text="formatPrice(getCreditAvailableAmount())"></span>
+                      <span style="font-weight:400; font-size:11px; color:#64748b;">(Venta: Q <span x-text="formatPrice(grandTotal)"></span>)</span>
+                    </div>
+                  </div>
+                  <template x-if="!canCustomerUseCredit()">
+                    <div style="margin-top:8px; padding:6px 8px; background:#ffe4e6; border-radius:6px; color:#9f1239; font-size:11px; font-weight:700; line-height:1.3;">
+                      <span x-show="!customer || !customer.nit || customer.nit === 'CF'">⚠️ No se puede otorgar crédito a Consumidor Final. Seleccione un cliente registrado.</span>
+                      <span x-show="customer && customer.nit && customer.nit !== 'CF' && (customer.credit_status || 'none') === 'none'">⛔ Este cliente no cuenta con crédito autorizado. No se puede realizar la venta.</span>
+                      <span x-show="customer && (customer.credit_status || 'none') === 'suspended'">⛔ La línea de crédito de este cliente está SUSPENDIDA.</span>
+                      <span x-show="customer && (customer.credit_status || 'none') === 'blocked'">⛔ La línea de crédito de este cliente está BLOQUEADA por mora.</span>
+                      <span x-show="customer && (customer.credit_status || 'none') === 'active' && (customer.credit_limit || 0) <= 0">⛔ El cliente no cuenta con un límite de crédito configurado (Q 0.00).</span>
+                      <span x-show="customer && (customer.credit_status || 'none') === 'active' && (customer.credit_limit || 0) > 0 && !canCustomerUseCredit()">⚠️ El total de la compra supera el saldo de crédito disponible.</span>
+                    </div>
+                  </template>
+                </div>
+              </template>
 
             </div>
           </div>
@@ -4166,10 +4229,12 @@
               <button
                 type="button"
                 class="btn-validate-payment"
-                :disabled="faltaPorCobrar > 0"
+                :disabled="faltaPorCobrar > 0 || (paymentMethod === 'credit' && !canCustomerUseCredit())"
                 @click="confirmPayment()"
+                :style="paymentMethod === 'credit' && !canCustomerUseCredit() ? 'background:#94a3b8 !important; cursor:not-allowed !important;' : ''"
               >
-                Validar Pago
+                <span x-show="paymentMethod !== 'credit' || canCustomerUseCredit()">Validar Pago</span>
+                <span x-show="paymentMethod === 'credit' && !canCustomerUseCredit()">⛔ Sin Crédito Autorizado</span>
               </button>
             </div>
           </div>
@@ -4187,13 +4252,17 @@
           <button
             type="button"
             class="mpd-btn-validate"
-            :disabled="faltaPorCobrar > 0"
+            :disabled="faltaPorCobrar > 0 || (paymentMethod === 'credit' && !canCustomerUseCredit())"
             @click="confirmPayment()"
+            :style="paymentMethod === 'credit' && !canCustomerUseCredit() ? 'background:#94a3b8 !important; cursor:not-allowed !important;' : ''"
           >
             <span x-show="faltaPorCobrar > 0" x-text="'Falta Q ' + formatPrice(faltaPorCobrar)">Falta</span>
-            <span x-show="faltaPorCobrar === 0" style="display:flex; align-items:center; gap:6px;">
+            <span x-show="faltaPorCobrar === 0 && (paymentMethod !== 'credit' || canCustomerUseCredit())" style="display:flex; align-items:center; gap:6px;">
               <i class="ph ph-check-circle" style="font-size:18px;"></i>
               <span>Validar Pago</span>
+            </span>
+            <span x-show="faltaPorCobrar === 0 && paymentMethod === 'credit' && !canCustomerUseCredit()" style="display:flex; align-items:center; gap:4px; font-size:12px;">
+              <span>⛔ Sin Crédito</span>
             </span>
           </button>
         </div>
@@ -4750,6 +4819,28 @@
           </div>
         </div>
 
+        <!-- Auto-Sync Status Banner -->
+        <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:12px; padding:12px 16px; display:flex; justify-content:space-between; align-items:center; gap:12px;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div style="font-size:22px;">⚡</div>
+            <div>
+              <div style="font-size:13px; font-weight:800; color:#166534; display:flex; align-items:center; gap:6px;">
+                <span>Sincronización Automática al Detectar Internet</span>
+                <span style="font-size:10px; background:#22c55e; color:#ffffff; padding:2px 8px; border-radius:10px; font-weight:800;">ACTIVA</span>
+              </div>
+              <div style="font-size:11.5px; color:#15803d; margin-top:2px;">
+                Al regresar la conexión a internet, los tickets offline se envían de forma automática y transparente al servidor.
+              </div>
+            </div>
+          </div>
+          <template x-if="isAutoSyncing">
+            <span style="background:#dcfce7; color:#15803d; font-size:11px; font-weight:700; padding:6px 12px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; border:1px solid #86efac;">
+              <span class="sync-spinner">🔄</span>
+              <span>Subiendo...</span>
+            </span>
+          </template>
+        </div>
+
         <!-- Sync Action Buttons Banner -->
         <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; padding:14px 16px; display:flex; justify-content:space-between; align-items:center; gap:12px;">
           <div>
@@ -5106,57 +5197,132 @@
     </div>
   </div>
 
-  <!-- MODAL DE SELECCIÓN Y CREACIÓN DE CLIENTES (ESTILO ODOO POS) -->
-  <div class="modal-backdrop" x-show="showCustomerModal" style="display:none" x-cloak>
-    <div class="cash-modal-card" style="max-width:640px;">
-      <div class="cash-modal-header">
-        <div class="cash-modal-title" x-text="showCreateCustomerForm ? 'Crear Nuevo Cliente' : 'Seleccionar Cliente'"></div>
-        <div class="cash-modal-close" @click="showCustomerModal = false">&times;</div>
+  <!-- MODAL DE SELECCIÓN Y CREACIÓN DE CLIENTES (ESTILO ELEGANTE POS) -->
+  <div class="modal-backdrop" x-show="showCustomerModal" style="display:none; align-items:center; justify-content:center; padding:16px;" x-cloak>
+    <div class="cash-modal-card" style="max-width:780px; width:100%; border-radius:16px; background:#ffffff; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25); overflow:hidden; border:none; display:flex; flex-direction:column; max-height:90vh;">
+      <!-- MODAL HEADER -->
+      <div style="padding:16px 22px; border-bottom:1px solid #f1f5f9; display:flex; justify-content:space-between; align-items:center; background:#ffffff;">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="width:42px; height:42px; border-radius:10px; background:#f5eef4; border:1px solid #ebdbe8; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+            <i class="ph ph-users" style="font-size:22px; color:#714B67;"></i>
+          </div>
+          <div>
+            <div style="font-size:18px; font-weight:800; color:#1e293b; line-height:1.2;" x-text="showCreateCustomerForm ? 'Crear Nuevo Cliente' : 'Seleccionar Cliente'">Seleccionar Cliente</div>
+            <div style="font-size:13px; color:#64748b; margin-top:2px;" x-show="!showCreateCustomerForm">Clientes con crédito y condiciones comerciales</div>
+            <div style="font-size:13px; color:#64748b; margin-top:2px;" x-show="showCreateCustomerForm">Ingresa los datos para registrar un nuevo cliente</div>
+          </div>
+        </div>
+        <button 
+          type="button" 
+          @click="showCustomerModal = false" 
+          style="background:transparent; border:none; color:#64748b; font-size:22px; line-height:1; cursor:pointer; padding:6px; border-radius:8px; display:flex; align-items:center; justify-content:center; transition:all 0.15s ease;"
+          onmouseover="this.style.background='#f1f5f9'; this.style.color='#0f172a';"
+          onmouseout="this.style.background='transparent'; this.style.color='#64748b';"
+        >
+          <i class="ph ph-x"></i>
+        </button>
       </div>
 
       <!-- MODO 1: BÚSQUEDA Y LISTA DE CLIENTES -->
-      <div x-show="!showCreateCustomerForm" style="padding:20px;">
-        <div style="display:flex; gap:10px; margin-bottom:16px;">
-          <div class="catalog-search-pill" style="max-width:none; flex:1;">
-            <i class="ph ph-magnifying-glass catalog-search-icon"></i>
+      <div x-show="!showCreateCustomerForm" style="display:flex; flex-direction:column; flex:1; min-height:0; overflow:hidden;">
+        <!-- Barra de búsqueda y botón nuevo cliente -->
+        <div style="padding:16px 22px; display:flex; gap:12px; align-items:center;">
+          <div style="position:relative; flex:1;">
+            <i class="ph ph-magnifying-glass" style="position:absolute; left:14px; top:50%; transform:translateY(-50%); font-size:18px; color:#64748b; pointer-events:none;"></i>
             <input
               type="text"
               placeholder="Buscar por NIT, nombre o teléfono..."
               x-model="customerSearchQuery"
               @input.debounce.200ms="searchCustomers()"
+              style="width:100%; border:1.5px solid #cbd5e1; border-radius:8px; padding:10px 14px 10px 42px; font-size:14px; color:#1e293b; outline:none; transition:border-color 0.15s, box-shadow 0.15s; box-sizing:border-box;"
+              onfocus="this.style.borderColor='#714B67'; this.style.boxShadow='0 0 0 3px rgba(113,75,103,0.12)';"
+              onblur="this.style.borderColor='#cbd5e1'; this.style.boxShadow='none';"
             >
           </div>
-          <button class="new-sale-btn" style="white-space:nowrap;" @click="showCreateCustomerForm = true">
-            + Nuevo Cliente
+          <button 
+            type="button" 
+            @click="showCreateCustomerForm = true"
+            style="background:#714B67; color:#ffffff; border:none; border-radius:8px; padding:10px 20px; font-weight:700; font-size:14px; white-space:nowrap; cursor:pointer; display:inline-flex; align-items:center; gap:6px; transition:all 0.15s ease;"
+            onmouseover="this.style.background='#5a3852';"
+            onmouseout="this.style.background='#714B67';"
+          >
+            <span>+ Nuevo Cliente</span>
           </button>
         </div>
 
-        <div style="max-height:350px; overflow-y:auto; display:flex; flex-direction:column; gap:8px;">
-          <!-- Opción Consumidor Final -->
-          <div
-            class="cart-line-item"
-            style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;"
-            @click="selectCustomer({ nit: 'CF', name: 'CONSUMIDOR FINAL' })"
-          >
-            <div>
-              <div style="font-weight:800; font-size:14px; color:#1e293b;">CONSUMIDOR FINAL</div>
-              <div style="font-size:12px; color:#64748b;">NIT: CF</div>
-            </div>
-            <button class="settings-btn" style="padding:4px 12px; font-size:12px; background:#0d9488; color:white; border:none;">Seleccionar</button>
-          </div>
-
-          <!-- Lista de Clientes Encontrados -->
+        <!-- Lista de tarjetas de clientes con scroll -->
+        <div style="padding:0 22px 20px 22px; overflow-y:auto; flex:1; max-height:460px; display:flex; flex-direction:column; gap:12px;">
+          <!-- Tarjetas de clientes -->
           <template x-for="c in customerList" :key="c.id || c.nit">
-            <div
-              class="cart-line-item"
-              style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;"
-              @click="selectCustomer(c)"
+            <div 
+              style="background:#ffffff; border:1.5px solid #e2e8f0; border-radius:12px; padding:16px 20px; display:flex; justify-content:space-between; align-items:center; gap:16px; transition:all 0.15s ease; box-shadow:0 1px 3px rgba(0,0,0,0.02);"
+              onmouseover="this.style.borderColor='#cbd5e1'; this.style.boxShadow='0 4px 6px -1px rgba(0,0,0,0.04)';"
+              onmouseout="this.style.borderColor='#e2e8f0'; this.style.boxShadow='0 1px 3px rgba(0,0,0,0.02)';"
             >
-              <div>
-                <div style="font-weight:800; font-size:14px; color:#1e293b;" x-text="c.name"></div>
-                <div style="font-size:12px; color:#64748b;" x-text="'NIT: ' + (c.nit || 'CF') + (c.phone ? ' | Tel: ' + c.phone : '')"></div>
+              <!-- Info del Cliente (Izquierda) -->
+              <div style="flex:1; min-width:0;">
+                <div style="font-size:16px; font-weight:800; color:#0f172a; margin-bottom:8px; line-height:1.3;" x-text="c.name"></div>
+                
+                <!-- Fila de Badges: NIT, Plazo, Disp, Límite -->
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                  <!-- NIT -->
+                  <span style="display:inline-flex; align-items:center; gap:4px; border:1px solid #e2e8f0; background:#f8fafc; border-radius:6px; padding:3px 9px; font-size:12px; color:#64748b; font-weight:600;">
+                    NIT: <strong style="color:#0f172a; font-weight:800;" x-text="c.nit || 'CF'"></strong>
+                  </span>
+
+                  <!-- Plazo -->
+                  <span style="display:inline-flex; align-items:center; gap:4px; border:1px solid #fbcfe8; background:#fdf2f8; border-radius:6px; padding:3px 9px; font-size:12px; color:#be185d; font-weight:600;">
+                    Plazo: <strong style="font-weight:800;" x-text="(c.payment_days && c.payment_days > 0) ? (c.payment_days + ' días') : (((c.credit_status || 'none') === 'active' || (parseFloat(c.credit_limit || 0) > 0)) ? 'Crédito' : 'Contado')"></strong>
+                  </span>
+
+                  <!-- Disp -->
+                  <span style="display:inline-flex; align-items:center; gap:4px; border:1px solid #bbf7d0; background:#f0fdf4; border-radius:6px; padding:3px 9px; font-size:12px; color:#15803d; font-weight:600;">
+                    Disp: <strong style="font-weight:800;" x-text="'Q ' + (c.available_credit !== undefined ? Number(c.available_credit).toFixed(2) : Math.max(0, Number(c.credit_limit || 0) - Number(c.balance || 0)).toFixed(2))"></strong>
+                  </span>
+
+                  <!-- Límite -->
+                  <span style="display:inline-flex; align-items:center; gap:4px; border:1px solid #e2e8f0; background:#f1f5f9; border-radius:6px; padding:3px 9px; font-size:12px; color:#475569; font-weight:600;">
+                    Límite: <strong style="color:#0f172a; font-weight:800;" x-text="'Q ' + Number(c.credit_limit || 0).toFixed(2)"></strong>
+                  </span>
+                </div>
+
+                <!-- Teléfono y Dirección -->
+                <template x-if="c.phone || c.address">
+                  <div style="display:flex; align-items:center; gap:8px; margin-top:8px; font-size:12px; color:#64748b; flex-wrap:wrap;">
+                    <span style="display:inline-flex; align-items:center; gap:4px;">
+                      <i class="ph-fill ph-phone" style="font-size:13px; color:#475569;"></i>
+                      <span x-text="c.phone || 'N/I'"></span>
+                    </span>
+                    <span style="color:#cbd5e1; font-weight:bold;">•</span>
+                    <span style="display:inline-flex; align-items:center; gap:4px;">
+                      <i class="ph-fill ph-map-pin" style="font-size:13px; color:#ef4444;"></i>
+                      <span x-text="c.address || c.direccion || 'Ciudad de Guatemala'"></span>
+                    </span>
+                  </div>
+                </template>
               </div>
-              <button class="settings-btn" style="padding:4px 12px; font-size:12px; background:#0d9488; color:white; border:none;">Seleccionar</button>
+
+              <!-- Botones de Acción (Derecha) -->
+              <div style="display:flex; align-items:center; flex-shrink:0;">
+                <button 
+                  type="button" 
+                  @click="selectCustomer(c)"
+                  style="background:#714B67; color:#ffffff; border:none; border-radius:8px; padding:9px 24px; font-weight:700; font-size:14px; cursor:pointer; transition:all 0.15s ease; box-shadow:0 1px 3px rgba(113,75,103,0.25);"
+                  onmouseover="this.style.background='#5a3852'; this.style.transform='translateY(-1px)';"
+                  onmouseout="this.style.background='#714B67'; this.style.transform='none';"
+                >
+                  Seleccionar
+                </button>
+              </div>
+            </div>
+          </template>
+
+          <!-- Estado vacío si no hay clientes -->
+          <template x-if="customerList.length === 0">
+            <div style="text-align:center; padding:36px 16px; color:#64748b;">
+              <i class="ph ph-user-circle-minus" style="font-size:42px; color:#cbd5e1; margin-bottom:8px;"></i>
+              <div style="font-weight:800; font-size:15px; color:#475569;">No se encontraron clientes</div>
+              <div style="font-size:12.5px; margin-top:4px;">Prueba buscando con otro NIT o nombre, o haz clic en "+ Nuevo Cliente".</div>
             </div>
           </template>
         </div>
@@ -5831,6 +5997,9 @@
 function posApp() {
   return {
     online: navigator.onLine,
+    isAutoSyncing: false,
+    autoSyncEnabled: true,
+    connectionCheckTimer: null,
     showPosDashboard: true,
     posSalesToday: 0,
     posInvoicesToday: 0,
@@ -6027,18 +6196,46 @@ function posApp() {
     },
 
     selectCustomer(c) {
+      const cLimit = parseFloat(c.credit_limit || 0);
+      const cBal = parseFloat(c.balance || 0);
+      const cAvail = parseFloat(c.available_credit !== undefined ? c.available_credit : Math.max(0, cLimit - cBal));
       this.customer = {
         id: c.id,
         nit: c.nit || 'CF',
         name: c.name || 'CONSUMIDOR FINAL',
         email: c.email || '',
-        phone: c.phone || ''
+        phone: c.phone || '',
+        credit_status: c.credit_status || 'none',
+        credit_limit: cLimit,
+        balance: cBal,
+        available_credit: cAvail,
+        payment_days: parseInt(c.payment_days || 0)
       };
       if (this.orders[this.activeOrderIdx]) {
         this.orders[this.activeOrderIdx].customer = this.customer;
       }
       this.showCustomerModal = false;
       this.toast('Cliente seleccionado: ' + this.customer.name, 'success');
+    },
+
+    async deleteCustomerConfirm(c) {
+      if (!c || c.nit === 'CF' || !c.id) return;
+      if (!confirm(`¿Estás seguro de eliminar al cliente "${c.name}"?`)) return;
+      try {
+        const res = await API.delete('/partners/' + c.id);
+        if (res && (res.success || res.status === 'deleted')) {
+          this.toast(`Cliente "${c.name}" eliminado exitosamente.`, 'success');
+          if (this.customer && this.customer.id === c.id) {
+            this.selectCustomer({ nit: 'CF', name: 'CONSUMIDOR FINAL' });
+          }
+          await this.searchCustomers();
+        } else {
+          this.toast((res && res.message) || 'No se pudo eliminar el cliente.', 'warning');
+        }
+      } catch (err) {
+        console.error("Error al eliminar cliente:", err);
+        this.toast('Error al eliminar cliente: ' + (err.message || 'Error en servidor'), 'error');
+      }
     },
 
     isLookingUpSAT: false,
@@ -6104,14 +6301,23 @@ function posApp() {
           nit: this.newCustomerForm.nit || 'CF',
           name: this.newCustomerForm.name,
           phone: this.newCustomerForm.phone,
-          email: this.newCustomerForm.email
+          email: this.newCustomerForm.email,
+          credit_status: res.credit_status || 'none',
+          credit_limit: parseFloat(res.credit_limit || 0),
+          balance: 0,
+          available_credit: parseFloat(res.credit_limit || 0),
+          payment_days: parseInt(res.payment_days || 0)
         };
         this.selectCustomer(created);
       } catch(e) {
         const fallback = {
           nit: this.newCustomerForm.nit || 'CF',
           name: this.newCustomerForm.name,
-          phone: this.newCustomerForm.phone
+          phone: this.newCustomerForm.phone,
+          credit_status: 'none',
+          credit_limit: 0,
+          balance: 0,
+          available_credit: 0
         };
         this.selectCustomer(fallback);
       }
@@ -6502,69 +6708,165 @@ function posApp() {
       if (!this.online) {
         return this.toast("No hay conexión a internet para subir ventas", "warning");
       }
-      this.isSyncingSales = true;
-      try {
-        const res = await window.posDB.syncPendingSalesToServer(API);
-        await this.refreshSyncStats();
-        if (res && res.syncedCount > 0) {
-          this.toast(`¡Éxito! Se sincronizaron ${res.syncedCount} venta(s) con el servidor`, "success");
-        } else if (res && res.failedCount > 0) {
-          this.toast(`Hubo error al subir ${res.failedCount} venta(s)`, "error");
-        } else {
-          this.toast("No hay ventas pendientes por subir", "info");
-        }
-      } catch (err) {
-        this.toast("Error de sincronización: " + err.message, "error");
-      } finally {
-        this.isSyncingSales = false;
-      }
+      return this.autoSyncWhenOnline('manual_button');
     },
 
     async saveOfflineSale(payload) {
       if (window.posDB) {
         const record = await window.posDB.saveOfflineSale(payload);
         await this.refreshSyncStats();
-        this.toast(`Modo Offline: Ticket ${record.offline_number} guardado en IndexedDB`, "info");
+        this.toast(`Modo Offline: Ticket ${record.offline_number} guardado en IndexedDB. Se sincronizará automáticamente al regresar el internet.`, "info");
         return record;
       }
       const pending = JSON.parse(localStorage.getItem('pos_offline_sales') || '[]');
       pending.push(payload);
       localStorage.setItem('pos_offline_sales', JSON.stringify(pending));
-      this.toast("Modo Offline: Venta guardada localmente.", "info");
+      this.toast("Modo Offline: Venta guardada localmente. Se sincronizará al regresar el internet.", "info");
     },
 
     async syncOfflineSales() {
-      if (!this.online) return;
-      if (window.posDB) {
-        this.isSyncing = true;
-        const res = await window.posDB.syncPendingSalesToServer(API);
-        this.isSyncing = false;
-        await this.refreshSyncStats();
-        if (res && res.syncedCount > 0) {
-          this.toast(`¡Conexión restablecida! Se sincronizaron ${res.syncedCount} ventas pendientes.`, 'success');
-        }
-        return;
+      return this.autoSyncWhenOnline('syncOfflineSales');
+    },
+
+    async handleNetworkStatusChange(isOnline, source = 'event') {
+      const wasOnline = this.online;
+      this.online = isOnline;
+
+      if (isOnline && !wasOnline) {
+        console.log(`[POS AutoSync] Conexión a internet restablecida detectada vía ${source}. Iniciando sincronización automática...`);
+        this.toast('🌐 ¡Conexión a internet restablecida! Iniciando sincronización automática...', 'info');
+        await this.autoSyncWhenOnline('reconnection');
+      } else if (!isOnline && wasOnline) {
+        console.warn(`[POS AutoSync] Conexión a internet perdida detectada vía ${source}. Activando Modo Offline.`);
+        this.toast('⚠️ Conexión perdida. El POS continuará operando en Modo Offline seguro.', 'warning');
       }
-      const pending = JSON.parse(localStorage.getItem('pos_offline_sales') || '[]');
-      if (!pending || pending.length === 0) {
-        this.isSyncing = false;
-        return;
-      }
-      this.isSyncing = true;
-      let synced = 0;
-      const remaining = [];
-      for (const salePayload of pending) {
+    },
+
+    startConnectionMonitor() {
+      if (this.connectionCheckTimer) clearInterval(this.connectionCheckTimer);
+
+      const check = async () => {
+        if (document.hidden && this.online) return;
         try {
-          await API.post('/sales/', salePayload);
-          synced++;
-        } catch(e) {
-          remaining.push(salePayload);
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 3500);
+          const res = await fetch('/api/v1/auth/public-branches?_ping=' + Date.now(), {
+            method: 'GET',
+            headers: { 'Cache-Control': 'no-cache, no-store' },
+            signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+          if (res.ok) {
+            if (!this.online) {
+              await this.handleNetworkStatusChange(true, 'heartbeat');
+            } else if (this.pendingOfflineSalesCount > 0 && !this.isAutoSyncing && !this.isSyncingSales) {
+              await this.autoSyncWhenOnline('heartbeat_pending');
+            }
+          } else {
+            if (this.online) {
+              await this.handleNetworkStatusChange(false, 'heartbeat');
+            }
+          }
+        } catch (e) {
+          if (this.online) {
+            await this.handleNetworkStatusChange(false, 'heartbeat');
+          }
         }
+      };
+
+      // Sondeo adaptativo cada 8 segundos
+      this.connectionCheckTimer = setInterval(check, 8000);
+    },
+
+    async autoSyncWhenOnline(triggerSource = 'reconnection') {
+      if (!this.online) return;
+      if (this.isAutoSyncing || this.isSyncingSales) {
+        console.log("[POS AutoSync] Sincronización ya en curso. Omitiendo duplicada.");
+        return;
       }
-      localStorage.setItem('pos_offline_sales', JSON.stringify(remaining));
-      this.isSyncing = false;
-      if (synced > 0) {
-        this.toast(`¡Conexión restablecida! Se sincronizaron ${synced} ventas pendientes.`, 'success');
+      this.isAutoSyncing = true;
+      this.isSyncing = true;
+      this.isSyncingSales = true;
+
+      try {
+        await this.refreshSyncStats();
+        let pendingCount = (this.syncStats && this.syncStats.pendingSalesCount) || 0;
+        const legacyPending = JSON.parse(localStorage.getItem('pos_offline_sales') || '[]');
+        pendingCount += legacyPending.length;
+
+        // 1. Si hay ventas pendientes por subir, subirlas primero inmediatamente
+        if (pendingCount > 0) {
+          this.toast(`🔄 Subiendo automáticamente ${pendingCount} ticket(s) offline pendientes...`, 'info');
+          let syncedCount = 0;
+          let failedCount = 0;
+
+          if (window.posDB) {
+            const res = await window.posDB.syncPendingSalesToServer(API);
+            syncedCount = (res && res.syncedCount) || 0;
+            failedCount = (res && res.failedCount) || 0;
+          }
+
+          // Soporte fallback para localStorage legacy si existieran
+          if (legacyPending.length > 0) {
+            const remaining = [];
+            for (const salePayload of legacyPending) {
+              try {
+                await API.post('/sales/', salePayload);
+                syncedCount++;
+              } catch(e) {
+                remaining.push(salePayload);
+                failedCount++;
+              }
+            }
+            localStorage.setItem('pos_offline_sales', JSON.stringify(remaining));
+          }
+
+          await this.refreshSyncStats();
+
+          if (syncedCount > 0) {
+            this.toast(`✅ ¡Éxito! Se sincronizaron automáticamente ${syncedCount} ticket(s) offline con el servidor.`, 'success');
+            if (typeof launchConfetti === 'function') {
+              launchConfetti();
+            }
+            // Actualizar montos en la sesión de caja del servidor si está abierta
+            await this.checkCashierSession();
+          }
+
+          if (failedCount > 0) {
+            this.toast(`⚠️ ${failedCount} ticket(s) offline tuvieron observaciones. Revisa el Centro Offline.`, 'warning');
+          }
+        }
+
+        // 2. Descargar catálogo y clientes actualizados en segundo plano
+        if (window.posDB) {
+          this.isSyncingCatalog = true;
+          try {
+            const catRes = await window.posDB.syncCatalogFromServer(API);
+            await window.posDB.syncCustomersFromServer(API);
+            if (catRes && catRes.success) {
+              await this.loadCategories();
+              await this.loadProducts();
+            }
+            await this.refreshSyncStats();
+          } catch(e) {
+            console.warn("[POS AutoSync] Error sincronizando catálogo:", e);
+          } finally {
+            this.isSyncingCatalog = false;
+          }
+        }
+
+        if (pendingCount === 0 && triggerSource === 'reconnection') {
+          this.toast('🟢 Conexión a internet restablecida. Catálogo y datos al día.', 'success');
+        } else if (pendingCount === 0 && triggerSource === 'manual_button') {
+          this.toast('No hay ventas pendientes por subir.', 'info');
+        }
+      } catch (err) {
+        console.error("[POS AutoSync] Error general:", err);
+      } finally {
+        this.isAutoSyncing = false;
+        this.isSyncing = false;
+        this.isSyncingSales = false;
+        await this.refreshSyncStats();
       }
     },
 
@@ -6617,26 +6919,18 @@ function posApp() {
       await this.loadProducts();
       this.initRealtimeStockSync();
 
-      // 2. Sincronización en segundo plano si estamos en línea
-      if (this.online && window.posDB) {
-        window.posDB.syncCatalogFromServer(API).then(async (res) => {
-          if (res && res.success) {
-            await this.loadCategories();
-            await this.loadProducts();
-            await this.refreshSyncStats();
-          }
-        }).catch(() => {});
+      // 2. Iniciar monitor activo de conectividad (Heartbeat) y sincronización automática
+      this.startConnectionMonitor();
 
-        window.posDB.syncCustomersFromServer(API).catch(() => {});
-        await this.syncOfflineSales();
+      if (this.online) {
+        this.autoSyncWhenOnline('startup');
       }
 
       window.addEventListener('online', () => {
-        this.online = true;
-        this.syncOfflineSales();
+        this.handleNetworkStatusChange(true, 'browser_event');
       });
       window.addEventListener('offline', () => {
-        this.online = false;
+        this.handleNetworkStatusChange(false, 'browser_event');
       });
 
       let bBuffer = '';
@@ -7397,7 +7691,64 @@ function posApp() {
       return rem > 0 ? rem : 0;
     },
 
+    canCustomerUseCredit() {
+      if (!this.customer || !this.customer.nit || this.customer.nit === 'CF') return false;
+      const status = (this.customer.credit_status || 'none').toLowerCase();
+      if (status !== 'active') return false;
+      const limit = parseFloat(this.customer.credit_limit || 0);
+      if (limit <= 0) return false;
+      const avail = this.getCreditAvailableAmount();
+      return avail >= this.grandTotal;
+    },
+
+    customerHasCreditAuthorized() {
+      if (!this.customer || !this.customer.nit || this.customer.nit === 'CF') return false;
+      const status = (this.customer.credit_status || 'none').toLowerCase();
+      return status === 'active' && parseFloat(this.customer.credit_limit || 0) > 0;
+    },
+
+    getCreditStatusLabel() {
+      if (!this.customer || !this.customer.nit || this.customer.nit === 'CF') return 'Sin Crédito (CF)';
+      const status = (this.customer.credit_status || 'none').toLowerCase();
+      if (status === 'none') return 'Sin Crédito';
+      if (status === 'suspended') return 'Crédito Suspendido';
+      if (status === 'blocked') return 'Crédito Bloqueado';
+      if (status === 'active') {
+        const limit = parseFloat(this.customer.credit_limit || 0);
+        if (limit <= 0) return 'Sin Límite Asignado';
+        return 'Crédito Activo';
+      }
+      return status.toUpperCase();
+    },
+
+    getCreditAvailableAmount() {
+      if (!this.customer) return 0;
+      if (this.customer.available_credit !== undefined && !isNaN(this.customer.available_credit)) {
+        return parseFloat(this.customer.available_credit);
+      }
+      const limit = parseFloat(this.customer.credit_limit || 0);
+      const bal = parseFloat(this.customer.balance || 0);
+      return Math.max(0, limit - bal);
+    },
+
     setPaymentMethod(method) {
+      if (method === 'credit') {
+        if (!this.customer || !this.customer.nit || this.customer.nit === 'CF') {
+          this.toast('⚠️ Para venta al crédito selecciona un cliente registrado con crédito autorizado (no Consumidor Final).', 'warning');
+        } else if (!this.customerHasCreditAuthorized()) {
+          const status = (this.customer.credit_status || 'none').toLowerCase();
+          if (status === 'suspended') {
+            this.toast('❌ El cliente ' + this.customer.name + ' tiene el crédito SUSPENDIDO.', 'error');
+          } else if (status === 'blocked') {
+            this.toast('❌ El cliente ' + this.customer.name + ' tiene el crédito BLOQUEADO por mora.', 'error');
+          } else {
+            this.toast('❌ El cliente ' + this.customer.name + ' no cuenta con crédito autorizado.', 'error');
+          }
+        } else if (!this.canCustomerUseCredit()) {
+          const avail = this.getCreditAvailableAmount();
+          this.toast(`⚠️ Crédito insuficiente para ${this.customer.name}. Disponible: Q ${avail.toFixed(2)}, Requerido: Q ${this.grandTotal.toFixed(2)}.`, 'warning');
+        }
+      }
       this.paymentMethod = method;
     },
 
@@ -7540,8 +7891,31 @@ function posApp() {
       if (Math.round(this.sumaPagado * 100) < Math.round(this.grandTotal * 100)) {
         return this.toast('El monto abonado es insuficiente para validar el pago', 'error');
       }
-      if (this.paymentMethod === 'credit' && (!this.customer || !this.customer.nit || this.customer.nit === 'CF')) {
-        return this.toast('Debes seleccionar un cliente registrado para otorgar crédito', 'error');
+      if (this.paymentMethod === 'credit') {
+        if (!this.customer || !this.customer.nit || this.customer.nit === 'CF') {
+          return this.toast('❌ Venta al crédito rechazada: Debes seleccionar un cliente registrado (no Consumidor Final).', 'error');
+        }
+        const status = (this.customer.credit_status || 'none').toLowerCase();
+        if (status === 'none') {
+          return this.toast(`❌ Venta al crédito rechazada: El cliente "${this.customer.name}" no tiene crédito autorizado.`, 'error');
+        }
+        if (status === 'suspended') {
+          return this.toast(`❌ Venta al crédito rechazada: El crédito de "${this.customer.name}" se encuentra SUSPENDIDO.`, 'error');
+        }
+        if (status === 'blocked') {
+          return this.toast(`❌ Venta al crédito rechazada: El crédito de "${this.customer.name}" se encuentra BLOQUEADO por mora.`, 'error');
+        }
+        if (status !== 'active') {
+          return this.toast(`❌ Venta al crédito rechazada: El cliente "${this.customer.name}" no cuenta con crédito activo (Estado: ${status}).`, 'error');
+        }
+        const limit = parseFloat(this.customer.credit_limit || 0);
+        if (limit <= 0) {
+          return this.toast(`❌ Venta al crédito rechazada: El cliente "${this.customer.name}" no cuenta con un límite de crédito configurado (Q 0.00).`, 'error');
+        }
+        const avail = this.getCreditAvailableAmount();
+        if (this.grandTotal > avail) {
+          return this.toast(`❌ Venta al crédito rechazada: Crédito insuficiente para "${this.customer.name}". Disponible: Q ${avail.toFixed(2)}, Requerido: Q ${this.grandTotal.toFixed(2)}.`, 'error');
+        }
       }
 
       // Validar que ningún producto en el carrito supere el stock disponible en bodega o reservas
@@ -7642,6 +8016,11 @@ function posApp() {
               }
             }
           } catch (err) {
+            const errMsg = err && (err.message || String(err));
+            // Si el servidor respondió con un error de validación o rechazo, mostrar error y detener
+            if (this.online && errMsg && !errMsg.includes('Failed to fetch') && !errMsg.includes('NetworkError') && !errMsg.includes('Load failed')) {
+              return this.toast(`❌ No se pudo completar la venta: ${errMsg}`, 'error');
+            }
             console.warn("Error al conectar con servidor, guardando venta localmente en IndexedDB:", err);
             const offRecord = await this.saveOfflineSale(saleData);
             result = {
@@ -7781,6 +8160,10 @@ function posApp() {
       if (clean === 'CF' || clean === 'C/F') {
         this.customer.nit = 'CF';
         this.customer.name = 'CONSUMIDOR FINAL';
+        this.customer.credit_status = 'none';
+        this.customer.credit_limit = 0;
+        this.customer.balance = 0;
+        this.customer.available_credit = 0;
         return;
       }
       try {
@@ -7789,7 +8172,17 @@ function posApp() {
           if (!this.customer) this.customer = { nit: rawNit, name: '' };
           this.customer.nit = res.nit || rawNit;
           this.customer.name = res.name || (res.items && res.items[0]?.name) || this.customer.name;
-          this.toast('✓ ' + (res.name || 'Cliente verificado ante SAT'), 'success');
+          const itm = (res.items && res.items[0]) || res;
+          const cLimit = parseFloat(itm.credit_limit !== undefined ? itm.credit_limit : (res.credit_limit || 0));
+          const cBal = parseFloat(itm.balance !== undefined ? itm.balance : (res.balance || 0));
+          const cAvail = parseFloat(itm.available_credit !== undefined ? itm.available_credit : (res.available_credit !== undefined ? res.available_credit : Math.max(0, cLimit - cBal)));
+          this.customer.id = itm.id || res.id || this.customer.id;
+          this.customer.credit_status = itm.credit_status || res.credit_status || 'none';
+          this.customer.credit_limit = cLimit;
+          this.customer.balance = cBal;
+          this.customer.available_credit = cAvail;
+          this.customer.payment_days = parseInt(itm.payment_days || res.payment_days || 0);
+          this.toast('✓ ' + (res.name || 'Cliente verificado'), 'success');
         } else if (res.error) {
           this.toast(res.error, 'warning');
         }

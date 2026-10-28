@@ -1146,24 +1146,44 @@
             
             <!-- Left Card: Logos & Company Info -->
             <div style="flex:1 1 54%; min-width:320px; border:1.5px solid #94a3b8; border-radius:16px; padding:12px 18px; display:flex; flex-direction:column; justify-content:space-between;">
-              <div style="display:flex; align-items:center; justify-content:flex-start; gap:18px; flex-wrap:wrap;">
-                <img src="/static/img/receipt_r78_logo.png" alt="R78" style="height:44px; width:auto; object-fit:contain;">
-                <img src="/static/img/receipt_goodsif_logo.png" alt="GOODSIF" style="height:44px; width:auto; object-fit:contain;">
-                <img src="/static/img/quotes/logo_r78_stamp.png" alt="Productos Automotrices del Sur" style="height:50px; width:auto; object-fit:contain;">
+              <div style="display:flex; align-items:center; justify-content:flex-start; gap:16px; flex-wrap:wrap;">
+                <template x-if="statementData.company?.is_official_goodsif">
+                  <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
+                    <img src="/static/img/receipt_r78_logo.png" alt="R78" style="height:44px; width:auto; object-fit:contain;">
+                    <img src="/static/img/receipt_goodsif_logo.png" alt="GOODSIF" style="height:44px; width:auto; object-fit:contain;">
+                    <img src="/static/img/quotes/logo_r78_stamp.png" alt="Productos Automotrices del Sur" style="height:50px; width:auto; object-fit:contain;">
+                  </div>
+                </template>
+                <template x-if="!statementData.company?.is_official_goodsif">
+                  <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+                    <template x-if="statementData.company?.statement_banner_url">
+                      <img :src="statementData.company.statement_banner_url" alt="Banner Oficial" style="max-height:52px; max-width:260px; object-fit:contain;">
+                    </template>
+                    <template x-if="!statementData.company?.statement_banner_url && statementData.company?.logo_url">
+                      <img :src="statementData.company.logo_url" alt="Logo Empresa" style="height:50px; width:auto; object-fit:contain; border-radius:8px;">
+                    </template>
+                    <template x-if="!statementData.company?.statement_banner_url && !statementData.company?.logo_url">
+                      <div style="height:48px; display:inline-flex; align-items:center; gap:8px; background:#f1f5f9; padding:0 16px; border-radius:8px; border:1px solid #cbd5e1;">
+                        <i class="ph ph-buildings" style="font-size:24px; color:#475569;"></i>
+                        <span style="font-size:14px; font-weight:800; color:#1e293b;" x-text="statementData.company?.trade_name || statementData.company?.name"></span>
+                      </div>
+                    </template>
+                  </div>
+                </template>
               </div>
               <div style="margin-top:10px;">
-                <div style="font-size:14.5px; font-weight:900; color:#0f172a;" x-text="statementData.company?.name || 'Productos Automotrices del Sur, S.A.'"></div>
-                <div style="font-size:12px; color:#1e293b; margin-top:3px;">
-                  <strong style="color:#0f172a;">NIT:</strong> <span x-text="statementData.company?.nit || '11563009-0'"></span>
+                <div style="font-size:14.5px; font-weight:900; color:#0f172a;" x-text="statementData.company?.name || 'Empresa'"></div>
+                <div style="font-size:12px; color:#1e293b; margin-top:3px;" x-show="statementData.company?.nit">
+                  <strong style="color:#0f172a;">NIT:</strong> <span x-text="statementData.company?.nit"></span>
                 </div>
-                <div style="font-size:12px; color:#1e293b; margin-top:2px;">
-                  <strong style="color:#0f172a;">Dirección:</strong> <span x-text="statementData.company?.address || 'Lote 67, Calle Central, Nueva Concepción, Esc.'"></span>
+                <div style="font-size:12px; color:#1e293b; margin-top:2px;" x-show="statementData.company?.address">
+                  <strong style="color:#0f172a;">Dirección:</strong> <span x-text="statementData.company?.address"></span>
                 </div>
-                <div style="font-size:12px; color:#1e293b; margin-top:2px;">
-                  <strong style="color:#0f172a;">Teléfono:</strong> <span x-text="statementData.company?.phone || '3454-3857'"></span>
+                <div style="font-size:12px; color:#1e293b; margin-top:2px;" x-show="statementData.company?.phone">
+                  <strong style="color:#0f172a;">Teléfono:</strong> <span x-text="statementData.company?.phone"></span>
                 </div>
-                <div style="font-size:12px; color:#1e293b; margin-top:2px;">
-                  <strong style="color:#0f172a;">Gmail:</strong> <span x-text="statementData.company?.email || 'proausu.sa@gmail.com'"></span>
+                <div style="font-size:12px; color:#1e293b; margin-top:2px;" x-show="statementData.company?.email">
+                  <strong style="color:#0f172a;">Correo:</strong> <span x-text="statementData.company?.email"></span>
                 </div>
               </div>
             </div>
@@ -1526,10 +1546,10 @@
           <div class="voucher-header">
             <!-- Empresa -->
             <div class="voucher-company-info">
-              <div class="company-title">Productos Automotrices del Sur S.A.</div>
-              <div class="company-sub" x-text="receiptData.company?.address || 'Lote 67, Calle Central, Nueva Concepción, Escuintla.'"></div>
-              <div class="company-sub">Gmail: proausur78@gmail.com | proausu.sa@gmail.com</div>
-              <div class="company-sub">Teléfono: +(502) 3454-3857</div>
+              <div class="company-title" x-text="receiptData.company?.title_name || receiptData.company?.trade_name || receiptData.company?.name || 'Compañía'"></div>
+              <div class="company-sub" x-show="receiptData.company?.address" x-text="receiptData.company?.address"></div>
+              <div class="company-sub" x-show="receiptData.company?.emails" x-text="'Email: ' + receiptData.company?.emails"></div>
+              <div class="company-sub" x-show="receiptData.company?.phone" x-text="'Teléfono: ' + receiptData.company?.phone"></div>
             </div>
 
             <!-- Cuadros Recibo No y Por -->
@@ -1588,9 +1608,20 @@
 
           <!-- Pie de Página: Logos y Firmas -->
           <div class="voucher-footer">
-            <!-- Logo Goodsif -->
+            <!-- Logo Izquierdo -->
             <div class="voucher-logo-left">
-              <img src="/static/img/receipt_goodsif_logo.png" alt="GOODSIF AUTO PAINT GUATEMALA">
+              <template x-if="receiptData.company?.logo_left">
+                <img :src="receiptData.company.logo_left" :alt="receiptData.company?.name || 'Logo'">
+              </template>
+              <template x-if="!receiptData.company?.logo_left && receiptData.company?.is_official_goodsif">
+                <img src="/static/img/receipt_goodsif_logo.png" alt="GOODSIF AUTO PAINT GUATEMALA">
+              </template>
+              <template x-if="!receiptData.company?.logo_left && !receiptData.company?.is_official_goodsif && receiptData.company?.logo_url">
+                <img :src="receiptData.company.logo_url" :alt="receiptData.company?.name || 'Logo'">
+              </template>
+              <template x-if="!receiptData.company?.logo_left && !receiptData.company?.is_official_goodsif && !receiptData.company?.logo_url">
+                <div style="font-weight:900; font-size:11.5px; color:#1e293b; border:1px dashed #cbd5e1; padding:4px 10px; border-radius:6px; letter-spacing:0.5px;" x-text="receiptData.company?.trade_name || receiptData.company?.name"></div>
+              </template>
             </div>
 
             <!-- Firmas Operador y Cliente -->
@@ -1607,9 +1638,14 @@
               </div>
             </div>
 
-            <!-- Logo R78 -->
+            <!-- Logo Derecho -->
             <div class="voucher-logo-right">
-              <img src="/static/img/receipt_r78_logo.png" alt="SUMINISTROS R78">
+              <template x-if="receiptData.company?.logo_right">
+                <img :src="receiptData.company.logo_right" alt="Logo Secundario">
+              </template>
+              <template x-if="!receiptData.company?.logo_right && receiptData.company?.is_official_goodsif">
+                <img src="/static/img/receipt_r78_logo.png" alt="SUMINISTROS R78">
+              </template>
             </div>
           </div>
 
@@ -2326,7 +2362,7 @@ function arApp() {
       const amt = this.formatMoney(this.receiptData.amount_paid);
       const docNum = this.receiptData.invoice?.number || "";
       const bal = this.formatMoney(this.receiptData.invoice?.current_balance);
-      const comp = this.receiptData.company?.name || "Productos Automotrices del Sur S.A.";
+      const comp = this.receiptData.company?.title_name || this.receiptData.company?.trade_name || this.receiptData.company?.name || "Empresa";
       const dateStr = this.receiptData.date_short || this.receiptData.payment_date || "";
 
       const text = `*COMPROBANTE DE PAGO DE ABONO*\n` +

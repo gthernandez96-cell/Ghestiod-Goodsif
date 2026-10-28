@@ -22,8 +22,22 @@ from app.models.product import Product, UnitOfMeasure
 from app.models.company import Branch, Warehouse, Company
 from app.models.inventory import StockQuant, StockMove, StockMoveType
 from app.models.user import User
+from app.api.v1.ar import get_company_branding
 
 router = APIRouter(prefix="/quotes")
+
+
+@router.get("/branding/current")
+async def get_current_quote_branding(
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """Obtener el membrete y configuración gráfica de cotizaciones de la empresa activa."""
+    c_uuid = uuid.UUID(str(current_user.company_id))
+    stmt = select(Company).where(Company.id == c_uuid)
+    res = await db.execute(stmt)
+    c = res.scalar_one_or_none()
+    return get_company_branding(c)
 
 
 # ===== SCHEMAS =====
@@ -342,9 +356,10 @@ async def get_quote(
             "stock_status": stock_status,
         })
 
-    # Datos de empresa membretada
+    # Datos de empresa membretada multi-empresa
     comp_res = await db.execute(select(Company).where(Company.id == quote.company_id))
     company = comp_res.scalar_one_or_none()
+    comp_branding = get_company_branding(company)
 
     seller = extra.get("seller_name")
     if not seller and quote.user:
@@ -389,13 +404,17 @@ async def get_quote(
         "state": st,
         "is_expired": st == "expired",
         "lines": lines_out,
+        "company": comp_branding,
         "company_info": {
-            "name": company.name if company else "PRODUCTOS AUTOMOTRICES DEL SUR, S.A.",
-            "location": "NUEVA CONCEPCIÓN, ESCUINTLA",
-            "nit": company.nit if company else "11563009-0",
-            "phone": company.phone if company else "3454-3857",
-            "emails": "proausur78@gmail.com | proausu.sa@gmail.com",
-            "contact_footer": "Si tienes alguna pregunta por favor contáctanos: Tel: + 502 3454-3857 / Gmail: proausu.sa@gmail.com"
+            "name": comp_branding["title_name"] or comp_branding["name"],
+            "location": comp_branding["address"],
+            "nit": comp_branding["nit"],
+            "phone": comp_branding["phone"],
+            "emails": comp_branding["emails"],
+            "logo_url": comp_branding["quote_logo"] or comp_branding["logo_url"],
+            "quote_footer_image": comp_branding["quote_footer_image"],
+            "is_official_goodsif": comp_branding["is_official_goodsif"],
+            "contact_footer": comp_branding["contact_footer"]
         }
     }
 
@@ -922,7 +941,18 @@ async def send_quote_email(
 
     extra = quote.extra or {}
     recipient = data.recipient_email.strip()
-    subject = data.subject or f"Cotización {quote.number} — Productos Automotrices del Sur, S.A."
+
+    # Obtener membrete oficial de la empresa de la cotización
+    comp_res = await db.execute(select(Company).where(Company.id == quote.company_id))
+    company = comp_res.scalar_one_or_none()
+    comp_branding = get_company_branding(company)
+    company_title = comp_branding.get("title_name") or comp_branding.get("name") or "Cotización Comercial"
+    company_address = comp_branding.get("address") or ""
+    company_nit = comp_branding.get("nit") or "C/F"
+    company_phone = comp_branding.get("phone") or ""
+    company_email = comp_branding.get("email") or comp_branding.get("emails") or ""
+
+    subject = data.subject or f"Cotización {quote.number} — {company_title}"
     
     # Preparar resumen de líneas para texto y HTML
     lines_rows = ""
@@ -941,7 +971,7 @@ async def send_quote_email(
     # Preparar mailto fallback URL
     body_text = f"""Estimado(a) {quote.customer_name},
 
-Adjuntamos el resumen de su Cotización No. {quote.number} emitida por PRODUCTOS AUTOMOTRICES DEL SUR, S.A.
+Adjuntamos el resumen de su Cotización No. {quote.number} emitida por {company_title.upper()}.
 
 Condición: {extra.get('condition', 'Contado')}
 Válida hasta: {quote.due_date.strftime('%d/%m/%Y') if quote.due_date else '15 días'}
@@ -955,9 +985,9 @@ TOTAL COTIZADO: Q {float(quote.total or 0):.2f}
 {quote.notes or ''}
 
 Atentamente,
-PRODUCTOS AUTOMOTRICES DEL SUR, S.A.
-Tel: +502 3454-3857 | proausu.sa@gmail.com
-Nueva Concepción, Escuintla
+{company_title.upper()}
+Tel: {company_phone} | {company_email}
+{company_address}
 """
     mailto_url = f"mailto:{recipient}?subject={urllib.parse.quote(subject)}&body={urllib.parse.quote(body_text)}"
 
@@ -971,16 +1001,22 @@ Nueva Concepción, Escuintla
         try:
             msg = MIMEMultipart("alternative")
             msg["Subject"] = subject
-            msg["From"] = f"Productos Automotrices del Sur <{smtp_user}>"
+            msg["From"] = f"{company_title} <{smtp_user}>"
             msg["To"] = recipient
+
+            header_contact = " | ".join(filter(bool, [
+                company_address,
+                f"NIT: {company_nit}" if company_nit else "",
+                f"Tel: {company_phone}" if company_phone else ""
+            ]))
 
             html_content = f"""
             <html>
             <body style="font-family:Arial, sans-serif; color:#1e293b; background:#f8fafc; padding:20px;">
                 <div style="max-width:650px; margin:0 auto; background:#ffffff; border-radius:8px; border:1px solid #e2e8f0; overflow:hidden;">
                     <div style="background:#562B82; color:#ffffff; padding:20px; text-align:center;">
-                        <h2 style="margin:0; font-size:20px;">PRODUCTOS AUTOMOTRICES DEL SUR, S.A.</h2>
-                        <p style="margin:4px 0 0 0; font-size:12px;">Nueva Concepción, Escuintla | NIT: 11563009-0 | Tel: 3454-3857</p>
+                        <h2 style="margin:0; font-size:20px;">{company_title.upper()}</h2>
+                        <p style="margin:4px 0 0 0; font-size:12px;">{header_contact}</p>
                     </div>
                     <div style="padding:24px;">
                         <div style="display:flex; justify-content:space-between; margin-bottom:18px;">

@@ -306,13 +306,18 @@
   <!-- TOP BAR HEADER                                                -->
   <!-- ============================================================= -->
   <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
-    <!-- Left: Brand Logo & Title -->
+    <!-- Left: Brand Logo & Title (Multi-Empresa) -->
     <div style="display:flex; align-items:center; gap:12px;">
-      <div style="width:38px; height:38px; border-radius:10px; background:#714B67; color:#ffffff; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:900; box-shadow:0 4px 12px rgba(113,75,103,0.35);">
-        ⣿
+      <div style="width:38px; height:38px; border-radius:10px; background:#714B67; color:#ffffff; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:900; box-shadow:0 4px 12px rgba(113,75,103,0.35); overflow:hidden;">
+        <template x-if="companyLogoUrl">
+          <img :src="companyLogoUrl" :alt="activeCompanyName" style="width:100%; height:100%; object-fit:contain; background:#ffffff; padding:2px;">
+        </template>
+        <template x-if="!companyLogoUrl">
+          <span>⣿</span>
+        </template>
       </div>
       <div>
-        <div style="font-size:17px; font-weight:900; color:#1e1b4b; letter-spacing:0.2px;">POS Empresarial ERP</div>
+        <div style="font-size:17px; font-weight:900; color:#1e1b4b; letter-spacing:0.2px;" x-text="activeCompanyName || 'Empresa Activa'">Empresa Activa</div>
         <div style="font-size:11.5px; color:#64748b; font-weight:600;" x-text="activeBranchName + ' • ' + currentDate"></div>
       </div>
     </div>
@@ -331,6 +336,7 @@
       </button>
       <button 
         type="button" 
+        x-show="!isPresaleSeller"
         @click="viewMode = 'analytics'; init(); initCharts()" 
         class="view-switcher-btn" 
         :class="viewMode === 'analytics' ? 'active' : 'inactive'"
@@ -342,10 +348,11 @@
     <!-- Right: User Avatar & Menu -->
     <div style="display:flex; align-items:center; gap:12px;">
       <a 
-        href="/pos" 
+        :href="isPresaleSeller ? '/preventa' : '/pos'" 
         style="display:flex; align-items:center; gap:6px; background:#714B67; color:#ffffff; font-size:12.5px; font-weight:800; padding:8px 14px; border-radius:10px; text-decoration:none; box-shadow:0 4px 10px rgba(113,75,103,0.25);"
       >
-        <i class="ph ph-shopping-cart text-base"></i> Abrir POS
+        <i class="ph" :class="isPresaleSeller ? 'ph-lightning' : 'ph-shopping-cart'" style="font-size:16px;"></i>
+        <span x-text="isPresaleSeller ? 'Abrir Pre-Venta' : 'Abrir POS'"></span>
       </a>
 
       <div style="position:relative;" x-data="{ openUserMenu: false }">
@@ -373,6 +380,9 @@
             <div style="font-size:11px; color:#64748b;" x-text="currentUser?.email || 'admin@pos.gt'"></div>
           </div>
           <div style="padding:4px 0;">
+            <a href="/companies" x-show="isAdmin" style="display:flex; align-items:center; gap:8px; padding:7px 10px; border-radius:6px; font-size:12.5px; font-weight:600; color:#334155; text-decoration:none;">
+              <i class="ph ph-buildings"></i> Cambiar Empresa
+            </a>
             <a href="/settings" x-show="isAdmin" style="display:flex; align-items:center; gap:8px; padding:7px 10px; border-radius:6px; font-size:12.5px; font-weight:600; color:#334155; text-decoration:none;">
               <i class="ph ph-gear"></i> Configuración
             </a>
@@ -407,8 +417,8 @@
     <div style="max-width:1020px; margin:36px auto 40px auto;">
       <div class="launcher-grid">
 
-        <!-- 1. Punto de venta (Todos) -->
-        <div class="app-launcher-card" x-show="matchesSearch('Punto de venta POS Cajas')" @click="openApp('/pos')">
+        <!-- 1. Punto de venta (No para Pre-Vendedor) -->
+        <div class="app-launcher-card" x-show="!isPresaleSeller && matchesSearch('Punto de venta POS Cajas')" @click="openApp('/pos')">
           <div class="app-icon-wrapper" style="box-shadow:0 12px 28px rgba(168, 85, 247, 0.22); border:2px solid #a855f7;">
             <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#7e22ce" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M3 9l1-5h16l1 5"></path>
@@ -420,7 +430,7 @@
           <div class="app-label" style="font-weight:800; color:#5b21b6;">Punto de venta</div>
         </div>
 
-        <!-- 1.1 Pre-Venta (Preventistas & Comercial) -->
+        <!-- 1.1 Pre-Venta (Pre-Vendedor & Comercial) -->
         <div class="app-launcher-card" x-show="matchesSearch('Pre-Venta Preventa Preventista Pedidos Solicitudes')" @click="openApp('/preventa')">
           <div class="app-icon-wrapper" style="box-shadow:0 12px 28px rgba(79, 70, 229, 0.22); border:2px solid #6366f1;">
             <i class="ph ph-lightning" style="font-size:40px; color:#4f46e5;"></i>
@@ -429,7 +439,7 @@
         </div>
 
         <!-- 1.2 Solicitudes POS (Autorizaciones & Bodega) -->
-        <div class="app-launcher-card" x-show="matchesSearch('Solicitudes POS Autorizaciones Pre-venta Bodega Aprobaciones')" @click="openApp('/pos-solicitudes')">
+        <div class="app-launcher-card" x-show="!isPresaleSeller && matchesSearch('Solicitudes POS Autorizaciones Pre-venta Bodega Aprobaciones')" @click="openApp('/pos-solicitudes')">
           <div class="app-icon-wrapper" style="box-shadow:0 12px 28px rgba(245, 158, 11, 0.22); border:2px solid #f59e0b;">
             <i class="ph ph-clipboard-text" style="font-size:40px; color:#d97706;"></i>
           </div>
@@ -437,15 +447,15 @@
         </div>
 
         <!-- 1.3 Preparación en Bodega (Delivery / Picking) -->
-        <div class="app-launcher-card" x-show="matchesSearch('Preparación en Bodega Delivery Picking Alistamiento Despacho')" @click="openApp('/pos/preparacion')">
+        <div class="app-launcher-card" x-show="!isPresaleSeller && matchesSearch('Preparación en Bodega Delivery Picking Alistamiento Despacho')" @click="openApp('/pos/preparacion')">
           <div class="app-icon-wrapper" style="box-shadow:0 12px 28px rgba(37, 99, 235, 0.22); border:2px solid #2563eb; background:#eff6ff;">
             <i class="ph ph-package" style="font-size:40px; color:#2563eb;"></i>
           </div>
           <div class="app-label" style="font-weight:800; color:#1d4ed8;">Preparación Bodega</div>
         </div>
 
-        <!-- 2. Inventario (Todos) -->
-        <div class="app-launcher-card" x-show="matchesSearch('Inventario Catálogo Stock')" @click="openApp('/inventory')">
+        <!-- 2. Inventario (No para Pre-Vendedor) -->
+        <div class="app-launcher-card" x-show="!isPresaleSeller && matchesSearch('Inventario Catálogo Stock')" @click="openApp('/inventory')">
           <div class="app-icon-wrapper" style="box-shadow:0 12px 28px rgba(249, 115, 22, 0.2);">
             <svg width="44" height="44" viewBox="0 0 24 24" fill="none">
               <path d="M12 2L2 7l10 5 10-5-10-5z" fill="#f97316"/>
@@ -456,8 +466,8 @@
           <div class="app-label">Inventario</div>
         </div>
 
-        <!-- 3. Clientes (Todos) -->
-        <div class="app-launcher-card" x-show="matchesSearch('Clientes CRM Directorio')" @click="openApp('/customers')">
+        <!-- 3. Clientes (No para Pre-Vendedor) -->
+        <div class="app-launcher-card" x-show="!isPresaleSeller && matchesSearch('Clientes CRM Directorio')" @click="openApp('/customers')">
           <div class="app-icon-wrapper" style="box-shadow:0 12px 28px rgba(6, 182, 212, 0.2);">
             <svg width="42" height="42" viewBox="0 0 24 24" fill="#06b6d4">
               <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
@@ -466,7 +476,7 @@
           <div class="app-label">Clientes</div>
         </div>
 
-        <!-- 4. Cotizaciones (Todos) -->
+        <!-- 4. Cotizaciones (Pre-Vendedor & General) -->
         <div class="app-launcher-card" x-show="matchesSearch('Cotizaciones Proformas Presupuestos')" @click="openApp('/quotes')">
           <div class="app-icon-wrapper" style="box-shadow:0 12px 28px rgba(13, 148, 136, 0.2);">
             <i class="ph ph-file-text" style="font-size:38px; color:#0d9488;"></i>
@@ -474,12 +484,12 @@
           <div class="app-label">Cotizaciones</div>
         </div>
 
-        <!-- 5. Cuentas por Cobrar (AR - Administrador) -->
-        <div class="app-launcher-card" x-show="isAdmin && matchesSearch('Cuentas por Cobrar Créditos CxC')" @click="openApp('/ar')">
+        <!-- 5. Cuentas por Cobrar / Estado de Cuenta (Administrador & Pre-Vendedor) -->
+        <div class="app-launcher-card" x-show="(isAdmin || isPresaleSeller) && matchesSearch('Cuentas por Cobrar Créditos CxC Estado de Cuenta')" @click="openApp('/ar')">
           <div class="app-icon-wrapper" style="box-shadow:0 12px 28px rgba(16, 185, 129, 0.22); border:1.5px solid #10b981;">
             <i class="ph ph-hand-coins" style="font-size:40px; color:#059669;"></i>
           </div>
-          <div class="app-label" style="color:#047857;">Cuentas por Cobrar</div>
+          <div class="app-label" style="color:#047857;">Estado de Cuenta</div>
         </div>
 
         <!-- 6. Cuentas por Pagar (AP - Administrador) -->
@@ -1098,6 +1108,8 @@ function mainDashboardPage() {
     branches: [],
     selectedBranchId: '',
     chartDays: 30,
+    activeCompanyName: localStorage.getItem('company_name') || '',
+    companyLogoUrl: localStorage.getItem('company_logo') || '',
 
     get activeBranchName() {
       if (!this.selectedBranchId) return 'Todas las Sucursales (Consolidado)';
@@ -1171,6 +1183,15 @@ function mainDashboardPage() {
       } catch(e) { return false; }
     })(),
 
+    isPresaleSeller: (() => {
+      try {
+        const u = JSON.parse(localStorage.getItem('user') || '{}');
+        if (u.is_superuser || u.is_admin || u.username === 'admin' || (u.email && u.email.includes('admin'))) return false;
+        const codes = (u.role_codes || (u.roles || []).map(r => r.code || r));
+        return (codes.includes('presale_seller') || codes.includes('preventista')) && !codes.includes('admin') && !codes.includes('store_manager');
+      } catch(e) { return false; }
+    })(),
+
     async authFetch(url, options = {}) {
       const token = localStorage.getItem('access_token');
       const headers = {
@@ -1192,13 +1213,38 @@ function mainDashboardPage() {
       }
     },
 
+    async loadActiveCompany() {
+      try {
+        const res = await this.authFetch('/api/v1/companies/current');
+        if (res.ok) {
+          const comp = await res.json();
+          if (comp) {
+            const name = comp.trade_name || comp.name;
+            if (name) {
+              this.activeCompanyName = name;
+              localStorage.setItem('company_name', name);
+            }
+            if (comp.logo_url) {
+              this.companyLogoUrl = comp.logo_url;
+              localStorage.setItem('company_logo', comp.logo_url);
+            }
+          }
+        }
+      } catch (e) {
+        console.error("Error loading active company:", e);
+      }
+    },
+
     async onBranchChange() {
       await this.refreshAllAnalytics();
     },
 
     async init() {
-      await this.checkAdminRole();
-      await this.loadBranches();
+      await Promise.all([
+        this.checkAdminRole(),
+        this.loadBranches(),
+        this.loadActiveCompany()
+      ]);
       const now = new Date();
       const s = new Date(now.getFullYear(), now.getMonth(), 1);
       const e = new Date(now.getFullYear(), now.getMonth() + 1, 0);
@@ -1284,6 +1330,11 @@ function mainDashboardPage() {
         const u = JSON.parse(localStorage.getItem('user') || '{}');
         if (u.is_superuser || u.is_admin || u.username === 'admin' || (u.email && u.email.includes('admin'))) {
           this.isAdmin = true;
+          this.isPresaleSeller = false;
+        } else {
+          const codes = (u.role_codes || (u.roles || []).map(r => r.code || r));
+          this.isAdmin = codes.includes('admin') || codes.includes('store_manager');
+          this.isPresaleSeller = (codes.includes('presale_seller') || codes.includes('preventista')) && !this.isAdmin;
         }
         const token = localStorage.getItem('access_token');
         if (!token) {
@@ -1295,9 +1346,11 @@ function mainDashboardPage() {
           const me = await res.json();
           if (me.is_superuser || me.is_admin || me.username === 'admin' || (me.email && me.email.includes('admin'))) {
             this.isAdmin = true;
+            this.isPresaleSeller = false;
           } else {
-            const codes = (me.roles || []).map(r => r.code);
+            const codes = (me.roles || []).map(r => r.code || r);
             this.isAdmin = codes.includes('admin') || codes.includes('store_manager');
+            this.isPresaleSeller = (codes.includes('presale_seller') || codes.includes('preventista')) && !this.isAdmin;
           }
         } else if (res.status === 401) {
           this.logout();

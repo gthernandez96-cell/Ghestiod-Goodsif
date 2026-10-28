@@ -2007,3 +2007,168 @@ def test_ar_credit_payment_and_media_carta_receipt():
     assert rcpt["invoice"]["number"] == "FAC-CRED-2026-001"
     assert rcpt["invoice"]["current_balance"] == 3000.0
 
+
+def test_credit_sale_validation_restrictions():
+    """Valida que una venta al crédito sea rechazada si el cliente no tiene crédito autorizado, está suspendido/bloqueado o excede su límite."""
+    b_res = client.get("/api/v1/branches/", headers=headers)
+    branch_id = b_res.json()[0]["id"]
+
+    wh_res = client.get("/api/v1/warehouses/", headers=headers)
+    wh_id = wh_res.json()[0]["id"] if wh_res.status_code == 200 and wh_res.json() else branch_id
+
+    # 1. Crear producto con stock suficiente
+    prod_res = client.post("/api/v1/products/", json={
+        "name": f"Item Crédito Test {uuid.uuid4().hex[:6]}",
+        "barcode": f"CR-{uuid.uuid4().hex[:8]}",
+        "sale_price": 100.0,
+        "initial_stock": 50.0
+    }, headers=headers)
+    assert prod_res.status_code == 200
+    prod_id = prod_res.json()["id"]
+
+    # 2. Intentar venta al crédito a Consumidor Final (CF) -> DEBE FALLAR 400
+    cf_sale = client.post("/api/v1/sales/", json={
+        "customer_nit": "CF",
+        "branch_id": branch_id,
+        "warehouse_id": wh_id,
+        "sale_type": "credit",
+        "lines": [{"product_id": prod_id, "product_name": "Test", "qty": 1.0, "unit_price": 100.0}],
+        "payments": [{"payment_method": "credit", "amount": 100.0}]
+    }, headers=headers)
+    assert cf_sale.status_code == 400
+    assert "Consumidor Final" in cf_sale.json()["detail"] or "cliente registrado" in cf_sale.json()["detail"]
+
+    # 3. Cliente con credit_status = "none" -> DEBE FALLAR 400
+    c_none = client.post("/api/v1/partners/", json={
+        "name": "Cliente Sin Crédito Test",
+        "partner_type": "customer",
+        "nit": f"NIT-{uuid.uuid4().hex[:6]}",
+        "credit_status": "none",
+        "credit_limit": 0.0
+    }, headers=headers)
+    assert c_none.status_code == 200
+    c_none_id = c_none.json()["id"]
+
+    sale_none = client.post("/api/v1/sales/", json={
+        "customer_id": c_none_id,
+        "branch_id": branch_id,
+        "warehouse_id": wh_id,
+        "sale_type": "credit",
+        "lines": [{"product_id": prod_id, "product_name": "Test", "qty": 1.0, "unit_price": 100.0}],
+        "payments": [{"payment_method": "credit", "amount": 100.0}]
+    }, headers=headers)
+    assert sale_none.status_code == 400
+    assert "no tiene crédito autorizado" in sale_none.json()["detail"].lower()
+
+    # 4. Cliente con credit_status = "suspended" -> DEBE FALLAR 400
+    c_susp = client.post("/api/v1/partners/", json={
+        "name": "Cliente Suspendido Test",
+        "partner_type": "customer",
+        "nit": f"NIT-{uuid.uuid4().hex[:6]}",
+        "credit_status": "suspended",
+        "credit_limit": 5000.0
+    }, headers=headers)
+    assert c_susp.status_code == 200
+    c_susp_id = c_susp.json()["id"]
+
+    sale_susp = client.post("/api/v1/sales/", json={
+        "customer_id": c_susp_id,
+        "branch_id": branch_id,
+        "warehouse_id": wh_id,
+        "sale_type": "credit",
+        "lines": [{"product_id": prod_id, "product_name": "Test", "qty": 1.0, "unit_price": 100.0}],
+        "payments": [{"payment_method": "credit", "amount": 100.0}]
+    }, headers=headers)
+    assert sale_susp.status_code == 400
+    assert "suspendido" in sale_susp.json()["detail"].lower()
+
+    # 5. Cliente con credit_status = "blocked" -> DEBE FALLAR 400
+    c_blk = client.post("/api/v1/partners/", json={
+        "name": "Cliente Bloqueado Test",
+        "partner_type": "customer",
+        "nit": f"NIT-{uuid.uuid4().hex[:6]}",
+        "credit_status": "blocked",
+        "credit_limit": 5000.0
+    }, headers=headers)
+    assert c_blk.status_code == 200
+    c_blk_id = c_blk.json()["id"]
+
+    sale_blk = client.post("/api/v1/sales/", json={
+        "customer_id": c_blk_id,
+        "branch_id": branch_id,
+        "warehouse_id": wh_id,
+        "sale_type": "credit",
+        "lines": [{"product_id": prod_id, "product_name": "Test", "qty": 1.0, "unit_price": 100.0}],
+        "payments": [{"payment_method": "credit", "amount": 100.0}]
+    }, headers=headers)
+    assert sale_blk.status_code == 400
+    assert "bloqueado" in sale_blk.json()["detail"].lower()
+
+    # 6. Cliente activo pero con límite 0.0 -> DEBE FALLAR 400
+    c_zero = client.post("/api/v1/partners/", json={
+        "name": "Cliente Límite Cero Test",
+        "partner_type": "customer",
+        "nit": f"NIT-{uuid.uuid4().hex[:6]}",
+        "credit_status": "active",
+        "credit_limit": 0.0
+    }, headers=headers)
+    assert c_zero.status_code == 200
+    c_zero_id = c_zero.json()["id"]
+
+    sale_zero = client.post("/api/v1/sales/", json={
+        "customer_id": c_zero_id,
+        "branch_id": branch_id,
+        "warehouse_id": wh_id,
+        "sale_type": "credit",
+        "lines": [{"product_id": prod_id, "product_name": "Test", "qty": 1.0, "unit_price": 100.0}],
+        "payments": [{"payment_method": "credit", "amount": 100.0}]
+    }, headers=headers)
+    assert sale_zero.status_code == 400
+    assert "límite de crédito" in sale_zero.json()["detail"].lower()
+
+    # 7. Cliente activo con límite Q 150.0 intentando compra de Q 200.0 -> DEBE FALLAR 400
+    c_insuf = client.post("/api/v1/partners/", json={
+        "name": "Cliente Crédito Insuficiente Test",
+        "partner_type": "customer",
+        "nit": f"NIT-{uuid.uuid4().hex[:6]}",
+        "credit_status": "active",
+        "credit_limit": 150.0
+    }, headers=headers)
+    assert c_insuf.status_code == 200
+    c_insuf_id = c_insuf.json()["id"]
+
+    sale_insuf = client.post("/api/v1/sales/", json={
+        "customer_id": c_insuf_id,
+        "branch_id": branch_id,
+        "warehouse_id": wh_id,
+        "sale_type": "credit",
+        "lines": [{"product_id": prod_id, "product_name": "Test", "qty": 2.0, "unit_price": 100.0}],
+        "payments": [{"payment_method": "credit", "amount": 200.0}]
+    }, headers=headers)
+    assert sale_insuf.status_code == 400
+    assert "insuficiente" in sale_insuf.json()["detail"].lower()
+
+    # 8. Cliente activo con crédito suficiente -> DEBE TENER ÉXITO 200
+    c_ok = client.post("/api/v1/partners/", json={
+        "name": "Cliente Crédito Autorizado OK",
+        "partner_type": "customer",
+        "nit": f"NIT-{uuid.uuid4().hex[:6]}",
+        "credit_status": "active",
+        "credit_limit": 5000.0,
+        "payment_days": 30
+    }, headers=headers)
+    assert c_ok.status_code == 200
+    c_ok_id = c_ok.json()["id"]
+
+    sale_ok = client.post("/api/v1/sales/", json={
+        "customer_id": c_ok_id,
+        "branch_id": branch_id,
+        "warehouse_id": wh_id,
+        "sale_type": "credit",
+        "lines": [{"product_id": prod_id, "product_name": "Test", "qty": 1.0, "unit_price": 100.0}],
+        "payments": [{"payment_method": "credit", "amount": 100.0}]
+    }, headers=headers)
+    assert sale_ok.status_code == 200
+    assert sale_ok.json()["total"] == 100.0
+
+

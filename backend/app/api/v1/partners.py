@@ -22,7 +22,7 @@ def check_partner_management_permission(current_user):
     if getattr(current_user, "is_superuser", False) or getattr(current_user, "is_admin", False) or getattr(current_user, "username", "") == "admin" or (getattr(current_user, "email", "") and "admin" in getattr(current_user, "email", "")):
         return
     role_codes = [r.code for r in current_user.roles] if hasattr(current_user, "roles") and current_user.roles else []
-    if any(code in role_codes for code in ["admin", "store_manager", "accountant", "inventory_manager", "seller", "preventista"]):
+    if any(code in role_codes for code in ["admin", "store_manager", "accountant", "inventory_manager", "seller", "preventista", "presale_seller"]):
         return
     if "cashier" in role_codes or not role_codes:
         raise HTTPException(
@@ -224,14 +224,25 @@ async def lookup_partner_by_nit(
 
     if partner:
         is_same_company = (partner.company_id == current_user.company_id)
+        c_limit = Decimal(str(partner.credit_limit or 0)) if is_same_company else Decimal("0")
+        c_balance = Decimal(str(partner.balance or 0)) if is_same_company else Decimal("0")
+        c_available = max(Decimal("0"), c_limit - c_balance)
+        c_status = partner.credit_status.value if (is_same_company and hasattr(partner.credit_status, 'value')) else (str(partner.credit_status) if is_same_company else "none")
+        c_days = partner.payment_days or 0 if is_same_company else 0
         return {
             "found": True,
             "valid": True,
+            "id": str(partner.id) if is_same_company else None,
             "nit": partner.nit,
             "name": partner.name,
             "trade_name": partner.trade_name or partner.name,
             "email": partner.email or "",
             "address": partner.address or "CIUDAD DE GUATEMALA",
+            "credit_status": c_status,
+            "credit_limit": float(c_limit),
+            "balance": float(c_balance),
+            "available_credit": float(c_available),
+            "payment_days": c_days,
             "source": "local_database" if is_same_company else "local_database_shared",
             "items": [{
                 "id": str(partner.id) if is_same_company else None,
@@ -239,6 +250,11 @@ async def lookup_partner_by_nit(
                 "name": partner.name,
                 "email": partner.email or "",
                 "address": partner.address or "CIUDAD DE GUATEMALA",
+                "credit_status": c_status,
+                "credit_limit": float(c_limit),
+                "balance": float(c_balance),
+                "available_credit": float(c_available),
+                "payment_days": c_days,
             }]
         }
 

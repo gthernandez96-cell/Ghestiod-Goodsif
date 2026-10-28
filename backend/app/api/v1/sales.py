@@ -326,24 +326,107 @@ async def create_sale(
     sale.discount_amount = discount_amount
     sale.total = sum(l.total for l in sale.lines)
 
+    # Validar si es venta al crédito general sin pago explícito
+    is_credit_sale_type = (data.sale_type == "credit" or getattr(sale.sale_type, "value", str(sale.sale_type)) == "credit")
+    has_credit_payment = any(p.payment_method == "credit" for p in data.payments)
+
+    if is_credit_sale_type and not has_credit_payment and len(data.payments) == 0:
+        if not customer_uuid:
+            raise HTTPException(status_code=400, detail="Para venta al crédito debes seleccionar un cliente registrado.")
+        from app.models.partner import Partner
+        p_res = await db.execute(select(Partner).where(Partner.id == customer_uuid))
+        cust = p_res.scalar_one_or_none()
+        if not cust or cust.nit == "CF":
+            raise HTTPException(status_code=400, detail="No se puede otorgar crédito a Consumidor Final (CF). Selecciona un cliente registrado con crédito autorizado.")
+
+        status_val = cust.credit_status.value if hasattr(cust.credit_status, "value") else str(cust.credit_status or "none").lower()
+        if status_val == "none":
+            raise HTTPException(
+                status_code=400,
+                detail=f"El cliente '{cust.name}' no tiene crédito autorizado. No se permite realizar la venta al crédito."
+            )
+        elif status_val == "suspended":
+            raise HTTPException(
+                status_code=400,
+                detail=f"El crédito del cliente '{cust.name}' se encuentra SUSPENDIDO. No se permite realizar la venta al crédito."
+            )
+        elif status_val == "blocked":
+            raise HTTPException(
+                status_code=400,
+                detail=f"El crédito del cliente '{cust.name}' se encuentra BLOQUEADO por mora o administración."
+            )
+        elif status_val != "active":
+            raise HTTPException(
+                status_code=400,
+                detail=f"El cliente '{cust.name}' no cuenta con crédito activo (Estado: {status_val})."
+            )
+
+        c_limit = Decimal(str(cust.credit_limit or 0))
+        if c_limit <= Decimal("0"):
+            raise HTTPException(
+                status_code=400,
+                detail=f"El cliente '{cust.name}' no cuenta con un límite de crédito configurado (Límite: Q 0.00)."
+            )
+
+        c_balance = Decimal(str(cust.balance or 0))
+        available = max(Decimal("0"), c_limit - c_balance)
+
+        if sale.total > available:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Límite de crédito insuficiente para '{cust.name}'. Crédito disponible: Q {float(available):.2f}, Monto total: Q {float(sale.total):.2f}."
+            )
+        cust.balance = c_balance + sale.total
+
     # Agregar pagos
     amount_paid = Decimal("0")
     for pay_data in data.payments:
         if pay_data.payment_method == "credit":
             if not customer_uuid:
-                raise HTTPException(status_code=400, detail="Para venta a crédito debes seleccionar un cliente registrado")
+                raise HTTPException(status_code=400, detail="Para venta al crédito debes seleccionar un cliente registrado.")
             from app.models.partner import Partner
             p_res = await db.execute(select(Partner).where(Partner.id == customer_uuid))
             cust = p_res.scalar_one_or_none()
             if not cust or cust.nit == "CF":
-                raise HTTPException(status_code=400, detail="No se puede otorgar crédito a Consumidor Final (CF). Selecciona un cliente registrado.")
+                raise HTTPException(status_code=400, detail="No se puede otorgar crédito a Consumidor Final (CF). Selecciona un cliente registrado con crédito autorizado.")
+
+            status_val = cust.credit_status.value if hasattr(cust.credit_status, "value") else str(cust.credit_status or "none").lower()
+            if status_val == "none":
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"El cliente '{cust.name}' no tiene crédito autorizado. No se permite realizar la venta al crédito."
+                )
+            elif status_val == "suspended":
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"El crédito del cliente '{cust.name}' se encuentra SUSPENDIDO. No se permite realizar la venta al crédito."
+                )
+            elif status_val == "blocked":
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"El crédito del cliente '{cust.name}' se encuentra BLOQUEADO por mora o administración."
+                )
+            elif status_val != "active":
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"El cliente '{cust.name}' no cuenta con crédito activo (Estado: {status_val})."
+                )
 
             c_limit = Decimal(str(cust.credit_limit or 0))
+            if c_limit <= Decimal("0"):
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"El cliente '{cust.name}' no cuenta con un límite de crédito configurado (Límite: Q 0.00)."
+                )
+
             c_balance = Decimal(str(cust.balance or 0))
             available = max(Decimal("0"), c_limit - c_balance)
 
             if pay_data.amount > available:
-                raise HTTPException(status_code=400, detail=f"Crédito insuficiente para {cust.name}. Crédito disponible: Q {float(available):.2f}")
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Límite de crédito insuficiente para '{cust.name}'. Crédito disponible: Q {float(available):.2f}, Monto solicitado: Q {float(pay_data.amount):.2f}."
+                )
 
             cust.balance = c_balance + pay_data.amount
 

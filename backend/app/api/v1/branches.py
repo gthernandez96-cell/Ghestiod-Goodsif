@@ -155,6 +155,18 @@ async def get_current_company_settings(
         "enable_loyalty_program": st.get("enable_loyalty_program", False),
         "loyalty_points_per_quetzal": st.get("loyalty_points_per_quetzal", 1.0),
         "loyalty_redeem_rate": st.get("loyalty_redeem_rate", 10.0),
+        # Formatos Oficiales & Membretes (Multi-Empresa: Estados de Cuenta, Recibos de Pago y Cotizaciones)
+        "receipt_logo_left": st.get("receipt_logo_left", ""),
+        "receipt_logo_right": st.get("receipt_logo_right", ""),
+        "quote_logo": st.get("quote_logo", ""),
+        "statement_banner_url": st.get("statement_banner_url", ""),
+        "statement_logo_url": st.get("statement_logo_url", ""),
+        "receipt_title": st.get("receipt_title", ""),
+        "receipt_emails": st.get("receipt_emails", ""),
+        "receipt_phone": st.get("receipt_phone", ""),
+        "receipt_address": st.get("receipt_address", ""),
+        "receipt_footer_notes": st.get("receipt_footer_notes", ""),
+        "is_official_goodsif": st.get("is_official_goodsif", False),
     }
 
 
@@ -196,7 +208,11 @@ async def update_current_company_settings(
         "payment_cash", "payment_card", "payment_transfer", "payment_check", "payment_credit",
         "enable_usd_currency", "usd_exchange_rate", "auto_send_whatsapp_ticket",
         "auto_send_email_ticket", "email_alerts_enabled",
-        "enable_loyalty_program", "loyalty_points_per_quetzal", "loyalty_redeem_rate"
+        "enable_loyalty_program", "loyalty_points_per_quetzal", "loyalty_redeem_rate",
+        # Formatos Oficiales & Membretes (Multi-Empresa)
+        "receipt_logo_left", "receipt_logo_right", "quote_logo", "statement_banner_url", "statement_logo_url",
+        "receipt_title", "receipt_emails", "receipt_phone", "receipt_address",
+        "receipt_footer_notes", "is_official_goodsif"
     ]
     for k in extra_fields:
         if k in data:

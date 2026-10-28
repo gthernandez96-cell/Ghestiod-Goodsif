@@ -311,3 +311,177 @@ def test_partner_sales_separation_cash_credit():
     assert res_credit_only.json()["total"] == 1
     assert res_credit_only.json()["items"][0]["payment_type"] == "credit"
 
+
+def test_multi_company_statement_and_receipt_formatting():
+    """Verificar que en un entorno multi-empresa, cada empresa genera su propio estado de cuenta y recibo con su membrete y logotipos."""
+    # 1. Crear una segunda empresa en el sistema vía API
+    unique_nit = f"NIT-{uuid.uuid4().hex[:6]}"
+    c_create_res = client.post("/api/v1/companies", json={
+        "name": "Pinturas & Ferretería El Roble S.A.",
+        "trade_name": "El Roble Express",
+        "nit": unique_nit,
+        "address": "Km 45 Carretera Interamericana, Chimaltenango",
+        "phone": "+502 7766-5544",
+        "email": "cobros@elroble.gt",
+        "currency": "GTQ",
+        "logo_url": "https://elroble.gt/logo.png"
+    }, headers=headers)
+    assert c_create_res.status_code == 200
+    comp_b_id = c_create_res.json()["id"]
+
+    try:
+        # Cambiar el usuario actual a la Empresa B
+        sw_res = client.post(f"/api/v1/companies/switch/{comp_b_id}", headers=headers)
+        assert sw_res.status_code == 200
+
+        # 2. Configurar membrete y formatos específicos de la Empresa B
+        up_settings_res = client.put("/api/v1/companies/current", json={
+            "receipt_title": "Pinturas & Ferretería El Roble",
+            "receipt_emails": "pagos@elroble.gt",
+            "receipt_phone": "+502 7766-5544",
+            "receipt_address": "Chimaltenango, Guatemala",
+            "receipt_logo_left": "https://elroble.gt/logo_left.png",
+            "receipt_logo_right": "https://elroble.gt/sello.png",
+            "statement_banner_url": "https://elroble.gt/banner.png",
+            "receipt_footer_notes": "El Roble — Siempre a su servicio.",
+            "is_official_goodsif": False
+        }, headers=headers)
+        assert up_settings_res.status_code == 200
+
+        # 3. Crear cliente para Empresa B
+        c_res = client.post("/api/v1/partners/", json={
+            "name": "Constructora Los Volcanes S.A.",
+            "nit": "1234000-9",
+            "partner_type": "customer",
+            "credit_limit": 80000.0,
+            "credit_days": 45
+        }, headers=headers)
+        assert c_res.status_code == 200
+        cust_b_id = c_res.json()["id"]
+
+        # 4. Crear factura al crédito para Empresa B
+        inv_res = client.post("/api/v1/ar/invoices", json={
+            "customer_id": cust_b_id,
+            "number": f"FAC-ROBLE-{uuid.uuid4().hex[:4]}",
+            "total": 12000.0,
+            "days": 45,
+            "notes": "Venta al crédito de materiales"
+        }, headers=headers)
+        assert inv_res.status_code == 200
+        inv_b_id = inv_res.json()["id"]
+
+        # 5. Registrar abono para Empresa B
+        pmt_res = client.post(f"/api/v1/ar/invoices/{inv_b_id}/payments", json={
+            "amount": 4000.0,
+            "payment_method": "transfer",
+            "reference": "TRANSF-8899",
+            "notes": "Abono inicial transferencia bancaria"
+        }, headers=headers)
+        assert pmt_res.status_code == 200
+        pmt_b_id = pmt_res.json()["payment_id"]
+
+        # 6. Consultar Recibo Media Carta para Empresa B
+        rcpt_res = client.get(f"/api/v1/ar/payments/{pmt_b_id}/receipt", headers=headers)
+        assert rcpt_res.status_code == 200
+        rcpt = rcpt_res.json()
+
+        # Verificar que el recibo de Empresa B tiene sus propios datos, NO los de Productos Automotrices del Sur
+        assert rcpt["amount_paid"] == 4000.0
+        assert "CUATRO MIL QUETZALES EXACTOS" in rcpt["amount_letters"]
+        assert rcpt["company"]["name"] == "Pinturas & Ferretería El Roble S.A."
+        assert rcpt["company"]["title_name"] == "Pinturas & Ferretería El Roble"
+        assert rcpt["company"]["emails"] == "pagos@elroble.gt"
+        assert rcpt["company"]["phone"] == "+502 7766-5544"
+        assert rcpt["company"]["logo_left"] == "https://elroble.gt/logo_left.png"
+        assert rcpt["company"]["logo_right"] == "https://elroble.gt/sello.png"
+        assert rcpt["company"]["is_official_goodsif"] is False
+        assert rcpt["company"]["footer_notes"] == "El Roble — Siempre a su servicio."
+
+        # 7. Consultar Estado de Cuenta de Empresa B
+        st_res = client.get(f"/api/v1/ar/customers/{cust_b_id}/statement", headers=headers)
+        assert st_res.status_code == 200
+        st_data = st_res.json()
+        assert st_data["company"]["name"] == "Pinturas & Ferretería El Roble S.A."
+        assert st_data["company"]["statement_banner_url"] == "https://elroble.gt/banner.png"
+        assert st_data["company"]["is_official_goodsif"] is False
+        assert st_data["summary"]["total_envio"] == 12000.0
+        assert st_data["summary"]["total_abono"] == 4000.0
+        assert st_data["summary"]["total_deuda"] == 8000.0
+
+        # 8. Exportar Estado de Cuenta Excel (.xlsx) y PDF (.pdf) de Empresa B
+        excel_res = client.get(f"/api/v1/ar/customers/{cust_b_id}/export-excel", headers=headers)
+        assert excel_res.status_code == 200
+        assert len(excel_res.content) > 4000
+
+        pdf_res = client.get(f"/api/v1/ar/customers/{cust_b_id}/export-pdf", headers=headers)
+        assert pdf_res.status_code == 200
+        assert pdf_res.content.startswith(b"%PDF-")
+        assert len(pdf_res.content) > 1500
+
+        # 9. Modificar la configuración de Empresa B mediante el endpoint de Settings y verificar persistencia
+        up_res = client.put("/api/v1/companies/current", json={
+            "receipt_title": "El Roble Ferreterías - Central",
+            "receipt_phone": "+502 2222-3333",
+            "is_official_goodsif": False
+        }, headers=headers)
+        assert up_res.status_code == 200
+
+        # Verificar que el endpoint de settings devuelve los nuevos datos
+        get_st = client.get("/api/v1/companies/current", headers=headers)
+        assert get_st.status_code == 200
+        assert get_st.json()["receipt_title"] == "El Roble Ferreterías - Central"
+        assert get_st.json()["receipt_phone"] == "+502 2222-3333"
+
+        # 10. Consultar branding activo de Cotizaciones para Empresa B
+        q_brand = client.get("/api/v1/quotes/branding/current", headers=headers)
+        assert q_brand.status_code == 200
+        qb = q_brand.json()
+        assert qb["name"] == "Pinturas & Ferretería El Roble S.A."
+        assert qb["title_name"] == "El Roble Ferreterías - Central"
+        assert qb["phone"] == "+502 2222-3333"
+        assert qb["is_official_goodsif"] is False
+
+        # 11. Crear una cotización para Empresa B y verificar membrete devuelto
+        q_create = client.post("/api/v1/quotes/", json={
+            "customer_name": "Constructora Los Laureles",
+            "customer_nit": "9876543-2",
+            "customer_email": "compras@laureles.com",
+            "condition": "Crédito 30 días",
+            "lines": [
+                {
+                    "product_id": str(uuid.uuid4()),
+                    "product_name": "Esmalte Anticorrosivo Gris Galón",
+                    "product_code": "PNT-001",
+                    "uom_name": "GAL",
+                    "qty": 5.0,
+                    "unit_price": 140.0
+                }
+            ]
+        }, headers=headers)
+        assert q_create.status_code == 200
+        q_b_id = q_create.json()["id"]
+
+        # Consultar cotización y verificar branding específico de Empresa B
+        q_b_detail = client.get(f"/api/v1/quotes/{q_b_id}", headers=headers)
+        assert q_b_detail.status_code == 200
+        q_data = q_b_detail.json()
+        assert q_data["company"]["name"] == "Pinturas & Ferretería El Roble S.A."
+        assert q_data["company"]["title_name"] == "El Roble Ferreterías - Central"
+        assert q_data["company"]["is_official_goodsif"] is False
+        assert q_data["company_info"]["name"] == "El Roble Ferreterías - Central"
+
+        # 12. Enviar email de cotización de Empresa B y verificar que NO incluye Productos Automotrices del Sur
+        q_email = client.post(f"/api/v1/quotes/{q_b_id}/send-email", json={
+            "recipient_email": "compras@laureles.com",
+            "message": "Favor revisar cotización de esmalte"
+        }, headers=headers)
+        assert q_email.status_code == 200
+        if "mailto_url" in q_email.json():
+            mailto = q_email.json()["mailto_url"]
+            assert "EL%20ROBLE" in mailto or "El%20Roble" in mailto
+            assert "PRODUCTOS%20AUTOMOTRICES" not in mailto
+
+    finally:
+        # Restaurar usuario a COMPANY_ID original
+        client.post(f"/api/v1/companies/switch/{COMPANY_ID}", headers=headers)
+

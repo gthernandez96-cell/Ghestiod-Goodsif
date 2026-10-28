@@ -246,6 +246,25 @@ class StockAdjustIn(BaseModel):
     notes: Optional[str] = None
 
 
+def is_presale_restricted_user(user) -> bool:
+    """Retorna True ÚNICAMENTE cuando el usuario es del rol Pre-Venta (Pre-Vendedor / preventista).
+    Para el resto de usuarios (Admin, Gerente, Cajero, etc.), retorna False."""
+    if not user:
+        return False
+    role_codes = [r.code for r in getattr(user, "roles", [])] if hasattr(user, "roles") and user.roles else []
+    is_admin = (
+        getattr(user, "is_superuser", False)
+        or getattr(user, "is_admin", False)
+        or "admin" in role_codes
+        or "store_manager" in role_codes
+        or getattr(user, "username", "").lower() == "admin"
+    )
+    if is_admin:
+        return False
+    uname = (getattr(user, "username", "") or "").lower()
+    return uname == "prevendedor" or "prevend" in uname or any(r in role_codes for r in ["presale_seller", "preventista"])
+
+
 # ===== CATEGORIES ENDPOINTS =====
 @router.get("/categories")
 async def list_categories(
@@ -528,6 +547,8 @@ async def list_products(
         for p_id, frozen_total in frozen_res.all():
             frozen_map[str(p_id)] = float(frozen_total or 0)
 
+    hide_stock = is_presale_restricted_user(current_user)
+
     items = []
     for p in products:
         p_id_str = str(p.id)
@@ -561,10 +582,10 @@ async def list_products(
             "tax_rate": float(p.tax_rate or 12.0),
             "includes_tax": p.includes_tax,
             "min_stock": float(p.min_stock or 0),
-            "stock": avail_stock,
-            "stock_physical": phys_stock,
-            "stock_frozen": froz_stock,
-            "stock_available": avail_stock,
+            "stock": None if hide_stock else avail_stock,
+            "stock_physical": None if hide_stock else phys_stock,
+            "stock_frozen": None if hide_stock else froz_stock,
+            "stock_available": None if hide_stock else avail_stock,
             "product_type": _val_to_str(p.product_type),
             "tracking": _val_to_str(p.tracking),
             "is_active": p.is_active,
@@ -693,6 +714,8 @@ async def get_pos_catalog(
         for p_id, frozen_total in frozen_res.all():
             frozen_map[str(p_id)] = float(frozen_total or 0)
 
+    hide_stock = is_presale_restricted_user(current_user)
+
     items = []
     for p in products:
         p_id_str = str(p.id)
@@ -722,10 +745,10 @@ async def get_pos_catalog(
             "tax_rate": float(p.tax_rate or 12.0),
             "includes_tax": p.includes_tax,
             "is_active": p.is_active,
-            "stock": avail_stock,
-            "stock_physical": phys_stock,
-            "stock_frozen": froz_stock,
-            "stock_available": avail_stock,
+            "stock": None if hide_stock else avail_stock,
+            "stock_physical": None if hide_stock else phys_stock,
+            "stock_frozen": None if hide_stock else froz_stock,
+            "stock_available": None if hide_stock else avail_stock,
             "image_url": p.image_url,
             "pdf_datasheet_url": getattr(p, "pdf_datasheet_url", None),
             "internal_notes": getattr(p, "internal_notes", None),
@@ -844,6 +867,15 @@ async def get_products_stock_levels(
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"
+
+    if is_presale_restricted_user(current_user):
+        return {
+            "stock": {},
+            "stock_physical": {},
+            "stock_frozen": {},
+            "stock_available": {},
+            "count": 0,
+        }
 
     await auto_expire_stale_presales(db, current_user.company_id)
 
@@ -1847,11 +1879,11 @@ async def get_product(
         "is_active": p.is_active,
         "available_in_pos": getattr(p, "available_in_pos", True) if getattr(p, "available_in_pos", None) is not None else getattr(p, "is_published", True),
         "available_in_presale": getattr(p, "available_in_presale", True) if getattr(p, "available_in_presale", None) is not None else True,
-        "stock_by_warehouse": quant_map,
-        "warehouses": warehouse_list,
-        "total_stock": total_stock,
-        "kardex_stock": kardex_stock if len(k_moves) > 0 else total_stock,
-        "has_kardex_discrepancy": has_kardex_discrepancy,
+        "stock_by_warehouse": {} if is_presale_restricted_user(current_user) else quant_map,
+        "warehouses": [] if is_presale_restricted_user(current_user) else warehouse_list,
+        "total_stock": None if is_presale_restricted_user(current_user) else total_stock,
+        "kardex_stock": None if is_presale_restricted_user(current_user) else (kardex_stock if len(k_moves) > 0 else total_stock),
+        "has_kardex_discrepancy": False if is_presale_restricted_user(current_user) else has_kardex_discrepancy,
         "image_url": p.image_url,
         "pdf_datasheet_url": getattr(p, "pdf_datasheet_url", None),
         "internal_notes": getattr(p, "internal_notes", None),
@@ -1865,6 +1897,12 @@ async def get_product_warehouses_stock(
     current_user=Depends(get_current_user),
 ):
     """Obtener desglose de existencias del producto en todas las bodegas."""
+    if is_presale_restricted_user(current_user):
+        raise HTTPException(
+            status_code=403,
+            detail="Acceso denegado: El rol Pre-Vendedor no tiene autorización para consultar existencias de inventario."
+        )
+
     try:
         p_uuid = uuid.UUID(product_id)
         prod_stmt = select(Product).where(Product.id == p_uuid, Product.company_id == current_user.company_id)

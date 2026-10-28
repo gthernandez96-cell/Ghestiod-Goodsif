@@ -799,6 +799,175 @@ def fecha_en_letras_espanol(dt: datetime) -> str:
         return dt.strftime("%d/%m/%Y")
 
 
+def resolve_image_file_path(image_url_or_path: Optional[str]) -> Optional[str]:
+    """Resuelve la ruta absoluta en el sistema de archivos de una imagen dada (estática o subida)."""
+    if not image_url_or_path:
+        return None
+    if os.path.isabs(image_url_or_path) and os.path.exists(image_url_or_path):
+        return image_url_or_path
+
+    clean = image_url_or_path.lstrip('/')
+    candidates = [
+        os.path.join(os.getcwd(), clean),
+        os.path.join(os.getcwd(), 'frontend', clean),
+        os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../../frontend', clean)),
+    ]
+    if clean.startswith('static/'):
+        sub = clean[7:]
+        candidates.append(os.path.join(os.getcwd(), 'frontend', 'static', sub))
+        candidates.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../../frontend/static', sub)))
+
+    for cand in candidates:
+        if os.path.exists(cand) and os.path.isfile(cand):
+            return cand
+    return None
+
+
+def get_company_branding(company: Optional[Company]) -> dict:
+    """
+    Obtiene la configuración oficial de membrete, logotipos y formato imprimible para:
+    1. Estados de Cuenta (Pantalla, Impresión, PDF, Excel)
+    2. Recibos de Abono / Pago Electrónicos en formato Media Carta.
+    Soporta operación multi-empresa completa donde cada empresa puede tener sus propios
+    logotipos, encabezados, razones comerciales y canales de contacto.
+    """
+    default_goodsif_title = "Productos Automotrices del Sur S.A."
+    default_goodsif_address = "Lote 67, Calle Central, Nueva Concepción, Escuintla."
+    default_goodsif_emails = "proausur78@gmail.com | proausu.sa@gmail.com"
+    default_goodsif_phone = "+(502) 3454-3857"
+    default_goodsif_nit = "11563009-0"
+
+    if not company:
+        return {
+            "name": default_goodsif_title,
+            "title_name": default_goodsif_title,
+            "trade_name": default_goodsif_title,
+            "nit": default_goodsif_nit,
+            "address": default_goodsif_address,
+            "phone": default_goodsif_phone,
+            "email": "proausu.sa@gmail.com",
+            "emails": default_goodsif_emails,
+            "logo_url": "/static/img/receipt_goodsif_logo.png",
+            "statement_banner_url": "/static/img/statement_logos_banner.png",
+            "statement_logo_url": "/static/img/receipt_goodsif_logo.png",
+            "receipt_logo_left": "/static/img/receipt_goodsif_logo.png",
+            "receipt_logo_right": "/static/img/receipt_r78_logo.png",
+            "quote_logo": "/static/img/quotes/logo_r78_stamp.png",
+            "quote_footer_image": "/static/img/quotes/marcas_footer.png",
+            "contact_footer": f"Si tienes alguna pregunta por favor contáctanos: Tel: {default_goodsif_phone} / Gmail: proausu.sa@gmail.com",
+            "is_official_goodsif": True,
+            "receipt_footer_notes": f"{default_goodsif_title} — Gracias por su preferencia.",
+        }
+
+    st = company.settings or {}
+    comp_name = company.name or "Empresa"
+    comp_trade = company.trade_name or comp_name
+    comp_nit = company.nit or "C/F"
+    comp_address = company.address or company.city or "Guatemala"
+    comp_phone = company.phone or ""
+    comp_email = company.email or ""
+
+    # Determinar si pertenece o usa el formato oficial Goodsif & R78 / Grupo H
+    name_check = f"{comp_name} {comp_trade}".lower()
+    is_goodsif = st.get("is_official_goodsif")
+    if is_goodsif is None:
+        if any(w in name_check for w in ["automotrices", "goodsif", "r78", "grupo h", "test"]):
+            is_goodsif = True
+        elif not company.logo_url and not st.get("receipt_logo_left") and not st.get("statement_banner_url"):
+            # Si aún no tiene logos personalizados subidos, activar el preset por defecto oficial
+            is_goodsif = True
+        else:
+            is_goodsif = False
+
+    # Logotipos y banner para Estado de Cuenta
+    statement_banner = st.get("statement_banner_url")
+    if not statement_banner:
+        if is_goodsif:
+            statement_banner = "/static/img/statement_logos_banner.png"
+        elif company.logo_url:
+            statement_banner = company.logo_url
+        else:
+            statement_banner = ""
+
+    statement_logo = st.get("statement_logo_url") or company.logo_url or ("/static/img/receipt_goodsif_logo.png" if is_goodsif else "")
+
+    # Logotipos para Recibo Media Carta
+    receipt_left = st.get("receipt_logo_left")
+    if not receipt_left:
+        if is_goodsif:
+            receipt_left = "/static/img/receipt_goodsif_logo.png"
+        elif company.logo_url:
+            receipt_left = company.logo_url
+        else:
+            receipt_left = ""
+
+    receipt_right = st.get("receipt_logo_right")
+    if not receipt_right and is_goodsif:
+        receipt_right = "/static/img/receipt_r78_logo.png"
+
+    # Logotipo para Cotizaciones Oficiales / Proformas Carta
+    quote_logo = st.get("quote_logo")
+    if not quote_logo:
+        if is_goodsif:
+            quote_logo = "/static/img/quotes/logo_r78_stamp.png"
+        elif receipt_left:
+            quote_logo = receipt_left
+        elif company.logo_url:
+            quote_logo = company.logo_url
+        else:
+            quote_logo = ""
+
+    quote_footer_image = "/static/img/quotes/marcas_footer.png" if is_goodsif else ""
+
+    # Título oficial de la empresa para comprobante
+    receipt_title = st.get("receipt_title")
+    if not receipt_title:
+        if is_goodsif and (not company.trade_name or "test" in comp_name.lower()):
+            receipt_title = default_goodsif_title
+        else:
+            receipt_title = comp_trade or comp_name
+
+    receipt_emails = st.get("receipt_emails") or (
+        default_goodsif_emails if (is_goodsif and not comp_email) else comp_email
+    )
+    receipt_phone = st.get("receipt_phone") or (
+        default_goodsif_phone if (is_goodsif and not comp_phone) else comp_phone
+    )
+    receipt_address = st.get("receipt_address") or (
+        default_goodsif_address if (is_goodsif and (not company.address or "test" in comp_name.lower())) else comp_address
+    )
+    receipt_nit = st.get("receipt_nit") or (
+        default_goodsif_nit if (is_goodsif and (not company.nit or "test" in comp_name.lower())) else comp_nit
+    )
+
+    contact_footer = (
+        f"Si tienes alguna pregunta por favor contáctanos: Tel: {receipt_phone} / Email: {receipt_emails or comp_email}"
+        if (receipt_phone or receipt_emails or comp_email)
+        else ""
+    )
+
+    return {
+        "name": comp_name,
+        "title_name": receipt_title,
+        "trade_name": comp_trade,
+        "nit": receipt_nit,
+        "address": receipt_address,
+        "phone": receipt_phone,
+        "email": comp_email or "info@empresa.com",
+        "emails": receipt_emails,
+        "logo_url": company.logo_url or "",
+        "statement_banner_url": statement_banner,
+        "statement_logo_url": statement_logo,
+        "receipt_logo_left": receipt_left,
+        "receipt_logo_right": receipt_right,
+        "quote_logo": quote_logo,
+        "quote_footer_image": quote_footer_image,
+        "contact_footer": contact_footer,
+        "is_official_goodsif": bool(is_goodsif),
+        "receipt_footer_notes": st.get("receipt_footer_notes") or f"{receipt_title} — Gracias por su preferencia.",
+    }
+
+
 # ===== 6. PAYMENT RECEIPT / COMPROBANTE DE ABONO =====
 @router.get("/payments/{payment_id}/receipt")
 async def get_payment_receipt(
@@ -845,6 +1014,7 @@ async def get_payment_receipt(
 
     comp_res = await db.execute(select(Company).where(Company.id == c_uuid))
     company = comp_res.scalar_one_or_none()
+    branding = get_company_branding(company)
 
     dt = pmt.payment_date or datetime.now(timezone.utc)
     amt = float(pmt.amount)
@@ -886,12 +1056,19 @@ async def get_payment_receipt(
             "address": customer.address if customer else ""
         },
         "company": {
-            "name": company.name if company else "Productos Automotrices del Sur S.A.",
-            "title_name": "Productos Automotrices del Sur S.A.",
-            "nit": company.nit if company else "11563009-0",
-            "address": "Lote 67, Calle Central, Nueva Concepción, Escuintla.",
-            "emails": "proausur78@gmail.com | proausu.sa@gmail.com",
-            "phone": company.phone if company else "+(502) 3454-3857"
+            "name": branding["name"],
+            "title_name": branding["title_name"],
+            "trade_name": branding["trade_name"],
+            "nit": branding["nit"],
+            "address": branding["address"],
+            "emails": branding["emails"],
+            "email": branding["email"],
+            "phone": branding["phone"],
+            "logo_url": branding["logo_url"],
+            "logo_left": branding["receipt_logo_left"],
+            "logo_right": branding["receipt_logo_right"],
+            "is_official_goodsif": branding["is_official_goodsif"],
+            "footer_notes": branding["receipt_footer_notes"]
         },
         "user_name": getattr(current_user, 'full_name', '') or getattr(current_user, 'username', '') or getattr(current_user, 'email', 'Operador')
     }
@@ -1103,6 +1280,8 @@ async def get_customer_account_statement(
     pay_res = await db.execute(pay_stmt)
     payments = pay_res.scalars().all()
 
+    branding = get_company_branding(company)
+
     return {
         "customer": {
             "id": str(customer.id),
@@ -1119,12 +1298,18 @@ async def get_customer_account_statement(
             "credit_status": str(customer.credit_status.value if hasattr(customer.credit_status, 'value') else customer.credit_status)
         },
         "company": {
-            "name": company.name if company and company.name else "Productos Automotrices del Sur, S.A.",
-            "title_name": "Productos Automotrices del Sur, S.A.",
-            "nit": company.nit if company and company.nit else "11563009-0",
-            "address": company.address if company and company.address else "Lote 67, Calle Central, Nueva Concepción, Esc.",
-            "phone": company.phone if company and company.phone else "3454-3857",
-            "email": company.email if company and company.email else "proausu.sa@gmail.com"
+            "name": branding["name"],
+            "title_name": branding["title_name"],
+            "trade_name": branding["trade_name"],
+            "nit": branding["nit"],
+            "address": branding["address"],
+            "phone": branding["phone"],
+            "email": branding["email"],
+            "emails": branding["emails"],
+            "logo_url": branding["logo_url"],
+            "statement_banner_url": branding["statement_banner_url"],
+            "statement_logo_url": branding["statement_logo_url"],
+            "is_official_goodsif": branding["is_official_goodsif"],
         },
         "summary": {
             "total_envio": round(total_envio, 2),
@@ -1388,30 +1573,43 @@ def _build_statement_excel(customer_dict, invoices_list, company_dict, summary_d
             b = thin_border_side if r == 11 else None
             cell.border = Border(left=l, right=ri, top=t, bottom=b)
 
-    # Banner image
-    banner_path = os.path.join(os.getcwd(), 'frontend', 'static', 'img', 'statement_logos_banner.png')
-    if os.path.exists(banner_path):
+    # Banner image or prominent company header
+    banner_file = resolve_image_file_path(company_dict.get('statement_banner_url'))
+    if not banner_file:
+        banner_file = resolve_image_file_path(company_dict.get('logo_url'))
+    if not banner_file and company_dict.get('is_official_goodsif'):
+        banner_file = resolve_image_file_path('/static/img/statement_logos_banner.png')
+
+    has_banner = False
+    if banner_file and os.path.exists(banner_file):
         try:
-            img = OpenpyxlImage(banner_path)
+            img = OpenpyxlImage(banner_file)
             img.width = 240
             img.height = 49
             ws.add_image(img, 'A2')
+            has_banner = True
         except Exception:
-            pass
+            has_banner = False
 
-    ws.cell(row=6, column=1, value=company_dict.get('name', 'Productos Automotrices del Sur, S.A.')).font = Font(name='Arial', size=11, bold=True, color='0F172A')
+    if not has_banner:
+        ws.merge_cells('A2:F4')
+        top_c = ws.cell(row=2, column=1, value=company_dict.get('title_name') or company_dict.get('name', 'EMPRESA'))
+        top_c.font = Font(name='Arial', size=13, bold=True, color='0F172A')
+        top_c.alignment = Alignment(horizontal='center', vertical='center')
+
+    ws.cell(row=6, column=1, value=company_dict.get('name', '')).font = Font(name='Arial', size=11, bold=True, color='0F172A')
 
     ws.cell(row=7, column=1, value='NIT:').font = Font(name='Arial', size=9, bold=True, color='1E293B')
-    ws.cell(row=7, column=2, value=company_dict.get('nit', '11563009-0')).font = Font(name='Arial', size=9, color='334155')
+    ws.cell(row=7, column=2, value=company_dict.get('nit', '')).font = Font(name='Arial', size=9, color='334155')
 
     ws.cell(row=8, column=1, value='Dirección:').font = Font(name='Arial', size=9, bold=True, color='1E293B')
-    ws.cell(row=8, column=2, value=company_dict.get('address', 'Lote 67, Calle Central, Nueva Concepción, Esc.')).font = Font(name='Arial', size=9, color='334155')
+    ws.cell(row=8, column=2, value=company_dict.get('address', '')).font = Font(name='Arial', size=9, color='334155')
 
     ws.cell(row=9, column=1, value='Teléfono:').font = Font(name='Arial', size=9, bold=True, color='1E293B')
-    ws.cell(row=9, column=2, value=company_dict.get('phone', '3454-3857')).font = Font(name='Arial', size=9, color='334155')
+    ws.cell(row=9, column=2, value=company_dict.get('phone', '')).font = Font(name='Arial', size=9, color='334155')
 
-    ws.cell(row=10, column=1, value='Gmail:').font = Font(name='Arial', size=9, bold=True, color='1E293B')
-    ws.cell(row=10, column=2, value=company_dict.get('email', 'proausu.sa@gmail.com')).font = Font(name='Arial', size=9, color='334155')
+    ws.cell(row=10, column=1, value='Correo:').font = Font(name='Arial', size=9, bold=True, color='1E293B')
+    ws.cell(row=10, column=2, value=company_dict.get('email', '')).font = Font(name='Arial', size=9, color='334155')
 
     # --- RIGHT CARD: Estado de Cuenta (G2:J11) ---
     for r in range(2, 12):
@@ -1695,12 +1893,19 @@ async def export_customer_statement_excel(
         "address": customer.address or "",
         "phone": customer.phone or customer.mobile or "",
     }
+    branding = get_company_branding(company)
     company_dict = {
-        "name": company.name if company and company.name else "Productos Automotrices del Sur, S.A.",
-        "nit": company.nit if company and company.nit else "11563009-0",
-        "address": company.address if company and company.address else "Lote 67, Calle Central, Nueva Concepción, Esc.",
-        "phone": company.phone if company and company.phone else "3454-3857",
-        "email": company.email if company and company.email else "proausu.sa@gmail.com",
+        "name": branding["name"],
+        "trade_name": branding["trade_name"],
+        "title_name": branding["title_name"],
+        "nit": branding["nit"],
+        "address": branding["address"],
+        "phone": branding["phone"],
+        "email": branding["email"],
+        "statement_banner_url": branding["statement_banner_url"],
+        "statement_logo_url": branding["statement_logo_url"],
+        "logo_url": branding["logo_url"],
+        "is_official_goodsif": branding["is_official_goodsif"],
     }
     summary_dict = {
         "total_envio": round(total_envio, 2),
@@ -1756,16 +1961,33 @@ def _build_statement_pdf(customer_dict, invoices_list, company_dict, summary_dic
     )
 
     # 1. Top Section (Company card on left, Estado de Cuenta on right)
-    banner_path = os.path.join(os.getcwd(), 'frontend', 'static', 'img', 'statement_logos_banner.png')
+    banner_file = resolve_image_file_path(company_dict.get('statement_banner_url'))
+    if not banner_file:
+        banner_file = resolve_image_file_path(company_dict.get('logo_url'))
+    if not banner_file and company_dict.get('is_official_goodsif'):
+        banner_file = resolve_image_file_path('/static/img/statement_logos_banner.png')
+
     left_elements = []
-    if os.path.exists(banner_path):
-        left_elements.append(RLImage(banner_path, width=220, height=45))
-    left_elements.append(Spacer(1, 4))
-    left_elements.append(Paragraph(f"<b>{company_dict.get('name', 'Productos Automotrices del Sur, S.A.')}</b>", ParagraphStyle('Comp', parent=norm_style, fontSize=9.5, fontName='Helvetica-Bold')))
-    left_elements.append(Paragraph(f"<b>NIT:</b> {company_dict.get('nit', '11563009-0')}", norm_style))
-    left_elements.append(Paragraph(f"<b>Dirección:</b> {company_dict.get('address', 'Lote 67, Calle Central, Nueva Concepción, Esc.')}", norm_style))
-    left_elements.append(Paragraph(f"<b>Teléfono:</b> {company_dict.get('phone', '3454-3857')}", norm_style))
-    left_elements.append(Paragraph(f"<b>Gmail:</b> {company_dict.get('email', 'proausu.sa@gmail.com')}", norm_style))
+    if banner_file and os.path.exists(banner_file):
+        try:
+            left_elements.append(RLImage(banner_file, width=220, height=45))
+            left_elements.append(Spacer(1, 4))
+        except Exception:
+            pass
+    else:
+        left_elements.append(Paragraph(f"<b><font size=12 color='#0F172A'>{company_dict.get('title_name') or company_dict.get('name', 'EMPRESA')}</font></b>", ParagraphStyle('CompTitle', parent=norm_style)))
+        left_elements.append(Spacer(1, 4))
+
+    comp_name_val = company_dict.get('name') or company_dict.get('title_name') or 'Empresa'
+    left_elements.append(Paragraph(f"<b>{comp_name_val}</b>", ParagraphStyle('Comp', parent=norm_style, fontSize=9.5, fontName='Helvetica-Bold')))
+    if company_dict.get('nit'):
+        left_elements.append(Paragraph(f"<b>NIT:</b> {company_dict.get('nit')}", norm_style))
+    if company_dict.get('address'):
+        left_elements.append(Paragraph(f"<b>Dirección:</b> {company_dict.get('address')}", norm_style))
+    if company_dict.get('phone'):
+        left_elements.append(Paragraph(f"<b>Teléfono:</b> {company_dict.get('phone')}", norm_style))
+    if company_dict.get('email'):
+        left_elements.append(Paragraph(f"<b>Correo:</b> {company_dict.get('email')}", norm_style))
 
     left_cell_table = RLTable([[e] for e in left_elements], colWidths=[310])
     left_cell_table.setStyle(RLTableStyle([
@@ -2008,12 +2230,19 @@ async def export_customer_statement_pdf(
         "address": customer.address or "",
         "phone": customer.phone or customer.mobile or "",
     }
+    branding = get_company_branding(company)
     company_dict = {
-        "name": company.name if company and company.name else "Productos Automotrices del Sur, S.A.",
-        "nit": company.nit if company and company.nit else "11563009-0",
-        "address": company.address if company and company.address else "Lote 67, Calle Central, Nueva Concepción, Esc.",
-        "phone": company.phone if company and company.phone else "3454-3857",
-        "email": company.email if company and company.email else "proausu.sa@gmail.com",
+        "name": branding["name"],
+        "trade_name": branding["trade_name"],
+        "title_name": branding["title_name"],
+        "nit": branding["nit"],
+        "address": branding["address"],
+        "phone": branding["phone"],
+        "email": branding["email"],
+        "statement_banner_url": branding["statement_banner_url"],
+        "statement_logo_url": branding["statement_logo_url"],
+        "logo_url": branding["logo_url"],
+        "is_official_goodsif": branding["is_official_goodsif"],
     }
     summary_dict = {
         "total_envio": round(total_envio, 2),
