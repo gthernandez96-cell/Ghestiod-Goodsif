@@ -285,23 +285,23 @@
         <i class="ph ph-printer" style="font-size:16px; color:#562B82;"></i> Imprimir Carta (PDF)
       </button>
 
-      <!-- Badge de Estado cuando ya es Aprobada / Venta -->
+      <!-- Badge de Estado cuando ya es Aprobada / Solicitud POS -->
       <template x-if="isConverted()">
         <div style="display:flex; align-items:center; gap:6px; background:#dcfce7; color:#15803d; border:1.5px solid #86efac; font-weight:800; border-radius:8px; padding:7px 14px; font-size:12.5px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
-          <i class="ph ph-check-circle" style="font-size:16px;"></i> Aprobada / Venta
+          <i class="ph ph-check-circle" style="font-size:16px;"></i> Aprobada / Solicitud POS
         </div>
       </template>
 
-      <!-- Convertir a Venta / Factura (Bloqueado para Pre-Vendedor) -->
-      <template x-if="quoteId !== 'new' && !isConverted() && !isPresaleSeller">
+      <!-- Convertir a Solicitud POS / Pre-venta (Habilitado para Pre-Vendedor y todos los usuarios) -->
+      <template x-if="quoteId !== 'new' && !isConverted()">
         <button 
           type="button" 
           class="btn" 
           style="background:#059669; color:#ffffff; font-weight:800; border-radius:8px; padding:7px 16px; border:none; box-shadow:0 2px 8px rgba(5,150,105,0.25); display:flex; align-items:center; gap:6px; cursor:pointer; font-size:12.5px; transition:all 0.2s;"
           @click="convertToSaleOrder()"
-          title="Convertir esta cotización en una venta oficial con descuento de inventario"
+          title="Convertir esta cotización en Solicitud POS (Pre-venta & Autorizaciones de Bodega) sin descontar inventario directo"
         >
-          <i class="ph ph-arrows-clockwise" style="font-weight:800;"></i> Convertir a Venta
+          <i class="ph ph-arrows-clockwise" style="font-weight:800;"></i> Convertir a Solicitud POS
         </button>
       </template>
 
@@ -489,6 +489,7 @@
                 <i class="ph ph-warehouse"></i> BODEGA PARA CONTROL DE STOCK EN TIEMPO REAL
               </label>
               <select class="odoo-control" style="font-weight:700;" x-model="form.warehouse_id" @change="onWarehouseChange()">
+                <option value="">Todas las Bodegas (Consolidado Sucursal)</option>
                 <template x-for="w in warehouses" :key="w.id">
                   <option :value="w.id" x-text="w.name + ' (' + w.code + ')'"></option>
                 </template>
@@ -551,7 +552,7 @@
               <div style="font-weight:800; color:#1e293b;" x-text="p.name"></div>
               <div style="font-size:11px; color:#64748b;">
                 <span x-text="'SKU: ' + (p.internal_ref || 'N/A') + ' | Medida: ' + (p.uom_symbol || p.uom_name || 'PZA')"></span>
-                <span x-show="!isPresaleSeller" :class="p.stock > 0 ? 'stock-badge stock-in' : 'stock-badge stock-out'" style="margin-left:6px;" x-text="'Stock: ' + (p.stock || 0) + ' ' + (p.uom_symbol || 'uds')"></span>
+                <span :class="p.stock > 0 ? 'stock-badge stock-in' : 'stock-badge stock-out'" style="margin-left:6px;" x-text="'Stock: ' + (p.stock || 0) + ' ' + (p.uom_symbol || 'uds')"></span>
               </div>
             </div>
             <div style="display:flex; align-items:center; gap:12px;">
@@ -573,7 +574,7 @@
             <th style="padding:8px 10px; font-size:11px; text-transform:uppercase; text-align:center; width:110px; color:#475569;">Código (SKU)</th>
             <th style="padding:8px 10px; font-size:11px; text-transform:uppercase; text-align:left; color:#475569;">Descripción del Producto</th>
             <th style="padding:8px 10px; font-size:11px; text-transform:uppercase; text-align:center; width:95px; color:#475569;">Medida</th>
-            <th x-show="!isPresaleSeller" style="padding:8px 10px; font-size:11px; text-transform:uppercase; text-align:center; width:110px; color:#475569;">Stock Bodega</th>
+            <th x-show="canViewStock" style="padding:8px 10px; font-size:11px; text-transform:uppercase; text-align:center; width:110px; color:#475569;">Stock Sucursal / Bodega</th>
             <th style="padding:8px 10px; font-size:11px; text-transform:uppercase; text-align:center; width:90px; color:#475569;">Cant.</th>
             <th style="padding:8px 10px; font-size:11px; text-transform:uppercase; text-align:right; width:125px; color:#475569;">P. Unit (Q)</th>
             <th style="padding:8px 10px; font-size:11px; text-transform:uppercase; text-align:center; width:85px; color:#475569;">Desc. %</th>
@@ -608,8 +609,8 @@
                 <input type="text" class="odoo-control" style="text-align:center; font-weight:800; padding:4px 6px;" x-model="line.uom_name" placeholder="PZA">
               </td>
 
-              <!-- Stock en Tiempo Real con Semáforo (Opción 3, oculto para Pre-Vendedor) -->
-              <td x-show="!isPresaleSeller" style="padding:6px 10px; text-align:center;">
+              <!-- Stock en Tiempo Real con Semáforo (Opción 3) -->
+              <td x-show="canViewStock" style="padding:6px 10px; text-align:center;">
                 <template x-if="line.product_id">
                   <div style="display:flex; flex-direction:column; align-items:center; gap:2px;">
                     <span 
@@ -1064,7 +1065,7 @@
                 <div style="font-weight:800; color:#1e293b;" x-text="p.name"></div>
                 <div style="font-size:11px; color:#64748b;">
                   <span x-text="'SKU: ' + (p.internal_ref || 'N/A') + ' | ' + (p.uom_symbol || p.uom_name || 'PZA')"></span>
-                  <span x-show="!isPresaleSeller" :class="p.stock > 0 ? 'stock-badge stock-in' : 'stock-badge stock-out'" style="margin-left:6px;" x-text="'Stock: ' + (p.stock || 0)"></span>
+                  <span x-show="canViewStock" :class="p.stock > 0 ? 'stock-badge stock-in' : 'stock-badge stock-out'" style="margin-left:6px;" x-text="'Stock: ' + (p.stock || 0)"></span>
                 </div>
               </div>
               <div style="display:flex; align-items:center; gap:10px;">
@@ -1113,6 +1114,7 @@
           return uname === 'prevendedor' || uname.includes('prevend') || codes.includes('presale_seller') || codes.includes('preventista');
         } catch(e) { return false; }
       })(),
+      canViewStock: true,
 
       form: {
         id: null,
@@ -1173,6 +1175,26 @@
           const codes = (u.role_codes || (u.roles || []).map(r => (typeof r === 'object' ? r.code : r)) || []);
           const isAdmin = u.is_superuser || u.is_admin || uname === 'admin' || codes.includes('admin') || codes.includes('store_manager');
           this.isPresaleSeller = (codes.includes('presale_seller') || codes.includes('preventista') || uname === 'prevendedor' || uname.includes('prevend')) && !isAdmin;
+          if (isAdmin) {
+            this.canViewStock = true;
+          } else if (u.can_view_stock === false || (u.stock_visibility && u.stock_visibility.quotes === false)) {
+            this.canViewStock = false;
+          } else {
+            this.canViewStock = true;
+          }
+
+          const me = await API.get('/auth/me');
+          if (me) {
+            const mCodes = me.role_codes || (me.roles || []).map(r => r.code || r);
+            const mAdmin = me.is_superuser || me.is_admin || me.username === 'admin' || mCodes.includes('admin') || mCodes.includes('store_manager');
+            if (mAdmin) {
+              this.canViewStock = true;
+            } else if (me.can_view_stock === false || (me.stock_visibility && me.stock_visibility.quotes === false)) {
+              this.canViewStock = false;
+            } else {
+              this.canViewStock = true;
+            }
+          }
         } catch(e) {}
         await Promise.all([
           this.loadWarehouses(),
@@ -1266,8 +1288,10 @@
         try {
           const res = await API.get('/branches/warehouses');
           this.warehouses = res || [];
-          if (this.warehouses.length > 0 && !this.form.warehouse_id) {
-            this.form.warehouse_id = this.warehouses[0].id;
+          if (this.isPresaleSeller) {
+            this.form.warehouse_id = '';
+          } else if (this.warehouses.length > 0 && !this.form.warehouse_id) {
+            this.form.warehouse_id = '';
           }
         } catch(e) {}
       },
@@ -1275,7 +1299,7 @@
       async loadAllProducts() {
         try {
           const whParam = this.form.warehouse_id ? `&warehouse_id=${this.form.warehouse_id}` : '';
-          const res = await API.get(`/products/?limit=300${whParam}`);
+          const res = await API.get(`/products/?limit=300&module=quotes${whParam}`);
           this.allProducts = res.items || (Array.isArray(res) ? res : []);
         } catch(e) {}
       },
@@ -1590,7 +1614,7 @@
       },
 
       async convertToSaleOrder() {
-        // Validación estricta: No dejar vender si el stock está en 0 o es insuficiente
+        // Validación de disponibilidad en las bodegas de la sucursal
         const outOfStockItems = (this.form.lines || []).filter(l => {
           if (!l.product_id) return false;
           const cur = Number(l.current_stock || 0);
@@ -1603,20 +1627,20 @@
             const cur = Number(l.current_stock || 0);
             const req = Number(l.qty || 1);
             if (cur <= 0) {
-              return `• ${l.description || l.product_name || 'Producto'}: Stock agotado (0 disponible)`;
+              return `• ${l.description || l.product_name || 'Producto'}: Stock agotado en sucursal (0 disponible)`;
             } else {
               return `• ${l.description || l.product_name || 'Producto'}: Stock insuficiente (${cur} disponible, ${req} solicitado)`;
             }
           }).join('\n');
 
-          alert(`❌ NO SE PUEDE REALIZAR LA VENTA:\n\nHay productos sin existencias suficientes en bodega:\n\n${listStr}\n\nPor favor ajusta las cantidades o ingresa inventario antes de vender.`);
+          alert(`❌ NO SE PUEDE GENERAR LA PRE-VENTA:\n\nHay productos sin existencias suficientes en las bodegas de la sucursal:\n\n${listStr}\n\nPor favor ajusta las cantidades o verifica el inventario antes de continuar.`);
           return;
         }
 
-        if (!confirm('¿Deseas convertir esta cotización en una venta aprobada y descontar el inventario?')) return;
+        if (!confirm('¿Deseas convertir esta cotización en Solicitud POS (Pre-venta & Autorizaciones de Bodega)?\n\nNo se descontará inventario ni se emitirá venta final hasta la validación y autorización de bodega.')) return;
         try {
           const res = await API.post(`/quotes/${this.quoteId}/convert`);
-          alert(res.message || '¡Cotización aprobada y convertida a venta!');
+          alert(res.message || '¡Cotización convertida exitosamente a Solicitud POS (Pre-venta & Autorizaciones de Bodega)!');
           this.form.state = 'converted';
           await this.loadQuoteData();
         } catch(e) {

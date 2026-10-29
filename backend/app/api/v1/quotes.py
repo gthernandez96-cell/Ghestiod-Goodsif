@@ -9,6 +9,7 @@ from decimal import Decimal
 from datetime import datetime, timezone, timedelta
 import uuid
 import os
+import random
 import smtplib
 import urllib.parse
 from email.mime.text import MIMEText
@@ -18,7 +19,7 @@ from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.sale import SaleOrder, SaleOrderLine, SaleState, SaleType
 from app.models.partner import Partner, PartnerType
-from app.models.product import Product, UnitOfMeasure
+from app.models.product import Product, UnitOfMeasure, ProductType
 from app.models.company import Branch, Warehouse, Company
 from app.models.inventory import StockQuant, StockMove, StockMoveType
 from app.models.user import User
@@ -243,6 +244,8 @@ async def list_quotes(
             "discount_amount": float(q.discount_amount or 0),
             "total": float(q.total or 0),
             "state": st,
+            "presale_order_number": extra.get("presale_order_number") or "",
+            "presale_order_id": extra.get("presale_order_id") or "",
             "notes": q.notes or q.customer_address or ""
         })
 
@@ -1105,14 +1108,18 @@ Tel: {company_phone} | {company_email}
     }
 
 
-# ===== 9. CONVERT QUOTE TO SALE ORDER =====
+# ===== 9. CONVERT QUOTE TO POS PRESALE REQUEST =====
 @router.post("/{quote_id}/convert")
 async def convert_quote_to_sale(
     quote_id: str,
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    """Convertir una cotización aprobada en orden de venta confirmada y descontar stock."""
+    """
+    Convierte una cotización en Solicitud POS (Pre-venta & Autorizaciones de Bodega).
+    IMPORTANTE: No descuenta inventario ni asienta ventas directas.
+    Pasa al módulo de Solicitudes POS en estado 'pending_approval' para validación y autorización de bodega.
+    """
     try:
         q_uuid = uuid.UUID(quote_id)
     except ValueError:
@@ -1132,23 +1139,35 @@ async def convert_quote_to_sale(
     if not quote:
         raise HTTPException(status_code=404, detail="Cotización no encontrada")
 
-    if quote.state == SaleState.CONFIRMED:
-        return {"status": "already_converted", "sale_id": str(quote.id), "number": quote.number}
+    extra = dict(quote.extra or {})
+    if quote.state == SaleState.CONFIRMED or extra.get("state_custom") in ("confirmed", "converted"):
+        presale_num = extra.get("presale_order_number") or quote.number
+        return {
+            "status": "already_converted",
+            "sale_id": str(quote.id),
+            "number": quote.number,
+            "presale_number": presale_num,
+            "message": f"La cotización {quote.number} ya fue convertida previamente a Solicitud POS ({presale_num})."
+        }
 
     if not quote.lines:
-        raise HTTPException(status_code=400, detail="La cotización no contiene productos para procesar la venta.")
+        raise HTTPException(status_code=400, detail="La cotización no contiene productos para procesar la pre-venta.")
 
-    # Asegurar bodega de despacho
+    # Asegurar bodega de despacho asignada
     wh_id = quote.warehouse_id
     if not wh_id:
         w_res = await db.execute(
             select(Warehouse.id)
-            .where(Warehouse.company_id == current_user.company_id, Warehouse.is_active == True)
+            .where(Warehouse.branch_id == quote.branch_id, Warehouse.is_active == True, Warehouse.is_deleted == False)
             .limit(1)
         )
         wh_id = w_res.scalar_one_or_none()
         if not wh_id:
-            w_res = await db.execute(select(Warehouse.id).limit(1))
+            w_res = await db.execute(
+                select(Warehouse.id)
+                .where(Warehouse.company_id == current_user.company_id, Warehouse.is_active == True, Warehouse.is_deleted == False)
+                .limit(1)
+            )
             wh_id = w_res.scalar_one_or_none()
         quote.warehouse_id = wh_id
 
@@ -1163,75 +1182,157 @@ async def convert_quote_to_sale(
                 lines_by_product[line.product_id] = []
             lines_by_product[line.product_id].append(line)
 
-    # 2. VALIDACIÓN ESTRICTA DE STOCK: No permitir vender si el stock está en 0 o es menor a lo solicitado
+    # 2. VALIDACIÓN DE DISPONIBILIDAD EN TODAS LAS BODEGAS DE LA SUCURSAL
+    # Valida existencia sumada de las bodegas activas de la sucursal menos reservas en pre-ventas
     out_of_stock_errors = []
-    quants_map = {}
+    cutoff_7d = datetime.now(timezone.utc) - timedelta(days=7)
 
     for p_id, total_req in qty_by_product.items():
-        q_stmt = select(StockQuant).where(
-            StockQuant.product_id == p_id,
-            StockQuant.warehouse_id == wh_id,
-            StockQuant.is_deleted == False
-        ).limit(1)
-        q_res = await db.execute(q_stmt)
-        quant = q_res.scalar_one_or_none()
-
-        avail_stock = Decimal(str(quant.qty_on_hand)) if (quant and quant.qty_on_hand is not None) else Decimal("0")
-        
         sample_line = lines_by_product[p_id][0]
         prod_obj = sample_line.product
+
+        # Los servicios no requieren validación de stock
+        if prod_obj and getattr(prod_obj, "product_type", None) == ProductType.SERVICE:
+            continue
+
         p_name = prod_obj.name if (prod_obj and prod_obj.name) else (sample_line.description or "Producto")
         p_code = getattr(prod_obj, "internal_ref", None) or getattr(prod_obj, "barcode", None) or ""
         ref = f"{p_name} [{p_code}]" if p_code else p_name
 
+        # Stock físico consolidado en todas las bodegas de la sucursal
+        phys_stmt = (
+            select(func.coalesce(func.sum(StockQuant.qty_on_hand), 0))
+            .join(Warehouse, StockQuant.warehouse_id == Warehouse.id)
+            .join(Branch, Warehouse.branch_id == Branch.id)
+            .where(
+                StockQuant.product_id == p_id,
+                StockQuant.is_deleted == False,
+                Warehouse.is_active == True,
+                Warehouse.is_deleted == False,
+                Branch.company_id == current_user.company_id,
+                Branch.id == quote.branch_id,
+            )
+        )
+        phys_stock = Decimal(str((await db.execute(phys_stmt)).scalar() or "0"))
+
+        # Stock congelado por solicitudes de pre-venta pendientes en la sucursal
+        froz_stmt = (
+            select(func.coalesce(func.sum(SaleOrderLine.qty), 0))
+            .join(SaleOrder, SaleOrderLine.sale_id == SaleOrder.id)
+            .where(
+                SaleOrder.company_id == current_user.company_id,
+                SaleOrder.branch_id == quote.branch_id,
+                SaleOrder.sale_type == SaleType.PRESALE,
+                SaleOrder.state.in_([SaleState.PENDING_APPROVAL, SaleState.WAREHOUSE_VALIDATION]),
+                SaleOrder.created_at >= cutoff_7d,
+                SaleOrder.is_deleted == False,
+                SaleOrderLine.is_deleted == False,
+                SaleOrderLine.product_id == p_id,
+            )
+        )
+        froz_stock = Decimal(str((await db.execute(froz_stmt)).scalar() or "0"))
+
+        avail_stock = phys_stock - froz_stock
+
         if avail_stock <= Decimal("0"):
-            out_of_stock_errors.append(f"• {ref}: Stock agotado en bodega (0 disponible)")
+            out_of_stock_errors.append(f"• {ref}: Stock agotado en sucursal (0 disponible en bodegas)")
         elif avail_stock < total_req:
-            out_of_stock_errors.append(f"• {ref}: Stock insuficiente (Disponible: {avail_stock}, Solicitado: {total_req})")
-        else:
-            quants_map[p_id] = quant
+            out_of_stock_errors.append(f"• {ref}: Stock insuficiente en sucursal (Disponible: {avail_stock}, Solicitado: {total_req})")
 
     if out_of_stock_errors:
         err_msg = (
-            "No se puede realizar la venta porque hay productos sin existencias suficientes en la bodega:\n\n"
+            "No se puede generar la solicitud de pre-venta porque hay productos sin existencias suficientes en las bodegas de la sucursal:\n\n"
             + "\n".join(out_of_stock_errors)
-            + "\n\nPor favor ajusta las cantidades o ingresa inventario antes de procesar la venta."
+            + "\n\nPor favor ajusta las cantidades o verifica el inventario antes de continuar."
         )
         raise HTTPException(status_code=400, detail=err_msg)
 
-    # 3. Descontar inventario y asentar los movimientos de salida
+    # 3. CREAR SOLICITUD POS (PRE-VENTA) SIN DESCONTAR INVENTARIO
+    date_prefix = datetime.now(timezone.utc).strftime("%Y%m%d")
+    rnd_suffix = random.randint(100000, 999999)
+    presale_number = f"PRE-{date_prefix}-{rnd_suffix}"
+
+    seller_name = extra.get("seller_name") or getattr(current_user, "full_name", None) or "Ventas"
+    delivery_date_str = quote.due_date.strftime("%Y-%m-%d") if quote.due_date else None
+    delivery_address_str = quote.customer_address or "Ciudad de Guatemala"
+
+    presale_extra = {
+        "source": "quote_conversion",
+        "origin_quote_id": str(quote.id),
+        "origin_quote_number": quote.number,
+        "seller_name": seller_name,
+        "delivery_date": delivery_date_str,
+        "delivery_address": delivery_address_str,
+        "delivery_notes": quote.notes or "",
+        "notes": f"Generada desde Cotización {quote.number}. " + (quote.notes or "")
+    }
+
+    presale = SaleOrder(
+        company_id=quote.company_id,
+        branch_id=quote.branch_id,
+        warehouse_id=wh_id,
+        customer_id=quote.customer_id,
+        customer_name=quote.customer_name or "Consumidor Final",
+        customer_nit=quote.customer_nit or "CF",
+        customer_address=delivery_address_str,
+        user_id=current_user.id,
+        number=presale_number,
+        state=SaleState.PENDING_APPROVAL,
+        sale_type=SaleType.PRESALE,
+        sale_date=datetime.now(timezone.utc),
+        due_date=quote.due_date,
+        subtotal=quote.subtotal or Decimal("0"),
+        tax_amount=quote.tax_amount or Decimal("0"),
+        discount_amount=quote.discount_amount or Decimal("0"),
+        total=quote.total or Decimal("0"),
+        amount_paid=Decimal("0"),
+        amount_due=quote.total or Decimal("0"),
+        notes=f"Generada desde Cotización {quote.number}. " + (quote.notes or ""),
+        extra=presale_extra,
+        warehouse_verified=False,
+    )
+
+    presale_lines = []
     for line in quote.lines:
-        if line.product_id and line.product_id in quants_map:
-            quant = quants_map[line.product_id]
-            if quant:
-                quant.qty_on_hand = (quant.qty_on_hand or Decimal("0")) - Decimal(str(line.qty))
-
-            move = StockMove(
-                warehouse_id=wh_id,
+        presale_lines.append(
+            SaleOrderLine(
                 product_id=line.product_id,
-                move_type=StockMoveType.SALE,
-                qty=Decimal(str(line.qty)),
-                unit_cost=line.cost_price or Decimal("0"),
-                total_cost=(line.cost_price or Decimal("0")) * Decimal(str(line.qty)),
-                reference=f"Venta desde Cotización {quote.number}",
-                notes=f"Cliente: {quote.customer_name}"
+                variant_id=line.variant_id,
+                lot_id=line.lot_id,
+                uom_id=line.uom_id,
+                product_name=line.product_name,
+                product_barcode=line.product_barcode,
+                description=line.description or line.product_name,
+                qty=line.qty,
+                unit_price=line.unit_price,
+                cost_price=line.cost_price or Decimal("0"),
+                discount_amount=line.discount_amount or Decimal("0"),
+                subtotal=line.subtotal or Decimal("0"),
+                tax_amount=line.tax_amount or Decimal("0"),
+                total=line.total or Decimal("0"),
             )
-            db.add(move)
+        )
+    presale.lines = presale_lines
+    db.add(presale)
 
-    # Actualizar estado de cotización a CONFIRMED
+    # 4. Actualizar estado de la cotización original a CONFIRMED (Convertida)
     quote.state = SaleState.CONFIRMED
-    extra = dict(quote.extra or {})
     extra["state_custom"] = "converted"
+    extra["presale_order_id"] = str(presale.id)
+    extra["presale_order_number"] = presale_number
     quote.extra = extra
 
     await db.commit()
+    await db.refresh(presale)
 
     return {
         "status": "converted",
         "state": "converted",
         "sale_id": str(quote.id),
         "number": quote.number,
-        "message": f"¡Cotización {quote.number} aprobada y convertida a venta exitosamente!"
+        "presale_id": str(presale.id),
+        "presale_number": presale.number,
+        "message": f"¡Cotización {quote.number} convertida exitosamente a Solicitud POS ({presale.number})! Enviada a Pre-venta & Autorizaciones de Bodega sin descontar inventario directo."
     }
 
 

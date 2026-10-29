@@ -300,15 +300,16 @@ async def create_presale(
         subtotal_accum += (line_subtotal - line_tax)
         total_accum += line_subtotal
 
+        p_name = f"[{prod.internal_ref}] {prod.name}" if prod.internal_ref else prod.name
         order_lines.append(
             SaleOrderLine(
                 product_id=prod.id,
                 variant_id=None,
                 lot_id=None,
                 uom_id=prod.uom_id,
-                product_name=prod.name,
+                product_name=p_name,
                 product_barcode=prod.barcode,
-                description=prod.name,
+                description=p_name,
                 qty=qty,
                 unit_price=price,
                 cost_price=prod.cost_price or Decimal("0"),

@@ -483,8 +483,17 @@ async def list_company_users(
     b_res = await db.execute(b_stmt)
     branch_map = {b.id: b.name for b in b_res.scalars().all()}
 
-    return [
-        {
+    result = []
+    for u in users:
+        st = u.settings or {}
+        stock_cfg = st.get("stock_visibility", {})
+        is_u_admin = bool(u.is_superuser or u.username == "admin")
+        can_view = True if is_u_admin else st.get("can_view_stock", stock_cfg.get("can_view_stock", True))
+        pos_vis = True if is_u_admin else stock_cfg.get("pos", st.get("stock_pos", True))
+        presale_vis = True if is_u_admin else stock_cfg.get("presale", st.get("stock_presale", True))
+        quotes_vis = True if is_u_admin else stock_cfg.get("quotes", st.get("stock_quotes", True))
+
+        result.append({
             "id": str(u.id),
             "username": u.username,
             "full_name": u.full_name,
@@ -494,10 +503,14 @@ async def list_company_users(
             "role": "Super Administrador" if u.is_superuser else "Usuario / Cajero",
             "branch_id": str(u.current_branch_id) if u.current_branch_id else None,
             "branch_name": branch_map.get(u.current_branch_id, "Sucursal Central"),
+            "can_view_stock": can_view,
+            "stock_pos": pos_vis,
+            "stock_presale": presale_vis,
+            "stock_quotes": quotes_vis,
             "created_at": u.created_at.strftime("%Y-%m-%d") if u.created_at else ""
-        }
-        for u in users
-    ]
+        })
+
+    return result
 
 
 @router.post("/companies/users")

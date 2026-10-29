@@ -124,6 +124,15 @@ async def login(
     role_codes = [r.code for r in (user.roles or [])]
     is_admin_user = bool(user.is_superuser or "admin" in role_codes or "store_manager" in role_codes or user.username == "admin" or (user.email and "admin" in user.email))
 
+    st = user.settings or {}
+    stock_cfg = st.get("stock_visibility", {})
+    can_view = True if is_admin_user else st.get("can_view_stock", stock_cfg.get("can_view_stock", True))
+    stock_vis = {
+        "pos": True if is_admin_user else stock_cfg.get("pos", st.get("stock_pos", True)),
+        "presale": True if is_admin_user else stock_cfg.get("presale", st.get("stock_presale", True)),
+        "quotes": True if is_admin_user else stock_cfg.get("quotes", st.get("stock_quotes", True)),
+    }
+
     return LoginResponse(
         access_token=access_token,
         refresh_token=refresh_token,
@@ -137,6 +146,8 @@ async def login(
             "roles": [{"id": str(r.id), "name": r.name, "code": r.code} for r in (user.roles or [])],
             "role_codes": role_codes,
             "current_branch_id": str(user.current_branch_id) if user.current_branch_id else None,
+            "can_view_stock": can_view,
+            "stock_visibility": stock_vis,
         },
     )
 
@@ -165,6 +176,15 @@ async def get_me(current_user: User = Depends(get_current_user)):
     role_codes = [r.code for r in (current_user.roles or [])]
     is_admin_user = bool(current_user.is_superuser or "admin" in role_codes or "store_manager" in role_codes or current_user.username == "admin" or (current_user.email and "admin" in current_user.email))
 
+    st = current_user.settings or {}
+    stock_cfg = st.get("stock_visibility", {})
+    can_view = True if is_admin_user else st.get("can_view_stock", stock_cfg.get("can_view_stock", True))
+    stock_vis = {
+        "pos": True if is_admin_user else stock_cfg.get("pos", st.get("stock_pos", True)),
+        "presale": True if is_admin_user else stock_cfg.get("presale", st.get("stock_presale", True)),
+        "quotes": True if is_admin_user else stock_cfg.get("quotes", st.get("stock_quotes", True)),
+    }
+
     return {
         "id": str(current_user.id),
         "username": current_user.username,
@@ -178,6 +198,8 @@ async def get_me(current_user: User = Depends(get_current_user)):
         "branches": [{"id": str(b.id), "name": b.name, "code": b.code} for b in current_user.branches],
         "roles": [{"id": str(r.id), "name": r.name, "code": r.code} for r in current_user.roles],
         "role_codes": role_codes,
+        "can_view_stock": can_view,
+        "stock_visibility": stock_vis,
     }
 
 

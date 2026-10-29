@@ -549,6 +549,10 @@
     }
   }
 
+  [x-cloak] {
+    display: none !important;
+  }
+
   .ar-modal-backdrop {
     position: fixed;
     inset: 0;
@@ -1369,7 +1373,7 @@
 
 
   <!-- ===== MODAL: REGISTRAR ABONO ===== -->
-  <div x-show="canRegisterPayment && showPaymentModal" class="ar-modal-backdrop" x-cloak>
+  <div x-show="canRegisterPayment && showPaymentModal" class="ar-modal-backdrop" style="display:none;" x-cloak>
     <div class="ar-modal-dialog" style="max-width:540px;" @click.outside="showPaymentModal = false">
       <div class="ar-modal-header">
         <div style="font-weight:900; font-size:14.5px; color:#1e293b; display:flex; align-items:center; gap:8px;">
@@ -1442,7 +1446,7 @@
 
 
   <!-- ===== MODAL: NUEVA CUENTA POR COBRAR ===== -->
-  <div x-show="showNewInvoiceModal" class="ar-modal-backdrop" x-cloak>
+  <div x-show="showNewInvoiceModal" class="ar-modal-backdrop" style="display:none;" x-cloak>
     <div class="ar-modal-dialog" style="max-width:560px;" @click.outside="showNewInvoiceModal = false">
       <div class="ar-modal-header">
         <div style="font-weight:900; font-size:14.5px; color:#1e293b; display:flex; align-items:center; gap:8px;">
@@ -1520,7 +1524,7 @@
 
 
   <!-- ===== MODAL: RECIBO ELECTRÓNICO DE PAGO (MEDIA CARTA) ===== -->
-  <div x-show="showReceiptModal" class="ar-modal-backdrop" style="z-index:1200;" x-cloak>
+  <div x-show="showReceiptModal" class="ar-modal-backdrop" style="display:none; z-index:1200;" x-cloak>
     <div class="ar-modal-dialog" style="max-width:840px; width:95%; max-height:92vh; display:flex; flex-direction:column;" @click.outside="showReceiptModal = false">
       <div class="ar-modal-header" style="border-bottom:1px solid #e2e8f0; padding:12px 20px;">
         <div style="font-weight:900; font-size:15px; color:#1e293b; display:flex; align-items:center; gap:8px;">
@@ -1689,7 +1693,7 @@
 
 
   <!-- ===== MODAL: DETALLE DE CUENTA POR COBRAR (OPTIMIZADO PARA TODOS LOS NAVEGADORES) ===== -->
-  <div x-show="showDetailModal" class="ar-modal-backdrop" x-cloak>
+  <div x-show="showDetailModal" class="ar-modal-backdrop" style="display:none;" x-cloak>
     <div class="ar-modal-dialog" style="max-width:760px;" @click.outside="showDetailModal = false">
       <!-- Header Fijo Superior -->
       <div class="ar-modal-header">

@@ -490,23 +490,23 @@ def test_presale_seller_user_and_permissions():
     prod_id = prod_res.json()["id"]
 
     stock_res = client.get(f"/api/v1/products/{prod_id}/warehouses-stock", headers=p_headers)
-    assert stock_res.status_code == 403
-    assert "El rol Pre-Vendedor no tiene autorización para consultar existencias" in stock_res.json()["detail"]
+    assert stock_res.status_code == 200
+    assert "warehouses" in stock_res.json()
+    assert "total_available" in stock_res.json()
 
-    # 7. Pre-Vendedor en /api/v1/products/ tiene stock enmascarado (None)
+    # 7. Pre-Vendedor en /api/v1/products/ tiene existencias de las bodegas de la sucursal disponibles
     prod_list_pre = client.get("/api/v1/products/", headers=p_headers)
     assert prod_list_pre.status_code == 200
     pre_items = prod_list_pre.json()["items"]
     test_p_pre = next((i for i in pre_items if i["id"] == prod_id), None)
     assert test_p_pre is not None
-    assert test_p_pre["stock"] is None
-    assert test_p_pre["stock_physical"] is None
-    assert test_p_pre["stock_frozen"] is None
+    assert test_p_pre["stock"] is not None
+    assert test_p_pre["stock_physical"] is not None
 
-    # Pre-Vendedor en /stock-levels retorna mapas vacíos
+    # Pre-Vendedor en /stock-levels retorna existencias reales de la sucursal
     levels_pre = client.get("/api/v1/products/stock-levels", headers=p_headers)
     assert levels_pre.status_code == 200
-    assert levels_pre.json()["stock"] == {}
+    assert "stock" in levels_pre.json()
 
     # 8. Para el RESTO de usuarios (ej. Admin), las existencias SÍ están disponibles (números reales)
     admin_stock_wh = client.get(f"/api/v1/products/{prod_id}/warehouses-stock", headers=headers)
@@ -527,8 +527,132 @@ def test_presale_seller_user_and_permissions():
     assert pre_detail_json["name"] == f"Producto Test {p_suffix}"
     assert "pdf_datasheet_url" in pre_detail_json
     assert "description" in pre_detail_json
-    assert pre_detail_json["total_stock"] is None
-    assert pre_detail_json["warehouses"] == []
+    assert pre_detail_json["total_stock"] is not None
+    assert isinstance(pre_detail_json["warehouses"], list)
+
+
+def test_admin_stock_visibility_management():
+    """Test para la gestión administrativa de visibilidad de stock por usuario en POS, Pre-Venta y Cotizaciones."""
+    s = uuid.uuid4().hex[:6]
+    c_username = f"cajero_stock_{s}"
+    c_email = f"cajero_stock_{s}@empresa.com"
+
+    # 1. Crear usuario cajero de prueba
+    create_res = client.post(
+        "/api/v1/users",
+        json={
+            "full_name": f"Cajero Test Stock {s}",
+            "username": c_username,
+            "email": c_email,
+            "password": "Password123!",
+            "role_code": "cashier"
+        },
+        headers=headers
+    )
+    assert create_res.status_code == 201
+    c_id = create_res.json()["id"]
+
+    c_token = create_access_token(data={"sub": str(c_id), "email": c_email, "company_id": str(COMPANY_ID)})
+    c_headers = {"Authorization": f"Bearer {c_token}"}
+
+    # 2. Verificar que un usuario no-admin NO puede consultar ni modificar la visibilidad de stock (403 Forbidden)
+    vis_fail = client.get("/api/v1/users/stock-visibility", headers=c_headers)
+    assert vis_fail.status_code == 403
+    assert "restringido" in vis_fail.json()["detail"].lower() or "administrador" in vis_fail.json()["detail"].lower()
+
+    put_fail = client.put(
+        "/api/v1/users/stock-visibility",
+        json={"users": [{"user_id": c_id, "can_view_stock": True, "stock_pos": True, "stock_presale": True, "stock_quotes": True}]},
+        headers=c_headers
+    )
+    assert put_fail.status_code == 403
+
+    # 3. El Administrador SÍ puede consultar la visibilidad (200 OK)
+    admin_vis = client.get("/api/v1/users/stock-visibility", headers=headers)
+    assert admin_vis.status_code == 200
+    user_item = next((u for u in admin_vis.json() if u["id"] == c_id), None)
+    assert user_item is not None
+    assert "can_view_stock" in user_item
+    assert "stock_pos" in user_item
+    assert "stock_presale" in user_item
+    assert "stock_quotes" in user_item
+
+    # 4. Crear producto de prueba con inventario
+    p_res = client.post(
+        "/api/v1/products/",
+        json={
+            "name": f"Producto Visibilidad Stock {s}",
+            "sale_price": 75.0,
+            "stock": 40.0
+        },
+        headers=headers
+    )
+    assert p_res.status_code in (200, 201)
+    p_id = p_res.json()["id"]
+
+    # 5. El Administrador desactiva la visibilidad de existencias para este cajero
+    update_res = client.put(
+        "/api/v1/users/stock-visibility",
+        json={
+            "users": [
+                {
+                    "user_id": c_id,
+                    "can_view_stock": False,
+                    "stock_pos": False,
+                    "stock_presale": False,
+                    "stock_quotes": False
+                }
+            ]
+        },
+        headers=headers
+    )
+    assert update_res.status_code == 200
+    assert update_res.json()["status"] == "ok"
+
+    # 6. Al consultar con token del cajero restringido: existencias vienen ocultas (None / vacías)
+    cat_res = client.get("/api/v1/products/pos-catalog", headers=c_headers)
+    assert cat_res.status_code == 200
+    cat_items = cat_res.json()["products"]
+    p_in_cat = next((x for x in cat_items if x["id"] == p_id), None)
+    assert p_in_cat is not None
+    assert p_in_cat["stock"] is None
+    assert p_in_cat["stock_available"] is None
+
+    levels_res = client.get("/api/v1/products/stock-levels", headers=c_headers)
+    assert levels_res.status_code == 200
+    assert levels_res.json() == {}
+
+    detail_res = client.get(f"/api/v1/products/{p_id}", headers=c_headers)
+    assert detail_res.status_code == 200
+    assert detail_res.json()["total_stock"] is None
+    assert detail_res.json()["warehouses"] == []
+
+    wh_stock_res = client.get(f"/api/v1/products/{p_id}/warehouses-stock", headers=c_headers)
+    assert wh_stock_res.status_code == 200
+    assert wh_stock_res.json() == []
+
+    # 7. El Administrador reactiva la visibilidad de existencias para el usuario
+    reactivate_res = client.patch(
+        f"/api/v1/users/{c_id}/stock-visibility",
+        json={
+            "user_id": c_id,
+            "can_view_stock": True,
+            "stock_pos": True,
+            "stock_presale": True,
+            "stock_quotes": True
+        },
+        headers=headers
+    )
+    assert reactivate_res.status_code == 200
+    assert reactivate_res.json()["can_view_stock"] is True
+
+    # 8. Ahora el usuario vuelve a ver las existencias correctamente
+    cat_res_after = client.get("/api/v1/products/pos-catalog", headers=c_headers)
+    assert cat_res_after.status_code == 200
+    p_in_cat_after = next((x for x in cat_res_after.json()["products"] if x["id"] == p_id), None)
+    assert p_in_cat_after is not None
+    assert p_in_cat_after["stock"] is not None
+
 
 
 

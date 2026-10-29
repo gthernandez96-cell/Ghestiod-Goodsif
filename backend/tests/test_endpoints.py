@@ -778,6 +778,8 @@ def test_quotes_and_ap_flow():
     conv_res = client.post(f"/api/v1/quotes/{q_id}/convert", headers=headers)
     assert conv_res.status_code == 200
     assert conv_res.json()["status"] == "converted"
+    assert "presale_number" in conv_res.json()
+    assert conv_res.json()["presale_number"].startswith("PRE-")
 
     # 4.1. Validar que NO permite vender si el stock está en 0
     p_zero_res = client.post("/api/v1/products/", json={

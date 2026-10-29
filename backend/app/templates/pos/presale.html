@@ -1417,7 +1417,7 @@
             @click="selectLine(idx)"
           >
             <div style="display:flex; justify-content:space-between; align-items:center;">
-              <div class="cart-line-title" x-text="item.product_name"></div>
+              <div class="cart-line-title" :title="formatProductName(item)" x-text="formatProductName(item)"></div>
               <button 
                 type="button" 
                 style="background:none; border:none; font-size:16px; color:#ef4444; cursor:pointer; padding:0 4px;" 
@@ -1567,7 +1567,7 @@
 
               <!-- Card Bottom Info: Title, Stock Pill & Teal Price -->
               <div class="card-bottom-info">
-                <div class="card-product-title" x-text="product.name"></div>
+                <div class="card-product-title" :title="formatProductName(product)" x-text="formatProductName(product)"></div>
                 <div class="card-price-row">
                   <!-- Fila de precio e íconos:
                        El ícono de ojo 👁️ permite ver la Ficha Técnica para TODOS (incluyendo Pre-Venta).
@@ -1583,15 +1583,15 @@
                       <i class="ph ph-eye" style="font-size:14px;"></i>
                     </button>
 
-                    <!-- Indicadores de existencia: ÚNICAMENTE para el RESTO de usuarios (ocultos para Pre-Venta) -->
-                    <template x-if="!isPresaleSeller">
+                    <!-- Indicadores de existencia: disponibles para consulta de inventario en sucursal si tiene permisos -->
+                    <template x-if="canViewStock && product.stock !== null && product.stock !== undefined">
                       <div style="display:inline-flex; align-items:center; gap:4px;">
                         <!-- Stock Pill (Stk: 15, Stk: 22, etc.) -->
                         <span 
                           class="product-stock-pill"
                           :class="((product.stock_available !== undefined && product.stock_available !== null ? product.stock_available : ((product.stock_physical !== undefined && product.stock_physical !== null ? product.stock_physical : product.stock) - (product.stock_frozen || 0))) <= 0) ? 'out' : (((product.stock_physical !== undefined && product.stock_physical !== null ? product.stock_physical : product.stock) <= (product.min_stock || 5)) ? 'low' : '')"
                           x-text="((product.stock_available !== undefined && product.stock_available !== null ? product.stock_available : ((product.stock_physical !== undefined && product.stock_physical !== null ? product.stock_physical : product.stock) - (product.stock_frozen || 0))) <= 0) ? ((product.stock_frozen > 0) ? '❄️ Reservado' : 'Agotado') : 'Stk: ' + (product.stock_physical !== undefined && product.stock_physical !== null ? product.stock_physical : (product.stock !== undefined && product.stock !== null ? product.stock : 0))"
-                          :title="'Stock físico en bodega: ' + (product.stock_physical !== undefined && product.stock_physical !== null ? product.stock_physical : (product.stock !== undefined && product.stock !== null ? product.stock : (product.total_stock || 0))) + (product.stock_frozen ? ' (' + product.stock_frozen + ' reservadas)' : '')"
+                          :title="'Stock físico en bodegas de sucursal: ' + (product.stock_physical !== undefined && product.stock_physical !== null ? product.stock_physical : (product.stock !== undefined && product.stock !== null ? product.stock : (product.total_stock || 0))) + (product.stock_frozen ? ' (' + product.stock_frozen + ' reservadas)' : '')"
                         ></span>
                         <!-- Frozen Stock Indicator ❄️ solo si hay disponible positivo -->
                         <template x-if="product.stock_frozen > 0 && ((product.stock_available !== undefined && product.stock_available !== null ? product.stock_available : ((product.stock_physical !== undefined && product.stock_physical !== null ? product.stock_physical : product.stock) - product.stock_frozen)) > 0)">
@@ -1951,7 +1951,7 @@
               <template x-for="(line, lidx) in (proforma?.lines || [])" :key="lidx">
                 <tr style="border-bottom:1px solid #f1f5f9;">
                   <td style="padding:7px 6px; text-align:center; font-weight:700; color:#1e293b;" x-text="line.qty || line.quantity || 1"></td>
-                  <td style="padding:7px 6px; color:#1e293b;" x-text="line.product_name || line.name || 'Producto'"></td>
+                  <td style="padding:7px 6px; color:#1e293b;" x-text="formatProductName(line)"></td>
                   <td style="padding:7px 6px; text-align:right; color:#475569;" x-text="'Q ' + formatPrice(line.unit_price !== undefined ? line.unit_price : (line.price || 0))"></td>
                   <td style="padding:7px 6px; text-align:right; font-weight:800; color:#1e293b;" x-text="'Q ' + formatPrice(line.total !== undefined ? line.total : ((line.qty || line.quantity || 1) * (line.unit_price || line.price || 0)))"></td>
                 </tr>
@@ -2039,7 +2039,7 @@
               </div>
               <template x-for="(line, lidx) in (proforma?.lines || [])" :key="lidx">
                 <div style="margin-bottom:4px;">
-                  <div style="font-weight:700;" x-text="line.product_name || line.name || 'Producto'"></div>
+                  <div style="font-weight:700;" x-text="formatProductName(line)"></div>
                   <div style="display:flex; justify-content:space-between; font-size:10.5px;">
                     <span x-text="(line.qty || line.quantity || 1) + ' x Q' + formatPrice(line.unit_price !== undefined ? line.unit_price : (line.price || 0))"></span>
                     <span style="font-weight:800;" x-text="'Q ' + formatPrice(line.total !== undefined ? line.total : ((line.qty || line.quantity || 1) * (line.unit_price || line.price || 0)))"></span>
@@ -2203,18 +2203,18 @@
       <div style="padding: 14px 20px; background: #ffffff; border-bottom: 1px solid #e9ecef; display: flex; justify-content: space-between; align-items: center;">
         <div style="display: flex; align-items: center; gap: 10px;">
           <div style="width: 34px; height: 34px; border-radius: 6px; background: #f3e8f0; border: 1px solid #e8d5e3; display: flex; align-items: center; justify-content: center; color: #714B67; font-size: 18px;">
-            <i class="ph-bold" :class="isPresaleSeller ? 'ph-file-text' : 'ph-warehouse'"></i>
+            <i class="ph-bold ph-warehouse"></i>
           </div>
           <div>
-            <div style="font-weight: 700; font-size: 15px; color: #212529;" x-text="isPresaleSeller ? 'Ficha Técnica del Producto' : 'Ficha Técnica y Existencias por Bodega'"></div>
-            <div style="font-size: 11.5px; color: #6c757d;" x-text="isPresaleSeller ? 'Especificaciones técnicas y documentación comercial' : 'Disponibilidad y documentación en tiempo real'"></div>
+            <div style="font-weight: 700; font-size: 15px; color: #212529;">Ficha Técnica y Existencias por Bodega</div>
+            <div style="font-size: 11.5px; color: #6c757d;">Disponibilidad en bodegas de sucursal y documentación técnica en tiempo real</div>
           </div>
         </div>
         <button type="button" @click="showStockModal = false" style="background: none; border: none; color: #6c757d; font-size: 22px; cursor: pointer; padding: 2px 6px; line-height: 1;">&times;</button>
       </div>
 
       <div style="padding: 18px 20px; font-size: 13px; background: #ffffff;">
-        <div style="font-weight: 700; color: #212529; font-size: 14px; margin-bottom: 3px;" x-text="selectedProductStock?.name"></div>
+        <div style="font-weight: 700; color: #212529; font-size: 14px; margin-bottom: 3px;" x-text="formatProductName(selectedProductStock)"></div>
         <div style="font-size: 11.5px; color: #6c757d; margin-bottom: 12px;" x-text="'Código: ' + (selectedProductStock?.barcode || 'N/A') + ' | Ref: ' + (selectedProductStock?.internal_ref || 'N/A')"></div>
         
         <!-- Ficha Técnica Oficial en PDF -->
@@ -2258,8 +2258,8 @@
           </div>
         </template>
         
-        <!-- Existencias por Bodega: Visible ÚNICAMENTE para el resto de usuarios (oculto para Pre-Venta) -->
-        <template x-if="!isPresaleSeller">
+        <!-- Existencias por Bodega en Sucursal (Solo si el usuario tiene permiso de ver stock en Pre-Venta) -->
+        <template x-if="canViewStock && productWarehousesStock && productWarehousesStock.length > 0">
           <div>
             <div style="background: #ffffff; border: 1px solid #dee2e6; border-radius: 6px; overflow: hidden;">
               <table style="width: 100%; border-collapse: collapse; font-size: 12.5px;">
@@ -2290,6 +2290,12 @@
               <i class="ph-fill ph-snowflake" style="font-size: 14px; margin-top: 1px; flex-shrink: 0;"></i>
               <span>El <strong>stock congelado</strong> reserva unidades para pre-ventas pendientes. Si en <strong>7 días</strong> la solicitud no es autorizada ni anulada, se libera automáticamente a la normalidad. El inventario físico no se descuenta hasta procesar la venta.</span>
             </div>
+          </div>
+        </template>
+        <template x-if="!canViewStock">
+          <div style="padding:14px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; color:#64748b; font-size:12px; text-align:center;">
+            <i class="ph ph-eye-slash" style="font-size:20px; display:block; margin:0 auto 4px auto; color:#94a3b8;"></i>
+            Visibilidad de existencias en bodega no habilitada para este usuario.
           </div>
         </template>
       </div>
@@ -2564,6 +2570,18 @@ function presaleApp() {
     activeBranchName: 'Sucursal Principal',
     userName: 'Usuario',
     isSubmitting: false,
+    canViewStock: (() => {
+      try {
+        const u = JSON.parse(localStorage.getItem('user') || '{}');
+        const uname = (u.username || '').toLowerCase();
+        if (u.is_superuser || u.is_admin || uname === 'admin') return true;
+        const codes = (u.role_codes || (u.roles || []).map(r => (typeof r === 'object' ? r.code : r)) || []);
+        if (codes.includes('admin') || codes.includes('store_manager')) return true;
+        if (u.can_view_stock === false) return false;
+        if (u.stock_visibility && u.stock_visibility.presale === false) return false;
+        return true;
+      } catch(e) { return true; }
+    })(),
     isPresaleSeller: (() => {
       try {
         const u = JSON.parse(localStorage.getItem('user') || '{}');
@@ -2656,6 +2674,15 @@ function presaleApp() {
       return Number(val).toFixed(2);
     },
 
+    formatProductName(p) {
+      if (!p) return '';
+      const ref = p.internal_ref || p.sku || p.default_code || '';
+      const rawName = p.name || p.product_name || (typeof p === 'string' ? p : '');
+      if (!ref) return rawName;
+      if (rawName.startsWith(`[${ref}]`) || rawName.startsWith(`${ref} -`)) return rawName;
+      return `[${ref}] ${rawName}`;
+    },
+
     async loadUserInfo() {
       try {
         const u = JSON.parse(localStorage.getItem('user') || '{}');
@@ -2670,6 +2697,12 @@ function presaleApp() {
           localStorage.setItem('user', JSON.stringify(res));
           if (res.full_name) this.userName = res.full_name;
           this.isPresaleSeller = this.checkIsPresaleSeller(res);
+          const isAdm = Boolean(res.is_superuser || res.is_admin || (res.username || '').toLowerCase() === 'admin' || (res.role_codes || []).includes('admin') || (res.role_codes || []).includes('store_manager'));
+          if (isAdm) {
+            this.canViewStock = true;
+          } else {
+            this.canViewStock = Boolean(res.can_view_stock !== false && (!res.stock_visibility || res.stock_visibility.presale !== false));
+          }
         }
       } catch(e) {}
     },
@@ -2967,7 +3000,8 @@ function presaleApp() {
         const price = Number(product.sale_price) || 0;
         this.cart.push({
           product_id: product.id,
-          product_name: product.name,
+          product_name: this.formatProductName(product),
+          internal_ref: product.internal_ref || '',
           barcode: product.barcode || '',
           qty: 1,
           unit_price: price,
@@ -3121,10 +3155,10 @@ function presaleApp() {
     },
 
     async syncLiveStock() {
-      if (!navigator.onLine || this.isSyncingStock || this.isPresaleSeller) return;
+      if (!navigator.onLine || this.isSyncingStock) return;
       this.isSyncingStock = true;
       try {
-        const res = await API.get('/products/stock-levels');
+        const res = await API.get('/products/stock-levels?module=presale');
         if (res && (res.stock || res.stock_available) && typeof (res.stock || res.stock_available) === 'object') {
           const availMap = res.stock_available || res.stock || {};
           const physMap = res.stock_physical || {};
@@ -3165,18 +3199,10 @@ function presaleApp() {
 
     async loadProducts() {
       try {
-        const res = await API.get('/products/?is_active=true&available_in_presale=true');
+        const res = await API.get('/products/?is_active=true&available_in_presale=true&module=presale');
         const items = res.items || res.products || (Array.isArray(res) ? res : []);
         this.products = items.filter(p => p.is_active === true && !p.is_deleted && p.available_in_presale !== false);
-        if (this.isPresaleSeller) {
-          try { localStorage.removeItem('presale_cached_products'); } catch(_) {}
-          this.products.forEach(p => {
-            p.stock = null;
-            p.stock_physical = null;
-            p.stock_frozen = null;
-            p.stock_available = null;
-          });
-        } else if (this.products.length > 0) {
+        if (this.products.length > 0) {
           try {
             localStorage.setItem('presale_cached_products', JSON.stringify(this.products));
           } catch(err) {}
@@ -3226,29 +3252,14 @@ function presaleApp() {
       this.selectedProductStock = product;
       this.productWarehousesStock = [];
 
-      if (this.isPresaleSeller) {
-        // Pre-Vendedor: Consultar detalle técnico (ficha técnica, notas y descripción) sin existencias
-        try {
-          const detail = await API.get('/products/' + product.id);
-          if (detail) {
-            this.selectedProductStock = {
-              ...product,
-              ...detail,
-              pdf_datasheet_url: detail.pdf_datasheet_url || product.pdf_datasheet_url,
-              description: detail.description || product.description,
-              internal_notes: detail.internal_notes || product.internal_notes,
-            };
-          }
-        } catch(_) {}
-        this.showStockModal = true;
-        return;
-      }
-
-      // Resto de usuarios: Consultar existencias por bodega y ficha técnica
       try {
-        const res = await API.get('/products/' + product.id + '/warehouses-stock');
-        this.productWarehousesStock = res.warehouses || res || [];
-        if (res) {
+        const res = await API.get('/products/' + product.id + '/warehouses-stock?module=presale');
+        if (this.canViewStock) {
+          this.productWarehousesStock = res.warehouses || (Array.isArray(res) ? res : []);
+        } else {
+          this.productWarehousesStock = [];
+        }
+        if (res && typeof res === 'object') {
           this.selectedProductStock = {
             ...product,
             ...res,
@@ -3258,9 +3269,7 @@ function presaleApp() {
           };
         }
       } catch(e) {
-        this.productWarehousesStock = [
-          { warehouse_id: '1', warehouse_name: 'Bodega Principal', qty_on_hand: product.stock || product.total_stock || 0 }
-        ];
+        this.productWarehousesStock = [];
       }
       this.showStockModal = true;
     },
@@ -3373,7 +3382,7 @@ function presaleApp() {
         notes: deliveryNotesSnapshot,
         lines: cartSnapshot.map(i => ({
           product_id: i.product_id,
-          product_name: i.product_name,
+          product_name: this.formatProductName(i),
           qty: Number(i.qty || 1),
           unit_price: Number(i.unit_price || 0),
           discount_amount: Number(i.discount_amount || 0)
@@ -3594,7 +3603,7 @@ function presaleApp() {
 
       text += `🛒 *DETALLE DEL PEDIDO:*\n`;
       (p.lines || []).forEach((l, idx) => {
-        text += `${idx + 1}. *${l.qty}x* ${l.product_name} — Q ${this.formatPrice(l.total || (l.qty * l.unit_price))}\n`;
+        text += `${idx + 1}. *${l.qty}x* ${this.formatProductName(l)} — Q ${this.formatPrice(l.total || (l.qty * l.unit_price))}\n`;
       });
       text += `\n`;
 
@@ -3644,7 +3653,7 @@ function presaleApp() {
         const q = l.qty || l.quantity || 1;
         const pu = l.unit_price !== undefined ? l.unit_price : (l.price || 0);
         const tot = l.total !== undefined ? l.total : (q * pu);
-        text += `- ${q}x ${l.product_name || l.name || 'Producto'} (P.U: Q${this.formatPrice(pu)}) = Q ${this.formatPrice(tot)}\n`;
+        text += `- ${q}x ${this.formatProductName(l)} (P.U: Q${this.formatPrice(pu)}) = Q ${this.formatPrice(tot)}\n`;
       });
 
       if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -3711,7 +3720,7 @@ function presaleApp() {
             const pu = Number(l.unit_price !== undefined ? l.unit_price : (l.price || 0));
             const lt = Number(l.total !== undefined ? l.total : (q * pu));
             return {
-              product_name: l.product_name || l.name || 'Producto',
+              product_name: this.formatProductName(l),
               qty: q,
               unit_price: pu,
               total: lt

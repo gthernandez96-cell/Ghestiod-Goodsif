@@ -265,6 +265,43 @@ def is_presale_restricted_user(user) -> bool:
     return uname == "prevendedor" or "prevend" in uname or any(r in role_codes for r in ["presale_seller", "preventista"])
 
 
+def user_can_view_stock(user, module: Optional[str] = None) -> bool:
+    """Verifica si el usuario tiene permiso para ver las existencias de productos en bodega.
+    module puede ser: 'pos', 'presale', 'quotes' o None (cualquiera).
+    Los administradores siempre tienen visibilidad completa e irrestricta.
+    """
+    if not user:
+        return False
+    role_codes = [r.code for r in getattr(user, "roles", [])] if hasattr(user, "roles") and user.roles else []
+    is_admin = bool(
+        getattr(user, "is_superuser", False)
+        or getattr(user, "is_admin", False)
+        or "admin" in role_codes
+        or "store_manager" in role_codes
+        or getattr(user, "username", "").lower() == "admin"
+    )
+    if is_admin:
+        return True
+
+    st = getattr(user, "settings", {}) or {}
+    stock_cfg = st.get("stock_visibility", {})
+
+    # Switch maestro general
+    can_view_master = st.get("can_view_stock", stock_cfg.get("can_view_stock", True))
+    if not can_view_master:
+        return False
+
+    # Filtro específico por módulo si se proporciona
+    if module == "pos":
+        return bool(stock_cfg.get("pos", st.get("stock_pos", True)))
+    elif module == "presale":
+        return bool(stock_cfg.get("presale", st.get("stock_presale", True)))
+    elif module == "quotes":
+        return bool(stock_cfg.get("quotes", st.get("stock_quotes", True)))
+
+    return True
+
+
 # ===== CATEGORIES ENDPOINTS =====
 @router.get("/categories")
 async def list_categories(
@@ -424,6 +461,7 @@ async def list_products(
     is_active: Optional[bool] = Query(None),
     available_in_pos: Optional[bool] = Query(None),
     available_in_presale: Optional[bool] = Query(None),
+    module: Optional[str] = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
@@ -496,6 +534,12 @@ async def list_products(
             )
         )
 
+        if is_presale_restricted_user(current_user):
+            if not branch_id and current_user.current_branch_id:
+                branch_id = str(current_user.current_branch_id)
+            # El pre-vendedor obtiene las existencias consolidadas de todas las bodegas de la sucursal
+            warehouse_id = None
+
         if branch_id and isinstance(branch_id, str) and branch_id.strip():
             try:
                 quant_stmt = quant_stmt.where(Branch.id == uuid.UUID(branch_id.strip()))
@@ -547,7 +591,7 @@ async def list_products(
         for p_id, frozen_total in frozen_res.all():
             frozen_map[str(p_id)] = float(frozen_total or 0)
 
-    hide_stock = is_presale_restricted_user(current_user)
+    hide_stock = not user_can_view_stock(current_user, module=module)
 
     items = []
     for p in products:
@@ -663,6 +707,11 @@ async def get_pos_catalog(
             )
         )
 
+        if is_presale_restricted_user(current_user):
+            if not branch_id and current_user.current_branch_id:
+                branch_id = str(current_user.current_branch_id)
+            warehouse_id = None
+
         if branch_id and isinstance(branch_id, str) and branch_id.strip():
             try:
                 quant_stmt = quant_stmt.where(Branch.id == uuid.UUID(branch_id.strip()))
@@ -714,7 +763,7 @@ async def get_pos_catalog(
         for p_id, frozen_total in frozen_res.all():
             frozen_map[str(p_id)] = float(frozen_total or 0)
 
-    hide_stock = is_presale_restricted_user(current_user)
+    hide_stock = not user_can_view_stock(current_user, module="pos")
 
     items = []
     for p in products:
@@ -860,6 +909,7 @@ async def get_products_stock_levels(
     response: Response,
     branch_id: Optional[str] = Query(None),
     warehouse_id: Optional[str] = Query(None),
+    module: Optional[str] = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
@@ -868,14 +918,13 @@ async def get_products_stock_levels(
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"
 
+    if not user_can_view_stock(current_user, module=module):
+        return {}
+
     if is_presale_restricted_user(current_user):
-        return {
-            "stock": {},
-            "stock_physical": {},
-            "stock_frozen": {},
-            "stock_available": {},
-            "count": 0,
-        }
+        if not branch_id and current_user.current_branch_id:
+            branch_id = str(current_user.current_branch_id)
+        warehouse_id = None
 
     await auto_expire_stale_presales(db, current_user.company_id)
 
@@ -1777,6 +1826,7 @@ async def export_products_csv(
 @router.get("/{product_id}")
 async def get_product(
     product_id: str,
+    module: Optional[str] = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
@@ -1879,11 +1929,11 @@ async def get_product(
         "is_active": p.is_active,
         "available_in_pos": getattr(p, "available_in_pos", True) if getattr(p, "available_in_pos", None) is not None else getattr(p, "is_published", True),
         "available_in_presale": getattr(p, "available_in_presale", True) if getattr(p, "available_in_presale", None) is not None else True,
-        "stock_by_warehouse": {} if is_presale_restricted_user(current_user) else quant_map,
-        "warehouses": [] if is_presale_restricted_user(current_user) else warehouse_list,
-        "total_stock": None if is_presale_restricted_user(current_user) else total_stock,
-        "kardex_stock": None if is_presale_restricted_user(current_user) else (kardex_stock if len(k_moves) > 0 else total_stock),
-        "has_kardex_discrepancy": False if is_presale_restricted_user(current_user) else has_kardex_discrepancy,
+        "stock_by_warehouse": quant_map if user_can_view_stock(current_user, module=module) else {},
+        "warehouses": warehouse_list if user_can_view_stock(current_user, module=module) else [],
+        "total_stock": total_stock if user_can_view_stock(current_user, module=module) else None,
+        "kardex_stock": (kardex_stock if len(k_moves) > 0 else total_stock) if user_can_view_stock(current_user, module=module) else None,
+        "has_kardex_discrepancy": has_kardex_discrepancy if user_can_view_stock(current_user, module=module) else False,
         "image_url": p.image_url,
         "pdf_datasheet_url": getattr(p, "pdf_datasheet_url", None),
         "internal_notes": getattr(p, "internal_notes", None),
@@ -1893,16 +1943,11 @@ async def get_product(
 @router.get("/{product_id}/warehouses-stock")
 async def get_product_warehouses_stock(
     product_id: str,
+    module: Optional[str] = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
     """Obtener desglose de existencias del producto en todas las bodegas."""
-    if is_presale_restricted_user(current_user):
-        raise HTTPException(
-            status_code=403,
-            detail="Acceso denegado: El rol Pre-Vendedor no tiene autorización para consultar existencias de inventario."
-        )
-
     try:
         p_uuid = uuid.UUID(product_id)
         prod_stmt = select(Product).where(Product.id == p_uuid, Product.company_id == current_user.company_id)
@@ -1917,7 +1962,10 @@ async def get_product_warehouses_stock(
     if not prod:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
 
-    # 2. Obtener todas las bodegas de la empresa (uniendo a través de Branch)
+    if not user_can_view_stock(current_user, module=module):
+        return []
+
+    # 2. Obtener todas las bodegas de la empresa (o de la sucursal para pre-vendedor)
     wh_stmt = (
         select(Warehouse)
         .join(Branch, Warehouse.branch_id == Branch.id)
@@ -1929,6 +1977,10 @@ async def get_product_warehouses_stock(
         )
         .order_by(Warehouse.name)
     )
+
+    if is_presale_restricted_user(current_user) and current_user.current_branch_id:
+        wh_stmt = wh_stmt.where(Warehouse.branch_id == current_user.current_branch_id)
+
     wh_res = await db.execute(wh_stmt)
     warehouses = wh_res.scalars().all()
 

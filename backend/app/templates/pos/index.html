@@ -3738,7 +3738,7 @@
             @click="selectLine(idx)"
           >
             <div style="display:flex; justify-content:space-between; align-items:center;">
-              <div class="cart-line-title" x-text="item.product_name"></div>
+              <div class="cart-line-title" :title="formatProductName(item)" x-text="formatProductName(item)"></div>
               <button type="button" class="clear-amount-btn" style="position:static; font-size:16px; color:#ef4444; opacity:0.8;" title="Eliminar ítem del carrito" @click.stop="removeLineDirect(idx)">&times;</button>
             </div>
             <div class="cart-line-meta" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-top:4px;">
@@ -3927,7 +3927,7 @@
 
               <!-- Title, Stock Badge & Price (All outside image) -->
               <div class="card-bottom-info">
-                <div class="card-product-title" x-text="product.name"></div>
+                <div class="card-product-title" :title="formatProductName(product)" x-text="formatProductName(product)"></div>
                 <div class="card-price-row">
                   <div style="display:flex; align-items:center; gap:4px; flex-shrink:1; min-width:0; overflow:hidden;">
                     <button 
@@ -3941,24 +3941,28 @@
                     >
                       <i class="ph ph-eye" style="font-size:14px;"></i>
                     </button>
-                    <!-- Stock Badge Outside Image -->
-                    <span 
-                      class="product-stock-pill"
-                      :class="((product.stock_available !== undefined ? product.stock_available : ((product.stock_physical !== undefined ? product.stock_physical : product.stock) - (product.stock_frozen || 0))) <= 0) ? 'out' : (((product.stock_physical !== undefined ? product.stock_physical : product.stock) <= (product.min_stock || 5)) ? 'low' : '')"
-                      x-text="((product.stock_available !== undefined ? product.stock_available : ((product.stock_physical !== undefined ? product.stock_physical : product.stock) - (product.stock_frozen || 0))) <= 0) ? (product.stock_frozen > 0 ? '❄️ Reservado' : 'Agotado') : 'Stk: ' + (product.stock_physical !== undefined ? product.stock_physical : product.stock)"
-                      @click.stop="showProductInfo(product)"
-                      style="cursor:pointer;"
-                      :title="product.stock_frozen > 0 ? ('❄️ ' + product.stock_frozen + ' unidades reservadas en pre-ventas pendientes') : 'Click para ver existencias por bodega'"
-                    ></span>
-                    <!-- Indicador de Stock Congelado / Reservado solo si hay stock libre disponible -->
-                    <template x-if="product.stock_frozen > 0 && ((product.stock_available !== undefined ? product.stock_available : ((product.stock_physical !== undefined ? product.stock_physical : product.stock) - product.stock_frozen)) > 0)">
-                      <span 
-                        @click.stop="showProductInfo(product)"
-                        style="cursor:pointer; font-size: 10px; font-weight: 700; color: #0284c7; background: #e0f2fe; border: 1px solid #bae6fd; border-radius: 4px; padding: 2px 5px; display: inline-flex; align-items: center; gap: 2px; flex-shrink: 0;" 
-                        :title="'❄️ ' + product.stock_frozen + ' unidades reservadas en pre-ventas pendientes'"
-                      >
-                        ❄️ <span x-text="product.stock_frozen"></span>
-                      </span>
+                    <!-- Stock Badge Outside Image (Solo si el usuario tiene visibilidad de stock habilitada) -->
+                    <template x-if="canViewStock && product.stock !== null && product.stock !== undefined">
+                      <div style="display:inline-flex; align-items:center; gap:4px;">
+                        <span 
+                          class="product-stock-pill"
+                          :class="((product.stock_available !== undefined ? product.stock_available : ((product.stock_physical !== undefined ? product.stock_physical : product.stock) - (product.stock_frozen || 0))) <= 0) ? 'out' : (((product.stock_physical !== undefined ? product.stock_physical : product.stock) <= (product.min_stock || 5)) ? 'low' : '')"
+                          x-text="((product.stock_available !== undefined ? product.stock_available : ((product.stock_physical !== undefined ? product.stock_physical : product.stock) - (product.stock_frozen || 0))) <= 0) ? (product.stock_frozen > 0 ? '❄️ Reservado' : 'Agotado') : 'Stk: ' + (product.stock_physical !== undefined ? product.stock_physical : product.stock)"
+                          @click.stop="showProductInfo(product)"
+                          style="cursor:pointer;"
+                          :title="product.stock_frozen > 0 ? ('❄️ ' + product.stock_frozen + ' unidades reservadas en pre-ventas pendientes') : 'Click para ver existencias por bodega'"
+                        ></span>
+                        <!-- Indicador de Stock Congelado / Reservado solo si hay stock libre disponible -->
+                        <template x-if="product.stock_frozen > 0 && ((product.stock_available !== undefined ? product.stock_available : ((product.stock_physical !== undefined ? product.stock_physical : product.stock) - product.stock_frozen)) > 0)">
+                          <span 
+                            @click.stop="showProductInfo(product)"
+                            style="cursor:pointer; font-size: 10px; font-weight: 700; color: #0284c7; background: #e0f2fe; border: 1px solid #bae6fd; border-radius: 4px; padding: 2px 5px; display: inline-flex; align-items: center; gap: 2px; flex-shrink: 0;" 
+                            :title="'❄️ ' + product.stock_frozen + ' unidades reservadas en pre-ventas pendientes'"
+                          >
+                            ❄️ <span x-text="product.stock_frozen"></span>
+                          </span>
+                        </template>
+                      </div>
                     </template>
                   </div>
                   <span class="card-price-text" x-text="'Q' + formatPrice(product.sale_price) + (wholesaleMode && product.uom_symbol ? ' / ' + product.uom_symbol : '')"></span>
@@ -4529,7 +4533,7 @@
                 <template x-for="(item, idx) in cart" :key="'ticket-item-' + idx">
                   <tr style="border-bottom:1px dotted #ccc;">
                     <td style="padding:4px 0;">
-                      <div style="font-weight:700; font-size:11px;" x-text="item.product_name"></div>
+                      <div style="font-weight:700; font-size:11px;" x-text="formatProductName(item)"></div>
                       <div style="font-size:10px; color:#555;" x-text="formatPrice(item.qty) + ' unid @ Q' + formatPrice(item.unit_price)"></div>
                       <template x-if="item.discount_pct > 0">
                         <div style="font-size:10px; color:#dc2626; font-weight:700;" x-text="'DESC: -' + item.discount_pct + '%'"></div>
@@ -5554,7 +5558,7 @@
             <img :src="priceCheckerProduct.image_url" :alt="priceCheckerProduct.name" style="width:80px; height:80px; object-fit:cover; border-radius:10px; margin:0 auto 8px; display:block; border:1px solid #e2e8f0;">
           </template>
           <div x-show="!priceCheckerProduct.image_url" style="font-size:36px; margin-bottom:6px;" x-text="priceCheckerProduct.emoji || '🥫'"></div>
-          <h3 style="font-size:18px; font-weight:800; color:#1e293b; margin-bottom:4px;" x-text="priceCheckerProduct.name"></h3>
+          <h3 style="font-size:18px; font-weight:800; color:#1e293b; margin-bottom:4px;" x-text="formatProductName(priceCheckerProduct)"></h3>
           <div style="font-size:12px; color:#64748b; margin-bottom:12px;" x-text="'Código / Ref: ' + (priceCheckerProduct.barcode || priceCheckerProduct.id)"></div>
 
           <div style="font-size:32px; font-weight:900; color:#0d9488; margin-bottom:12px;" x-text="'Q ' + formatPrice(priceCheckerProduct.sale_price)"></div>
@@ -5579,7 +5583,7 @@
           </div>
           <div>
             <div class="cash-modal-title" style="font-size:17px; font-weight:800; color:#1e293b;">Existencias Multi-Bodega</div>
-            <div style="font-size:12px; color:#64748b;" x-text="stockProductData?.product_name || selectedStockProduct?.name || 'Consultando producto...'"></div>
+            <div style="font-size:12px; color:#64748b;" x-text="formatProductName(stockProductData || selectedStockProduct) || 'Consultando producto...'"></div>
           </div>
         </div>
         <div class="cash-modal-close" @click="showStockInfoModal = false">&times;</div>
@@ -5594,18 +5598,20 @@
             <div style="font-size:14px; font-weight:900; color:#714B67; margin-top:4px;" x-text="'Precio: Q ' + formatPrice(stockProductData?.sale_price || selectedStockProduct?.sale_price)"></div>
           </div>
 
-          <div style="text-align:right;">
-            <div style="font-size:11.5px; font-weight:800; color:#64748b; text-transform:uppercase;">Stock Total Empresa</div>
-            <div 
-              style="font-size:18px; font-weight:900; padding:4px 14px; border-radius:10px; display:inline-block; margin-top:4px;"
-              :style="(stockProductData?.total_physical !== undefined ? stockProductData.total_physical : (stockProductData?.total_stock || 0)) <= 0 ? 'background:#fee2e2; color:#b91c1c;' : 'background:#dcfce7; color:#15803d;'"
-              x-text="(stockProductData?.total_physical !== undefined ? stockProductData.total_physical : (stockProductData?.total_stock || 0)) + ' unidades'"
-            ></div>
-          </div>
+          <template x-if="canViewStock">
+            <div style="text-align:right;">
+              <div style="font-size:11.5px; font-weight:800; color:#64748b; text-transform:uppercase;">Stock Total Empresa</div>
+              <div 
+                style="font-size:18px; font-weight:900; padding:4px 14px; border-radius:10px; display:inline-block; margin-top:4px;"
+                :style="(stockProductData?.total_physical !== undefined ? stockProductData.total_physical : (stockProductData?.total_stock || 0)) <= 0 ? 'background:#fee2e2; color:#b91c1c;' : 'background:#dcfce7; color:#15803d;'"
+                x-text="(stockProductData?.total_physical !== undefined ? stockProductData.total_physical : (stockProductData?.total_stock || 0)) + ' unidades'"
+              ></div>
+            </div>
+          </template>
         </div>
 
         <!-- Línea destacada que indica que el producto está reservado -->
-        <template x-if="(stockProductData?.total_frozen || 0) > 0">
+        <template x-if="canViewStock && (stockProductData?.total_frozen || 0) > 0">
           <div style="margin-top:14px; padding:10px 14px; background:#f0f9ff; border:1.5px solid #bae6fd; border-radius:10px; display:flex; align-items:center; justify-content:space-between; gap:12px;">
             <div style="display:flex; align-items:center; gap:9px;">
               <span style="font-size:20px; line-height:1;">❄️</span>
@@ -5669,64 +5675,76 @@
       <!-- Spinner mientras carga -->
       <div x-show="isLoadingStockInfo" style="text-align:center; padding:30px; color:#64748b;">
         <i class="ph ph-spinner-gap" style="font-size:32px; animation:spin 1s linear infinite; color:#714B67;"></i>
-        <div style="margin-top:8px; font-size:13px; font-weight:700;">Consultando bodegas en tiempo real...</div>
+        <div style="margin-top:8px; font-size:13px; font-weight:700;">Consultando información en tiempo real...</div>
       </div>
 
-      <!-- Desglose por Bodega -->
-      <div x-show="!isLoadingStockInfo" style="max-height:280px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:12px; background:#ffffff;">
-        <table style="width:100%; border-collapse:collapse;">
-          <thead>
-            <tr style="background:#f8fafc; border-bottom:1.5px solid #e2e8f0; font-size:11px; text-transform:uppercase; color:#64748b; font-weight:800;">
-              <th style="padding:10px 14px; text-align:left;">Bodega / Almacén</th>
-              <th style="padding:10px 14px; text-align:left;">Sucursal</th>
-              <th style="padding:10px 14px; text-align:right;">Existencia</th>
-              <th style="padding:10px 14px; text-align:right;">Reservado</th>
-              <th style="padding:10px 14px; text-align:center;">Estado</th>
-            </tr>
-          </thead>
-          <tbody>
-            <template x-for="wh in (stockProductData?.warehouses || [])" :key="wh.warehouse_id">
-              <tr style="border-bottom:1px solid #f1f5f9; font-size:12.5px;">
-                <td style="padding:10px 14px; font-weight:800; color:#1e293b;">
-                  <div style="display:flex; align-items:center; gap:6px;">
-                    <i class="ph ph-warehouse" style="color:#714B67;"></i>
-                    <span x-text="wh.warehouse_name"></span>
-                    <span x-show="wh.is_main" style="font-size:9.5px; background:#f4eff3; color:#714B67; padding:1px 5px; border-radius:4px; font-weight:800;">Principal</span>
-                  </div>
-                </td>
-                <td style="padding:10px 14px; color:#64748b; font-weight:600;" x-text="wh.branch_name || 'Central'"></td>
-                <td style="padding:10px 14px; text-align:right; font-weight:900; font-size:13.5px; color:#0f172a;" x-text="wh.qty_on_hand + ' unid.'"></td>
-                <td style="padding:10px 14px; text-align:right;">
-                  <span 
-                    style="font-size:11.5px; font-weight:800;"
-                    :style="(wh.qty_frozen || 0) > 0 ? 'color:#0284c7; background:#e0f2fe; padding:2px 8px; border-radius:6px; border:1px solid #bae6fd;' : 'color:#94a3b8;'"
-                    x-text="(wh.qty_frozen || 0) > 0 ? ('❄️ ' + wh.qty_frozen + ' unid.') : '0 unid.'"
-                  ></span>
-                </td>
-                <td style="padding:10px 14px; text-align:center;">
-                  <span 
-                    style="font-size:10.5px; font-weight:800; padding:2px 8px; border-radius:8px;"
-                    :style="wh.qty_on_hand <= 0 ? 'background:#fee2e2; color:#b91c1c;' : ((wh.qty_frozen || 0) > 0 && (wh.qty_frozen || 0) >= wh.qty_on_hand ? 'background:#e0f2fe; color:#0284c7;' : (wh.qty_on_hand <= (stockProductData?.min_stock || 5) ? 'background:#ffedd5; color:#c2410c;' : 'background:#dcfce7; color:#15803d;'))"
-                    x-text="wh.qty_on_hand <= 0 ? 'Sin Stock' : ((wh.qty_frozen || 0) > 0 && (wh.qty_frozen || 0) >= wh.qty_on_hand ? 'Reservado' : (wh.qty_on_hand <= (stockProductData?.min_stock || 5) ? 'Bajo' : 'Disponible'))"
-                  ></span>
-                </td>
-              </tr>
-            </template>
+      <!-- Desglose por Bodega (Solo si canViewStock) -->
+      <template x-if="canViewStock">
+        <div>
+          <div x-show="!isLoadingStockInfo" style="max-height:280px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:12px; background:#ffffff;">
+            <table style="width:100%; border-collapse:collapse;">
+              <thead>
+                <tr style="background:#f8fafc; border-bottom:1.5px solid #e2e8f0; font-size:11px; text-transform:uppercase; color:#64748b; font-weight:800;">
+                  <th style="padding:10px 14px; text-align:left;">Bodega / Almacén</th>
+                  <th style="padding:10px 14px; text-align:left;">Sucursal</th>
+                  <th style="padding:10px 14px; text-align:right;">Existencia</th>
+                  <th style="padding:10px 14px; text-align:right;">Reservado</th>
+                  <th style="padding:10px 14px; text-align:center;">Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-for="wh in (stockProductData?.warehouses || [])" :key="wh.warehouse_id">
+                  <tr style="border-bottom:1px solid #f1f5f9; font-size:12.5px;">
+                    <td style="padding:10px 14px; font-weight:800; color:#1e293b;">
+                      <div style="display:flex; align-items:center; gap:6px;">
+                        <i class="ph ph-warehouse" style="color:#714B67;"></i>
+                        <span x-text="wh.warehouse_name"></span>
+                        <span x-show="wh.is_main" style="font-size:9.5px; background:#f4eff3; color:#714B67; padding:1px 5px; border-radius:4px; font-weight:800;">Principal</span>
+                      </div>
+                    </td>
+                    <td style="padding:10px 14px; color:#64748b; font-weight:600;" x-text="wh.branch_name || 'Central'"></td>
+                    <td style="padding:10px 14px; text-align:right; font-weight:900; font-size:13.5px; color:#0f172a;" x-text="wh.qty_on_hand + ' unid.'"></td>
+                    <td style="padding:10px 14px; text-align:right;">
+                      <span 
+                        style="font-size:11.5px; font-weight:800;"
+                        :style="(wh.qty_frozen || 0) > 0 ? 'color:#0284c7; background:#e0f2fe; padding:2px 8px; border-radius:6px; border:1px solid #bae6fd;' : 'color:#94a3b8;'"
+                        x-text="(wh.qty_frozen || 0) > 0 ? ('❄️ ' + wh.qty_frozen + ' unid.') : '0 unid.'"
+                      ></span>
+                    </td>
+                    <td style="padding:10px 14px; text-align:center;">
+                      <span 
+                        style="font-size:10.5px; font-weight:800; padding:2px 8px; border-radius:8px;"
+                        :style="wh.qty_on_hand <= 0 ? 'background:#fee2e2; color:#b91c1c;' : ((wh.qty_frozen || 0) > 0 && (wh.qty_frozen || 0) >= wh.qty_on_hand ? 'background:#e0f2fe; color:#0284c7;' : (wh.qty_on_hand <= (stockProductData?.min_stock || 5) ? 'background:#ffedd5; color:#c2410c;' : 'background:#dcfce7; color:#15803d;'))"
+                        x-text="wh.qty_on_hand <= 0 ? 'Sin Stock' : ((wh.qty_frozen || 0) > 0 && (wh.qty_frozen || 0) >= wh.qty_on_hand ? 'Reservado' : (wh.qty_on_hand <= (stockProductData?.min_stock || 5) ? 'Bajo' : 'Disponible'))"
+                      ></span>
+                    </td>
+                  </tr>
+                </template>
 
-            <tr x-show="!stockProductData?.warehouses || stockProductData.warehouses.length === 0">
-              <td colspan="5" style="text-align:center; padding:24px; color:#94a3b8; font-size:12.5px;">
-                No hay otras bodegas registradas en la empresa.
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+                <tr x-show="!stockProductData?.warehouses || stockProductData.warehouses.length === 0">
+                  <td colspan="5" style="text-align:center; padding:24px; color:#94a3b8; font-size:12.5px;">
+                    No hay otras bodegas registradas en la empresa.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
 
-      <!-- Nota explicativa cuando hay reservas activas -->
-      <div x-show="(stockProductData?.total_frozen || 0) > 0" style="margin-top:12px; padding:9px 13px; background:#f0f9ff; border:1px solid #e0f2fe; border-radius:8px; font-size:11.5px; color:#0369a1; display:flex; align-items:flex-start; gap:8px; line-height:1.4;">
-        <i class="ph-fill ph-snowflake" style="font-size:15px; margin-top:2px; flex-shrink:0;"></i>
-        <span>El <strong>stock congelado</strong> reserva unidades para pre-ventas pendientes. Si en <strong>7 días</strong> la solicitud no es autorizada ni anulada, se libera automáticamente. El inventario físico no se descuenta hasta procesar o facturar la venta.</span>
-      </div>
+          <!-- Nota explicativa cuando hay reservas activas -->
+          <div x-show="(stockProductData?.total_frozen || 0) > 0" style="margin-top:12px; padding:9px 13px; background:#f0f9ff; border:1px solid #e0f2fe; border-radius:8px; font-size:11.5px; color:#0369a1; display:flex; align-items:flex-start; gap:8px; line-height:1.4;">
+            <i class="ph-fill ph-snowflake" style="font-size:15px; margin-top:2px; flex-shrink:0;"></i>
+            <span>El <strong>stock congelado</strong> reserva unidades para pre-ventas pendientes. Si en <strong>7 días</strong> la solicitud no es autorizada ni anulada, se libera automáticamente. El inventario físico no se descuenta hasta procesar o facturar la venta.</span>
+          </div>
+        </div>
+      </template>
+
+      <!-- Mensaje cuando la visibilidad de stock está oculta -->
+      <template x-if="!canViewStock">
+        <div style="margin-top:14px; padding:18px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; color:#64748b; font-size:12.5px; text-align:center;">
+          <i class="ph ph-eye-slash" style="font-size:24px; display:block; margin:0 auto 6px auto; color:#94a3b8;"></i>
+          Visibilidad de existencias en bodega no habilitada para este usuario.
+        </div>
+      </template>
 
       <!-- Botones Footer -->
       <div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px; gap:10px;">
@@ -5734,8 +5752,13 @@
         <button 
           type="button" 
           class="btn-confirm-opening" 
-          :style="((stockProductData?.total_physical || 0) - (stockProductData?.total_frozen || 0) <= 0) ? 'background:#94a3b8; cursor:not-allowed; padding:9px 20px; font-weight:800;' : 'background:#714B67; padding:9px 20px; font-weight:800;'" 
+          :style="(!canViewStock || ((stockProductData?.total_physical || 0) - (stockProductData?.total_frozen || 0) > 0)) ? 'background:#714B67; padding:9px 20px; font-weight:800;' : 'background:#94a3b8; cursor:not-allowed; padding:9px 20px; font-weight:800;'" 
           @click="if(selectedStockProduct) { 
+            if (!canViewStock) {
+              addToCart(selectedStockProduct);
+              showStockInfoModal = false;
+              return;
+            }
             const avail = (stockProductData?.total_physical || 0) - (stockProductData?.total_frozen || 0);
             if (avail <= 0) {
               if ((stockProductData?.total_frozen || 0) > 0) {
@@ -5945,7 +5968,7 @@
           <template x-for="item in cart" :key="item.product_id">
             <tr>
               <td style="padding:3px 0;">
-                <div x-text="item.product_name"></div>
+                <div x-text="formatProductName(item)"></div>
                 <div style="font-size:10px;" x-text="item.qty + ' x Q' + formatPrice(item.unit_price)"></div>
               </td>
               <td style="text-align:right; vertical-align:top; padding:3px 0;" x-text="'Q' + formatPrice(item.unit_price * item.qty)"></td>
@@ -6098,6 +6121,18 @@ function posApp() {
     selectedStockProduct: null,
     stockProductData: null,
     isLoadingStockInfo: false,
+    canViewStock: (() => {
+      try {
+        const u = JSON.parse(localStorage.getItem('user') || '{}');
+        const uname = (u.username || '').toLowerCase();
+        if (u.is_superuser || u.is_admin || uname === 'admin' || (u.email && u.email.includes('admin'))) return true;
+        const codes = (u.role_codes || (u.roles || []).map(r => (typeof r === 'object' ? r.code : r)) || []);
+        if (codes.includes('admin') || codes.includes('store_manager')) return true;
+        if (u.can_view_stock === false) return false;
+        if (u.stock_visibility && u.stock_visibility.pos === false) return false;
+        return true;
+      } catch(e) { return true; }
+    })(),
     pendingOfflineSalesCount: 0,
     syncStats: {
       totalProducts: 0,
@@ -6512,10 +6547,13 @@ function posApp() {
     },
 
     addVariantToCart(product, variant) {
+      const vRef = variant.internal_ref || product.internal_ref || '';
+      const baseName = `${product.name} (${variant.name})`;
       const vProduct = {
         id: product.id,
         variant_id: variant.id,
-        name: `${product.name} (${variant.name})`,
+        internal_ref: vRef,
+        name: vRef ? `[${vRef}] ${baseName}` : baseName,
         sale_price: (product.sale_price || 0) + (variant.extra_price || 0)
       };
       this.addToCart(vProduct);
@@ -6881,7 +6919,29 @@ function posApp() {
       return Number(val || 0).toFixed(2);
     },
 
+    formatProductName(p) {
+      if (!p) return '';
+      const ref = p.internal_ref || p.sku || p.default_code || '';
+      const rawName = p.name || p.product_name || (typeof p === 'string' ? p : '');
+      if (!ref) return rawName;
+      if (rawName.startsWith(`[${ref}]`) || rawName.startsWith(`${ref} -`)) return rawName;
+      return `[${ref}] ${rawName}`;
+    },
+
     async init() {
+      try {
+        const me = await API.get('/auth/me');
+        if (me && me.username) {
+          localStorage.setItem('user', JSON.stringify(me));
+          const isAdm = Boolean(me.is_superuser || me.is_admin || (me.username || '').toLowerCase() === 'admin' || (me.role_codes || []).includes('admin') || (me.role_codes || []).includes('store_manager'));
+          if (isAdm) {
+            this.canViewStock = true;
+          } else {
+            this.canViewStock = Boolean(me.can_view_stock !== false && (!me.stock_visibility || me.stock_visibility.pos !== false));
+          }
+        }
+      } catch(e) {}
+
       this.updateLiveClock();
       setInterval(() => this.updateLiveClock(), 1000);
 
@@ -7562,7 +7622,8 @@ function posApp() {
       } else {
         const lineItem = {
           product_id: product.id,
-          product_name: product.name,
+          product_name: this.formatProductName(product),
+          internal_ref: product.internal_ref || '',
           base_sale_price: Number(product.sale_price || 0),
           unit_price: effectiveUnitPrice,
           wholesale_unit_price: wholesaleUnitPrice,
@@ -8142,9 +8203,18 @@ function posApp() {
       this.isLoadingStockInfo = true;
 
       try {
-        const res = await API.get('/products/' + p.id + '/warehouses-stock');
-        if (res) {
+        const res = await API.get('/products/' + p.id + '/warehouses-stock?module=pos');
+        if (this.canViewStock && res) {
           this.stockProductData = res;
+        } else if (res) {
+          this.stockProductData = {
+            ...res,
+            total_stock: null,
+            total_physical: null,
+            total_frozen: null,
+            total_available: null,
+            warehouses: []
+          };
         }
       } catch(e) {
         console.warn("Error consultando stock multi-bodega:", e);

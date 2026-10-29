@@ -317,7 +317,12 @@ async def list_users(
             "branch_name": branches.get(u.current_branch_id, "Sucursal Central (Principal)"),
             "supervisor_pin": "••••" if supervisor_pin else "No asignado",
             "has_supervisor_pin": bool(supervisor_pin),
-            "created_at": u.created_at.strftime("%d/%m/%Y") if u.created_at else ""
+            "created_at": u.created_at.strftime("%d/%m/%Y") if u.created_at else "",
+            "is_admin": bool(u.is_superuser or role_code == "admin" or u.username == "admin"),
+            "can_view_stock": True if bool(u.is_superuser or role_code == "admin" or u.username == "admin") else st.get("can_view_stock", (st.get("stock_visibility", {})).get("can_view_stock", True)),
+            "stock_pos": True if bool(u.is_superuser or role_code == "admin" or u.username == "admin") else (st.get("stock_visibility", {})).get("pos", st.get("stock_pos", True)),
+            "stock_presale": True if bool(u.is_superuser or role_code == "admin" or u.username == "admin") else (st.get("stock_visibility", {})).get("presale", st.get("stock_presale", True)),
+            "stock_quotes": True if bool(u.is_superuser or role_code == "admin" or u.username == "admin") else (st.get("stock_visibility", {})).get("quotes", st.get("stock_quotes", True))
         }
 
         # Filtrar por búsqueda
@@ -411,6 +416,235 @@ async def create_user(
         "username": user.username,
         "role": data.role_code,
         "message": "Usuario colaborador creado exitosamente."
+    }
+
+
+# ===== GESTIÓN DE VISIBILIDAD DE EXISTENCIAS (STOCK) =====
+def is_admin_user(user) -> bool:
+    """Verifica si el usuario es Administrador o Super Administrador."""
+    if not user:
+        return False
+    role_codes = [r.code for r in getattr(user, "roles", [])] if hasattr(user, "roles") and user.roles else []
+    return bool(
+        getattr(user, "is_superuser", False)
+        or getattr(user, "is_admin", False)
+        or "admin" in role_codes
+        or getattr(user, "username", "").lower() == "admin"
+    )
+
+
+class UserStockVisibilityItem(BaseModel):
+    user_id: str
+    can_view_stock: bool = True
+    stock_pos: bool = True
+    stock_presale: bool = True
+    stock_quotes: bool = True
+
+
+class UpdateStockVisibilityBatchRequest(BaseModel):
+    users: List[UserStockVisibilityItem]
+
+
+@router.get("/users/stock-visibility")
+async def get_users_stock_visibility(
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user)
+):
+    """Listar la configuración de visibilidad de stock de todos los colaboradores.
+    Exclusivo para el usuario Administrador."""
+    if not is_admin_user(current_user):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acceso restringido: Únicamente el usuario Administrador puede consultar o configurar la visibilidad de existencias."
+        )
+
+    c_uuid = uuid.UUID(str(current_user.company_id))
+
+    # Cargar sucursales para nombres
+    b_stmt = select(Branch).where(Branch.company_id == c_uuid, Branch.is_deleted == False)
+    b_res = await db.execute(b_stmt)
+    branches = {b.id: b.name for b in b_res.scalars().all()}
+
+    stmt = (
+        select(User)
+        .options(selectinload(User.roles))
+        .where(
+            User.company_id == c_uuid,
+            User.is_deleted == False
+        )
+        .order_by(User.full_name)
+    )
+    res = await db.execute(stmt)
+    users = res.scalars().all()
+
+    items = []
+    for u in users:
+        role_obj = u.roles[0] if u.roles else None
+        role_code = "admin" if u.is_superuser else (role_obj.code if role_obj else "cashier")
+        if role_code == "preventista":
+            role_code = "presale_seller"
+
+        role_meta = next((r for r in PREDEFINED_ROLES if r["code"] == role_code), {
+            "name": "Super Administrador" if u.is_superuser else "Colaborador",
+            "badge_color": "#714B67",
+            "badge_bg": "#f4eff3"
+        })
+
+        st = u.settings or {}
+        stock_cfg = st.get("stock_visibility", {})
+        
+        is_u_admin = bool(u.is_superuser or role_code == "admin" or u.username == "admin")
+        
+        # Para administradores siempre está visible
+        if is_u_admin:
+            can_view = True
+            pos_vis = True
+            presale_vis = True
+            quotes_vis = True
+        else:
+            can_view = st.get("can_view_stock", stock_cfg.get("can_view_stock", True))
+            pos_vis = stock_cfg.get("pos", st.get("stock_pos", True))
+            presale_vis = stock_cfg.get("presale", st.get("stock_presale", True))
+            quotes_vis = stock_cfg.get("quotes", st.get("stock_quotes", True))
+
+        items.append({
+            "id": str(u.id),
+            "username": u.username,
+            "full_name": u.full_name,
+            "email": u.email,
+            "role_code": role_code,
+            "role_name": role_meta["name"],
+            "role_badge_color": role_meta["badge_color"],
+            "role_badge_bg": role_meta["badge_bg"],
+            "is_admin": is_u_admin,
+            "branch_name": branches.get(u.current_branch_id, "Sucursal Principal"),
+            "can_view_stock": can_view,
+            "stock_pos": pos_vis,
+            "stock_presale": presale_vis,
+            "stock_quotes": quotes_vis
+        })
+
+    return items
+
+
+@router.put("/users/stock-visibility")
+async def update_users_stock_visibility(
+    data: UpdateStockVisibilityBatchRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user)
+):
+    """Guardar masivamente la visibilidad de stock para los usuarios.
+    Exclusivo para el usuario Administrador."""
+    if not is_admin_user(current_user):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acceso restringido: Únicamente el usuario Administrador puede modificar la visibilidad de existencias."
+        )
+
+    c_uuid = uuid.UUID(str(current_user.company_id))
+
+    updated_count = 0
+    for item in data.users:
+        try:
+            u_uuid = uuid.UUID(item.user_id)
+        except ValueError:
+            continue
+
+        stmt = select(User).where(
+            User.id == u_uuid,
+            User.company_id == c_uuid,
+            User.is_deleted == False
+        )
+        res = await db.execute(stmt)
+        user = res.scalar_one_or_none()
+        if not user:
+            continue
+
+        # No degradar visibilidad del superusuario admin principal
+        if user.is_superuser or user.username == "admin":
+            continue
+
+        st = dict(user.settings or {})
+        st["can_view_stock"] = bool(item.can_view_stock)
+        st["stock_pos"] = bool(item.stock_pos)
+        st["stock_presale"] = bool(item.stock_presale)
+        st["stock_quotes"] = bool(item.stock_quotes)
+        st["stock_visibility"] = {
+            "can_view_stock": bool(item.can_view_stock),
+            "pos": bool(item.stock_pos),
+            "presale": bool(item.stock_presale),
+            "quotes": bool(item.stock_quotes)
+        }
+        user.settings = st
+        updated_count += 1
+
+    await db.commit()
+    return {
+        "status": "ok",
+        "updated_users": updated_count,
+        "message": f"Permisos de visibilidad de stock actualizados para {updated_count} usuario(s)."
+    }
+
+
+@router.patch("/users/{user_id}/stock-visibility")
+async def update_single_user_stock_visibility(
+    user_id: str,
+    data: UserStockVisibilityItem,
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user)
+):
+    """Actualizar visibilidad de stock de un usuario individual.
+    Exclusivo para el usuario Administrador."""
+    if not is_admin_user(current_user):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acceso restringido: Únicamente el usuario Administrador puede modificar la visibilidad de existencias."
+        )
+
+    try:
+        u_uuid = uuid.UUID(user_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="ID de usuario inválido.")
+
+    c_uuid = uuid.UUID(str(current_user.company_id))
+    stmt = select(User).where(
+        User.id == u_uuid,
+        User.company_id == c_uuid,
+        User.is_deleted == False
+    )
+    res = await db.execute(stmt)
+    user = res.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado.")
+
+    if user.is_superuser or user.username == "admin":
+        return {
+            "id": str(user.id),
+            "can_view_stock": True,
+            "message": "El Super Administrador siempre mantiene visibilidad total de existencias."
+        }
+
+    st = dict(user.settings or {})
+    st["can_view_stock"] = bool(data.can_view_stock)
+    st["stock_pos"] = bool(data.stock_pos)
+    st["stock_presale"] = bool(data.stock_presale)
+    st["stock_quotes"] = bool(data.stock_quotes)
+    st["stock_visibility"] = {
+        "can_view_stock": bool(data.can_view_stock),
+        "pos": bool(data.stock_pos),
+        "presale": bool(data.stock_presale),
+        "quotes": bool(data.stock_quotes)
+    }
+    user.settings = st
+    await db.commit()
+
+    return {
+        "id": str(user.id),
+        "can_view_stock": data.can_view_stock,
+        "stock_pos": data.stock_pos,
+        "stock_presale": data.stock_presale,
+        "stock_quotes": data.stock_quotes,
+        "message": "Permisos de visibilidad actualizados exitosamente."
     }
 
 
@@ -548,3 +782,4 @@ async def reset_user_password(
     await db.commit()
 
     return {"id": str(user.id), "message": "Contraseña restablecida exitosamente."}
+

@@ -26,6 +26,10 @@
   <link rel="stylesheet" href="/static/css/main.css?v=20260906_hide_uom_normal">
 
   <style>
+    [x-cloak] {
+      display: none !important;
+    }
+
     /* ==========================================================
        ADAPTIVE RESPONSIVE & TOUCH OPTIMIZATION DESIGN SYSTEM
        Compatible con Móviles, Tablets, Pantallas Táctiles y PC
@@ -439,8 +443,8 @@
           <template x-if="currentPage === 'ar'">
             <div style="display:flex; align-items:center; gap:6px;">
               <a href="/ar" class="nav-tab-pill nav-tab-active">
-                <span class="hide-on-mobile">💰 Estados de Cuenta (AR)</span>
-                <span class="show-on-mobile-inline">💰 Estados de Cuenta</span>
+                <span class="hide-on-mobile">💰 Cuentas por Cobrar (AR)</span>
+                <span class="show-on-mobile-inline">💰 Cuentas por Cobrar</span>
               </a>
               <template x-if="!isPresaleSeller">
                 <a href="/customers" class="nav-tab-pill nav-tab-inactive">Directorio de Clientes</a>
