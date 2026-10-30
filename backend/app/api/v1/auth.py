@@ -122,15 +122,15 @@ async def login(
     )
 
     role_codes = [r.code for r in (user.roles or [])]
-    is_admin_user = bool(user.is_superuser or "admin" in role_codes or "store_manager" in role_codes or user.username == "admin" or (user.email and "admin" in user.email))
+    is_admin_user = bool(user.is_superuser or "admin" in role_codes or user.username == "admin" or (user.email and "admin" in user.email))
 
     st = user.settings or {}
     stock_cfg = st.get("stock_visibility", {})
-    can_view = True if is_admin_user else st.get("can_view_stock", stock_cfg.get("can_view_stock", True))
+    can_view = True if (is_admin_user or "store_manager" in role_codes) else st.get("can_view_stock", stock_cfg.get("can_view_stock", True))
     stock_vis = {
-        "pos": True if is_admin_user else stock_cfg.get("pos", st.get("stock_pos", True)),
-        "presale": True if is_admin_user else stock_cfg.get("presale", st.get("stock_presale", True)),
-        "quotes": True if is_admin_user else stock_cfg.get("quotes", st.get("stock_quotes", True)),
+        "pos": True if (is_admin_user or "store_manager" in role_codes) else stock_cfg.get("pos", st.get("stock_pos", True)),
+        "presale": True if (is_admin_user or "store_manager" in role_codes) else stock_cfg.get("presale", st.get("stock_presale", True)),
+        "quotes": True if (is_admin_user or "store_manager" in role_codes) else stock_cfg.get("quotes", st.get("stock_quotes", True)),
     }
 
     return LoginResponse(
@@ -174,15 +174,15 @@ async def refresh_token(request: RefreshRequest, db: AsyncSession = Depends(get_
 async def get_me(current_user: User = Depends(get_current_user)):
     """Obtener información del usuario autenticado."""
     role_codes = [r.code for r in (current_user.roles or [])]
-    is_admin_user = bool(current_user.is_superuser or "admin" in role_codes or "store_manager" in role_codes or current_user.username == "admin" or (current_user.email and "admin" in current_user.email))
+    is_admin_user = bool(current_user.is_superuser or "admin" in role_codes or current_user.username == "admin" or (current_user.email and "admin" in current_user.email))
 
     st = current_user.settings or {}
     stock_cfg = st.get("stock_visibility", {})
-    can_view = True if is_admin_user else st.get("can_view_stock", stock_cfg.get("can_view_stock", True))
+    can_view = True if (is_admin_user or "store_manager" in role_codes) else st.get("can_view_stock", stock_cfg.get("can_view_stock", True))
     stock_vis = {
-        "pos": True if is_admin_user else stock_cfg.get("pos", st.get("stock_pos", True)),
-        "presale": True if is_admin_user else stock_cfg.get("presale", st.get("stock_presale", True)),
-        "quotes": True if is_admin_user else stock_cfg.get("quotes", st.get("stock_quotes", True)),
+        "pos": True if (is_admin_user or "store_manager" in role_codes) else stock_cfg.get("pos", st.get("stock_pos", True)),
+        "presale": True if (is_admin_user or "store_manager" in role_codes) else stock_cfg.get("presale", st.get("stock_presale", True)),
+        "quotes": True if (is_admin_user or "store_manager" in role_codes) else stock_cfg.get("quotes", st.get("stock_quotes", True)),
     }
 
     return {

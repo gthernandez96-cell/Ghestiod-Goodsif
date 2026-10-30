@@ -443,6 +443,7 @@
       <!-- Botón Destacado: Visibilidad de Stock por Usuario -->
       <button 
         type="button" 
+        x-show="!isStoreManager"
         style="background:linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color:#ffffff; font-weight:800; font-size:12px; padding:6px 14px; border-radius:6px; border:none; display:inline-flex; align-items:center; gap:6px; cursor:pointer; box-shadow:0 2px 6px rgba(2,132,199,0.3); transition:all 0.15s ease;"
         onmouseover="this.style.transform='translateY(-1px)'"
         onmouseout="this.style.transform='translateY(0)'"
@@ -458,18 +459,30 @@
       </span>
 
       <!-- Active Company Pill -->
-      <a 
-        href="/companies"
-        style="display:flex; align-items:center; gap:8px; font-size:12px; color:#475569; text-decoration:none; background:#f8fafc; border:1px solid #e2e8f0; border-radius:20px; padding:4px 12px; transition:all 0.15s ease;"
-        onmouseover="this.style.borderColor='var(--odoo-purple)'; this.style.background='var(--odoo-purple-light)'"
-        onmouseout="this.style.borderColor='#e2e8f0'; this.style.background='#f8fafc'"
-        title="Clic para gestionar empresas"
-      >
-        <i class="ph ph-buildings" style="color:var(--odoo-purple); font-size:15px;"></i>
-        <span style="font-weight:600;">Empresa:</span>
-        <strong style="color:var(--odoo-purple);" x-text="form.trade_name || form.name || 'Cargando...'"></strong>
-        <i class="ph ph-caret-right" style="font-size:11px; color:#94a3b8;"></i>
-      </a>
+      <template x-if="!isStoreManager">
+        <a 
+          href="/companies"
+          style="display:flex; align-items:center; gap:8px; font-size:12px; color:#475569; text-decoration:none; background:#f8fafc; border:1px solid #e2e8f0; border-radius:20px; padding:4px 12px; transition:all 0.15s ease;"
+          onmouseover="this.style.borderColor='var(--odoo-purple)'; this.style.background='var(--odoo-purple-light)'"
+          onmouseout="this.style.borderColor='#e2e8f0'; this.style.background='#f8fafc'"
+          title="Clic para gestionar empresas"
+        >
+          <i class="ph ph-buildings" style="color:var(--odoo-purple); font-size:15px;"></i>
+          <span style="font-weight:600;">Empresa:</span>
+          <strong style="color:var(--odoo-purple);" x-text="form.trade_name || form.name || 'Cargando...'"></strong>
+          <i class="ph ph-caret-right" style="font-size:11px; color:#94a3b8;"></i>
+        </a>
+      </template>
+      <template x-if="isStoreManager">
+        <div 
+          style="display:flex; align-items:center; gap:8px; font-size:12px; color:#475569; background:#f8fafc; border:1px solid #e2e8f0; border-radius:20px; padding:4px 12px;"
+          title="Empresa asignada a sucursal"
+        >
+          <i class="ph ph-buildings" style="color:var(--odoo-purple); font-size:15px;"></i>
+          <span style="font-weight:600;">Empresa:</span>
+          <strong style="color:var(--odoo-purple);" x-text="form.trade_name || form.name || 'Cargando...'"></strong>
+        </div>
+      </template>
 
     </div>
 
@@ -633,8 +646,8 @@
 
       </nav>
 
-      <!-- Quick Links Card -->
-      <div style="margin-top:16px; padding-top:14px; border-top:1px solid #f1f5f9; display:flex; flex-direction:column; gap:6px;">
+      <!-- Quick Links Card (Solo Administrador) -->
+      <div x-show="!isStoreManager" style="margin-top:16px; padding-top:14px; border-top:1px solid #f1f5f9; display:flex; flex-direction:column; gap:6px;">
         <span style="font-size:10px; font-weight:800; color:#94a3b8; text-transform:uppercase; letter-spacing:0.5px; padding-left:4px;">Accesos Rápidos</span>
         <button 
           type="button" 
@@ -680,7 +693,7 @@
           </div>
 
           <div style="display:flex; gap:8px;">
-            <a href="/companies" class="btn" style="background:var(--odoo-purple-light); color:var(--odoo-purple); font-weight:700; font-size:12px; border-radius:6px; padding:6px 12px; text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
+            <a href="/companies" x-show="!isStoreManager" class="btn" style="background:var(--odoo-purple-light); color:var(--odoo-purple); font-weight:700; font-size:12px; border-radius:6px; padding:6px 12px; text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
               <i class="ph ph-plus"></i> Multi-Empresas
             </a>
             <a href="/warehouses" class="btn" style="background:#e0f2fe; color:#0369a1; font-weight:700; font-size:12px; border-radius:6px; padding:6px 12px; text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
@@ -1162,25 +1175,8 @@
             </div>
             <label class="odoo-switch">
               <input type="checkbox" x-model="form.pos_enable_wholesale" @change="markDirty()">
-          <!-- Switch 4: Visibilidad de Stock por Usuario (POS, Pre-Venta, Cotizaciones) -->
-          <div class="odoo-switch-card" style="border-left:4px solid #0284c7; background:#f0f9ff; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
-            <div class="odoo-switch-info" style="flex:1; min-width:280px;">
-              <span class="odoo-switch-title" style="color:#0369a1; display:flex; align-items:center; gap:8px;">
-                <i class="ph ph-package" style="font-size:18px;"></i>
-                Visibilidad de Existencias en Bodega (POS, Pre-Venta & Cotizaciones)
-              </span>
-              <span class="odoo-switch-desc">
-                Define qué colaboradores pueden ver la existencia en bodega de los productos en Punto de Venta, Pre-Venta y Cotizaciones. Función exclusiva para administradores.
-              </span>
-            </div>
-            <button 
-              type="button"
-              style="background:linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color:#ffffff; font-weight:800; font-size:12.5px; padding:8px 18px; border-radius:6px; border:none; cursor:pointer; display:inline-flex; align-items:center; gap:7px; box-shadow:0 2px 6px rgba(2,132,199,0.3); white-space:nowrap;"
-              @click="openStockVisibilityModal()"
-            >
-              <i class="ph ph-sliders"></i>
-              <span>📦 Configurar Visibilidad de Stock</span>
-            </button>
+              <span class="odoo-slider"></span>
+            </label>
           </div>
 
         </div>
@@ -1236,8 +1232,8 @@
           </label>
         </div>
 
-        <!-- Tarjeta: Visibilidad de Stock por Usuario -->
-        <div class="odoo-switch-card" style="border-left:4px solid #0284c7; background:#f0f9ff; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-top:14px;">
+        <!-- Tarjeta: Visibilidad de Stock por Usuario (Solo Administrador) -->
+        <div class="odoo-switch-card" x-show="!isStoreManager" style="border-left:4px solid #0284c7; background:#f0f9ff; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-top:14px;">
           <div class="odoo-switch-info" style="flex:1; min-width:280px;">
             <span class="odoo-switch-title" style="color:#0369a1; display:flex; align-items:center; gap:8px;">
               <i class="ph ph-package" style="font-size:18px;"></i>
@@ -2275,20 +2271,52 @@
       cloudBackups: [],
       loadingCloudBackups: false,
       isCreatingCloudBackup: false,
+      isStoreManager: false,
 
       async init() {
         try {
           const uLocal = JSON.parse(localStorage.getItem('user') || '{}');
-          const localCodes = uLocal.role_codes || (uLocal.roles || []).map(r => r.code || r);
-          this.isAdmin = Boolean(uLocal.is_superuser || uLocal.is_admin || uLocal.username === 'admin' || localCodes.includes('admin') || localCodes.includes('store_manager'));
+          const localCodes = (uLocal.role_codes || (uLocal.roles || []).map(r => (typeof r === 'string' ? r : r.code || '')));
+          const localIsAdmin = Boolean(uLocal.is_superuser || uLocal.username === 'admin' || (uLocal.email && uLocal.email.includes('admin')) || localCodes.includes('admin'));
+          
+          if ((localCodes.includes('store_manager') || localCodes.includes('manager') || localCodes.includes('gerente') || localCodes.includes('supervisor')) && !localIsAdmin) {
+            this.isAdmin = false;
+            this.isStoreManager = true;
+          } else if (localIsAdmin) {
+            this.isAdmin = true;
+            this.isStoreManager = false;
+          } else {
+            this.isAdmin = false;
+            this.isStoreManager = false;
+          }
 
           const me = await API.get('/auth/me');
           if (me) {
             this.currentUser = me;
-            const codes = me.role_codes || (me.roles || []).map(r => r.code || r);
-            this.isAdmin = Boolean(me.is_superuser || me.is_admin || me.username === 'admin' || codes.includes('admin') || codes.includes('store_manager'));
+            try {
+              localStorage.setItem('user', JSON.stringify({ ...uLocal, ...me }));
+            } catch(e) {}
+            const codes = (me.roles || []).map(r => (typeof r === 'string' ? r : r.code || ''));
+            const isSuper = Boolean(me.is_superuser || me.username === 'admin' || (me.email && me.email.includes('admin')) || codes.includes('admin'));
+            if ((codes.includes('store_manager') || codes.includes('manager') || codes.includes('gerente') || codes.includes('supervisor')) && !isSuper) {
+              this.isAdmin = false;
+              this.isStoreManager = true;
+            } else if (isSuper) {
+              this.isAdmin = true;
+              this.isStoreManager = false;
+            } else {
+              this.isAdmin = false;
+              this.isStoreManager = false;
+            }
           }
         } catch(e) {}
+
+        if (this.isStoreManager) {
+          const allowedManagerTabs = ['company', 'pos', 'inventory', 'payments'];
+          if (!allowedManagerTabs.includes(this.activeTab)) {
+            this.activeTab = 'company';
+          }
+        }
 
         await Promise.all([
           this.loadSettings(),
@@ -2306,6 +2334,13 @@
       },
 
       setTab(tab) {
+        if (this.isStoreManager) {
+          const allowedManagerTabs = ['company', 'pos', 'inventory', 'payments'];
+          if (!allowedManagerTabs.includes(tab)) {
+            this.activeTab = 'company';
+            return;
+          }
+        }
         this.activeTab = tab;
         if (tab === 'backup') {
           this.loadDatabaseStorage();
@@ -2314,6 +2349,10 @@
       },
 
       isTabVisible(tab) {
+        if (this.isStoreManager) {
+          const allowedManagerTabs = ['company', 'pos', 'inventory', 'payments'];
+          if (!allowedManagerTabs.includes(tab)) return false;
+        }
         if (!this.searchQuery.trim()) return true;
         const q = this.searchQuery.toLowerCase();
         const keywords = this.tabMeta[tab] || [];
@@ -2558,6 +2597,7 @@
       },
 
       async openStockVisibilityModal(singleUser = null) {
+        if (this.isStoreManager) return;
         this.stockSearchQuery = '';
         this.stockModalLoading = true;
         this.showStockVisibilityModal = true;

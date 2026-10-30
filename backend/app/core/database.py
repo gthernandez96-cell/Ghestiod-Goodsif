@@ -242,18 +242,30 @@ async def ensure_initial_bootstrap():
             # 4. Roles básicos
             roles_def = [
                 ("Administrador", "admin", "Acceso total al sistema"),
-                ("Gerente de Tienda", "store_manager", "Gestión de sucursal e inventarios"),
+                ("Gerente de Sucursal / Supervisor", "store_manager", "Operación de tienda, ventas, bodega, inventario, clientes, compras, finanzas y configuración de sucursal"),
                 ("Cajero", "cashier", "Operaciones de venta y cobro"),
-                ("Bodeguero", "warehouse", "Control de existencias y traslados"),
-                ("Contador", "accountant", "Reportes contables y FEL"),
+                ("Encargado de Inventario / Bodeguero", "inventory_manager", "Preparación en bodega, inventario, traslados y fabricación"),
+                ("Contador / Finanzas", "accountant", "Cuentas por cobrar, cuentas por pagar y reportes"),
+                ("Pre-Vendedor", "preventista", "Operaciones de pre-venta y cotizaciones"),
             ]
             admin_role = None
             for r_name, r_code, r_desc in roles_def:
-                r_match = (await db.execute(select(Role).where(Role.code == r_code))).scalar_one_or_none()
+                r_match = (await db.execute(select(Role).where(
+                    or_(
+                        Role.code == r_code,
+                        Role.code == "warehouse" if r_code == "inventory_manager" else False,
+                        Role.code == "presale_seller" if r_code == "preventista" else False,
+                        Role.code == "contador" if r_code == "accountant" else False
+                    )
+                ))).scalars().first()
                 if not r_match:
                     r_match = Role(name=r_name, code=r_code, description=r_desc, is_system=True)
                     db.add(r_match)
                     await db.flush()
+                else:
+                    if r_code in ("inventory_manager", "preventista", "accountant"):
+                        r_match.name = r_name
+                        r_match.description = r_desc
                 if r_code == "admin":
                     admin_role = r_match
 

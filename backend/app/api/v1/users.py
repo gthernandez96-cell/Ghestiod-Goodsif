@@ -40,14 +40,16 @@ PREDEFINED_ROLES = [
         "badge_color": "#0284c7",
         "badge_bg": "#e0f2fe",
         "icon": "ph-shield-check",
-        "description": "Supervisión de tienda y personal, autorización de descuentos especiales con PIN, arqueos ciegos y reportes operativos.",
+        "description": "Gestión operativa integral: Punto de Venta, Pre-Venta, Solicitudes POS, Preparación en Bodega, Inventarios, Clientes, Cotizaciones, Cuentas por Cobrar, Cuentas por Pagar, Compras, Traslados, Reportes, Fabricación, Bodegas y Configuración de sucursal (Empresa/Logo, POS, Stock y Pagos). Bloqueado para Contabilidad general, FEL SAT, creación de empresas y gestión de usuarios.",
         "permissions": [
-            {"module": "POS & Ventas", "actions": "Apertura/Cierre, Autorizaciones PIN, Descuentos, Arqueos"},
-            {"module": "Inventarios", "actions": "Recepción en Bodega, Solicitud de Traslados, Auditoría Física"},
-            {"module": "Compras & AP", "actions": "Aprobación de Compras Locales, Fichas de Proveedores"},
-            {"module": "Créditos & AR", "actions": "Consulta de Saldos de Clientes, Registro de Cobranzas"},
-            {"module": "Contabilidad & FEL", "actions": "Consulta de Libro de Ventas Diario"},
-            {"module": "Configuración & Usuarios", "actions": "Gestión de Turnos y Marcaje de Empleados"}
+            {"module": "Ventas & Operaciones POS", "actions": "Cobro POS, Pre-Venta, Solicitudes POS, Preparación en Bodega, Autorizaciones PIN"},
+            {"module": "Inventarios & Almacenes", "actions": "Catálogo Maestro, Existencias, Traslados, Fabricación, Bodegas"},
+            {"module": "Clientes & Cotizaciones", "actions": "Directorio de Clientes, Límites de Crédito, Cotizaciones / Proformas"},
+            {"module": "Finanzas & Compras", "actions": "Órdenes de Compra, Cuentas por Cobrar (AR), Cuentas por Pagar (AP)"},
+            {"module": "Reportes & Analítica", "actions": "Reportes Operativos, Detalle de Ventas, Desempeño y Auditoría"},
+            {"module": "Configuración de Sucursal", "actions": "Empresa & Logo, Punto de Venta & Caja, Inventarios y Métodos de Pago USD"},
+            {"module": "Contabilidad General & FEL", "actions": "Sin acceso (Libro Diario, Balance, Partidas y FEL bloqueados)"},
+            {"module": "Multi-Empresas & Usuarios", "actions": "Sin acceso (Creación de nuevas empresas, usuarios y roles bloqueados)"}
         ]
     },
     {
@@ -72,14 +74,17 @@ PREDEFINED_ROLES = [
         "badge_color": "#c2410c",
         "badge_bg": "#ffedd5",
         "icon": "ph-package",
-        "description": "Administración de bodegas, recepción de compras, despacho de traslados, kardex, códigos de barra y conteos físicos.",
+        "description": "Responsable de almacenes y bodegas. Módulos exclusivos: Preparación en Bodega, Inventario, Traslados y Fabricación. Bloqueado para ventas, cobros POS, pre-venta, cotizaciones, compras, clientes y finanzas.",
         "permissions": [
-            {"module": "POS & Ventas", "actions": "Sin acceso directo a cobros"},
-            {"module": "Inventarios", "actions": "Catálogo Maestro, Creación SKUs, Traslados, Ajustes, Kardex"},
-            {"module": "Compras & AP", "actions": "Recepción Física de Mercadería y Verificación de OC"},
-            {"module": "Créditos & AR", "actions": "Sin acceso"},
-            {"module": "Contabilidad & FEL", "actions": "Valoración de Stock por Bodega"},
-            {"module": "Configuración & Usuarios", "actions": "Gestión de Bodegas y Ubicaciones"}
+            {"module": "Preparación en Bodega", "actions": "Alistamiento, picking, verificación y despacho de pedidos"},
+            {"module": "Inventarios", "actions": "Catálogo Maestro, Existencias por Bodega, Ajustes, Kardex y Lotes"},
+            {"module": "Traslados", "actions": "Solicitud, emisión y recepción de traslados entre bodegas"},
+            {"module": "Fabricación", "actions": "Órdenes de Ensamblaje, Fabricación y Recetas / BOM"},
+            {"module": "POS & Pre-Venta", "actions": "Sin acceso (Cobros y ventas bloqueados)"},
+            {"module": "Cotizaciones & Clientes", "actions": "Sin acceso"},
+            {"module": "Compras & AP", "actions": "Sin acceso"},
+            {"module": "Finanzas & Contabilidad", "actions": "Sin acceso (Cuentas por Cobrar/Pagar, Libro Diario, FEL)"},
+            {"module": "Configuración & Usuarios", "actions": "Sin acceso"}
         ]
     },
     {
@@ -88,14 +93,16 @@ PREDEFINED_ROLES = [
         "badge_color": "#9333ea",
         "badge_bg": "#f3e8ff",
         "icon": "ph-scales",
-        "description": "Gestión financiera, Cuentas por Cobrar (AR), Cuentas por Pagar (AP), emisión y auditoría fiscal FEL SAT, libro diario y P&L.",
+        "description": "Responsable de cartera, proveedores y analítica financiera. Acceso exclusivo a: Cuentas por Cobrar (AR), Cuentas por Pagar (AP) y Reportes SAT & BI. Bloqueado para caja POS, pre-venta, inventarios, contabilidad general, facturación FEL y configuración.",
         "permissions": [
-            {"module": "POS & Ventas", "actions": "Consulta de Ventas Consolidadas y Medios de Pago"},
-            {"module": "Inventarios", "actions": "Valoración Financiera de Inventarios y Costo de Venta"},
-            {"module": "Compras & AP", "actions": "Registro de Facturas Proveedor, Liquidaciones y Cheques"},
-            {"module": "Créditos & AR", "actions": "Control de Cartera, Antigüedad de Saldos, Emisión de Recibos"},
-            {"module": "Contabilidad & FEL", "actions": "Libro Diario, Balance de Comprobación, P&L, Conciliaciones SAT"},
-            {"module": "Configuración & Usuarios", "actions": "Configuraciones Contables e Impuestos"}
+            {"module": "Cuentas por Cobrar (AR)", "actions": "Control de Cartera, Estados de Cuenta, Facturas por Cobrar, Abonos"},
+            {"module": "Cuentas por Pagar (AP)", "actions": "Facturas de Proveedores, Programación de Pagos, Liquidaciones"},
+            {"module": "Reportes & BI", "actions": "Reportes SAT, Detalle de Ventas, Analítica de Negocio y Auditoría"},
+            {"module": "Contabilidad & Facturación FEL", "actions": "Sin acceso (Libro Diario, Partidas y FEL bloqueados)"},
+            {"module": "POS & Pre-Venta", "actions": "Sin acceso (Cobros en caja y toma de pedidos bloqueados)"},
+            {"module": "Inventarios & Traslados", "actions": "Sin acceso (Catálogo y movimientos de bodega bloqueados)"},
+            {"module": "Cotizaciones & Clientes", "actions": "Sin acceso"},
+            {"module": "Configuración & Usuarios", "actions": "Sin acceso"}
         ]
     },
     {
@@ -150,11 +157,13 @@ async def ensure_roles_seeded(db: AsyncSession):
         stmt = select(Role).where(
             or_(
                 Role.code == r_data["code"],
-                Role.code == "preventista" if r_data["code"] == "presale_seller" else False
+                Role.code == "preventista" if r_data["code"] == "presale_seller" else False,
+                Role.code == "warehouse" if r_data["code"] == "inventory_manager" else False,
+                Role.code == "contador" if r_data["code"] == "accountant" else False
             )
         )
         res = await db.execute(stmt)
-        role = res.scalar_one_or_none()
+        role = res.scalars().first()
         if not role:
             role = Role(
                 name=r_data["name"],
@@ -165,6 +174,15 @@ async def ensure_roles_seeded(db: AsyncSession):
             db.add(role)
         elif r_data["code"] == "presale_seller":
             role.name = "Pre-Vendedor"
+            role.description = r_data["description"]
+        elif r_data["code"] == "inventory_manager":
+            role.name = "Encargado de Inventario / Bodeguero"
+            role.description = r_data["description"]
+        elif r_data["code"] == "accountant":
+            role.name = "Contador / Finanzas"
+            role.description = r_data["description"]
+        elif r_data["code"] == "store_manager":
+            role.name = "Gerente de Sucursal / Supervisor"
             role.description = r_data["description"]
     await db.commit()
 
@@ -232,11 +250,11 @@ async def get_users_kpis(
         role_codes = [r.code for r in u.roles]
         if u.is_superuser or "admin" in role_codes:
             admins_count += 1
-        elif "store_manager" in role_codes:
+        elif "store_manager" in role_codes or "manager" in role_codes or "gerente" in role_codes or "supervisor" in role_codes:
             managers_count += 1
-        elif "inventory_manager" in role_codes:
+        elif "inventory_manager" in role_codes or "warehouse" in role_codes or "bodeguero" in role_codes:
             inventory_count += 1
-        elif "accountant" in role_codes:
+        elif "accountant" in role_codes or "contador" in role_codes or "finance" in role_codes:
             accountants_count += 1
         elif "presale_seller" in role_codes or "preventista" in role_codes:
             presale_count += 1
@@ -287,6 +305,10 @@ async def list_users(
         role_code = "admin" if u.is_superuser else (role_obj.code if role_obj else "cashier")
         if role_code == "preventista":
             role_code = "presale_seller"
+        elif role_code in ("warehouse", "bodeguero"):
+            role_code = "inventory_manager"
+        elif role_code in ("contador", "finance"):
+            role_code = "accountant"
         
         # Metadata del rol
         role_meta = next((r for r in PREDEFINED_ROLES if r["code"] == role_code), {
@@ -397,12 +419,17 @@ async def create_user(
     role_stmt = select(Role).where(
         or_(
             Role.code == data.role_code,
+            Role.code == "store_manager" if data.role_code in ["store_manager", "manager", "gerente", "supervisor"] else False,
             Role.code == "presale_seller" if data.role_code in ["presale_seller", "preventista"] else False,
-            Role.code == "preventista" if data.role_code in ["presale_seller", "preventista"] else False
+            Role.code == "preventista" if data.role_code in ["presale_seller", "preventista"] else False,
+            Role.code == "inventory_manager" if data.role_code in ["inventory_manager", "warehouse", "bodeguero"] else False,
+            Role.code == "warehouse" if data.role_code in ["inventory_manager", "warehouse", "bodeguero"] else False,
+            Role.code == "accountant" if data.role_code in ["accountant", "contador", "finance"] else False,
+            Role.code == "contador" if data.role_code in ["accountant", "contador", "finance"] else False
         )
     )
     role_res = await db.execute(role_stmt)
-    role = role_res.scalar_one_or_none()
+    role = role_res.scalars().first()
     if role:
         user.roles.append(role)
 
@@ -483,6 +510,10 @@ async def get_users_stock_visibility(
         role_code = "admin" if u.is_superuser else (role_obj.code if role_obj else "cashier")
         if role_code == "preventista":
             role_code = "presale_seller"
+        elif role_code in ("warehouse", "bodeguero"):
+            role_code = "inventory_manager"
+        elif role_code in ("contador", "finance"):
+            role_code = "accountant"
 
         role_meta = next((r for r in PREDEFINED_ROLES if r["code"] == role_code), {
             "name": "Super Administrador" if u.is_superuser else "Colaborador",
@@ -704,12 +735,17 @@ async def update_user(
         role_stmt = select(Role).where(
             or_(
                 Role.code == data.role_code,
+                Role.code == "store_manager" if data.role_code in ["store_manager", "manager", "gerente", "supervisor"] else False,
                 Role.code == "presale_seller" if data.role_code in ["presale_seller", "preventista"] else False,
-                Role.code == "preventista" if data.role_code in ["presale_seller", "preventista"] else False
+                Role.code == "preventista" if data.role_code in ["presale_seller", "preventista"] else False,
+                Role.code == "inventory_manager" if data.role_code in ["inventory_manager", "warehouse", "bodeguero"] else False,
+                Role.code == "warehouse" if data.role_code in ["inventory_manager", "warehouse", "bodeguero"] else False,
+                Role.code == "accountant" if data.role_code in ["accountant", "contador", "finance"] else False,
+                Role.code == "contador" if data.role_code in ["accountant", "contador", "finance"] else False
             )
         )
         role_res = await db.execute(role_stmt)
-        role = role_res.scalar_one_or_none()
+        role = role_res.scalars().first()
         if role:
             user.roles = [role]
 

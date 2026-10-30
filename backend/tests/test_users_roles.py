@@ -654,6 +654,215 @@ def test_admin_stock_visibility_management():
     assert p_in_cat_after["stock"] is not None
 
 
+def test_inventory_manager_role_and_permissions():
+    """Verificar rol Encargado de Inventario / Bodeguero: creación, permisos de módulos y conteo KPI."""
+    # 1. Verificar definición en roles
+    roles_res = client.get("/api/v1/roles", headers=headers)
+    assert roles_res.status_code == 200
+    roles = roles_res.json()
+    inv_role = next((r for r in roles if r["code"] == "inventory_manager"), None)
+    assert inv_role is not None
+    assert "Encargado de Inventario" in inv_role["name"]
+    assert "Bodeguero" in inv_role["name"]
+    assert "Preparación en Bodega" in inv_role["description"]
+    assert "Traslados" in inv_role["description"]
+    assert "Fabricación" in inv_role["description"]
+
+    # 2. Crear usuario con rol Encargado de Inventario / Bodeguero
+    suffix = uuid.uuid4().hex[:6]
+    username = f"bodeguero_{suffix}"
+    email = f"{username}@pos.gt"
+
+    create_res = client.post(
+        "/api/v1/users",
+        json={
+            "full_name": f"Bodeguero Principal {suffix}",
+            "username": username,
+            "email": email,
+            "password": "Password123!",
+            "role_code": "inventory_manager",
+            "phone": "+502 5555-7890"
+        },
+        headers=headers
+    )
+    assert create_res.status_code == 201
+    user_id = create_res.json()["id"]
+
+    # 3. Verificar listado y búsqueda
+    list_res = client.get(f"/api/v1/users?search={username}", headers=headers)
+    assert list_res.status_code == 200
+    data = list_res.json()
+    assert len(data) == 1
+    assert data[0]["role_code"] == "inventory_manager"
+    assert "Bodeguero" in data[0]["role_name"]
+
+    # 4. Verificar filtro por rol inventory_manager
+    filter_res = client.get("/api/v1/users?role=inventory_manager", headers=headers)
+    assert filter_res.status_code == 200
+    matching = [u for u in filter_res.json() if u["username"] == username]
+    assert len(matching) == 1
+
+    # 5. Verificar KPIs de usuarios
+    kpis_res = client.get("/api/v1/users/kpis", headers=headers)
+    assert kpis_res.status_code == 200
+    kpis = kpis_res.json()
+    assert kpis.get("inventory_count", 0) >= 1
+
+
+def test_accountant_role_and_permissions():
+    """Verificar el rol de Contador / Finanzas: catálogo, creación, filtros, y conteo de KPIs."""
+    # 1. Verificar catálogo de roles
+    roles_res = client.get("/api/v1/roles", headers=headers)
+    assert roles_res.status_code == 200
+    roles = roles_res.json()
+    acct_role = next((r for r in roles if r["code"] in ("accountant", "contador")), None)
+    assert acct_role is not None
+    assert "Contador" in acct_role["name"]
+    assert "cobrar" in acct_role["description"].lower() or "cuentas" in acct_role["description"].lower()
+    perms = acct_role.get("permissions", [])
+    assert any("cobrar" in p["module"].lower() for p in perms)
+    assert any("pagar" in p["module"].lower() for p in perms)
+    assert any("reportes" in p["module"].lower() for p in perms)
+
+    # 2. Crear usuario con rol Contador / Finanzas
+    suffix = uuid.uuid4().hex[:6]
+    username = f"contador_{suffix}"
+    email = f"{username}@pos.gt"
+
+    create_res = client.post(
+        "/api/v1/users",
+        json={
+            "full_name": f"Contador Principal {suffix}",
+            "username": username,
+            "email": email,
+            "password": "Password123!",
+            "role_code": "accountant",
+            "phone": "+502 2222-3333"
+        },
+        headers=headers
+    )
+    assert create_res.status_code == 201
+    user_id = create_res.json()["id"]
+
+    # 3. Verificar listado y búsqueda
+    list_res = client.get(f"/api/v1/users?search={username}", headers=headers)
+    assert list_res.status_code == 200
+    data = list_res.json()
+    assert len(data) == 1
+    assert data[0]["role_code"] in ("accountant", "contador")
+    assert "Contador" in data[0]["role_name"]
+
+    # 4. Verificar filtro por rol accountant
+    filter_res = client.get("/api/v1/users?role=accountant", headers=headers)
+    assert filter_res.status_code == 200
+    matching = [u for u in filter_res.json() if u["username"] == username]
+    assert len(matching) == 1
+
+    # 5. Verificar KPIs de usuarios (accountants_count)
+    kpis_res = client.get("/api/v1/users/kpis", headers=headers)
+    assert kpis_res.status_code == 200
+    kpis = kpis_res.json()
+    assert kpis.get("accountants_count", 0) >= 1
+
+    # 6. Actualizar usuario conservando rol
+    update_res = client.put(
+        f"/api/v1/users/{user_id}",
+        json={
+            "full_name": f"Lic. Contador {suffix}",
+            "role_code": "accountant",
+            "phone": "+502 2222-9999"
+        },
+        headers=headers
+    )
+    assert update_res.status_code == 200
+
+    # 7. Verificar que los cambios se reflejaron
+    chk_res = client.get(f"/api/v1/users?search={username}", headers=headers)
+    assert chk_res.status_code == 200
+    chk_data = chk_res.json()[0]
+    assert chk_data["full_name"] == f"Lic. Contador {suffix}"
+    assert chk_data["role_code"] in ("accountant", "contador")
+
+
+def test_store_manager_role_and_permissions():
+    """Verificar el rol de Gerente de Sucursal / Supervisor: catálogo, permisos, bloqueo de creación de empresas y KPIs."""
+    # 1. Verificar catálogo de roles
+    roles_res = client.get("/api/v1/roles", headers=headers)
+    assert roles_res.status_code == 200
+    roles = roles_res.json()
+    mgr_role = next((r for r in roles if r["code"] == "store_manager"), None)
+    assert mgr_role is not None
+    assert "Gerente de Sucursal" in mgr_role["name"]
+    assert "Supervisor" in mgr_role["name"]
+    assert "Punto de Venta" in mgr_role["description"]
+    assert "Inventarios" in mgr_role["description"]
+    assert "Bodegas" in mgr_role["description"]
+
+    # 2. Crear usuario con rol Gerente de Sucursal / Supervisor
+    suffix = uuid.uuid4().hex[:6]
+    username = f"gerente_{suffix}"
+    email = f"{username}@pos.gt"
+
+    create_res = client.post(
+        "/api/v1/users",
+        json={
+            "full_name": f"Gerente Sucursal {suffix}",
+            "username": username,
+            "email": email,
+            "password": "Password123!",
+            "role_code": "store_manager",
+            "phone": "+502 5555-1234",
+            "supervisor_pin": "1234"
+        },
+        headers=headers
+    )
+    assert create_res.status_code == 201
+    mgr_id = create_res.json()["id"]
+
+    # 3. Verificar listado y búsqueda
+    list_res = client.get(f"/api/v1/users?search={username}", headers=headers)
+    assert list_res.status_code == 200
+    data = list_res.json()
+    assert len(data) == 1
+    assert data[0]["role_code"] == "store_manager"
+    assert "Gerente" in data[0]["role_name"]
+
+    # 4. Verificar filtro por rol store_manager
+    filter_res = client.get("/api/v1/users?role=store_manager", headers=headers)
+    assert filter_res.status_code == 200
+    matching = [u for u in filter_res.json() if u["username"] == username]
+    assert len(matching) == 1
+
+    # 5. Verificar KPIs de usuarios (managers_count)
+    kpis_res = client.get("/api/v1/users/kpis", headers=headers)
+    assert kpis_res.status_code == 200
+    kpis = kpis_res.json()
+    assert kpis.get("managers_count", 0) >= 1
+
+    # 6. Autenticarse como Gerente de Sucursal
+    mgr_token = create_access_token(data={"sub": str(mgr_id), "email": email, "company_id": str(COMPANY_ID)})
+    mgr_headers = {"Authorization": f"Bearer {mgr_token}"}
+
+    # 7. Intentar crear una nueva empresa -> 403 Forbidden (Bloqueado para Gerente)
+    company_create_res = client.post(
+        "/api/v1/companies",
+        json={
+            "name": f"Empresa No Autorizada {suffix}",
+            "nit": "CF"
+        },
+        headers=mgr_headers
+    )
+    assert company_create_res.status_code == 403
+    assert "no tiene autorización para crear nuevas empresas" in company_create_res.json()["detail"]
+
+    # 8. Consultar empresa actual -> 200 OK (Permitido para Gerente)
+    curr_res = client.get("/api/v1/companies/current", headers=mgr_headers)
+    assert curr_res.status_code == 200
+
+
+
+
+
 
 
 

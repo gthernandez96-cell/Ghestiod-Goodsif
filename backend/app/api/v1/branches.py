@@ -1,5 +1,5 @@
 """API v1 — Empresas, Sucursales y Bodegas."""
-from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, or_, text
@@ -618,6 +618,19 @@ async def create_company(
     current_user=Depends(get_current_user),
 ):
     """Crear una nueva empresa / entidad jurídica en el sistema."""
+    user_roles = [r.code for r in getattr(current_user, "roles", [])]
+    is_admin = bool(
+        getattr(current_user, "is_superuser", False)
+        or getattr(current_user, "is_admin", False)
+        or getattr(current_user, "username", "").lower() == "admin"
+        or "admin" in user_roles
+    )
+    if not is_admin and any(c in user_roles for c in ["store_manager", "manager", "gerente", "supervisor"]):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="El rol Gerente de Sucursal / Supervisor no tiene autorización para crear nuevas empresas. Solo puede configurar los datos y logotipo de su empresa actual."
+        )
+
     regime = TaxRegime.GENERAL
     try:
         regime = TaxRegime(data.tax_regime)

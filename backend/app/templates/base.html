@@ -375,8 +375,45 @@
         <!-- Horizontal Subnav Pills (4 Módulos Principales) -->
         <nav class="subnav-pills-scroll">
 
+          <!-- 0. Encargado de Inventario / Bodeguero Tabs (Preparación, Inventario, Traslados, Fabricación) -->
+          <template x-if="isInventoryManager">
+            <div style="display:flex; align-items:center; gap:6px;">
+              <a href="/pos/preparacion" class="nav-tab-pill" :class="window.location.pathname.includes('/preparacion') ? 'nav-tab-active' : 'nav-tab-inactive'">📦 Preparación en Bodega</a>
+              <a href="/inventory" class="nav-tab-pill" :class="window.location.pathname === '/inventory' && !window.location.search.includes('tab=wastes') && !window.location.search.includes('tab=kardex') ? 'nav-tab-active' : 'nav-tab-inactive'">📦 Catálogo General</a>
+              <a href="/transfers" class="nav-tab-pill" :class="window.location.pathname.includes('/transfers') ? 'nav-tab-active' : 'nav-tab-inactive'">🔄 Traslados</a>
+              <a href="/mfg" class="nav-tab-pill" :class="window.location.pathname.includes('/mfg') ? 'nav-tab-active' : 'nav-tab-inactive'">🏭 Fabricación</a>
+              <template x-if="currentPage === 'inventory'">
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <a href="/inventory/labels" class="nav-tab-pill nav-tab-inactive">🏷️ Etiquetas</a>
+                  <a href="/inventory?tab=wastes" class="nav-tab-pill" :class="window.location.search.includes('tab=wastes') ? 'nav-tab-active' : 'nav-tab-inactive'">Vencimientos</a>
+                  <a href="/inventory?tab=kardex" class="nav-tab-pill" :class="window.location.search.includes('tab=kardex') ? 'nav-tab-active' : 'nav-tab-inactive'">Kardex</a>
+                </div>
+              </template>
+            </div>
+          </template>
+
+          <!-- 0.1 Contador / Finanzas Tabs (Cuentas por Cobrar, Cuentas por Pagar, Reportes) -->
+          <template x-if="isAccountant">
+            <div style="display:flex; align-items:center; gap:6px;">
+              <a href="/ar" class="nav-tab-pill" :class="window.location.pathname.includes('/ar') ? 'nav-tab-active' : 'nav-tab-inactive'">
+                <span class="hide-on-mobile">💰 Cuentas por Cobrar (AR)</span>
+                <span class="show-on-mobile-inline">💰 CxC</span>
+              </a>
+              <a href="/ap" class="nav-tab-pill" :class="window.location.pathname.includes('/ap') ? 'nav-tab-active' : 'nav-tab-inactive'">
+                <span class="hide-on-mobile">💳 Cuentas por Pagar (AP)</span>
+                <span class="show-on-mobile-inline">💳 CxP</span>
+              </a>
+              <a href="/reports" class="nav-tab-pill" :class="window.location.pathname.includes('/reports') && !window.location.search.includes('tab=sales_detail') ? 'nav-tab-active' : 'nav-tab-inactive'">
+                <span>📊 Reportes & BI</span>
+              </a>
+              <a href="/reports?tab=sales_detail" class="nav-tab-pill" :class="window.location.search.includes('tab=sales_detail') ? 'nav-tab-active' : 'nav-tab-inactive'">
+                <span>📑 Detalle Ventas</span>
+              </a>
+            </div>
+          </template>
+
           <!-- 1. POS Tabs -->
-          <template x-if="currentPage === 'pos' || currentPage === 'sessions' || currentPage === 'solicitudes' || currentPage === 'presale' || currentPage === 'preparacion'">
+          <template x-if="!isInventoryManager && !isAccountant && (currentPage === 'pos' || currentPage === 'sessions' || currentPage === 'solicitudes' || currentPage === 'presale' || currentPage === 'preparacion')">
             <div style="display:flex; align-items:center; gap:6px;">
               <template x-if="!isPresaleSeller">
                 <div style="display:flex; align-items:center; gap:6px;">
@@ -395,11 +432,12 @@
           </template>
 
           <!-- 2. Inventario Tabs -->
-          <template x-if="!isPresaleSeller && (currentPage === 'inventory' || currentPage === 'warehouses' || currentPage === 'transfers')">
+          <template x-if="!isPresaleSeller && !isInventoryManager && !isAccountant && (currentPage === 'inventory' || currentPage === 'warehouses' || currentPage === 'transfers' || currentPage === 'mfg')">
             <div style="display:flex; align-items:center; gap:6px;">
               <a href="/inventory" class="nav-tab-pill" :class="window.location.pathname === '/inventory' && !window.location.search.includes('tab=wastes') && !window.location.search.includes('tab=kardex') ? 'nav-tab-active' : 'nav-tab-inactive'">Catálogo General</a>
               <a href="/warehouses" class="nav-tab-pill" :class="window.location.pathname.includes('/warehouses') ? 'nav-tab-active' : 'nav-tab-inactive'">🏢 Bodegas</a>
               <a href="/transfers" class="nav-tab-pill" :class="window.location.pathname.includes('/transfers') ? 'nav-tab-active' : 'nav-tab-inactive'">🔄 Traslados</a>
+              <a href="/mfg" class="nav-tab-pill" :class="window.location.pathname.includes('/mfg') ? 'nav-tab-active' : 'nav-tab-inactive'">🏭 Fabricación</a>
               <a href="/inventory/labels" class="nav-tab-pill nav-tab-inactive">🏷️ Etiquetas</a>
               <a href="/inventory?tab=wastes" class="nav-tab-pill" :class="window.location.search.includes('tab=wastes') ? 'nav-tab-active' : 'nav-tab-inactive'">Vencimientos</a>
               <a href="/inventory?tab=kardex" class="nav-tab-pill" :class="window.location.search.includes('tab=kardex') ? 'nav-tab-active' : 'nav-tab-inactive'">Kardex</a>
@@ -407,7 +445,7 @@
           </template>
 
           <!-- 3. Clientes Tabs -->
-          <template x-if="!isPresaleSeller && currentPage === 'customers'">
+          <template x-if="!isPresaleSeller && !isInventoryManager && !isAccountant && currentPage === 'customers'">
             <div style="display:flex; align-items:center; gap:6px;">
               <a href="/customers" class="nav-tab-pill" :class="window.location.pathname.includes('/customers') ? 'nav-tab-active' : 'nav-tab-inactive'">Directorio de Clientes</a>
               <a href="/customers/new" class="nav-tab-pill nav-tab-inactive">+ Nuevo Cliente</a>
@@ -415,7 +453,7 @@
           </template>
 
           <!-- 4. Cotizaciones Tabs -->
-          <template x-if="currentPage === 'quotes'">
+          <template x-if="!isInventoryManager && !isAccountant && currentPage === 'quotes'">
             <div style="display:flex; align-items:center; gap:6px;">
               <a href="/quotes" class="nav-tab-pill nav-tab-active">Cotizaciones</a>
               <a href="/quotes/new" class="nav-tab-pill nav-tab-inactive">+ Nueva Cotización</a>
@@ -426,7 +464,7 @@
           </template>
 
           <!-- 5. Compras / AP Tabs (Administrador) -->
-          <template x-if="!isPresaleSeller && (currentPage === 'purchases' || currentPage === 'ap')">
+          <template x-if="!isPresaleSeller && !isInventoryManager && !isAccountant && (currentPage === 'purchases' || currentPage === 'ap')">
             <div style="display:flex; align-items:center; gap:6px;">
               <a href="/purchases" class="nav-tab-pill" :class="window.location.pathname.includes('/purchases') ? 'nav-tab-active' : 'nav-tab-inactive'">
                 <span class="hide-on-mobile">Órdenes de Compra</span>
@@ -440,7 +478,7 @@
           </template>
 
           <!-- 6. Cuentas por Cobrar (AR - Administrador & Pre-Vendedor) -->
-          <template x-if="currentPage === 'ar'">
+          <template x-if="!isInventoryManager && !isAccountant && currentPage === 'ar'">
             <div style="display:flex; align-items:center; gap:6px;">
               <a href="/ar" class="nav-tab-pill nav-tab-active">
                 <span class="hide-on-mobile">💰 Cuentas por Cobrar (AR)</span>
@@ -452,22 +490,28 @@
             </div>
           </template>
 
-          <!-- 7. Contabilidad / Reportes (Administrador) -->
-          <template x-if="!isPresaleSeller && (currentPage === 'accounting' || currentPage === 'reports')">
+          <!-- 7. Contabilidad / Reportes -->
+          <template x-if="!isPresaleSeller && !isInventoryManager && !isAccountant && (currentPage === 'accounting' || currentPage === 'reports')">
             <div style="display:flex; align-items:center; gap:6px;">
-              <a href="/accounting" class="nav-tab-pill" :class="window.location.pathname.includes('/accounting') ? 'nav-tab-active' : 'nav-tab-inactive'">Libro Diario</a>
+              <template x-if="isAdmin">
+                <a href="/accounting" class="nav-tab-pill" :class="window.location.pathname.includes('/accounting') ? 'nav-tab-active' : 'nav-tab-inactive'">Libro Diario</a>
+              </template>
               <a href="/reports" class="nav-tab-pill" :class="window.location.pathname.includes('/reports') && !window.location.search.includes('tab=sales_detail') ? 'nav-tab-active' : 'nav-tab-inactive'">Reportes SAT & BI</a>
               <a href="/reports?tab=sales_detail" class="nav-tab-pill" :class="window.location.search.includes('tab=sales_detail') ? 'nav-tab-active' : 'nav-tab-inactive'">📊 Detalle de Ventas</a>
             </div>
           </template>
 
-          <!-- 8. Configuración / Usuarios / Empresas / Sitio Web (Administrador) -->
-          <template x-if="!isPresaleSeller && (currentPage === 'settings' || currentPage === 'users' || currentPage === 'companies' || currentPage === 'website')">
+          <!-- 8. Configuración / Usuarios / Empresas / Sitio Web -->
+          <template x-if="!isPresaleSeller && !isInventoryManager && !isAccountant && (currentPage === 'settings' || currentPage === 'users' || currentPage === 'companies' || currentPage === 'website')">
             <div style="display:flex; align-items:center; gap:6px;">
               <a href="/settings" class="nav-tab-pill" :class="window.location.pathname === '/settings' ? 'nav-tab-active' : 'nav-tab-inactive'">Ajustes ERP</a>
-              <a href="/website-admin" class="nav-tab-pill" :class="window.location.pathname.includes('/website') ? 'nav-tab-active' : 'nav-tab-inactive'">🌐 Sitio Web</a>
-              <a href="/companies" class="nav-tab-pill" :class="window.location.pathname.includes('/companies') ? 'nav-tab-active' : 'nav-tab-inactive'">🏢 Empresas</a>
-              <a href="/users" class="nav-tab-pill" :class="window.location.pathname.includes('/users') ? 'nav-tab-active' : 'nav-tab-inactive'">👤 Usuarios & Roles</a>
+              <template x-if="isAdmin">
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <a href="/website-admin" class="nav-tab-pill" :class="window.location.pathname.includes('/website') ? 'nav-tab-active' : 'nav-tab-inactive'">🌐 Sitio Web</a>
+                  <a href="/companies" class="nav-tab-pill" :class="window.location.pathname.includes('/companies') ? 'nav-tab-active' : 'nav-tab-inactive'">🏢 Empresas</a>
+                  <a href="/users" class="nav-tab-pill" :class="window.location.pathname.includes('/users') ? 'nav-tab-active' : 'nav-tab-inactive'">👤 Usuarios & Roles</a>
+                </div>
+              </template>
             </div>
           </template>
 
@@ -599,14 +643,15 @@
           </div>
         </div>
 
-        <!-- POS Quick Link Button -->
+        <!-- POS / Bodega / Contador Quick Link Button -->
         <a 
-          href="/pos" 
+          :href="isInventoryManager ? '/pos/preparacion' : (isAccountant ? '/ar' : '/pos')" 
           class="btn btn-sm hide-on-mobile" 
           style="background:var(--odoo-purple); color:#ffffff; font-weight:800; border-radius:8px; padding:5px 12px; font-size:12px; text-decoration:none; display:flex; align-items:center; gap:4px;"
-          title="Ir al POS"
+          :title="isInventoryManager ? 'Ir a Preparación Bodega' : (isAccountant ? 'Ir a Cuentas por Cobrar' : 'Ir al POS')"
         >
-          <i class="ph ph-shopping-cart"></i> <span class="hide-on-mobile">POS</span>
+          <i class="ph" :class="isInventoryManager ? 'ph-package' : (isAccountant ? 'ph-hand-coins' : 'ph-shopping-cart')"></i> 
+          <span class="hide-on-mobile" x-text="isInventoryManager ? 'Preparación' : (isAccountant ? 'Cuentas por Cobrar' : 'POS')"></span>
         </a>
 
         <!-- User Dropdown -->
@@ -658,22 +703,78 @@
         <i class="ph ph-squares-four"></i>
         <span>Inicio</span>
       </a>
-      <a href="/pos" class="mobile-nav-btn" :class="currentPage === 'pos' ? 'active' : ''">
-        <i class="ph ph-shopping-cart"></i>
-        <span>POS</span>
-      </a>
-      <a href="/inventory" class="mobile-nav-btn" :class="currentPage === 'inventory' ? 'active' : ''">
-        <i class="ph ph-package"></i>
-        <span>Inventario</span>
-      </a>
-      <a href="/customers" class="mobile-nav-btn" :class="currentPage === 'customers' ? 'active' : ''">
-        <i class="ph ph-users"></i>
-        <span>Clientes</span>
-      </a>
-      <a href="/quotes" class="mobile-nav-btn" :class="currentPage === 'quotes' ? 'active' : ''">
-        <i class="ph ph-file-text"></i>
-        <span>Cotizar</span>
-      </a>
+
+      <!-- Navegación móvil para Bodeguero / Encargado de Inventario -->
+      <template x-if="isInventoryManager">
+        <div style="display:contents;">
+          <a href="/pos/preparacion" class="mobile-nav-btn" :class="currentPage === 'preparacion' ? 'active' : ''">
+            <i class="ph ph-package"></i>
+            <span>Preparación</span>
+          </a>
+          <a href="/inventory" class="mobile-nav-btn" :class="currentPage === 'inventory' ? 'active' : ''">
+            <i class="ph ph-boxes"></i>
+            <span>Inventario</span>
+          </a>
+          <a href="/transfers" class="mobile-nav-btn" :class="currentPage === 'transfers' ? 'active' : ''">
+            <i class="ph ph-arrows-left-right"></i>
+            <span>Traslados</span>
+          </a>
+          <a href="/mfg" class="mobile-nav-btn" :class="currentPage === 'mfg' ? 'active' : ''">
+            <i class="ph ph-factory"></i>
+            <span>Fabricación</span>
+          </a>
+        </div>
+      </template>
+
+      <!-- Navegación móvil para Contador / Finanzas -->
+      <template x-if="isAccountant">
+        <div style="display:contents;">
+          <a href="/ar" class="mobile-nav-btn" :class="currentPage === 'ar' ? 'active' : ''">
+            <i class="ph ph-hand-coins"></i>
+            <span>CxC</span>
+          </a>
+          <a href="/ap" class="mobile-nav-btn" :class="currentPage === 'ap' ? 'active' : ''">
+            <i class="ph ph-credit-card"></i>
+            <span>CxP</span>
+          </a>
+          <a href="/reports" class="mobile-nav-btn" :class="currentPage === 'reports' ? 'active' : ''">
+            <i class="ph ph-chart-line-up"></i>
+            <span>Reportes</span>
+          </a>
+        </div>
+      </template>
+
+      <!-- Navegación móvil para otros roles -->
+      <template x-if="!isInventoryManager && !isAccountant">
+        <div style="display:contents;">
+          <a :href="isPresaleSeller ? '/preventa' : '/pos'" class="mobile-nav-btn" :class="(currentPage === 'pos' || currentPage === 'presale') ? 'active' : ''">
+            <i class="ph" :class="isPresaleSeller ? 'ph-lightning' : 'ph-shopping-cart'"></i>
+            <span x-text="isPresaleSeller ? 'Pre-Venta' : 'POS'"></span>
+          </a>
+          <template x-if="!isPresaleSeller">
+            <a href="/inventory" class="mobile-nav-btn" :class="currentPage === 'inventory' ? 'active' : ''">
+              <i class="ph ph-boxes"></i>
+              <span>Inventario</span>
+            </a>
+          </template>
+          <template x-if="isPresaleSeller">
+            <a href="/ar" class="mobile-nav-btn" :class="currentPage === 'ar' ? 'active' : ''">
+              <i class="ph ph-hand-coins"></i>
+              <span>CxC</span>
+            </a>
+          </template>
+          <template x-if="!isPresaleSeller">
+            <a href="/customers" class="mobile-nav-btn" :class="currentPage === 'customers' ? 'active' : ''">
+              <i class="ph ph-users"></i>
+              <span>Clientes</span>
+            </a>
+          </template>
+          <a href="/quotes" class="mobile-nav-btn" :class="currentPage === 'quotes' ? 'active' : ''">
+            <i class="ph ph-file-text"></i>
+            <span>Cotizar</span>
+          </a>
+        </div>
+      </template>
     </nav>
 
   </div>
@@ -698,9 +799,20 @@
         isAdmin: (() => {
           try {
             const u = JSON.parse(localStorage.getItem('user') || '{}');
-            if (u.is_superuser || u.is_admin || u.username === 'admin' || (u.email && u.email.includes('admin'))) return true;
             const codes = (u.role_codes || (u.roles || []).map(r => r.code || r));
-            return codes.includes('admin') || codes.includes('store_manager');
+            if ((codes.includes('store_manager') || codes.includes('manager') || codes.includes('gerente') || codes.includes('supervisor')) && !codes.includes('admin') && !u.is_superuser && u.username !== 'admin') {
+              return false;
+            }
+            if (u.is_superuser || u.is_admin || u.username === 'admin' || (u.email && u.email.includes('admin'))) return true;
+            return codes.includes('admin');
+          } catch(e) { return false; }
+        })(),
+        isStoreManager: (() => {
+          try {
+            const u = JSON.parse(localStorage.getItem('user') || '{}');
+            const codes = (u.role_codes || (u.roles || []).map(r => r.code || r));
+            if (codes.includes('admin') || u.is_superuser || u.username === 'admin') return false;
+            return (codes.includes('store_manager') || codes.includes('manager') || codes.includes('gerente') || codes.includes('supervisor'));
           } catch(e) { return false; }
         })(),
         isPresaleSeller: (() => {
@@ -711,27 +823,124 @@
             return (codes.includes('presale_seller') || codes.includes('preventista')) && !codes.includes('admin') && !codes.includes('store_manager');
           } catch(e) { return false; }
         })(),
+        isInventoryManager: (() => {
+          try {
+            const u = JSON.parse(localStorage.getItem('user') || '{}');
+            if (u.is_superuser || u.is_admin || u.username === 'admin' || (u.email && u.email.includes('admin'))) return false;
+            const codes = (u.role_codes || (u.roles || []).map(r => r.code || r));
+            return (codes.includes('inventory_manager') || codes.includes('warehouse') || codes.includes('bodeguero')) && !codes.includes('admin') && !codes.includes('store_manager');
+          } catch(e) { return false; }
+        })(),
+        isAccountant: (() => {
+          try {
+            const u = JSON.parse(localStorage.getItem('user') || '{}');
+            if (u.is_superuser || u.is_admin || u.username === 'admin' || (u.email && u.email.includes('admin'))) return false;
+            const codes = (u.role_codes || (u.roles || []).map(r => r.code || r));
+            return (codes.includes('accountant') || codes.includes('contador') || codes.includes('finance')) && !codes.includes('admin') && !codes.includes('store_manager');
+          } catch(e) { return false; }
+        })(),
 
         async init() {
           try {
             const u = JSON.parse(localStorage.getItem('user') || '{}');
-            if (u.is_superuser || u.is_admin || u.username === 'admin' || (u.email && u.email.includes('admin'))) {
+            const uCodes = (u.role_codes || (u.roles || []).map(r => r.code || r));
+            const uIsSuper = Boolean(u.is_superuser || u.username === 'admin' || (u.email && u.email.includes('admin')) || uCodes.includes('admin'));
+            if ((uCodes.includes('store_manager') || uCodes.includes('manager') || uCodes.includes('gerente') || uCodes.includes('supervisor')) && !uIsSuper) {
+              this.isAdmin = false;
+              this.isStoreManager = true;
+            } else if (uIsSuper) {
               this.isAdmin = true;
-              this.isPresaleSeller = false;
+              this.isStoreManager = false;
             }
             const me = await API.get('/auth/me');
             if (me) {
               this.currentUser = me;
-              if (me.is_superuser || me.is_admin || me.username === 'admin' || (me.email && me.email.includes('admin'))) {
+              try {
+                localStorage.setItem('user', JSON.stringify({ ...u, ...me }));
+              } catch(e) {}
+              const codes = (me.roles || []).map(r => (typeof r === 'string' ? r : r.code || ''));
+              const isSuper = Boolean(me.is_superuser || me.username === 'admin' || (me.email && me.email.includes('admin')) || codes.includes('admin'));
+              if ((codes.includes('store_manager') || codes.includes('manager') || codes.includes('gerente') || codes.includes('supervisor')) && !isSuper) {
+                this.isAdmin = false;
+                this.isStoreManager = true;
+              } else if (isSuper) {
                 this.isAdmin = true;
-                this.isPresaleSeller = false;
+                this.isStoreManager = false;
               } else {
-                const codes = (me.roles || []).map(r => r.code);
-                this.isAdmin = codes.includes('admin') || codes.includes('store_manager');
-                this.isPresaleSeller = (codes.includes('presale_seller') || codes.includes('preventista')) && !this.isAdmin;
+                this.isAdmin = false;
+                this.isStoreManager = false;
               }
+              this.isPresaleSeller = (codes.includes('presale_seller') || codes.includes('preventista')) && !this.isAdmin && !this.isStoreManager;
+              this.isInventoryManager = (codes.includes('inventory_manager') || codes.includes('warehouse') || codes.includes('bodeguero')) && !this.isAdmin && !this.isStoreManager;
+              this.isAccountant = (codes.includes('accountant') || codes.includes('contador') || codes.includes('finance')) && !this.isAdmin && !this.isStoreManager;
             }
           } catch(e) {}
+
+          // Enforzar aislamiento de rutas para Gerente de Sucursal / Supervisor
+          if (this.isStoreManager) {
+            const allowedPrefixes = [
+              '/dashboard',
+              '/pos',
+              '/preventa',
+              '/pos-solicitudes',
+              '/pos/solicitudes',
+              '/pos/preparacion',
+              '/preparacion',
+              '/inventory',
+              '/customers',
+              '/quotes',
+              '/ar',
+              '/ap',
+              '/purchases',
+              '/transfers',
+              '/reports',
+              '/mfg',
+              '/warehouses',
+              '/settings'
+            ];
+            const p = window.location.pathname.toLowerCase();
+            const isAllowed = allowedPrefixes.some(prefix => p === prefix || p.startsWith(prefix + '/'));
+            if (!isAllowed && p !== '/' && p !== '/login' && p !== '/logout') {
+              window.location.href = '/dashboard';
+              return;
+            }
+          }
+
+          // Enforzar aislamiento de rutas para Encargado de Inventario / Bodeguero
+          if (this.isInventoryManager) {
+            const allowedPrefixes = [
+              '/dashboard',
+              '/pos/preparacion',
+              '/pos-preparacion',
+              '/bodega/preparacion',
+              '/preparacion',
+              '/inventory',
+              '/transfers',
+              '/mfg'
+            ];
+            const p = window.location.pathname.toLowerCase();
+            const isAllowed = allowedPrefixes.some(prefix => p === prefix || p.startsWith(prefix + '/'));
+            if (!isAllowed && p !== '/' && p !== '/login' && p !== '/logout') {
+              window.location.href = '/pos/preparacion';
+              return;
+            }
+          }
+
+          // Enforzar aislamiento de rutas para Contador / Finanzas (Solo CxC, CxP y Reportes)
+          if (this.isAccountant) {
+            const allowedPrefixes = [
+              '/dashboard',
+              '/ar',
+              '/ap',
+              '/reports'
+            ];
+            const p = window.location.pathname.toLowerCase();
+            const isAllowed = allowedPrefixes.some(prefix => p === prefix || p.startsWith(prefix + '/'));
+            if (!isAllowed && p !== '/' && p !== '/login' && p !== '/logout') {
+              window.location.href = '/ar';
+              return;
+            }
+          }
 
           try {
             const res = await API.get('/companies/current');
@@ -811,16 +1020,13 @@
         get currentPage() {
           const path = window.location.pathname;
           if (path.includes('/dashboard')) return 'dashboard';
-          if (path.includes('/pos')) return 'pos';
-          if (path.includes('/delivery')) return 'pos';
-          if (path.includes('/inventory')) return 'inventory';
-          if (path.includes('/transfers')) return 'transfers';
-          if (path.includes('/purchases')) return 'purchases';
-          if (path.includes('/ap')) return 'ap';
-          if (path.includes('/solicitudes') || path.includes('/pos-solicitudes')) return 'solicitudes';
           if (path.includes('/preparacion') || path.includes('/pos-preparacion')) return 'preparacion';
+          if (path.includes('/solicitudes') || path.includes('/pos-solicitudes')) return 'solicitudes';
           if (path.includes('/preventa')) return 'presale';
-          if (path.includes('/pos') || path.includes('/sessions')) return 'pos';
+          if (path.includes('/sessions')) return 'sessions';
+          if (path.includes('/pos')) return 'pos';
+          if (path.includes('/delivery')) return 'delivery';
+          if (path.includes('/mfg')) return 'mfg';
           if (path.includes('/warehouses')) return 'warehouses';
           if (path.includes('/transfers')) return 'transfers';
           if (path.includes('/inventory')) return 'inventory';
@@ -828,11 +1034,9 @@
           if (path.includes('/purchases')) return 'purchases';
           if (path.includes('/ap')) return 'ap';
           if (path.includes('/ar')) return 'ar';
-          if (path.includes('/quotes')) return 'quotes';
           if (path.includes('/customers')) return 'customers';
           if (path.includes('/invoicing')) return 'invoicing';
           if (path.includes('/reports')) return 'reports';
-          if (path.includes('/mfg')) return 'mfg';
           if (path.includes('/accounting')) return 'accounting';
           if (path.includes('/users')) return 'users';
           if (path.includes('/website')) return 'website';

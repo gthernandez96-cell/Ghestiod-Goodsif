@@ -324,8 +324,8 @@
 
 
 
-    <!-- Center: View Switcher (Apps vs Analytics) - Visible para Administradores -->
-    <div x-show="isAdmin" style="display:flex; align-items:center; background:rgba(255,255,255,0.6); padding:4px; border-radius:24px; border:1px solid #cbd5e1; box-shadow:0 2px 8px rgba(0,0,0,0.04);" x-cloak>
+    <!-- Center: View Switcher (Apps vs Analytics) - Visible para Administradores y Gerente de Sucursal -->
+    <div x-show="(isAdmin || isStoreManager) && !isAccountant" style="display:flex; align-items:center; background:rgba(255,255,255,0.6); padding:4px; border-radius:24px; border:1px solid #cbd5e1; box-shadow:0 2px 8px rgba(0,0,0,0.04);" x-cloak>
       <button 
         type="button" 
         @click="viewMode = 'apps'" 
@@ -336,7 +336,7 @@
       </button>
       <button 
         type="button" 
-        x-show="!isPresaleSeller"
+        x-show="!isPresaleSeller && !isInventoryManager && !isAccountant"
         @click="viewMode = 'analytics'; init(); initCharts()" 
         class="view-switcher-btn" 
         :class="viewMode === 'analytics' ? 'active' : 'inactive'"
@@ -348,11 +348,11 @@
     <!-- Right: User Avatar & Menu -->
     <div style="display:flex; align-items:center; gap:12px;">
       <a 
-        :href="isPresaleSeller ? '/preventa' : '/pos'" 
+        :href="isPresaleSeller ? '/preventa' : (isInventoryManager ? '/pos/preparacion' : (isAccountant ? '/ar' : '/pos'))" 
         style="display:flex; align-items:center; gap:6px; background:#714B67; color:#ffffff; font-size:12.5px; font-weight:800; padding:8px 14px; border-radius:10px; text-decoration:none; box-shadow:0 4px 10px rgba(113,75,103,0.25);"
       >
-        <i class="ph" :class="isPresaleSeller ? 'ph-lightning' : 'ph-shopping-cart'" style="font-size:16px;"></i>
-        <span x-text="isPresaleSeller ? 'Abrir Pre-Venta' : 'Abrir POS'"></span>
+        <i class="ph" :class="isPresaleSeller ? 'ph-lightning' : (isInventoryManager ? 'ph-package' : (isAccountant ? 'ph-hand-coins' : 'ph-shopping-cart'))" style="font-size:16px;"></i>
+        <span x-text="isPresaleSeller ? 'Abrir Pre-Venta' : (isInventoryManager ? 'Preparación Bodega' : (isAccountant ? 'Cuentas por Cobrar' : 'Abrir POS'))"></span>
       </a>
 
       <div style="position:relative;" x-data="{ openUserMenu: false }">
@@ -383,7 +383,7 @@
             <a href="/companies" x-show="isAdmin" style="display:flex; align-items:center; gap:8px; padding:7px 10px; border-radius:6px; font-size:12.5px; font-weight:600; color:#334155; text-decoration:none;">
               <i class="ph ph-buildings"></i> Cambiar Empresa
             </a>
-            <a href="/settings" x-show="isAdmin" style="display:flex; align-items:center; gap:8px; padding:7px 10px; border-radius:6px; font-size:12.5px; font-weight:600; color:#334155; text-decoration:none;">
+            <a href="/settings" x-show="isAdmin || isStoreManager" style="display:flex; align-items:center; gap:8px; padding:7px 10px; border-radius:6px; font-size:12.5px; font-weight:600; color:#334155; text-decoration:none;">
               <i class="ph ph-gear"></i> Configuración
             </a>
             <button type="button" @click="logout()" style="width:100%; display:flex; align-items:center; gap:8px; padding:7px 10px; border-radius:6px; font-size:12.5px; font-weight:700; color:#dc2626; background:transparent; border:none; cursor:pointer; text-align:left;">
@@ -417,8 +417,8 @@
     <div style="max-width:1020px; margin:36px auto 40px auto;">
       <div class="launcher-grid">
 
-        <!-- 1. Punto de venta (No para Pre-Vendedor) -->
-        <div class="app-launcher-card" x-show="!isPresaleSeller && matchesSearch('Punto de venta POS Cajas')" @click="openApp('/pos')">
+        <!-- 1. Punto de venta (No para Pre-Vendedor, Bodeguero ni Contador) -->
+        <div class="app-launcher-card" x-show="!isPresaleSeller && !isInventoryManager && !isAccountant && matchesSearch('Punto de venta POS Cajas')" @click="openApp('/pos')">
           <div class="app-icon-wrapper" style="box-shadow:0 12px 28px rgba(168, 85, 247, 0.22); border:2px solid #a855f7;">
             <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#7e22ce" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M3 9l1-5h16l1 5"></path>
@@ -431,7 +431,7 @@
         </div>
 
         <!-- 1.1 Pre-Venta (Pre-Vendedor & Comercial) -->
-        <div class="app-launcher-card" x-show="matchesSearch('Pre-Venta Preventa Preventista Pedidos Solicitudes')" @click="openApp('/preventa')">
+        <div class="app-launcher-card" x-show="!isInventoryManager && !isAccountant && matchesSearch('Pre-Venta Preventa Preventista Pedidos Solicitudes')" @click="openApp('/preventa')">
           <div class="app-icon-wrapper" style="box-shadow:0 12px 28px rgba(79, 70, 229, 0.22); border:2px solid #6366f1;">
             <i class="ph ph-lightning" style="font-size:40px; color:#4f46e5;"></i>
           </div>
@@ -439,23 +439,23 @@
         </div>
 
         <!-- 1.2 Solicitudes POS (Autorizaciones & Bodega) -->
-        <div class="app-launcher-card" x-show="!isPresaleSeller && matchesSearch('Solicitudes POS Autorizaciones Pre-venta Bodega Aprobaciones')" @click="openApp('/pos-solicitudes')">
+        <div class="app-launcher-card" x-show="!isPresaleSeller && !isInventoryManager && !isAccountant && matchesSearch('Solicitudes POS Autorizaciones Pre-venta Bodega Aprobaciones')" @click="openApp('/pos-solicitudes')">
           <div class="app-icon-wrapper" style="box-shadow:0 12px 28px rgba(245, 158, 11, 0.22); border:2px solid #f59e0b;">
             <i class="ph ph-clipboard-text" style="font-size:40px; color:#d97706;"></i>
           </div>
           <div class="app-label" style="font-weight:800; color:#b45309;">Solicitudes POS</div>
         </div>
 
-        <!-- 1.3 Preparación en Bodega (Delivery / Picking) -->
-        <div class="app-launcher-card" x-show="!isPresaleSeller && matchesSearch('Preparación en Bodega Delivery Picking Alistamiento Despacho')" @click="openApp('/pos/preparacion')">
+        <!-- 1.3 Preparación en Bodega (Delivery / Picking / Bodeguero) -->
+        <div class="app-launcher-card" x-show="!isAccountant && (!isPresaleSeller || isInventoryManager) && matchesSearch('Preparación en Bodega Delivery Picking Alistamiento Despacho')" @click="openApp('/pos/preparacion')">
           <div class="app-icon-wrapper" style="box-shadow:0 12px 28px rgba(37, 99, 235, 0.22); border:2px solid #2563eb; background:#eff6ff;">
             <i class="ph ph-package" style="font-size:40px; color:#2563eb;"></i>
           </div>
           <div class="app-label" style="font-weight:800; color:#1d4ed8;">Preparación Bodega</div>
         </div>
 
-        <!-- 2. Inventario (No para Pre-Vendedor) -->
-        <div class="app-launcher-card" x-show="!isPresaleSeller && matchesSearch('Inventario Catálogo Stock')" @click="openApp('/inventory')">
+        <!-- 2. Inventario (Catálogo y Stock) -->
+        <div class="app-launcher-card" x-show="!isAccountant && (!isPresaleSeller || isInventoryManager) && matchesSearch('Inventario Catálogo Stock')" @click="openApp('/inventory')">
           <div class="app-icon-wrapper" style="box-shadow:0 12px 28px rgba(249, 115, 22, 0.2);">
             <svg width="44" height="44" viewBox="0 0 24 24" fill="none">
               <path d="M12 2L2 7l10 5 10-5-10-5z" fill="#f97316"/>
@@ -466,8 +466,8 @@
           <div class="app-label">Inventario</div>
         </div>
 
-        <!-- 3. Clientes (No para Pre-Vendedor) -->
-        <div class="app-launcher-card" x-show="!isPresaleSeller && matchesSearch('Clientes CRM Directorio')" @click="openApp('/customers')">
+        <!-- 3. Clientes (No para Pre-Vendedor, Bodeguero ni Contador) -->
+        <div class="app-launcher-card" x-show="!isPresaleSeller && !isInventoryManager && !isAccountant && matchesSearch('Clientes CRM Directorio')" @click="openApp('/customers')">
           <div class="app-icon-wrapper" style="box-shadow:0 12px 28px rgba(6, 182, 212, 0.2);">
             <svg width="42" height="42" viewBox="0 0 24 24" fill="#06b6d4">
               <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
@@ -476,32 +476,32 @@
           <div class="app-label">Clientes</div>
         </div>
 
-        <!-- 4. Cotizaciones (Pre-Vendedor & General) -->
-        <div class="app-launcher-card" x-show="matchesSearch('Cotizaciones Proformas Presupuestos')" @click="openApp('/quotes')">
+        <!-- 4. Cotizaciones (Pre-Vendedor & Comercial) -->
+        <div class="app-launcher-card" x-show="!isInventoryManager && !isAccountant && matchesSearch('Cotizaciones Proformas Presupuestos')" @click="openApp('/quotes')">
           <div class="app-icon-wrapper" style="box-shadow:0 12px 28px rgba(13, 148, 136, 0.2);">
             <i class="ph ph-file-text" style="font-size:38px; color:#0d9488;"></i>
           </div>
           <div class="app-label">Cotizaciones</div>
         </div>
 
-        <!-- 5. Cuentas por Cobrar (Administrador & Pre-Vendedor) -->
-        <div class="app-launcher-card" x-show="(isAdmin || isPresaleSeller) && matchesSearch('Cuentas por Cobrar Créditos CxC Estado de Cuenta')" @click="openApp('/ar')">
+        <!-- 5. Cuentas por Cobrar (Administrador, Gerente, Pre-Vendedor & Contador) -->
+        <div class="app-launcher-card" x-show="(isAdmin || isStoreManager || isPresaleSeller || isAccountant) && matchesSearch('Cuentas por Cobrar Créditos CxC Estado de Cuenta')" @click="openApp('/ar')">
           <div class="app-icon-wrapper" style="box-shadow:0 12px 28px rgba(16, 185, 129, 0.22); border:1.5px solid #10b981;">
             <i class="ph ph-hand-coins" style="font-size:40px; color:#059669;"></i>
           </div>
           <div class="app-label" style="color:#047857;">Cuentas por Cobrar</div>
         </div>
 
-        <!-- 6. Cuentas por Pagar (AP - Administrador) -->
-        <div class="app-launcher-card" x-show="isAdmin && matchesSearch('Cuentas por Pagar Deudas CxP')" @click="openApp('/ap')">
+        <!-- 6. Cuentas por Pagar (AP - Administrador, Gerente & Contador) -->
+        <div class="app-launcher-card" x-show="(isAdmin || isStoreManager || isAccountant) && matchesSearch('Cuentas por Pagar Deudas CxP')" @click="openApp('/ap')">
           <div class="app-icon-wrapper" style="box-shadow:0 12px 28px rgba(225, 29, 72, 0.2);">
             <i class="ph ph-credit-card" style="font-size:40px; color:#e11d48;"></i>
           </div>
           <div class="app-label">Cuentas por Pagar</div>
         </div>
 
-        <!-- 7. Compras (Administrador) -->
-        <div class="app-launcher-card" x-show="isAdmin && matchesSearch('Compras Proveedores')" @click="openApp('/purchases')">
+        <!-- 7. Compras (Administrador & Gerente) -->
+        <div class="app-launcher-card" x-show="(isAdmin || isStoreManager) && matchesSearch('Compras Proveedores')" @click="openApp('/purchases')">
           <div class="app-icon-wrapper" style="box-shadow:0 12px 28px rgba(99, 102, 241, 0.2);">
             <svg width="42" height="42" viewBox="0 0 24 24" fill="#6366f1">
               <path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
@@ -510,8 +510,8 @@
           <div class="app-label">Compras</div>
         </div>
 
-        <!-- 8. Traslados (Administrador) -->
-        <div class="app-launcher-card" x-show="isAdmin && matchesSearch('Traslados Bodegas')" @click="openApp('/transfers')">
+        <!-- 8. Traslados (Administrador, Gerente & Bodeguero) -->
+        <div class="app-launcher-card" x-show="!isAccountant && (isAdmin || isStoreManager || isInventoryManager) && matchesSearch('Traslados Bodegas')" @click="openApp('/transfers')">
           <div class="app-icon-wrapper" style="box-shadow:0 12px 28px rgba(13, 148, 136, 0.2);">
             <svg width="42" height="42" viewBox="0 0 24 24" fill="#0d9488">
               <path d="M6.99 11L3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4v3H10v2h7.01v3L21 9z"/>
@@ -520,8 +520,8 @@
           <div class="app-label">Traslados</div>
         </div>
 
-        <!-- 9. Reportes (Administrador) -->
-        <div class="app-launcher-card" x-show="isAdmin && matchesSearch('Reportes Analitica BI')" @click="openApp('/reports')">
+        <!-- 9. Reportes (Administrador, Gerente & Contador) -->
+        <div class="app-launcher-card" x-show="(isAdmin || isStoreManager || isAccountant) && matchesSearch('Reportes Analitica BI')" @click="openApp('/reports')">
           <div class="app-icon-wrapper" style="box-shadow:0 12px 28px rgba(245, 158, 11, 0.2);">
             <svg width="42" height="42" viewBox="0 0 24 24" fill="#f59e0b">
               <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm3 12H9v-2h2v-4H9v-2h4v6h2v2z"/>
@@ -530,8 +530,8 @@
           <div class="app-label">Reportes</div>
         </div>
 
-        <!-- 10. Fabricación (Administrador) -->
-        <div class="app-launcher-card" x-show="isAdmin && matchesSearch('Fabricación BOM')" @click="openApp('/mfg')">
+        <!-- 10. Fabricación (Administrador, Gerente & Bodeguero) -->
+        <div class="app-launcher-card" x-show="!isAccountant && (isAdmin || isStoreManager || isInventoryManager) && matchesSearch('Fabricación BOM')" @click="openApp('/mfg')">
           <div class="app-icon-wrapper" style="box-shadow:0 12px 28px rgba(16, 185, 129, 0.2);">
             <i class="ph ph-factory" style="font-size:38px; color:#10b981;"></i>
           </div>
@@ -539,7 +539,7 @@
         </div>
 
         <!-- 11. Contabilidad (Administrador) -->
-        <div class="app-launcher-card" x-show="isAdmin && matchesSearch('Contabilidad Libro Diario')" @click="openApp('/accounting')">
+        <div class="app-launcher-card" x-show="isAdmin && !isAccountant && !isStoreManager && matchesSearch('Contabilidad Libro Diario')" @click="openApp('/accounting')">
           <div class="app-icon-wrapper" style="box-shadow:0 12px 28px rgba(113, 75, 103, 0.2);">
             <i class="ph ph-scales" style="font-size:38px; color:#714B67;"></i>
           </div>
@@ -547,7 +547,7 @@
         </div>
 
         <!-- 12. Facturación FEL (Administrador) -->
-        <div class="app-launcher-card" x-show="isAdmin && matchesSearch('Facturación FEL SAT')" @click="openApp('/invoicing')">
+        <div class="app-launcher-card" x-show="isAdmin && !isAccountant && !isStoreManager && matchesSearch('Facturación FEL SAT')" @click="openApp('/invoicing')">
           <div class="app-icon-wrapper" style="box-shadow:0 12px 28px rgba(99, 102, 241, 0.2);">
             <i class="ph ph-receipt" style="font-size:38px; color:#6366f1;"></i>
           </div>
@@ -555,7 +555,7 @@
         </div>
 
         <!-- 13. Despachos / Delivery (Administrador) -->
-        <div class="app-launcher-card" x-show="isAdmin && matchesSearch('Despachos Delivery Rutas')" @click="openApp('/delivery')">
+        <div class="app-launcher-card" x-show="isAdmin && !isStoreManager && matchesSearch('Despachos Delivery Rutas')" @click="openApp('/delivery')">
           <div class="app-icon-wrapper" style="box-shadow:0 12px 28px rgba(14, 165, 233, 0.2);">
             <i class="ph ph-moped" style="font-size:38px; color:#0ea5e9;"></i>
           </div>
@@ -563,7 +563,7 @@
         </div>
 
         <!-- 14. Recursos Humanos (Administrador) -->
-        <div class="app-launcher-card" x-show="isAdmin && matchesSearch('Recursos Humanos Empleados Planilla')" @click="openApp('/hr')">
+        <div class="app-launcher-card" x-show="isAdmin && !isStoreManager && matchesSearch('Recursos Humanos Empleados Planilla')" @click="openApp('/hr')">
           <div class="app-icon-wrapper" style="box-shadow:0 12px 28px rgba(236, 72, 153, 0.2);">
             <i class="ph ph-identification-card" style="font-size:38px; color:#ec4899;"></i>
           </div>
@@ -571,7 +571,7 @@
         </div>
 
         <!-- 15. Auditoría (Administrador) -->
-        <div class="app-launcher-card" x-show="isAdmin && matchesSearch('Auditoría Logs')" @click="openApp('/audit')">
+        <div class="app-launcher-card" x-show="isAdmin && !isStoreManager && matchesSearch('Auditoría Logs')" @click="openApp('/audit')">
           <div class="app-icon-wrapper" style="box-shadow:0 12px 28px rgba(71, 85, 105, 0.2);">
             <i class="ph ph-shield-check" style="font-size:38px; color:#475569;"></i>
           </div>
@@ -579,7 +579,7 @@
         </div>
 
         <!-- 16. Usuarios & Roles (Administrador) -->
-        <div class="app-launcher-card" x-show="isAdmin && matchesSearch('Usuarios Roles Permisos Colaboradores')" @click="openApp('/users')">
+        <div class="app-launcher-card" x-show="isAdmin && !isStoreManager && matchesSearch('Usuarios Roles Permisos Colaboradores')" @click="openApp('/users')">
           <div class="app-icon-wrapper" style="box-shadow:0 12px 28px rgba(113, 75, 103, 0.22); border:1.5px solid #714B67;">
             <i class="ph ph-users-three" style="font-size:38px; color:#714B67;"></i>
           </div>
@@ -587,23 +587,23 @@
         </div>
 
         <!-- 17. Empresas & Multi-Compañía (Administrador) -->
-        <div class="app-launcher-card" x-show="isAdmin && matchesSearch('Empresas Compañías Sucursales')" @click="openApp('/companies')">
+        <div class="app-launcher-card" x-show="isAdmin && !isStoreManager && matchesSearch('Empresas Compañías Sucursales')" @click="openApp('/companies')">
           <div class="app-icon-wrapper" style="box-shadow:0 12px 28px rgba(113, 75, 103, 0.25); border:1.5px solid #714B67;">
             <i class="ph-bold ph-buildings" style="font-size:38px; color:#714B67;"></i>
           </div>
           <div class="app-label" style="font-weight:800; color:#714B67;">Empresas</div>
         </div>
 
-        <!-- 18. Bodegas & Almacenes (Administrador) -->
-        <div class="app-launcher-card" x-show="isAdmin && matchesSearch('Bodegas Almacenes Ubicaciones Stock')" @click="openApp('/warehouses')">
+        <!-- 18. Bodegas & Almacenes (Administrador & Gerente) -->
+        <div class="app-launcher-card" x-show="(isAdmin || isStoreManager) && matchesSearch('Bodegas Almacenes Ubicaciones Stock')" @click="openApp('/warehouses')">
           <div class="app-icon-wrapper" style="box-shadow:0 12px 28px rgba(14, 165, 233, 0.25); border:1.5px solid #0284c7;">
             <i class="ph-bold ph-warehouse" style="font-size:38px; color:#0284c7;"></i>
           </div>
           <div class="app-label" style="font-weight:800; color:#0284c7;">Bodegas</div>
         </div>
 
-        <!-- 19. Configuración (Administrador) -->
-        <div class="app-launcher-card" x-show="isAdmin && matchesSearch('Configuración Ajustes')" @click="openApp('/settings')">
+        <!-- 19. Configuración (Administrador & Gerente) -->
+        <div class="app-launcher-card" x-show="(isAdmin || isStoreManager) && matchesSearch('Configuración Ajustes')" @click="openApp('/settings')">
           <div class="app-icon-wrapper" style="box-shadow:0 12px 28px rgba(100, 116, 139, 0.2);">
             <i class="ph ph-gear-six" style="font-size:38px; color:#64748b;"></i>
           </div>
@@ -611,7 +611,7 @@
         </div>
 
         <!-- 20. Sitio Web & Portada (Administrador) -->
-        <div class="app-launcher-card" x-show="isAdmin && matchesSearch('Sitio Web Portada Landing Pagina CMS')" @click="openApp('/website-admin')">
+        <div class="app-launcher-card" x-show="isAdmin && !isStoreManager && matchesSearch('Sitio Web Portada Landing Pagina CMS')" @click="openApp('/website-admin')">
           <div class="app-icon-wrapper" style="box-shadow:0 12px 28px rgba(113, 75, 103, 0.28); border:1.5px solid var(--odoo-purple); background:linear-gradient(135deg, #ffffff 0%, #fdf9fc 100%);">
             <i class="ph-bold ph-globe" style="font-size:38px; color:var(--odoo-purple);"></i>
           </div>
@@ -1177,18 +1177,48 @@ function mainDashboardPage() {
     isAdmin: (() => {
       try {
         const u = JSON.parse(localStorage.getItem('user') || '{}');
-        if (u.is_superuser || u.is_admin || u.username === 'admin' || (u.email && u.email.includes('admin'))) return true;
-        const codes = (u.role_codes || (u.roles || []).map(r => r.code || r));
-        return codes.includes('admin') || codes.includes('store_manager');
+        const codes = (u.role_codes || (u.roles || []).map(r => (typeof r === 'string' ? r : r.code || '')));
+        if ((codes.includes('store_manager') || codes.includes('manager') || codes.includes('gerente') || codes.includes('supervisor') || codes.includes('accountant') || codes.includes('contador') || codes.includes('inventory_manager') || codes.includes('warehouse') || codes.includes('bodeguero') || codes.includes('presale_seller') || codes.includes('preventista')) && !codes.includes('admin') && !u.is_superuser && u.username !== 'admin') {
+          return false;
+        }
+        if (u.is_superuser || u.username === 'admin' || (u.email && u.email.includes('admin'))) return true;
+        return codes.includes('admin');
+      } catch(e) { return false; }
+    })(),
+
+    isStoreManager: (() => {
+      try {
+        const u = JSON.parse(localStorage.getItem('user') || '{}');
+        const codes = (u.role_codes || (u.roles || []).map(r => (typeof r === 'string' ? r : r.code || '')));
+        if (codes.includes('admin') || u.is_superuser || u.username === 'admin') return false;
+        return (codes.includes('store_manager') || codes.includes('manager') || codes.includes('gerente') || codes.includes('supervisor'));
       } catch(e) { return false; }
     })(),
 
     isPresaleSeller: (() => {
       try {
         const u = JSON.parse(localStorage.getItem('user') || '{}');
-        if (u.is_superuser || u.is_admin || u.username === 'admin' || (u.email && u.email.includes('admin'))) return false;
-        const codes = (u.role_codes || (u.roles || []).map(r => r.code || r));
-        return (codes.includes('presale_seller') || codes.includes('preventista')) && !codes.includes('admin') && !codes.includes('store_manager');
+        const codes = (u.role_codes || (u.roles || []).map(r => (typeof r === 'string' ? r : r.code || '')));
+        if (codes.includes('admin') || u.is_superuser || u.username === 'admin') return false;
+        return (codes.includes('presale_seller') || codes.includes('preventista')) && !codes.includes('store_manager') && !codes.includes('manager');
+      } catch(e) { return false; }
+    })(),
+
+    isInventoryManager: (() => {
+      try {
+        const u = JSON.parse(localStorage.getItem('user') || '{}');
+        const codes = (u.role_codes || (u.roles || []).map(r => (typeof r === 'string' ? r : r.code || '')));
+        if (codes.includes('admin') || u.is_superuser || u.username === 'admin') return false;
+        return (codes.includes('inventory_manager') || codes.includes('warehouse') || codes.includes('bodeguero')) && !codes.includes('store_manager') && !codes.includes('manager');
+      } catch(e) { return false; }
+    })(),
+
+    isAccountant: (() => {
+      try {
+        const u = JSON.parse(localStorage.getItem('user') || '{}');
+        const codes = (u.role_codes || (u.roles || []).map(r => (typeof r === 'string' ? r : r.code || '')));
+        if (codes.includes('admin') || u.is_superuser || u.username === 'admin') return false;
+        return (codes.includes('accountant') || codes.includes('contador') || codes.includes('finance')) && !codes.includes('store_manager') && !codes.includes('manager');
       } catch(e) { return false; }
     })(),
 
@@ -1328,14 +1358,23 @@ function mainDashboardPage() {
     async checkAdminRole() {
       try {
         const u = JSON.parse(localStorage.getItem('user') || '{}');
-        if (u.is_superuser || u.is_admin || u.username === 'admin' || (u.email && u.email.includes('admin'))) {
+        const uCodes = (u.role_codes || (u.roles || []).map(r => (typeof r === 'string' ? r : r.code || '')));
+        const uIsAdmin = Boolean(u.is_superuser || u.username === 'admin' || (u.email && u.email.includes('admin')) || uCodes.includes('admin'));
+
+        if ((uCodes.includes('store_manager') || uCodes.includes('manager') || uCodes.includes('gerente') || uCodes.includes('supervisor')) && !uIsAdmin) {
+          this.isAdmin = false;
+          this.isStoreManager = true;
+        } else if (uIsAdmin) {
           this.isAdmin = true;
-          this.isPresaleSeller = false;
+          this.isStoreManager = false;
         } else {
-          const codes = (u.role_codes || (u.roles || []).map(r => r.code || r));
-          this.isAdmin = codes.includes('admin') || codes.includes('store_manager');
-          this.isPresaleSeller = (codes.includes('presale_seller') || codes.includes('preventista')) && !this.isAdmin;
+          this.isAdmin = false;
+          this.isStoreManager = false;
         }
+        this.isPresaleSeller = (uCodes.includes('presale_seller') || uCodes.includes('preventista')) && !this.isAdmin && !this.isStoreManager;
+        this.isInventoryManager = (uCodes.includes('inventory_manager') || uCodes.includes('warehouse') || uCodes.includes('bodeguero')) && !this.isAdmin && !this.isStoreManager;
+        this.isAccountant = (uCodes.includes('accountant') || uCodes.includes('contador') || uCodes.includes('finance')) && !this.isAdmin && !this.isStoreManager;
+
         const token = localStorage.getItem('access_token');
         if (!token) {
           window.location.replace('/login');
@@ -1344,14 +1383,27 @@ function mainDashboardPage() {
         const res = await this.authFetch('/api/v1/auth/me');
         if (res.ok) {
           const me = await res.json();
-          if (me.is_superuser || me.is_admin || me.username === 'admin' || (me.email && me.email.includes('admin'))) {
+          // Sincronizar localStorage para limpiar cualquier is_admin residual
+          try {
+            const currentU = JSON.parse(localStorage.getItem('user') || '{}');
+            localStorage.setItem('user', JSON.stringify({ ...currentU, ...me }));
+          } catch(err) {}
+
+          const codes = (me.roles || []).map(r => (typeof r === 'string' ? r : r.code || ''));
+          const isSuper = Boolean(me.is_superuser || me.username === 'admin' || (me.email && me.email.includes('admin')) || codes.includes('admin'));
+          if ((codes.includes('store_manager') || codes.includes('manager') || codes.includes('gerente') || codes.includes('supervisor')) && !isSuper) {
+            this.isAdmin = false;
+            this.isStoreManager = true;
+          } else if (isSuper) {
             this.isAdmin = true;
-            this.isPresaleSeller = false;
+            this.isStoreManager = false;
           } else {
-            const codes = (me.roles || []).map(r => r.code || r);
-            this.isAdmin = codes.includes('admin') || codes.includes('store_manager');
-            this.isPresaleSeller = (codes.includes('presale_seller') || codes.includes('preventista')) && !this.isAdmin;
+            this.isAdmin = false;
+            this.isStoreManager = false;
           }
+          this.isPresaleSeller = (codes.includes('presale_seller') || codes.includes('preventista')) && !this.isAdmin && !this.isStoreManager;
+          this.isInventoryManager = (codes.includes('inventory_manager') || codes.includes('warehouse') || codes.includes('bodeguero')) && !this.isAdmin && !this.isStoreManager;
+          this.isAccountant = (codes.includes('accountant') || codes.includes('contador') || codes.includes('finance')) && !this.isAdmin && !this.isStoreManager;
         } else if (res.status === 401) {
           this.logout();
         }

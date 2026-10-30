@@ -814,8 +814,17 @@
               targetUrl = nextUrl;
             } else {
               const roleCodes = data.user?.role_codes || [];
-              if (roleCodes.includes('cashier') && !roleCodes.includes('admin')) {
+              const isAdmin = roleCodes.includes('admin') || data.user?.is_superuser || data.user?.is_admin;
+              if (roleCodes.includes('cashier') && !isAdmin && !roleCodes.includes('store_manager')) {
                 targetUrl = '/pos';
+              } else if ((roleCodes.includes('inventory_manager') || roleCodes.includes('warehouse') || roleCodes.includes('bodeguero')) && !isAdmin) {
+                targetUrl = '/dashboard';
+              } else if ((roleCodes.includes('accountant') || roleCodes.includes('contador') || roleCodes.includes('finance')) && !isAdmin) {
+                targetUrl = '/dashboard';
+              } else if ((roleCodes.includes('store_manager') || roleCodes.includes('manager') || roleCodes.includes('gerente') || roleCodes.includes('supervisor')) && !isAdmin) {
+                targetUrl = '/dashboard';
+              } else if ((roleCodes.includes('preventista') || roleCodes.includes('presale_seller')) && !isAdmin) {
+                targetUrl = '/preventa';
               } else {
                 targetUrl = '/dashboard';
               }
