@@ -76,7 +76,11 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
 
     # CORS
-    ALLOWED_ORIGINS: Union[List[str], str] = ["http://localhost:8000"]
+    ALLOWED_ORIGINS: Union[List[str], str] = [
+        "http://localhost:8000",
+        "https://productosautomotricesdelsur.com",
+        "https://www.productosautomotricesdelsur.com",
+    ]
 
     @field_validator("ALLOWED_ORIGINS", mode="before")
     @classmethod

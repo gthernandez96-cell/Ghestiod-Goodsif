@@ -21,7 +21,14 @@ else:
     DEBUG = "DATABASE_URL" not in os.environ
 
 # Hosts permitidos
-ALLOWED_HOSTS = [".ondigitalocean.app", "localhost", "127.0.0.1"]
+ALLOWED_HOSTS = [
+    ".ondigitalocean.app",
+    "productosautomotricesdelsur.com",
+    "www.productosautomotricesdelsur.com",
+    ".productosautomotricesdelsur.com",
+    "localhost",
+    "127.0.0.1",
+]
 extra_hosts = os.environ.get("DJANGO_ALLOWED_HOSTS", "")
 if extra_hosts:
     for host in extra_hosts.split(","):
@@ -30,7 +37,11 @@ if extra_hosts:
             ALLOWED_HOSTS.append(clean_host)
 
 # CSRF Trusted Origins para DigitalOcean y dominios personalizados
-CSRF_TRUSTED_ORIGINS = ["https://*.ondigitalocean.app"]
+CSRF_TRUSTED_ORIGINS = [
+    "https://*.ondigitalocean.app",
+    "https://productosautomotricesdelsur.com",
+    "https://www.productosautomotricesdelsur.com",
+]
 if extra_hosts:
     for host in extra_hosts.split(","):
         clean_host = host.strip()
