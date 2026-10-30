@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, func
 from sqlalchemy.orm import selectinload
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, List
 from decimal import Decimal
 from datetime import datetime, timezone, timedelta
@@ -14,7 +14,7 @@ from app.core.security import get_current_user
 from app.models.sale import SaleOrder, SaleOrderLine, SalePayment, SaleState, SaleType
 from app.models.cashier import CashierSession, SessionState, CashMovementType, PaymentMethod, CashMovement
 from app.models.company import Branch, Warehouse
-from app.models.product import Product, ProductType
+from app.models.product import Product, ProductType, UnitOfMeasure
 from app.models.inventory import StockMoveType, StockQuant
 from app.services.inventory_service import InventoryService
 from app.services.fel_service import FELService
@@ -27,13 +27,13 @@ class SaleLineIn(BaseModel):
     product_id: str
     variant_id: Optional[str] = None
     lot_id: Optional[str] = None
-    product_name: str
+    product_name: str = Field(..., min_length=1, max_length=300)
     product_barcode: Optional[str] = None
-    qty: Decimal
-    unit_price: Decimal
-    cost_price: Decimal = Decimal("0")
-    discount_pct: Decimal = Decimal("0")
-    tax_rate: Decimal = Decimal("12")
+    qty: Decimal = Field(..., gt=Decimal("0"))
+    unit_price: Decimal = Field(..., ge=Decimal("0"))
+    cost_price: Decimal = Field(default=Decimal("0"), ge=Decimal("0"))
+    discount_pct: Decimal = Field(default=Decimal("0"), ge=Decimal("0"), le=Decimal("100"))
+    tax_rate: Decimal = Field(default=Decimal("12"), ge=Decimal("0"))
     uom_id: Optional[str] = None
     serial_number: Optional[str] = None
     is_wholesale: Optional[bool] = False
@@ -44,7 +44,7 @@ class SaleLineIn(BaseModel):
 
 class SalePaymentIn(BaseModel):
     payment_method: str = "cash"
-    amount: Decimal
+    amount: Decimal = Field(..., ge=Decimal("0"))
     reference: Optional[str] = None
     card_last4: Optional[str] = None
 
@@ -58,7 +58,7 @@ class CreateSaleIn(BaseModel):
     customer_name: Optional[str] = "CONSUMIDOR FINAL"
     price_list_id: Optional[str] = None
     sale_type: str = "pos"
-    lines: List[SaleLineIn]
+    lines: List[SaleLineIn] = Field(..., min_length=1)
     payments: List[SalePaymentIn]
     notes: Optional[str] = None
     generate_fel: bool = True
@@ -230,17 +230,24 @@ async def create_sale(
 
     # Validar que ningún producto sobrepase la existencia disponible en bodega ni las reservas de pre-ventas
     cutoff_7d = datetime.now(timezone.utc) - timedelta(days=7)
-    for line_data in data.lines:
-        p_uuid = to_uuid(line_data.product_id)
-        if not p_uuid:
-            continue
-        prod_chk = (await db.execute(select(Product).where(Product.id == p_uuid))).scalar_one_or_none()
-        if not prod_chk or getattr(prod_chk, "product_type", None) == ProductType.SERVICE:
-            continue
+    all_p_uuids = list({to_uuid(ld.product_id) for ld in data.lines if to_uuid(ld.product_id)})
+    all_uom_uuids = list({to_uuid(ld.uom_id) for ld in data.lines if getattr(ld, "uom_id", None) and to_uuid(ld.uom_id)})
 
-        # 1. Stock reservado por pre-ventas pendientes (vigencia 7 días)
-        froz_q = float((await db.execute(
-            select(func.coalesce(func.sum(SaleOrderLine.qty), 0))
+    product_map = {}
+    if all_p_uuids:
+        p_rows = (await db.execute(select(Product).where(Product.id.in_(all_p_uuids)))).scalars().all()
+        product_map = {p.id: p for p in p_rows}
+
+    uom_map = {}
+    if all_uom_uuids:
+        u_rows = (await db.execute(select(UnitOfMeasure).where(UnitOfMeasure.id.in_(all_uom_uuids)))).scalars().all()
+        uom_map = {u.id: u for u in u_rows}
+
+    frozen_map = {}
+    phys_map = {}
+    if all_p_uuids:
+        froz_rows = (await db.execute(
+            select(SaleOrderLine.product_id, func.coalesce(func.sum(SaleOrderLine.qty), 0))
             .join(SaleOrder, SaleOrderLine.sale_id == SaleOrder.id)
             .where(
                 SaleOrder.company_id == company_uuid,
@@ -249,37 +256,53 @@ async def create_sale(
                 SaleOrder.created_at >= cutoff_7d,
                 SaleOrder.is_deleted == False,
                 SaleOrderLine.is_deleted == False,
-                SaleOrderLine.product_id == p_uuid,
+                SaleOrderLine.product_id.in_(all_p_uuids),
             )
-        )).scalar() or 0.0)
+            .group_by(SaleOrderLine.product_id)
+        )).all()
+        frozen_map = {pid: float(val or 0.0) for pid, val in froz_rows}
 
-        # 2. Stock físico real en las bodegas activas de la empresa
-        phys_q = float((await db.execute(
-            select(func.coalesce(func.sum(StockQuant.qty_on_hand), 0))
+        phys_rows = (await db.execute(
+            select(StockQuant.product_id, func.coalesce(func.sum(StockQuant.qty_on_hand), 0))
             .join(Warehouse, StockQuant.warehouse_id == Warehouse.id)
             .join(Branch, Warehouse.branch_id == Branch.id)
             .where(
-                StockQuant.product_id == p_uuid,
+                StockQuant.product_id.in_(all_p_uuids),
                 StockQuant.is_deleted == False,
                 Warehouse.is_active == True,
                 Warehouse.is_deleted == False,
                 Branch.company_id == company_uuid,
             )
-        )).scalar() or 0.0)
+            .group_by(StockQuant.product_id)
+        )).all()
+        phys_map = {pid: float(val or 0.0) for pid, val in phys_rows}
 
-        avail_q = phys_q - froz_q
+    # Acumular cantidad total solicitada por producto en el carrito (previene bypass por líneas duplicadas)
+    req_by_product = {}
+    for line_data in data.lines:
+        p_uuid = to_uuid(line_data.product_id)
+        if not p_uuid:
+            continue
+        prod_chk = product_map.get(p_uuid)
+        if not prod_chk or getattr(prod_chk, "product_type", None) == ProductType.SERVICE:
+            continue
 
-        # 3. Factor multiplicador si es presentación mayorista o unidad de medida
         ratio = 1.0
         if getattr(line_data, "is_wholesale", False):
-            ratio = float(prod_chk.wholesale_ratio or 12.0)
+            if not getattr(line_data, "qty_in_base_units", True):
+                ratio = float(prod_chk.wholesale_ratio or 12.0)
         elif getattr(line_data, "uom_id", None):
-            from app.models.product import UnitOfMeasure
-            uom_res = await db.execute(select(UnitOfMeasure).where(UnitOfMeasure.id == to_uuid(line_data.uom_id)))
-            uom = uom_res.scalar_one_or_none()
+            uom = uom_map.get(to_uuid(line_data.uom_id))
             if uom:
                 ratio = float(uom.ratio or 1.0)
         req_qty = float(line_data.qty) * ratio
+        req_by_product[p_uuid] = req_by_product.get(p_uuid, 0.0) + req_qty
+
+    for p_uuid, req_qty in req_by_product.items():
+        prod_chk = product_map.get(p_uuid)
+        froz_q = frozen_map.get(p_uuid, 0.0)
+        phys_q = phys_map.get(p_uuid, 0.0)
+        avail_q = phys_q - froz_q
 
         if avail_q < req_qty:
             if froz_q > 0:
@@ -515,89 +538,100 @@ async def create_sale(
             )
             db.add(sale_move)
 
-    db.add(sale)
-    await db.flush()
+    try:
+        db.add(sale)
+        await db.flush()
 
-    # Descontar inventario
-    for idx, line in enumerate(sale.lines):
-        line_data = data.lines[idx] if idx < len(data.lines) else None
-        if warehouse_uuid and line.product_id:
-            prod_obj_res = await db.execute(select(Product).where(Product.id == to_uuid(line.product_id)))
-            prod_obj = prod_obj_res.scalar_one_or_none()
+        # Descontar inventario reutilizando mapas pre-cargados (sin N+1)
+        for idx, line in enumerate(sale.lines):
+            line_data = data.lines[idx] if idx < len(data.lines) else None
+            if warehouse_uuid and line.product_id:
+                p_uuid = to_uuid(line.product_id)
+                prod_obj = product_map.get(p_uuid)
+                if not prod_obj:
+                    prod_obj_res = await db.execute(select(Product).where(Product.id == p_uuid))
+                    prod_obj = prod_obj_res.scalar_one_or_none()
 
-            # Calcular cantidad convertida según la unidad de medida y venta mayorista
-            qty_inventory = line.qty
-            is_wholesale = bool(
-                (line_data and getattr(line_data, "is_wholesale", False)) or
-                (prod_obj and prod_obj.wholesale_uom_id and line.uom_id == prod_obj.wholesale_uom_id)
-            )
-
-            if is_wholesale:
-                if line_data and getattr(line_data, "qty_in_base_units", True):
-                    qty_inventory = line.qty
-                else:
-                    ratio = Decimal(str(
-                        (line_data and getattr(line_data, "wholesale_ratio", None)) or
-                        (prod_obj and prod_obj.wholesale_ratio) or
-                        1
-                    ))
-                    qty_inventory = line.qty * ratio
-            elif line.uom_id:
-                from app.models.product import UnitOfMeasure
-                uom_res = await db.execute(select(UnitOfMeasure).where(UnitOfMeasure.id == line.uom_id))
-                uom = uom_res.scalar_one_or_none()
-                if uom:
-                    qty_inventory = line.qty * Decimal(str(uom.ratio))
-
-            # Verificar si el producto es un COMBO
-            if prod_obj and (prod_obj.attributes or {}).get("is_combo"):
-                combo_items = (prod_obj.attributes or {}).get("combo_items", [])
-                for c_item in combo_items:
-                    c_prod_id = c_item.get("product_id")
-                    c_qty = Decimal(str(c_item.get("qty", 1))) * line.qty
-                    if c_prod_id:
-                        await inv_service.create_move(
-                            warehouse_id=warehouse_uuid,
-                            product_id=uuid.UUID(str(c_prod_id)),
-                            move_type=StockMoveType.SALE,
-                            qty=c_qty,
-                            reference=f"{sale.number} (Combo Componente)",
-                            reference_id=sale.id,
-                            user_id=user_uuid,
-                        )
-            else:
-                await inv_service.create_move(
-                    warehouse_id=warehouse_uuid,
-                    product_id=to_uuid(line.product_id),
-                    move_type=StockMoveType.SALE,
-                    qty=qty_inventory,
-                    unit_cost=line.cost_price,
-                    reference=sale.number,
-                    reference_id=sale.id,
-                    lot_id=to_uuid(line.lot_id),
-                    variant_id=to_uuid(line.variant_id),
-                    user_id=user_uuid,
-                    notes=f"N/S: {line.serial_number}" if line.serial_number else ""
+                # Calcular cantidad convertida según la unidad de medida y venta mayorista
+                qty_inventory = line.qty
+                is_wholesale = bool(
+                    (line_data and getattr(line_data, "is_wholesale", False)) or
+                    (prod_obj and prod_obj.wholesale_uom_id and line.uom_id == prod_obj.wholesale_uom_id)
                 )
 
-    # Generar FEL
-    fel_doc = None
-    if data.generate_fel:
-        try:
-            fel_service = FELService(db, current_user.company_id)
-            # Cargar relaciones necesarias para FEL
-            fel_doc = await fel_service.generate_dte(sale)
-            sale.fel_uuid = fel_doc.uuid
-            sale.fel_number = fel_doc.number
-            sale.fel_series = fel_doc.series
-            sale.fel_certified_at = fel_doc.certified_at
-            sale.fel_status = fel_doc.status.value
-        except Exception as e:
-            # No fallar la venta si FEL falla — contingencia
-            import logging
-            logging.getLogger(__name__).error(f"FEL Error: {e}")
+                if is_wholesale:
+                    if line_data and getattr(line_data, "qty_in_base_units", True):
+                        qty_inventory = line.qty
+                    else:
+                        ratio = Decimal(str(
+                            (line_data and getattr(line_data, "wholesale_ratio", None)) or
+                            (prod_obj and prod_obj.wholesale_ratio) or
+                            1
+                        ))
+                        qty_inventory = line.qty * ratio
+                elif line.uom_id:
+                    uom = uom_map.get(to_uuid(line.uom_id))
+                    if not uom:
+                        from app.models.product import UnitOfMeasure
+                        uom_res = await db.execute(select(UnitOfMeasure).where(UnitOfMeasure.id == line.uom_id))
+                        uom = uom_res.scalar_one_or_none()
+                    if uom:
+                        qty_inventory = line.qty * Decimal(str(uom.ratio))
 
-    await db.commit()
+                # Verificar si el producto es un COMBO
+                if prod_obj and (prod_obj.attributes or {}).get("is_combo"):
+                    combo_items = (prod_obj.attributes or {}).get("combo_items", [])
+                    for c_item in combo_items:
+                        c_prod_id = c_item.get("product_id")
+                        c_qty = Decimal(str(c_item.get("qty", 1))) * line.qty
+                        if c_prod_id:
+                            await inv_service.create_move(
+                                warehouse_id=warehouse_uuid,
+                                product_id=uuid.UUID(str(c_prod_id)),
+                                move_type=StockMoveType.SALE,
+                                qty=c_qty,
+                                reference=f"{sale.number} (Combo Componente)",
+                                reference_id=sale.id,
+                                user_id=user_uuid,
+                            )
+                else:
+                    await inv_service.create_move(
+                        warehouse_id=warehouse_uuid,
+                        product_id=p_uuid,
+                        move_type=StockMoveType.SALE,
+                        qty=qty_inventory,
+                        unit_cost=line.cost_price,
+                        reference=sale.number,
+                        reference_id=sale.id,
+                        lot_id=to_uuid(line.lot_id),
+                        variant_id=to_uuid(line.variant_id),
+                        user_id=user_uuid,
+                        notes=f"N/S: {line.serial_number}" if line.serial_number else ""
+                    )
+
+        # Generar FEL
+        fel_doc = None
+        if data.generate_fel:
+            try:
+                fel_service = FELService(db, current_user.company_id)
+                fel_doc = await fel_service.generate_dte(sale)
+                sale.fel_uuid = fel_doc.uuid
+                sale.fel_number = fel_doc.number
+                sale.fel_series = fel_doc.series
+                sale.fel_certified_at = fel_doc.certified_at
+                sale.fel_status = fel_doc.status.value
+            except Exception as e:
+                # No fallar la venta si FEL falla — contingencia
+                import logging
+                logging.getLogger(__name__).error(f"FEL Error: {e}")
+
+        await db.commit()
+    except HTTPException:
+        await db.rollback()
+        raise
+    except Exception:
+        await db.rollback()
+        raise
 
     return {
         "id": str(sale.id),
@@ -634,7 +668,10 @@ async def void_or_cancel_sale(
     result = await db.execute(
         select(SaleOrder)
         .options(selectinload(SaleOrder.lines), selectinload(SaleOrder.payments))
-        .where(SaleOrder.id == s_uuid)
+        .where(
+            SaleOrder.id == s_uuid,
+            SaleOrder.company_id == current_user.company_id,
+        )
     )
     sale = result.scalar_one_or_none()
     if not sale:
@@ -643,72 +680,107 @@ async def void_or_cancel_sale(
     if sale.state == SaleState.CANCELLED:
         raise HTTPException(status_code=400, detail="La venta ya fue anulada previamente")
 
-    # 1. Revertir movimientos de inventario (incluyendo combos)
-    inv_service = InventoryService(db)
-    for line in sale.lines:
-        prod_obj_res = await db.execute(select(Product).where(Product.id == uuid.UUID(str(line.product_id))))
-        prod_obj = prod_obj_res.scalar_one_or_none()
-        if prod_obj and (prod_obj.attributes or {}).get("is_combo"):
-            combo_items = (prod_obj.attributes or {}).get("combo_items", [])
-            for c_item in combo_items:
-                c_prod_id = c_item.get("product_id")
-                c_qty = Decimal(str(c_item.get("qty", 1))) * (line.qty - line.qty_returned)
-                if c_prod_id:
+    # Solo revertir stock si la venta ya había descontado inventario
+    non_deducted_states = {
+        SaleState.DRAFT,
+        SaleState.PENDING_APPROVAL,
+        SaleState.WAREHOUSE_VALIDATION,
+        SaleState.REJECTED,
+    }
+    should_reverse_stock = sale.state not in non_deducted_states and bool(sale.warehouse_id)
+
+    try:
+        # 1. Revertir movimientos de inventario (incluyendo combos y conversión UOM)
+        if should_reverse_stock and sale.lines:
+            from app.models.product import UnitOfMeasure
+            inv_service = InventoryService(db)
+            line_prod_ids = list({to_uuid(l.product_id) for l in sale.lines if l.product_id and to_uuid(l.product_id)})
+            line_uom_ids = list({to_uuid(l.uom_id) for l in sale.lines if l.uom_id and to_uuid(l.uom_id)})
+
+            p_res = await db.execute(select(Product).where(Product.id.in_(line_prod_ids))) if line_prod_ids else None
+            p_map = {p.id: p for p in p_res.scalars().all()} if p_res else {}
+
+            u_res = await db.execute(select(UnitOfMeasure).where(UnitOfMeasure.id.in_(line_uom_ids))) if line_uom_ids else None
+            u_map = {u.id: u for u in u_res.scalars().all()} if u_res else {}
+
+            for line in sale.lines:
+                rem_qty = Decimal(str(line.qty or 0)) - Decimal(str(line.qty_returned or 0))
+                if rem_qty <= 0 or not line.product_id:
+                    continue
+                p_uuid = to_uuid(line.product_id)
+                prod_obj = p_map.get(p_uuid)
+                if prod_obj and (prod_obj.attributes or {}).get("is_combo"):
+                    combo_items = (prod_obj.attributes or {}).get("combo_items", [])
+                    for c_item in combo_items:
+                        c_prod_id = c_item.get("product_id")
+                        c_qty = Decimal(str(c_item.get("qty", 1))) * rem_qty
+                        if c_prod_id:
+                            await inv_service.create_move(
+                                warehouse_id=sale.warehouse_id,
+                                product_id=uuid.UUID(str(c_prod_id)),
+                                move_type=StockMoveType.RETURN_SALE,
+                                qty=c_qty,
+                                reference=f"ANULA-{sale.number} (Combo)",
+                                reference_id=sale.id,
+                                user_id=current_user.id,
+                            )
+                else:
+                    qty_to_return = rem_qty
+                    if line.uom_id:
+                        uom_obj = u_map.get(to_uuid(line.uom_id))
+                        if uom_obj and uom_obj.ratio:
+                            qty_to_return = rem_qty * Decimal(str(uom_obj.ratio))
                     await inv_service.create_move(
                         warehouse_id=sale.warehouse_id,
-                        product_id=uuid.UUID(str(c_prod_id)),
+                        product_id=p_uuid,
                         move_type=StockMoveType.RETURN_SALE,
-                        qty=c_qty,
-                        reference=f"ANULA-{sale.number} (Combo)",
+                        qty=qty_to_return,
+                        reference=f"ANULA-{sale.number}",
                         reference_id=sale.id,
                         user_id=current_user.id,
                     )
-        else:
-            await inv_service.create_move(
-                warehouse_id=sale.warehouse_id,
-                product_id=uuid.UUID(str(line.product_id)),
-                move_type=StockMoveType.RETURN_SALE,
-                qty=line.qty - line.qty_returned,
-                reference=f"ANULA-{sale.number}",
-                reference_id=sale.id,
-                user_id=current_user.id,
-            )
 
-    # 2. Revertir saldo si fue a crédito
-    for pay in sale.payments:
-        if pay.payment_method == "credit" and sale.customer_id:
-            from app.models.partner import Partner
-            cust_res = await db.execute(select(Partner).where(Partner.id == sale.customer_id))
-            cust = cust_res.scalar_one_or_none()
-            if cust:
-                cust.balance = max(Decimal("0"), Decimal(str(cust.balance or 0)) - pay.amount)
+        # 2. Revertir saldo si fue a crédito
+        for pay in sale.payments:
+            if pay.payment_method == "credit" and sale.customer_id:
+                from app.models.partner import Partner
+                cust_res = await db.execute(select(Partner).where(Partner.id == sale.customer_id))
+                cust = cust_res.scalar_one_or_none()
+                if cust:
+                    cust.balance = max(Decimal("0"), Decimal(str(cust.balance or 0)) - pay.amount)
 
-    # 3. Anular DTE en el SAT si está certificado
-    fel_cancelled = False
-    if sale.fel_uuid:
-        try:
-            from app.models.fel import FELDocument
-            fel_stmt = select(FELDocument).where(FELDocument.uuid == sale.fel_uuid)
-            fel_res = await db.execute(fel_stmt)
-            fel_doc = fel_res.scalar_one_or_none()
-            if fel_doc:
-                fel_service = FELService(db, current_user.company_id)
-                await fel_service.cancel_dte(fel_doc, reason_text)
-                fel_cancelled = True
-        except Exception as e:
-            import logging
-            logging.getLogger(__name__).warning(f"No se pudo anular DTE SAT: {e}")
+        # 3. Anular DTE en el SAT si está certificado
+        fel_cancelled = False
+        if sale.fel_uuid:
+            try:
+                from app.models.fel import FELDocument
+                fel_stmt = select(FELDocument).where(FELDocument.uuid == sale.fel_uuid)
+                fel_res = await db.execute(fel_stmt)
+                fel_doc = fel_res.scalar_one_or_none()
+                if fel_doc:
+                    fel_service = FELService(db, current_user.company_id)
+                    await fel_service.cancel_dte(fel_doc, reason_text)
+                    fel_cancelled = True
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).warning(f"No se pudo anular DTE SAT: {e}")
 
-    sale.state = SaleState.CANCELLED
-    sale.fel_status = "cancelled"
-    sale.notes = f"{sale.notes or ''} [ANULADA: {reason_text}]".strip()
-    await db.commit()
+        sale.state = SaleState.CANCELLED
+        sale.fel_status = "cancelled"
+        sale.notes = f"{sale.notes or ''} [ANULADA: {reason_text}]".strip()
+        await db.commit()
+    except HTTPException:
+        await db.rollback()
+        raise
+    except Exception:
+        await db.rollback()
+        raise
 
     return {
         "status": "success",
         "message": f"Factura/Venta {sale.number} anulada con éxito.",
         "fel_cancelled": fel_cancelled,
-        "stock_reversed": True,
+        "stock_reversed": should_reverse_stock,
         "reason": reason_text
     }
 

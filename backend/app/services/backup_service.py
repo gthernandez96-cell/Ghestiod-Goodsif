@@ -67,7 +67,7 @@ async def dump_database_to_dict(session: AsyncSession, company_id: Optional[uuid
             rows = res.mappings().all()
             if rows:
                 backup_data["tables"][table.name] = [
-                    {k: serialize_val(v) for k, v in row.items()}
+                    {k: serialize_val(v) for k, v in row.items() if k != "hashed_password"}
                     for row in rows
                 ]
             else:

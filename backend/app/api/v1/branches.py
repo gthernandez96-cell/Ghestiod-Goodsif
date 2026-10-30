@@ -95,6 +95,13 @@ class WarehouseUpdateIn(BaseModel):
     is_default: Optional[bool] = None
 
 
+def _user_has_role(user, allowed_roles: set[str]) -> bool:
+    if getattr(user, "is_superuser", False):
+        return True
+    roles = [getattr(r, "name", "").lower() for r in getattr(user, "roles", []) or []]
+    return any(r in allowed_roles for r in roles)
+
+
 # ===== 1. COMPANIES (MULTI-EMPRESA & CONFIGURACIONES) =====
 @router.get("/companies/current")
 async def get_current_company_settings(
@@ -110,6 +117,7 @@ async def get_current_company_settings(
         raise HTTPException(status_code=404, detail="Empresa no encontrada")
 
     st = c.settings or {}
+    can_manage_settings = _user_has_role(current_user, {"admin", "store_manager", "gerente", "administrador"})
     return {
         "id": str(c.id),
         "name": c.name,
@@ -125,7 +133,7 @@ async def get_current_company_settings(
         "logo_url": c.logo_url or "",
         "fel_provider": st.get("fel_provider", "INFILE"),
         "fel_user": st.get("fel_user", "USUARIO_FEL_DEMO"),
-        "fel_key": st.get("fel_key", ""),
+        "fel_key": st.get("fel_key", "") if can_manage_settings else "",
         "fel_environment": st.get("fel_environment", "sandbox"),
         "sat_establishment_code": st.get("sat_establishment_code", "1"),
         "pos_ticket_format": st.get("pos_ticket_format", "80mm"),
@@ -177,6 +185,8 @@ async def update_current_company_settings(
     current_user=Depends(get_current_user),
 ):
     """Actualizar datos fiscales, logotipo y parámetros generales de la empresa."""
+    if not _user_has_role(current_user, {"admin", "store_manager", "gerente", "administrador"}):
+        raise HTTPException(status_code=403, detail="No tiene permisos para modificar la configuración de la empresa")
     c_uuid = uuid.UUID(str(current_user.company_id))
     stmt = select(Company).where(Company.id == c_uuid)
     res = await db.execute(stmt)
@@ -229,6 +239,8 @@ async def download_database_backup(
     current_user=Depends(get_current_user),
 ):
     """Descargar copia de seguridad íntegra de la base de datos (JSON estructurado o archivo SQLite)."""
+    if not _user_has_role(current_user, {"admin", "store_manager", "gerente", "administrador"}):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden descargar copias de seguridad")
     now_str = datetime.now().strftime("%Y-%m-%d_%H%M%S")
     db_path = os.path.abspath("pos.db")
     from app.core.config import settings
@@ -283,7 +295,7 @@ async def download_database_backup(
             rows = res.mappings().all()
             if rows:
                 backup_data["tables"][table.name] = [
-                    {k: serialize_val(v) for k, v in row.items()}
+                    {k: serialize_val(v) for k, v in row.items() if k != "hashed_password"}
                     for row in rows
                 ]
             else:

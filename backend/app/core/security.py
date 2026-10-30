@@ -72,7 +72,7 @@ async def get_current_user(
     raw_token = token
     if not raw_token:
         raw_token = request.cookies.get("access_token")
-    if not raw_token:
+    if not raw_token and request.method == "GET":
         raw_token = request.query_params.get("token")
 
     if not raw_token:

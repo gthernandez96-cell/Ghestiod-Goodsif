@@ -747,7 +747,7 @@ async def import_partners_csv(
             await db.execute(text("ALTER TABLE partners ALTER COLUMN bank_name TYPE VARCHAR(255)"))
             await db.commit()
     except Exception:
-        pass
+        await db.rollback()
 
     # Obtener el ID/código correlativo máximo actual de la empresa
     max_code_res = await db.execute(

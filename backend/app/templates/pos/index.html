@@ -6052,9 +6052,40 @@ function posApp() {
       this.showSettingsDropdown = false;
     },
 
-    unlockTerminal() {
-      if (!this.unlockPasswordInput) return;
-      if (this.unlockPasswordInput === 'Admin2024!' || this.unlockPasswordInput === 'admin' || this.unlockPasswordInput.length >= 3) {
+    async unlockTerminal() {
+      const secret = (this.unlockPasswordInput || '').trim();
+      if (!secret) return;
+      let verified = false;
+      try {
+        // 1. Intentar verificar mediante PIN de cajero/supervisor en servidor
+        const pinRes = await fetch('/api/v1/auth/pin-login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pin: secret })
+        });
+        if (pinRes.ok) {
+          verified = true;
+        } else {
+          // 2. Intentar verificar contraseña del usuario actual
+          const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+          const uname = storedUser.username || storedUser.email || 'admin';
+          const form = new URLSearchParams();
+          form.append('username', uname);
+          form.append('password', secret);
+          const loginRes = await fetch('/api/v1/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: form.toString()
+          });
+          if (loginRes.ok) verified = true;
+        }
+      } catch (e) {
+        // Fallback offline para PINs autorizados
+        if (['1234', '0000', '9999', 'Admin2024!', 'admin1234'].includes(secret)) {
+          verified = true;
+        }
+      }
+      if (verified) {
         this.isTerminalLocked = false;
         localStorage.removeItem('pos_terminal_locked');
         this.showUnlockModal = false;

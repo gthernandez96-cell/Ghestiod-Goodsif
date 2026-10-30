@@ -115,9 +115,14 @@ async def upload_website_image(
     unique_name = f"web_{uuid.uuid4().hex[:12]}{ext}"
     file_path = os.path.join(upload_dir, unique_name)
 
-    content = await file.read()
-    if len(content) > 8 * 1024 * 1024:
+    max_bytes = 8 * 1024 * 1024
+    content = await file.read(max_bytes + 1)
+    if len(content) > max_bytes:
         raise HTTPException(status_code=400, detail="La imagen no debe exceder los 8MB.")
+    if ext == ".svg":
+        svg_lower = content.decode("utf-8", errors="ignore").lower()
+        if "<script" in svg_lower or "javascript:" in svg_lower or "onload=" in svg_lower or "onerror=" in svg_lower:
+            raise HTTPException(status_code=400, detail="Archivo SVG rechazado por contener scripts activos.")
 
     # Subir a DigitalOcean Spaces si está configurado
     from app.services.spaces_storage import upload_to_spaces

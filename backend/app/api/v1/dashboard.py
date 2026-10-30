@@ -86,12 +86,19 @@ def resolve_period_dates(
         period_label = "Este Año"
     elif period == "custom" and start_date and end_date:
         try:
-            p_start_loc = datetime.combine(datetime.strptime(start_date[:10], "%Y-%m-%d").date(), datetime.min.time(), tzinfo=GUATEMALA_TZ)
-            p_end_loc = datetime.combine(datetime.strptime(end_date[:10], "%Y-%m-%d").date(), datetime.max.time(), tzinfo=GUATEMALA_TZ)
+            s_dt = datetime.strptime(start_date[:10], "%Y-%m-%d").date()
+            e_dt = datetime.strptime(end_date[:10], "%Y-%m-%d").date()
+            if s_dt > e_dt:
+                s_dt, e_dt = e_dt, s_dt
+            # Limitar rango máximo a 5 años (1825 días) para prevenir bucles excesivos en memoria
+            if (e_dt - s_dt).days > 1825:
+                s_dt = e_dt - timedelta(days=1825)
+            p_start_loc = datetime.combine(s_dt, datetime.min.time(), tzinfo=GUATEMALA_TZ)
+            p_end_loc = datetime.combine(e_dt, datetime.max.time(), tzinfo=GUATEMALA_TZ)
             duration = p_end_loc - p_start_loc
             prev_start_loc = p_start_loc - duration
             prev_end_loc = p_start_loc
-            period_label = f"{start_date[:10]} al {end_date[:10]}"
+            period_label = f"{s_dt.isoformat()} al {e_dt.isoformat()}"
         except Exception:
             p_start_loc = start_of_month_local
             p_end_loc = datetime.combine(today_local, datetime.max.time(), tzinfo=GUATEMALA_TZ)
@@ -902,17 +909,27 @@ async def get_stock_alerts(
     res = await db.execute(stmt)
     products = res.scalars().all()
 
-    alerts = []
-    for p in products:
-        sq_query = select(func.coalesce(func.sum(StockQuant.qty_on_hand), Decimal("0"))).where(StockQuant.product_id == p.id)
+    # Batch query de existencias por producto (elimina problema N+1 en cada carga de página)
+    stock_by_prod = {}
+    if products:
+        prod_ids = [p.id for p in products]
+        sq_query = (
+            select(StockQuant.product_id, func.coalesce(func.sum(StockQuant.qty_on_hand), Decimal("0")))
+            .where(StockQuant.product_id.in_(prod_ids))
+        )
         if branch_id:
             try:
                 b_uuid = uuid.UUID(branch_id)
                 sq_query = sq_query.join(Warehouse, StockQuant.warehouse_id == Warehouse.id).where(Warehouse.branch_id == b_uuid)
             except ValueError:
                 pass
+        sq_query = sq_query.group_by(StockQuant.product_id)
         sq_res = await db.execute(sq_query)
-        current_stock = float(sq_res.scalar() or 0)
+        stock_by_prod = {row[0]: float(row[1] or 0) for row in sq_res.all()}
+
+    alerts = []
+    for p in products:
+        current_stock = stock_by_prod.get(p.id, 0.0)
         min_stock = float(p.min_stock or 0)
         if current_stock <= min_stock:
             deficit = max(0, min_stock - current_stock)
@@ -997,7 +1014,7 @@ async def get_profitability_and_runway(
 
     profitability_items.sort(key=lambda x: x["gross_profit"], reverse=True)
 
-    # 2. Runway de stock
+    # 2. Runway de stock (batch query sin N+1)
     prod_stmt = select(Product).options(selectinload(Product.category)).where(
         Product.company_id == current_user.company_id,
         Product.is_active == True
@@ -1005,18 +1022,27 @@ async def get_profitability_and_runway(
     prod_res = await db.execute(prod_stmt)
     products = prod_res.scalars().all()
 
-    runway_items = []
-    for p in products:
-        p_id_str = str(p.id)
-        sq_query = select(func.coalesce(func.sum(StockQuant.qty_on_hand), Decimal("0"))).where(StockQuant.product_id == p.id)
+    stock_by_prod = {}
+    if products:
+        prod_ids = [p.id for p in products]
+        sq_query = (
+            select(StockQuant.product_id, func.coalesce(func.sum(StockQuant.qty_on_hand), Decimal("0")))
+            .where(StockQuant.product_id.in_(prod_ids))
+        )
         if branch_id:
             try:
                 b_uuid = uuid.UUID(branch_id)
                 sq_query = sq_query.join(Warehouse, StockQuant.warehouse_id == Warehouse.id).where(Warehouse.branch_id == b_uuid)
             except ValueError:
                 pass
+        sq_query = sq_query.group_by(StockQuant.product_id)
         sq_res = await db.execute(sq_query)
-        current_stock = float(sq_res.scalar() or 0)
+        stock_by_prod = {row[0]: float(row[1] or 0) for row in sq_res.all()}
+
+    runway_items = []
+    for p in products:
+        p_id_str = str(p.id)
+        current_stock = stock_by_prod.get(p.id, 0.0)
         qty_sold_30d = sold_qty_map.get(p_id_str, 0.0)
         daily_velocity = qty_sold_30d / 30.0
 

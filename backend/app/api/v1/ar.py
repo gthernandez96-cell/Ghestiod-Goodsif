@@ -66,14 +66,24 @@ async def _sync_sales_to_credits(db: AsyncSession, company_id: uuid.UUID):
             cinv.state = "cancelled"
             synced_any = True
 
-        # 2. Sincronizar Ventas al Crédito y Pre-ventas con cliente identificado
+        # 2. Sincronizar Ventas al Crédito y Pre-ventas con cliente identificado (filtrando ya sincronizadas en SQL)
+        synced_sale_subq = (
+            select(CustomerInvoiceCredit.sale_id)
+            .where(
+                CustomerInvoiceCredit.company_id == company_id,
+                CustomerInvoiceCredit.is_deleted == False,
+                CustomerInvoiceCredit.sale_id.isnot(None),
+            )
+        )
         sales_stmt = (
             select(SaleOrder)
             .options(selectinload(SaleOrder.payments))
             .where(
                 SaleOrder.company_id == company_id,
                 SaleOrder.customer_id.isnot(None),
-                SaleOrder.is_deleted == False
+                SaleOrder.is_deleted == False,
+                SaleOrder.state.notin_([SaleState.CANCELLED, SaleState.REJECTED]),
+                SaleOrder.id.notin_(synced_sale_subq),
             )
         )
         sales_res = await db.execute(sales_stmt)
@@ -130,17 +140,18 @@ async def _sync_sales_to_credits(db: AsyncSession, company_id: uuid.UUID):
         partners_res = await db.execute(partners_stmt)
         debtor_partners = partners_res.scalars().all()
 
+        # Pre-indexar saldos abiertos por cliente en O(N) para evitar bucle anidado O(N*M)
+        open_bal_by_customer: dict = {}
+        for c in existing_credits:
+            if not c.is_deleted and c.customer_id and c.balance and c.balance > 0:
+                open_bal_by_customer[c.customer_id] = open_bal_by_customer.get(c.customer_id, Decimal("0")) + Decimal(str(c.balance))
+
         for p in debtor_partners:
             p_balance = Decimal(str(p.balance or 0))
             if p_balance <= Decimal("0.01"):
                 continue
 
-            # Sumar cuentas de crédito abiertas de este cliente
-            existing_p_bal = sum(
-                c.balance for c in existing_credits 
-                if c.customer_id == p.id and c.balance and c.balance > 0
-            )
-
+            existing_p_bal = open_bal_by_customer.get(p.id, Decimal("0"))
             diff_balance = p_balance - existing_p_bal
             if diff_balance > Decimal("0.01"):
                 now_dt = datetime.now(timezone.utc)
@@ -163,11 +174,13 @@ async def _sync_sales_to_credits(db: AsyncSession, company_id: uuid.UUID):
                 db.add(credit_inv)
                 existing_numbers.add(credit_inv.number)
                 existing_credits.append(credit_inv)
+                open_bal_by_customer[p.id] = existing_p_bal + diff_balance
                 synced_any = True
 
         if synced_any:
             await db.commit()
     except Exception as e:
+        await db.rollback()
         import logging
         logging.getLogger(__name__).warning(f"Error sincronizando ventas a créditos: {e}")
 

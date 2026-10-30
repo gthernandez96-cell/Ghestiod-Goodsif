@@ -474,6 +474,12 @@ async def receive_transfer(
                 )
             )
             quant = quant_res.scalar_one_or_none()
+            available_stock = quant.qty_on_hand if quant else Decimal("0")
+            if available_stock < line.qty_sent:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Stock insuficiente en bodega origen para despachar '{line.product_name}'. Disponible: {float(available_stock):.0f}, Requerido: {float(line.qty_sent):.0f}."
+                )
             cost = quant.avg_cost if (quant and quant.avg_cost and quant.avg_cost > 0) else Decimal("0")
             line.unit_cost = cost
             if line.qty_sent > 0:
